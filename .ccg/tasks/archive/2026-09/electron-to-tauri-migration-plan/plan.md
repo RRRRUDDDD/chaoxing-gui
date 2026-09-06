@@ -323,3 +323,23 @@ WebView2 权限和安装/进程树行为不能只靠 jsdom 或假子进程通过
 - [Windows Installer](https://v2.tauri.app/distribute/windows-installer/)：NSIS、MSVC target、WebView2 部署方式。
 
 两路 Claude 分析原文见 `research/analysis-a.md` 与 `research/analysis-b.md`，综合取舍见 `research/synthesis.md`。Claude 两路审查及重试均超时，未取得通过结论；已完成主代理全文核对及独立子代理对通信/权限/会话的复核。最终审查范围和限制见 `review.md`。
+
+## 11. 下一对话交接 Prompt
+
+以下文本用于在新对话中开始迁移实施；发送前，本次工作仍仅为规划。
+
+```text
+请接手 chaoxing-gui 桌面版从 Electron 迁移到 Tauri 2 的实施，从既有计划的 P0 开始实际编码和验证，按验收门槛继续推进 P1–P5，不要只重新生成一份计划。
+仓库：E:\Downloads\45\chaoxing-gui，Windows / PowerShell。先检查当前 git status、HEAD 和已有实施任务，保留用户改动；已有进度则续接，不重做已验证工作。
+必读：.ccg/tasks/archive/2026-09/electron-to-tauri-migration-plan/plan.md、同目录 review.md、research/synthesis.md，以及当前 AGENTS.md（若存在）、.ccg/spec/backend/index.md、.ccg/spec/frontend/index.md。
+交接时仅完成规划，没有 Tauri 实现。源码调研基线 5899b5f，计划首次归档提交 a56274e；这些是历史参考，不要求回退代码。发现后续变更时先核对影响。
+目标架构：Windows x64，保留 React 和 Python/Flask；Tauri 本地加载 React，Rust 管理 Python onedir 后端，通过限定 operation 的命令转发 API。普通 Web、独立 Python exe 和便携发行继续可用。
+先创建或续接 .ccg/tasks/ 下独立的迁移实施任务，记录阶段、证据、下一步；已归档的规划任务不当作活动实施任务。遵守 CCG：L+ 两路并行分析和审查，按 plan 第 7 节拆文件归属，子代理 fork_turns="none"，不再派生代理，不覆盖其他实施者改动。
+CCG 外部入口：C:/Users/RUD/.claude/bin/codeagent-wrapper.exe --progress --backend claude；角色文件位于 C:/Users/RUD/.claude/.ccg/prompts/claude/。上次两路分析成功，但两路审查及重试均超时，不能当作通过；本地与独立代理复核也不能替代实施审查。调用需有超时，失败如实记录并继续可独立完成的工作，不能虚报发版门槛通过。
+P0 先核对 Rust/MSVC/WebView2/Python/Node 工具链和 Tauri 2 当前官方 API；用隔离 profile 实测最小窗口、完整 onedir 资源、端口握手、受限命令、stdin/Job Object、关闭无残留及真实旧数据路径。PoC 门槛未通过时修复并保留 Electron 默认入口。
+关键约束：必须连同 _internal 打包后端；Python 导入前设置 cwd；就绪握手认证本次进程。限制 custom command ACL，不开放通用 shell/文件/HTTP 或远程通配权限。Axios 保留 409/404、30 秒超时、AbortSignal、JSON transform 和日志游标，不能自动重试 /start。
+会话实际为 renderer-session.json v1，仅账号/taskId，没有 safeStorage 或密码解密需求。旧数据校验、备份后一次性导入新目录，不覆盖有效数据。任务状态在后端内存中，旧 taskId 不代表任务可续作；当前 stdin EOF 调用 os._exit(0)，不能声称已有优雅退出。
+发行遵循计划：独立安装目录、NSIS 和包含完整资源的便携 ZIP，处理 WebView2 缺失与离线条件。保留 Electron 回滚链路，待 P4/P5 验收后再切换和清理；本对话默认推进本地实现与验证，不自动发布 Release、推送仓库或操作真实账号数据。
+历史回归：Python 3.11/3.13 各 131 项、Web 38 项、Desktop 6 项及 Web 构建通过；本机 Node 当时为 24.14.0，CI 为 20。这些结果不代表新实现已验证，按当前改动运行计划第 8 节检查和真实 Windows smoke，记录未能执行的项目。
+每阶段说明实际完成项、改动文件、检查命令与结果、未解决问题及下一步，并更新 task.json/实施记录。上下文不足时写可续接状态；不要把部分迁移标记为完成。完成后按 CCG 归档，只提交本任务所属变更。
+```
