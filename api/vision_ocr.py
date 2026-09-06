@@ -9,7 +9,9 @@
 - 硅基流动 (SiliconFlow) 视觉模型
 - 其他 OpenAI 兼容 API
 
-通过环境变量配置：
+CLI 默认配置从 config.ini 的 [ocr]（或 [vision_ocr]）读取，环境变量优先。
+Web 通过 ocr_context(config) 绑定任务快照，{} 明确禁用远端 OCR，
+None 使用 CLI 默认配置；不修改进程环境。配置环境变量：
 - CHAOXING_VISION_OCR_PROVIDER: 提供商类型 (openai, claude, qwen, siliconflow, openai_compatible)
 - CHAOXING_VISION_OCR_ENDPOINT: API 端点 (可选，各提供商有默认值)
 - CHAOXING_VISION_OCR_KEY: API 密钥
@@ -18,8 +20,14 @@
 """
 
 import base64
+import configparser
+import hashlib
+import json
 import os
-import threading
+from collections.abc import Mapping
+from contextlib import contextmanager
+from contextvars import ContextVar
+from dataclasses import dataclass
 from typing import Optional, Dict, Any
 
 import requests
@@ -76,60 +84,114 @@ PROVIDER_DEFAULTS: Dict[str, Dict[str, str]] = {
     },
 }
 
-# ============== 全局状态 ==============
+# ============== 任务配置与识别结果 ==============
 
-_VISION_OCR_ENABLED: Optional[bool] = None
-_VISION_OCR_CONFIG: Optional[Dict[str, str]] = None
-_VISION_OCR_LOCK = threading.Lock()
+OCR_CONFIG_PATH = "config.ini"
+OCR_PIPELINE_VERSION = 2  # 调整提示词、预处理或本地引擎参数时升级缓存版本。
+_OCR_CONTEXT: ContextVar[Optional[Dict[str, Any]]] = ContextVar("chaoxing_ocr_config", default=None)
 
 
-def _load_vision_ocr_config() -> Optional[Dict[str, str]]:
-    """从环境变量加载视觉 OCR 配置"""
-    global _VISION_OCR_ENABLED, _VISION_OCR_CONFIG
+@dataclass(frozen=True)
+class OCRResult:
+    """success 区分识别成功但无文字，与网络/引擎暂时失败。"""
 
-    with _VISION_OCR_LOCK:
-        if _VISION_OCR_ENABLED is not None:
-            return _VISION_OCR_CONFIG if _VISION_OCR_ENABLED else None
+    text: str = ""
+    success: bool = False
 
-        provider = os.environ.get("CHAOXING_VISION_OCR_PROVIDER", "").strip().lower()
-        api_key = os.environ.get("CHAOXING_VISION_OCR_KEY", "").strip()
 
-        if not provider or not api_key:
-            _VISION_OCR_ENABLED = False
-            _VISION_OCR_CONFIG = None
-            return None
+def _as_bool(value: Any) -> bool:
+    return str(value).strip().lower() in {"1", "true", "yes", "y", "on"}
 
-        # 获取提供商默认配置
-        defaults = PROVIDER_DEFAULTS.get(provider, PROVIDER_DEFAULTS["openai_compatible"])
 
-        endpoint = os.environ.get("CHAOXING_VISION_OCR_ENDPOINT", "").strip()
-        if not endpoint:
-            endpoint = defaults["endpoint"]
+def _read_cli_ocr_config() -> Dict[str, Any]:
+    source: Dict[str, Any] = {}
+    parser = configparser.ConfigParser(interpolation=None)
+    try:
+        parser.read(OCR_CONFIG_PATH, encoding="utf8")
+        for section in ("ocr", "vision_ocr"):
+            if parser.has_section(section):
+                source.update(parser[section])
+                break
+    except (OSError, configparser.Error, UnicodeError):
+        logger.warning("OCR 默认配置文件无法读取，将使用环境配置")
 
-        if not endpoint:
-            logger.warning(f"视觉 OCR 提供商 '{provider}' 需要指定 CHAOXING_VISION_OCR_ENDPOINT")
-            _VISION_OCR_ENABLED = False
-            _VISION_OCR_CONFIG = None
-            return None
+    source["key"] = source.pop("api_key", source.get("key", ""))
+    environment_keys = {
+        "provider": "CHAOXING_VISION_OCR_PROVIDER",
+        "key": "CHAOXING_VISION_OCR_KEY",
+        "endpoint": "CHAOXING_VISION_OCR_ENDPOINT",
+        "model": "CHAOXING_VISION_OCR_MODEL",
+        "prompt": "CHAOXING_VISION_OCR_PROMPT",
+        "enable_local": "CHAOXING_ENABLE_OCR",
+        "http_endpoint": "CHAOXING_OCR_ENDPOINT",
+    }
+    for field, variable in environment_keys.items():
+        if variable in os.environ:
+            source[field] = os.environ[variable]
+    return source
 
-        model = os.environ.get("CHAOXING_VISION_OCR_MODEL", "").strip()
-        if not model:
-            model = defaults["model"]
 
-        prompt = os.environ.get("CHAOXING_VISION_OCR_PROMPT", "").strip()
-        if not prompt:
-            prompt = DEFAULT_OCR_PROMPT
+def _normalize_ocr_config(source: Mapping) -> Dict[str, Any]:
+    def text(field: str) -> str:
+        return str(source.get(field) or "").strip()
 
-        _VISION_OCR_CONFIG = {
-            "provider": provider,
-            "endpoint": endpoint,
-            "api_key": api_key,
-            "model": model,
-            "prompt": prompt,
-        }
-        _VISION_OCR_ENABLED = True
-        logger.info(f"外部 AI 视觉 OCR 已启用: provider={provider}, model={model}")
-        return _VISION_OCR_CONFIG
+    provider = text("provider").lower()
+    defaults = PROVIDER_DEFAULTS.get(provider, PROVIDER_DEFAULTS["openai_compatible"])
+    return {
+        "provider": provider,
+        "api_key": text("key") or text("api_key"),
+        "endpoint": text("endpoint") or defaults["endpoint"],
+        "model": text("model") or defaults["model"],
+        "prompt": text("prompt") or DEFAULT_OCR_PROMPT,
+        "enable_local": _as_bool(source.get("enable_local", os.environ.get("CHAOXING_ENABLE_OCR", "0"))),
+        "http_endpoint": text("http_endpoint"),
+    }
+
+
+@contextmanager
+def ocr_context(config: Optional[Mapping]):
+    """绑定独立配置快照；新线程需使用 copy_context().run 传播。
+
+    None 读取 CLI 环境/文件；{} 禁用远端视觉及 HTTP fallback。
+    enable_local 可覆盖本机 CHAOXING_ENABLE_OCR，http_endpoint 可设置 HTTP fallback。
+    调用方修改原字典不会影响正在运行的任务。
+    """
+    if config is not None and not isinstance(config, Mapping):
+        raise TypeError("OCR config must be a mapping or None")
+    normalized = _normalize_ocr_config(_read_cli_ocr_config() if config is None else config)
+    token = _OCR_CONTEXT.set(normalized)
+    try:
+        yield
+    finally:
+        _OCR_CONTEXT.reset(token)
+
+
+def get_ocr_config() -> Dict[str, Any]:
+    """返回当前任务配置副本，禁止修改其他任务的配置。"""
+    config = _OCR_CONTEXT.get()
+    return dict(config) if config is not None else _normalize_ocr_config(_read_cli_ocr_config())
+
+
+def ocr_config_fingerprint(config: Dict[str, Any]) -> str:
+    """缓存身份覆盖模型、端点、凭据、提示词、本地及 HTTP 配置，不暴露密钥。"""
+    encoded = json.dumps([OCR_PIPELINE_VERSION, config], sort_keys=True, ensure_ascii=False).encode("utf8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _load_vision_ocr_config(config: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, str]]:
+    current = get_ocr_config() if config is None else config
+    if not current.get("provider") or not current.get("api_key") or not current.get("endpoint"):
+        return None
+    return {key: current[key] for key in ("provider", "endpoint", "api_key", "model", "prompt")}
+
+
+def _recognized_text(content: Any) -> OCRResult:
+    if not isinstance(content, str):
+        return OCRResult()
+    text = content.strip()
+    if text in ("[空]", "无文字内容", "[空白]"):
+        text = ""
+    return OCRResult(text, success=True)
 
 
 def _image_to_base64(image_bytes: bytes) -> str:
@@ -151,7 +213,7 @@ def _detect_image_type(image_bytes: bytes) -> str:
         return "image/png"  # 默认
 
 
-def _call_openai_compatible(config: Dict[str, str], image_bytes: bytes) -> str:
+def _call_openai_compatible(config: Dict[str, str], image_bytes: bytes) -> OCRResult:
     """调用 OpenAI 兼容 API（包括 OpenAI、硅基流动、通义千问等）"""
     image_base64 = _image_to_base64(image_bytes)
     image_type = _detect_image_type(image_bytes)
@@ -181,6 +243,7 @@ def _call_openai_compatible(config: Dict[str, str], image_bytes: bytes) -> str:
         "temperature": 0.1,
     }
 
+    resp = None
     try:
         resp = requests.post(
             config["endpoint"],
@@ -190,27 +253,24 @@ def _call_openai_compatible(config: Dict[str, str], image_bytes: bytes) -> str:
         )
         if resp.status_code != 200:
             logger.debug(f"OpenAI 兼容 API 返回异常: {resp.status_code} - {resp.text[:200]}")
-            return ""
+            return OCRResult()
 
         data = resp.json()
         # 解析响应
         choices = data.get("choices", [])
         if choices:
             message = choices[0].get("message", {})
-            content = message.get("content", "")
-            if content:
-                content = content.strip()
-                # 过滤掉空白标记和无效响应
-                if content in ("[空]", "无文字内容", "[空白]", ""):
-                    return ""
-                return content
-        return ""
+            return _recognized_text(message.get("content"))
+        return OCRResult()
     except Exception as exc:
         logger.debug(f"OpenAI 兼容 API 调用失败: {exc}")
-        return ""
+        return OCRResult()
+    finally:
+        if resp is not None:
+            resp.close()
 
 
-def _call_claude(config: Dict[str, str], image_bytes: bytes) -> str:
+def _call_claude(config: Dict[str, str], image_bytes: bytes) -> OCRResult:
     """调用 Claude API (Anthropic)"""
     image_base64 = _image_to_base64(image_bytes)
     image_type = _detect_image_type(image_bytes)
@@ -242,6 +302,7 @@ def _call_claude(config: Dict[str, str], image_bytes: bytes) -> str:
         ]
     }
 
+    resp = None
     try:
         resp = requests.post(
             config["endpoint"],
@@ -251,24 +312,30 @@ def _call_claude(config: Dict[str, str], image_bytes: bytes) -> str:
         )
         if resp.status_code != 200:
             logger.debug(f"Claude API 返回异常: {resp.status_code} - {resp.text[:200]}")
-            return ""
+            return OCRResult()
 
         data = resp.json()
         # 解析 Claude 响应格式
         content_blocks = data.get("content", [])
         for block in content_blocks:
             if block.get("type") == "text":
-                text = block.get("text", "")
-                if text:
-                    text = text.strip()
-                    # 过滤掉空白标记和无效响应
-                    if text in ("[空]", "无文字内容", "[空白]", ""):
-                        return ""
-                    return text
-        return ""
+                return _recognized_text(block.get("text"))
+        return OCRResult()
     except Exception as exc:
         logger.debug(f"Claude API 调用失败: {exc}")
-        return ""
+        return OCRResult()
+    finally:
+        if resp is not None:
+            resp.close()
+
+
+def vision_ocr_result(image_bytes: bytes, config: Optional[Dict[str, Any]] = None) -> OCRResult:
+    current = _load_vision_ocr_config(config)
+    if not current:
+        return OCRResult()
+    if current["provider"] == "claude":
+        return _call_claude(current, image_bytes)
+    return _call_openai_compatible(current, image_bytes)
 
 
 def vision_ocr(image_bytes: bytes) -> str:
@@ -280,28 +347,13 @@ def vision_ocr(image_bytes: bytes) -> str:
     Returns:
         识别出的文字内容，失败时返回空字符串
     """
-    config = _load_vision_ocr_config()
-    if not config:
-        return ""
-
-    provider = config["provider"]
-
-    if provider == "claude":
-        return _call_claude(config, image_bytes)
-    else:
-        # openai, qwen, siliconflow, openai_compatible 都使用 OpenAI 兼容格式
-        return _call_openai_compatible(config, image_bytes)
+    return vision_ocr_result(image_bytes).text
 
 
-def is_vision_ocr_enabled() -> bool:
+def is_vision_ocr_enabled(config: Optional[Dict[str, Any]] = None) -> bool:
     """检查外部 AI 视觉 OCR 是否已启用"""
-    config = _load_vision_ocr_config()
-    return config is not None
+    return _load_vision_ocr_config(config) is not None
 
 
 def reset_vision_ocr_config():
-    """重置视觉 OCR 配置（用于测试或重新加载配置）"""
-    global _VISION_OCR_ENABLED, _VISION_OCR_CONFIG
-    with _VISION_OCR_LOCK:
-        _VISION_OCR_ENABLED = None
-        _VISION_OCR_CONFIG = None
+    """兼容旧调用方。CLI 默认值按需读取，显式任务快照无需全局重置。"""

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Button from './ui/Button';
 import Input from './ui/Input';
 import Label from './ui/Label';
@@ -8,28 +8,40 @@ import {
   Check, Search, GraduationCap, AlertCircle, BookX, Github,
 } from 'lucide-react';
 import api from '../api/axios';
+import { defaultSettings, normalizeCourses, restoreCourseSelection, restoreSettings } from '../lib/courseSelection';
 
 const selectCls =
   'h-10 w-full cursor-pointer rounded-lg border border-line bg-white px-3 text-sm text-ink ' +
   'transition-shadow focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand/15';
 
-const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, startError, preview = false }) => {
+const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOut = false, startError, activeTaskId, taskRunning = false, onReturnToTask, preview = false }) => {
   const [courses, setCourses] = useState([]);
   const [selectedCourses, setSelectedCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState('');
   const [query, setQuery] = useState('');
-  const [settings, setSettings] = useState({
-    speed: 1.0,
-    jobs: 1,
-    notopen_action: 'retry',
-    tiku_config: {},
-    notification_config: { provider: 'Windows' },
-    ocr_config: {},
-  });
+  const [settings, setSettings] = useState(defaultSettings);
+  const [loadError, setLoadError] = useState('');
+  const [selectionNotice, setSelectionNotice] = useState('');
+  const [loadedAccount, setLoadedAccount] = useState(null);
+  const [loadVersion, setLoadVersion] = useState(0);
+  const saveController = useRef(null);
+  const username = userInfo.username;
+  const password = userInfo.password;
+  const useCookies = userInfo.use_cookies === true;
 
   useEffect(() => {
+    const controller = new AbortController();
+    setLoading(true);
+    setCourses([]);
+    setSelectedCourses([]);
+    setSettings(defaultSettings());
+    setLoadError('');
+    setSaveStatus('');
+    setSaving(false);
+    setQuery('');
+    setSelectionNotice('');
     if (preview) {
       setCourses([
         { courseId: 'preview-001', title: '大学英语（演示课程）' },
@@ -37,58 +49,41 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, startErro
         { courseId: 'preview-003', title: '计算机基础（演示课程）' },
       ]);
       setSelectedCourses(['preview-001']);
+      setLoadedAccount(username);
+      setSelectionNotice('请至少选择一门课程后开始学习');
       setLoading(false);
-      return;
+      return () => controller.abort();
     }
-    fetchConfig();
-    fetchCourses();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [preview]);
-
-  const fetchConfig = async () => {
-    try {
-      const response = await api.get('/config');
-      if (response.data.status && response.data.data) {
-        const cfg = response.data.data;
-        if (cfg.settings) {
-          setSettings((prev) => {
-            const merged = { ...prev, ...cfg.settings };
-            // 默认启用 Windows 系统通知(老配置未记录过通知方式时回填);
-            // 用户明确选择过(含"不使用通知")则尊重其选择
-            if (typeof merged.notification_config?.provider !== 'string') {
-              merged.notification_config = {
-                ...(merged.notification_config || {}),
-                provider: 'Windows',
-              };
-            }
-            return merged;
-          });
-        }
-        if (Array.isArray(cfg.selectedCourses)) {
-          setSelectedCourses(cfg.selectedCourses);
-        }
+    const load = async () => {
+      try {
+        const results = await Promise.allSettled([
+          api.get('/config', { signal: controller.signal }),
+          api.post('/courses', { username, password, use_cookies: useCookies }, { signal: controller.signal }),
+        ]);
+        if (controller.signal.aborted) return;
+        const [configResult, courseResult] = results;
+        if (courseResult.status === 'rejected') throw courseResult.reason;
+        if (!courseResult.value.data.status) throw new Error(courseResult.value.data.msg || '获取课程列表失败');
+        const nextCourses = normalizeCourses(courseResult.value.data.data);
+        setCourses(nextCourses);
+        if (configResult.status === 'rejected') throw new Error('加载已保存配置失败，请重试');
+        if (!configResult.value.data.status) throw new Error(configResult.value.data.msg || '加载已保存配置失败');
+        const config = configResult.value.data.data || {};
+        const selection = restoreCourseSelection(config, username, nextCourses);
+        setSettings(restoreSettings(config.settings));
+        setSelectedCourses(selection.ids);
+        setSelectionNotice(selection.saved
+          ? selection.ids.length ? '已恢复此账号仍有效的课程选择，可继续调整' : '保存的课程选择为空或已失效，请重新选择课程'
+          : '此账号尚无已保存选择，已勾选全部课程，可按需取消');
+      } catch (error) {
+        if (!controller.signal.aborted) setLoadError(error.response?.data?.msg || error.message || '获取课程失败，请重试');
+      } finally {
+        if (!controller.signal.aborted) { setLoadedAccount(username); setLoading(false); }
       }
-    } catch (err) {
-      console.error('加载已保存配置失败:', err);
-    }
-  };
-
-  const fetchCourses = async () => {
-    try {
-      const response = await api.post('/courses', {
-        username: userInfo.username,
-        password: userInfo.password,
-      });
-
-      if (response.data.status) {
-        setCourses(response.data.data);
-      }
-    } catch (err) {
-      console.error('获取课程列表失败:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+    load();
+    return () => { controller.abort(); saveController.current?.abort(); };
+  }, [username, password, useCookies, preview, loadVersion]);
 
   const toggleCourse = (courseId) => {
     setSelectedCourses((prev) =>
@@ -107,41 +102,46 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, startErro
   }, [courses, query]);
 
   const selectedCount = selectedCourses.length;
-  const effectiveCount = selectedCount > 0 ? selectedCount : courses.length;
+  const canStart = !loading && loadedAccount === username && !loadError && courses.length > 0 && selectedCount > 0 && !starting && !loggingOut && !taskRunning;
 
   const handleStartStudy = () => {
+    if (!canStart) return;
     onStartStudy({
       ...settings,
-      course_list: selectedCount > 0 ? selectedCourses : courses.map((c) => c.courseId),
+      course_list: selectedCourses,
     });
   };
 
   const handleSaveConfig = async () => {
+    if (loggingOut || loading || saving || loadError || loadedAccount !== username) return;
+    if (preview) { setSaveStatus('演示配置已保存'); return; }
+    const controller = new AbortController();
+    saveController.current = controller;
     try {
       setSaving(true);
       setSaveStatus('');
-      const payload = { settings, selectedCourses };
-      const response = await api.post('/config', payload);
+      const payload = { settings, selectedCoursesByAccount: { [username]: selectedCourses } };
+      const response = await api.post('/config', payload, { signal: controller.signal });
+      if (controller.signal.aborted) return;
       if (!response.data.status) {
-        console.error('保存配置失败:', response.data.msg);
         setSaveStatus(response.data.msg || '保存失败,请重试');
       } else {
         setSaveStatus('配置已保存');
       }
     } catch (err) {
-      console.error('保存配置请求失败:', err);
-      setSaveStatus('保存请求失败');
+      if (!controller.signal.aborted) setSaveStatus('保存请求失败');
     } finally {
-      setSaving(false);
+      if (!controller.signal.aborted) setSaving(false);
     }
   };
 
   /* ---------- 载入态 ---------- */
-  if (loading) {
+  if (loading || loadedAccount !== username) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4">
         <Loader2 className="h-7 w-7 animate-spin text-brand" aria-hidden="true" />
         <p className="text-sm text-faint">正在获取课程列表</p>
+        {activeTaskId && <Button variant="outline" onClick={onReturnToTask} disabled={loggingOut}>返回任务进度</Button>}
       </div>
     );
   }
@@ -177,9 +177,9 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, startErro
                 {userInfo.username}
               </span>
             )}
-            <Button variant="ghost" size="sm" onClick={onLogout}>
+            <Button variant="ghost" size="sm" onClick={onLogout} disabled={loggingOut}>
               <LogOut className="h-3.5 w-3.5" aria-hidden="true" />
-              退出登录
+              {loggingOut ? '退出中' : '退出登录'}
             </Button>
           </div>
         </div>
@@ -190,9 +190,22 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, startErro
         <div className="mb-7 animate-stagger-up">
           <h1 className="text-2xl font-semibold tracking-tight">选择课程并配置学习参数</h1>
           <p className="mt-1.5 text-sm text-faint">
-            未选择任何课程时,默认学习全部 {courses.length} 门课程
+            {selectionNotice || '请至少选择一门课程；未选课程时无法开始学习'}
           </p>
         </div>
+
+        {activeTaskId && (
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand/20 bg-brand-soft/60 px-5 py-4">
+            <p className="text-sm text-body">{taskRunning ? '已有学习任务运行中，可继续查看进度' : '上次任务已结束，可查看执行结果'}</p>
+            <Button size="sm" variant="outline" onClick={onReturnToTask} disabled={loggingOut}>{taskRunning ? '返回运行任务' : '查看上次任务'}</Button>
+          </div>
+        )}
+        {loadError && (
+          <div role="alert" className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-danger/5 px-5 py-4 text-sm text-danger">
+            <span>{loadError}</span>
+            <Button size="sm" variant="outline" onClick={() => setLoadVersion((value) => value + 1)}>重新加载</Button>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_clamp(21.25rem,24vw,30rem)] lg:items-start 2xl:gap-8">
           {/* 左:课程列表 */}
@@ -206,7 +219,7 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, startErro
                 <BookOpen className="h-4.5 w-4.5 text-brand" aria-hidden="true" />
                 课程列表
                 <span className="ml-1 rounded-full bg-soft px-2 py-0.5 text-xs text-faint tnum">
-                  已选 {selectedCount > 0 ? selectedCount : '全部'} / 共 {courses.length}
+                  已选 {selectedCount} / 共 {courses.length}
                 </span>
               </h2>
               <div className="relative">
@@ -332,7 +345,6 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, startErro
                     className={selectCls}
                   >
                     <option value="retry">重试</option>
-                    <option value="ask">询问</option>
                     <option value="continue">跳过</option>
                   </select>
                 </div>
@@ -344,7 +356,7 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, startErro
             </div>
 
             <div className="space-y-2.5 rounded-xl border border-line bg-white p-5 shadow-card">
-              <Button className="w-full" size="lg" onClick={handleStartStudy} disabled={starting}>
+              <Button className="w-full" size="lg" onClick={handleStartStudy} disabled={!canStart}>
                 {starting ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
@@ -357,7 +369,8 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, startErro
                   </>
                 )}
               </Button>
-              <Button variant="outline" className="w-full" size="sm" onClick={handleSaveConfig} disabled={saving}>
+              <p className="text-center text-xs text-faint">{taskRunning ? '当前任务结束后可开始新任务' : selectedCount ? `将学习已勾选的 ${selectedCount} 门课程` : '请至少勾选一门课程'}</p>
+              <Button variant="outline" className="w-full" size="sm" onClick={handleSaveConfig} disabled={loggingOut || saving || !!loadError}>
                 {saving ? (
                   <>
                     <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />

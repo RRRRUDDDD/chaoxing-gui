@@ -3,9 +3,12 @@ import sys
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import threading
-import queue
 import time
 import json
+import atexit
+import math
+from contextlib import contextmanager
+from contextvars import copy_context
 from typing import Dict
 import webbrowser
 import socket
@@ -16,10 +19,12 @@ if SCRIPT_DIR not in sys.path:
     sys.path.insert(0, SCRIPT_DIR)
 STATIC_DIR = os.path.join(SCRIPT_DIR, "web", "dist")
 
-from api.base import Chaoxing, Account, StudyResult
+from api.base import Chaoxing, Account
 from api.answer import Tiku
-from api.exceptions import LoginError
+from api.exceptions import InputFormatError, LoginError
 from api.logger import logger
+from api.notification import Notification
+from api.task_state import TaskAlreadyRunning, TaskStore
 import main as main_module
 
 # === 托盘图标相关导入 ===
@@ -52,491 +57,582 @@ DATA_DIR = os.environ.get("CHAOXING_DATA_DIR") or os.path.dirname(__file__)
 CONFIG_FILE = os.path.join(DATA_DIR, "web_config.json")
 
 
+config_lock = threading.RLock()
+task_store = TaskStore(cleanup_interval=60)
+atexit.register(task_store.close)
+
+
 def load_web_config() -> Dict:
-  """加载前端保存的配置"""
-  if not os.path.exists(CONFIG_FILE):
-      return {}
-  try:
-      with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-          return json.load(f)
-  except Exception as e:
-      logger.error(f"读取 Web 配置失败: {e}")
-      return {}
+    """Read a complete configuration snapshot."""
+    with config_lock:
+        try:
+            with open(CONFIG_FILE, "r", encoding="utf-8") as config_file:
+                data = json.load(config_file)
+                return data if isinstance(data, dict) else {}
+        except FileNotFoundError:
+            return {}
+        except Exception as exc:
+            logger.error(f"读取 Web 配置失败: {exc}")
+            return {}
 
 
 def save_web_config(data: Dict) -> bool:
-  """保存前端配置到本地 JSON 文件"""
-  try:
-      tmp_path = CONFIG_FILE + ".tmp"
-      with open(tmp_path, "w", encoding="utf-8") as f:
-          json.dump(data, f, ensure_ascii=False, indent=2)
-      os.replace(tmp_path, CONFIG_FILE)
-      return True
-  except Exception as e:
-      logger.error(f"保存 Web 配置失败: {e}")
-      return False
+    """Atomically save configuration under the same lock used for merging."""
+    with config_lock:
+        try:
+            parent = os.path.dirname(CONFIG_FILE)
+            if parent:
+                os.makedirs(parent, exist_ok=True)
+            tmp_path = CONFIG_FILE + ".tmp"
+            with open(tmp_path, "w", encoding="utf-8") as config_file:
+                json.dump(data, config_file, ensure_ascii=False, indent=2)
+            os.replace(tmp_path, CONFIG_FILE)
+            return True
+        except Exception as exc:
+            logger.error(f"保存 Web 配置失败: {exc}")
+            return False
 
-
-# 存储学习任务状态
-task_status: Dict[str, dict] = {}
-log_queue = queue.Queue()
-
-# 任务详细信息缓存
-task_details: Dict[str, dict] = {}
 
 class LogCapture:
-    """捕获日志输出, 推送到 log_queue 供前端拉取(不额外留存副本, 避免长任务内存泄漏)"""
-    def __init__(self, task_id: str):
+    def __init__(self, task_id: str, store: TaskStore):
         self.task_id = task_id
+        self.store = store
 
     def write(self, message):
-        # loguru 传入的是 Message 对象，这里统一转成字符串再处理
-        text = str(message).strip()
-        if text:
-            log_queue.put({
-                'task_id': self.task_id,
-                'message': text
-            })
+        record = message.record
+        if record["extra"].get("task_id") != self.task_id:
+            return
+        level = record["level"].name.lower()
+        if level in {"critical", "fatal"}:
+            level = "error"
+        self.store.append_log(
+            self.task_id, str(message), level=level,
+            timestamp=record["time"].timestamp(),
+        )
+
+
+def _json_body():
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        raise ValueError("请求必须为 JSON 对象")
+    return data
+
+
+def _credentials(data):
+    username = data.get("username")
+    password = data.get("password", "")
+    use_cookies = data.get("use_cookies", False)
+    if not isinstance(use_cookies, bool):
+        raise ValueError("use_cookies 必须为布尔值")
+    if not isinstance(username, str) or not username.strip():
+        raise ValueError("用户名不能为空")
+    if not isinstance(password, str) or (not use_cookies and not password.strip()):
+        raise ValueError("密码不能为空")
+    return username.strip(), password, use_cookies
+
+
+def _course_ids(value, *, allow_empty=False):
+    if not isinstance(value, list) or (not value and not allow_empty):
+        raise ValueError("请选择至少一门有效课程")
+    ids = []
+    for item in value:
+        if isinstance(item, bool) or not isinstance(item, (str, int)) or not str(item).strip():
+            raise ValueError("课程 ID 格式错误")
+        course_id = str(item).strip()
+        if course_id not in ids:
+            ids.append(course_id)
+    return ids
+
+
+def _finite_number(value, name):
+    if isinstance(value, bool) or not isinstance(value, (str, int, float)):
+        raise ValueError(f"{name} 必须为有限数值")
+    try:
+        number = float(value)
+    except (ValueError, OverflowError) as exc:
+        raise ValueError(f"{name} 必须为有限数值") from exc
+    if not math.isfinite(number):
+        raise ValueError(f"{name} 必须为有限数值")
+    return number
+
+
+def _close_resource(resource):
+    if resource is not None:
+        try:
+            resource.close()
+        except Exception as exc:
+            logger.warning(f"清理学习资源失败: {exc}")
+            return str(exc)
+    return None
+
+
+@contextmanager
+def _login_client(username, password):
+    tiku = Tiku()
+    chaoxing = None
+    try:
+        chaoxing = Chaoxing(account=Account(username, password), tiku=tiku, query_delay=0)
+        yield chaoxing
+    finally:
+        _close_resource(chaoxing if chaoxing is not None else tiku)
+
 
 @app.route('/api/login', methods=['POST'])
 def login():
-    """用户登录接口"""
     try:
-        data = request.json
-        username = data.get('username')
-        password = data.get('password')
-        use_cookies = data.get('use_cookies', False)
-        
-        if not username or not password:
-            return jsonify({'status': False, 'msg': '用户名或密码不能为空'}), 400
-        
-        account = Account(username, password)
-        tiku = Tiku()
-        chaoxing = Chaoxing(account=account, tiku=tiku, query_delay=0)
-        
-        login_result = chaoxing.login(login_with_cookies=use_cookies)
-        
-        if login_result['status']:
-            # 保存登录状态到session
-            return jsonify({
-                'status': True,
-                'msg': '登录成功',
-                'data': {
-                    'username': username
-                }
-            })
-        else:
-            return jsonify({'status': False, 'msg': login_result['msg']}), 401
-            
-    except Exception as e:
-        logger.error(f"登录错误: {e}")
-        return jsonify({'status': False, 'msg': str(e)}), 500
+        username, password, use_cookies = _credentials(_json_body())
+    except ValueError as exc:
+        return jsonify({"status": False, "msg": str(exc)}), 400
+    try:
+        with _login_client(username, password) as chaoxing:
+            result = chaoxing.login(login_with_cookies=use_cookies)
+            if not result["status"]:
+                return jsonify({"status": False, "msg": result.get("msg", "登录失败")}), 401
+            return jsonify({"status": True, "msg": "登录成功", "data": {"username": username}})
+    except Exception as exc:
+        logger.error(f"登录错误: {exc}")
+        return jsonify({"status": False, "msg": str(exc)}), 500
+
 
 @app.route('/api/courses', methods=['POST'])
 def get_courses():
-    """获取课程列表"""
     try:
-        data = request.json
-        username = data.get('username')
-        password = data.get('password')
-        use_cookies = data.get('use_cookies', False)
-        
-        account = Account(username, password)
-        tiku = Tiku()
-        chaoxing = Chaoxing(account=account, tiku=tiku, query_delay=0)
-        
-        login_result = chaoxing.login(login_with_cookies=use_cookies)
-        if not login_result['status']:
-            return jsonify({'status': False, 'msg': '登录失败'}), 401
-        
-        courses = chaoxing.get_course_list()
-        
-        return jsonify({
-            'status': True,
-            'data': courses
-        })
-        
-    except Exception as e:
-        logger.error(f"获取课程列表错误: {e}")
-        return jsonify({'status': False, 'msg': str(e)}), 500
+        username, password, use_cookies = _credentials(_json_body())
+    except ValueError as exc:
+        return jsonify({"status": False, "msg": str(exc)}), 400
+    try:
+        with _login_client(username, password) as chaoxing:
+            result = chaoxing.login(login_with_cookies=use_cookies)
+            if not result["status"]:
+                return jsonify({"status": False, "msg": result.get("msg", "登录失败")}), 401
+            return jsonify({"status": True, "data": chaoxing.get_course_list()})
+    except Exception as exc:
+        logger.error(f"获取课程列表错误: {exc}")
+        return jsonify({"status": False, "msg": str(exc)}), 500
 
 
 @app.route('/api/config', methods=['GET', 'POST'])
 def web_config():
     if request.method == 'GET':
         data = load_web_config()
-        return jsonify({'status': True, 'data': data})
+        data.pop("selectedCourses", None)
+        return jsonify({"status": True, "data": data})
+    try:
+        data = _json_body()
+        if "settings" in data and not isinstance(data["settings"], dict):
+            raise ValueError("settings 必须为对象")
+        selections = data.get("selectedCoursesByAccount", {})
+        if not isinstance(selections, dict):
+            raise ValueError("selectedCoursesByAccount 必须为对象")
+        normalized = {}
+        for account, ids in selections.items():
+            if not isinstance(account, str) or not account.strip():
+                raise ValueError("选课配置缺少账号")
+            normalized[account.strip()] = _course_ids(ids, allow_empty=True)
+    except ValueError as exc:
+        return jsonify({"status": False, "msg": str(exc)}), 400
 
-    data = request.json
-    if not isinstance(data, dict):
-        return jsonify({'status': False, 'msg': '配置格式错误'}), 400
+    with config_lock:
+        stored = load_web_config()
+        stored.pop("selectedCourses", None)
+        if "settings" in data:
+            stored["settings"] = data["settings"]
+        accounts = stored.get("selectedCoursesByAccount", {})
+        accounts = dict(accounts) if isinstance(accounts, dict) else {}
+        accounts.update(normalized)
+        stored["selectedCoursesByAccount"] = accounts
+        if not save_web_config(stored):
+            return jsonify({"status": False, "msg": "保存失败"}), 500
+    return jsonify({"status": True, "msg": "保存成功"})
 
-    if not save_web_config(data):
-        return jsonify({'status': False, 'msg': '保存失败'}), 500
 
-    return jsonify({'status': True, 'msg': '保存成功'})
+def _initial_status():
+    return {
+        "progress": 0, "total": 0,
+        "current_course": "", "current_chapter": "", "current_task": "",
+        "stats": {
+            "total_courses": 0, "completed_courses": 0, "failed_courses": 0,
+            "skipped_courses": 0, "partial_courses": 0,
+            "total_chapters": 0, "completed_chapters": 0, "empty_chapters": 0,
+            "failed_chapters": 0, "skipped_chapters": 0,
+            "total_tasks": 0, "completed_tasks": 0, "failed_tasks": 0, "skipped_tasks": 0,
+        },
+    }
+
+
+def _job_count(point):
+    try:
+        return max(0, int(point.get("jobCount", 0)))
+    except (TypeError, ValueError, OverflowError):
+        return 0
+
+
+def _chapter_task_stats(point, result_name):
+    supplied = point.get("_task_stats")
+    fields = ("total", "completed", "failed", "skipped")
+    if isinstance(supplied, dict) and all(
+        isinstance(supplied.get(key), int) and not isinstance(supplied[key], bool)
+        and supplied[key] >= 0 for key in fields
+    ):
+        stats = {key: supplied[key] for key in fields}
+        stats["total"] = max(stats["total"], sum(stats[key] for key in fields[1:]))
+        return stats
+    count = 0 if result_name == "EMPTY" else _job_count(point)
+    category = {"SUCCESS": "completed", "SKIPPED": "skipped"}.get(result_name, "failed")
+    return {
+        "total": count,
+        "completed": count if category == "completed" else 0,
+        "failed": count if category == "failed" else 0,
+        "skipped": count if category == "skipped" else 0,
+    }
+
+
+class _StudyProgress:
+    """Update chapter counters from final results, once per chapter."""
+
+    def __init__(self, store, task_id):
+        self.store = store
+        self.task_id = task_id
+        self._finalized = set()
+        self._points = {}
+
+    @staticmethod
+    def _course(task, course):
+        return next(item for item in task.details["courses"] if str(item["id"]) == str(course["courseId"]))
+
+    @staticmethod
+    def _replace_chapter(task, chapter, state, counts):
+        stats = task.status["stats"]
+        previous = chapter["status"]
+        stats["completed_chapters"] += int(state in {"completed", "empty"}) - int(previous in {"completed", "empty"})
+        for status, field in (("empty", "empty_chapters"), ("error", "failed_chapters"), ("skipped", "skipped_chapters")):
+            stats[field] += int(state == status) - int(previous == status)
+        for key in ("total", "completed", "failed", "skipped"):
+            stats[f"{key}_tasks"] += counts[key] - chapter["task_stats"][key]
+        chapter.update(status=state, has_finished=state in {"completed", "empty"}, task_stats=counts, jobCount=counts["total"])
+
+    def set_courses(self, courses):
+        with self.store.edit(self.task_id) as task:
+            task.status["total"] = len(courses)
+            task.status["stats"]["total_courses"] = len(courses)
+            task.details["courses"] = [
+                {"id": course["courseId"], "title": course["title"], "status": "pending",
+                 "chapters": [], "start_time": None, "end_time": None}
+                for course in courses
+            ]
+
+    def begin_course(self, course, index):
+        with self.store.edit(self.task_id) as task:
+            self._course(task, course).update(status="running", start_time=time.time())
+            task.status.update(current_course=course["title"], current_chapter="", progress=index)
+
+    def add_chapters(self, course, point_list):
+        if not isinstance(point_list, dict):
+            raise ValueError("章节列表格式错误")
+        points = point_list["points"]
+        if not isinstance(points, list) or any(not isinstance(point, dict) for point in points):
+            raise ValueError("章节列表格式错误")
+        with self.store.edit(self.task_id) as task:
+            detail = self._course(task, course)
+            self._points[str(course["courseId"])] = points
+            task.status["stats"]["total_chapters"] += len(points)
+            for point in points:
+                chapter = {
+                    "id": point.get("id"), "title": point.get("title", ""), "status": "pending",
+                    "has_finished": False, "jobCount": 0,
+                    "task_stats": {"total": 0, "completed": 0, "failed": 0, "skipped": 0},
+                }
+                detail["chapters"].append(chapter)
+                count = _job_count(point)
+                finished = bool(point.get("has_finished"))
+                self._replace_chapter(task, chapter, "completed" if finished else "pending", {
+                    "total": count, "completed": count if finished else 0, "failed": 0, "skipped": 0,
+                })
+
+    def chapter_start(self, course, point):
+        with self.store.edit(self.task_id) as task:
+            task.status.update(current_course=course.get("title", ""), current_chapter=point.get("title", ""))
+            for chapter in self._course(task, course)["chapters"]:
+                if chapter["id"] == point.get("id") and chapter["status"] == "pending":
+                    chapter["status"] = "running"
+                    break
+
+    def chapter_result(self, course, point, result):
+        result_name = getattr(result, "name", "ERROR")
+        with self.store.edit(self.task_id) as task:
+            detail = self._course(task, course)
+            for index, chapter in enumerate(detail["chapters"]):
+                if chapter["id"] != point.get("id"):
+                    continue
+                key = (str(course["courseId"]), index)
+                if key in self._finalized:
+                    return
+                state = {"SUCCESS": "completed", "EMPTY": "empty", "SKIPPED": "skipped"}.get(result_name, "error")
+                counts = _chapter_task_stats(point, result_name)
+                if counts["failed"]:
+                    state = "error"
+                elif counts["skipped"] and state in {"completed", "empty"}:
+                    state = "skipped"
+                self._replace_chapter(task, chapter, state, counts)
+                self._finalized.add(key)
+                return
+            raise ValueError("章节结果不属于当前课程快照")
+
+    @staticmethod
+    def _end_course(task, detail, *, failed, skipped):
+        has_success = any(chapter["has_finished"] or chapter["task_stats"]["completed"] for chapter in detail["chapters"])
+        state = "completed"
+        if failed or skipped:
+            state = "partial" if has_success or skipped else "error"
+        detail.update(status=state, end_time=time.time())
+        stats = task.status["stats"]
+        stats["completed_courses"] += int(state == "completed")
+        stats["partial_courses"] += int(state == "partial")
+        stats["failed_courses"] += int(failed)
+        stats["skipped_courses"] += int(skipped)
+
+    def finish_course(self, course, result):
+        if result is None:
+            raise RuntimeError("课程未返回有效学习结果")
+        for chapter_task in result.tasks:
+            self.chapter_result(course, chapter_task.point, chapter_task.result)
+        with self.store.edit(self.task_id) as task:
+            detail = self._course(task, course)
+            if any(chapter["status"] in {"pending", "running"} for chapter in detail["chapters"]):
+                raise RuntimeError("课程存在未返回结果的章节")
+            failed = bool(result.failed) or any(
+                chapter["status"] == "error" or chapter["task_stats"]["failed"]
+                for chapter in detail["chapters"]
+            )
+            skipped = bool(result.skipped) or any(
+                chapter["status"] == "skipped" or chapter["task_stats"]["skipped"]
+                for chapter in detail["chapters"]
+            )
+            failed = failed or (not result.success and not skipped)
+            self._end_course(task, detail, failed=failed, skipped=skipped)
+
+    def fail_course(self, course, error):
+        with self.store.edit(self.task_id) as task:
+            detail = self._course(task, course)
+            points = self._points.get(str(course["courseId"]), [])
+            for index, chapter in enumerate(detail["chapters"]):
+                key = (str(course["courseId"]), index)
+                if key not in self._finalized and not chapter["has_finished"]:
+                    self._replace_chapter(task, chapter, "error", _chapter_task_stats(points[index], "ERROR"))
+                    self._finalized.add(key)
+            detail["error"] = str(error)
+            skipped = any(chapter["task_stats"]["skipped"] or chapter["status"] == "skipped" for chapter in detail["chapters"])
+            self._end_course(task, detail, failed=True, skipped=skipped)
+
+    def video_progress(self, course, job, current_time, duration):
+        now = time.time()
+        with self.store.edit(self.task_id) as task:
+            active = task.details["active_jobs"]
+            expired = [key for key, info in active.items() if now - info["timestamp"] > 10]
+            for key in expired:
+                del active[key]
+            active[f"{course['courseId']}:{job['jobid']}"] = {
+                "course_name": course["title"], "job_name": job.get("name", "未知任务"),
+                "current_time": current_time, "duration": duration,
+                "progress": (current_time / duration * 100) if duration > 0 else 0,
+                "timestamp": now,
+            }
+
+    def outcome(self, *, fatal=False):
+        stats = self.store.get_status(self.task_id)["stats"]
+        failed = fatal or stats["failed_courses"] or stats["failed_chapters"] or stats["failed_tasks"]
+        skipped = stats["skipped_courses"] or stats["skipped_chapters"] or stats["skipped_tasks"]
+        successful = stats["completed_courses"] or stats["completed_chapters"] or stats["completed_tasks"]
+        if failed and not successful and not skipped:
+            return "error"
+        return "partial" if failed or skipped else "completed"
+
+
+def _notification_message(store, task_id, outcome, error):
+    if outcome == "completed":
+        return "超星学习通: 所有课程学习任务已完成"
+    stats = store.get_status(task_id)["stats"]
+    message = (
+        f"超星学习通: 学习任务结束，完成课程 {stats['completed_courses']}，"
+        f"失败课程 {stats['failed_courses']}，跳过课程 {stats['skipped_courses']}，"
+        f"失败任务 {stats['failed_tasks']}，跳过任务 {stats['skipped_tasks']}"
+    )
+    return f"{message}\n{error}" if error else message
+
+
+def _run_study_task(task_id, store, common_config, tiku_config, notification_config, ocr_config):
+    progress = _StudyProgress(store, task_id)
+    chaoxing = None
+    notification = None
+    sink_id = None
+    outcome = "error"
+    error = None
+    with logger.contextualize(task_id=task_id):
+        try:
+            capture = LogCapture(task_id, store)
+            sink_id = logger.add(capture.write, enqueue=True, filter=lambda record: record["extra"].get("task_id") == task_id)
+            from api.vision_ocr import ocr_context
+
+            with ocr_context(ocr_config or {}):
+                try:
+                    try:
+                        configured = Notification()
+                        configured.config_set(notification_config or {"provider": ""})
+                        notification = configured.get_notification_from_config()
+                        notification.init_notification()
+                    except Exception as exc:
+                        notification = None
+                        logger.warning(f"通知初始化失败: {exc}")
+                        with store.edit(task_id) as task:
+                            task.status["notification_error"] = str(exc)
+
+                    common_config.update(
+                        chapter_start_callback=progress.chapter_start,
+                        chapter_result_callback=progress.chapter_result,
+                        video_progress_callback=progress.video_progress,
+                    )
+                    chaoxing = main_module.init_chaoxing(common_config, tiku_config)
+                    result = chaoxing.login(login_with_cookies=common_config["use_cookies"])
+                    if not result["status"]:
+                        raise LoginError(result.get("msg", "登录失败"))
+                    courses = main_module.filter_courses(
+                        chaoxing.get_course_list(), common_config["course_list"], interactive=False
+                    )
+                    progress.set_courses(courses)
+                    for index, course in enumerate(courses):
+                        progress.begin_course(course, index)
+                        try:
+                            point_list = chaoxing.get_course_point(course["courseId"], course["clazzId"], course["cpi"])
+                            progress.add_chapters(course, point_list)
+                            course_result = main_module.process_course(
+                                chaoxing, course, common_config, point_list=point_list
+                            )
+                            progress.finish_course(course, course_result)
+                        except Exception as exc:
+                            logger.error(f"课程处理失败 {course['title']}: {exc}")
+                            progress.fail_course(course, exc)
+                        with store.edit(task_id) as task:
+                            task.status["progress"] = index + 1
+                    outcome = progress.outcome()
+                    if outcome != "completed":
+                        error = "部分课程失败或被跳过，请查看课程详情"
+                finally:
+                    cleanup_error = _close_resource(chaoxing)
+                    if cleanup_error:
+                        with store.edit(task_id) as task:
+                            task.status["cleanup_error"] = cleanup_error
+        except Exception as exc:
+            error = str(exc)
+            outcome = progress.outcome(fatal=True)
+            logger.error(f"任务执行错误: {exc}")
+        finally:
+            if notification is not None:
+                try:
+                    notification.send(_notification_message(store, task_id, outcome, error))
+                except Exception as exc:
+                    logger.warning(f"通知发送失败: {exc}")
+                    with store.edit(task_id) as task:
+                        task.status["notification_error"] = str(exc)
+            # Flush every enqueued record before publishing the terminal state.
+            # Pollers can then stop after one final cursor read without losing logs.
+            try:
+                logger.complete()
+            finally:
+                try:
+                    if sink_id is not None:
+                        logger.remove(sink_id)
+                finally:
+                    store.finish(task_id, outcome, error=error)
+
+
+def _launch_study_task(*args):
+    context = copy_context()
+    thread = threading.Thread(
+        target=context.run, args=(_run_study_task, *args),
+        name=f"study-{args[0]}", daemon=True,
+    )
+    thread.start()
+    return thread
+
 
 @app.route('/api/start', methods=['POST'])
 def start_study():
-    """开始学习任务"""
     try:
-        data = request.json
-        username = data.get('username')
-        password = data.get('password')
-        course_list = data.get('course_list', [])
-        speed = float(data.get('speed', 1.0))
-        jobs = int(data.get('jobs', 4))
-        notopen_action = data.get('notopen_action', 'retry')
-        tiku_config = data.get('tiku_config', {})
-        notification_config = data.get('notification_config', {})
-        ocr_config = data.get('ocr_config', {})
-        
-        # 设置 OCR 配置环境变量
-        if ocr_config.get('provider') and ocr_config.get('key'):
-            os.environ['CHAOXING_VISION_OCR_PROVIDER'] = ocr_config['provider']
-            os.environ['CHAOXING_VISION_OCR_KEY'] = ocr_config['key']
-            if ocr_config.get('endpoint'):
-                os.environ['CHAOXING_VISION_OCR_ENDPOINT'] = ocr_config['endpoint']
-            if ocr_config.get('model'):
-                os.environ['CHAOXING_VISION_OCR_MODEL'] = ocr_config['model']
-            # 重置 vision_ocr 模块的配置缓存，使新配置生效
-            try:
-                from api.vision_ocr import reset_vision_ocr_config
-                reset_vision_ocr_config()
-            except ImportError:
-                pass
-            logger.info(f"已配置外部 AI 视觉 OCR: provider={ocr_config['provider']}")
-        
-        # 创建任务ID
-        task_id = f"{username}_{int(time.time())}"
-        
-        # 初始化任务状态
-        task_status[task_id] = {
-            'status': 'running',
-            'progress': 0,
-            'total': 0,
-            'current_course': '',
-            'current_chapter': '',
-            'current_task': '',
-            'start_time': time.time(),
-            'stats': {
-                'total_chapters': 0,
-                'completed_chapters': 0,
-                'total_tasks': 0,
-                'completed_tasks': 0,
-                'failed_tasks': 0,
-                'skipped_tasks': 0
-            }
-        }
-        
-        # 初始化任务详细信息
-        task_details[task_id] = {
-            'courses': [],  # 存储每个课程的详细信息
-            'active_jobs': {}  # 存储活跃的视频任务进度
-        }
-        
-        # 构建配置
+        data = _json_body()
+        username, password, use_cookies = _credentials(data)
+        course_list = _course_ids(data.get("course_list"))
+        jobs = main_module.validate_jobs(data.get("jobs", 4))
+        speed = _finite_number(data.get("speed", 1.0), "speed")
+        retry_interval = _finite_number(data.get("retry_interval", 1.0), "retry_interval")
+        if speed <= 0:
+            raise ValueError("speed 必须大于 0")
+        if not 0 <= retry_interval <= 300:
+            raise ValueError("retry_interval 必须在 0 到 300 秒之间")
+        notopen_action = data.get("notopen_action", "retry")
+        if notopen_action not in ("retry", "continue"):
+            raise ValueError("Web 任务仅支持 retry 或 continue，不能交互询问")
+        configs = []
+        for key in ("tiku_config", "notification_config", "ocr_config"):
+            config = data.get(key, {})
+            if config is None and key == "ocr_config":
+                config = {}
+            if not isinstance(config, dict):
+                raise ValueError(f"{key} 必须为对象")
+            configs.append(config)
         common_config = {
-            'username': username,
-            'password': password,
-            'course_list': course_list,
-            'speed': min(2.0, max(1.0, speed)),
-            'jobs': jobs,
-            'notopen_action': notopen_action,
-            'retry_interval': float(data.get('retry_interval', 1.0)),
-            'use_cookies': False
+            "username": username, "password": password, "use_cookies": use_cookies,
+            "course_list": course_list, "jobs": jobs, "speed": min(2.0, max(1.0, speed)),
+            "retry_interval": retry_interval, "notopen_action": notopen_action, "interactive": False,
         }
-        
-        # 在后台线程中运行学习任务
-        def run_task():
-            from api.notification import Notification
-            import traceback
-            
-            notification = None
-            # 为当前任务注册日志捕获，将 loguru 日志通过 LogCapture 推送到前端
-            capture = LogCapture(task_id)
-            log_sink_id = logger.add(capture.write, enqueue=True)
-            
-            def update_video_progress(course, job, current_time, duration):
-                """更新视频播放进度"""
-                try:
-                    if task_id in task_details:
-                        task_details[task_id]['active_jobs'][job['jobid']] = {
-                            'course_name': course['title'],
-                            'job_name': job.get('name', '未知任务'),
-                            'current_time': current_time,
-                            'duration': duration,
-                            'progress': (current_time / duration * 100) if duration > 0 else 0,
-                            'timestamp': time.time()
-                        }
-                        
-                        # 清理太久没有更新的任务（例如已完成或异常退出的）
-                        current_ts = time.time()
-                        expired_jobs = []
-                        for jid, info in task_details[task_id]['active_jobs'].items():
-                            if current_ts - info['timestamp'] > 10:  # 10秒无更新视为非活跃
-                                expired_jobs.append(jid)
-                        for jid in expired_jobs:
-                            task_details[task_id]['active_jobs'].pop(jid, None)
-                except Exception:
-                    pass
+    except (ValueError, InputFormatError) as exc:
+        return jsonify({"status": False, "msg": str(exc)}), 400
 
-            try:
-                # 初始化超星实例
-                chaoxing = main_module.init_chaoxing(common_config, tiku_config)
-                
-                # 注入回调
-                common_config['video_progress_callback'] = update_video_progress
-                login_result = chaoxing.login(login_with_cookies=False)
-                
-                if not login_result['status']:
-                    task_status[task_id]['status'] = 'error'
-                    task_status[task_id]['error'] = '登录失败'
-                    return
-                
-                # 设置外部通知
-                notification = Notification()
-                notification.config_set(notification_config)
-                notification = notification.get_notification_from_config()
-                notification.init_notification()
-                
-                all_courses = chaoxing.get_course_list()
-                course_task = main_module.filter_courses(all_courses, course_list)
+    store = task_store
+    try:
+        task_id = store.create(username, _initial_status(), {"courses": [], "active_jobs": {}})
+    except TaskAlreadyRunning as exc:
+        return jsonify({"status": False, "msg": str(exc), "data": {"task_id": exc.task_id}}), 409
+    except Exception as exc:
+        logger.error(f"创建任务失败: {exc}")
+        return jsonify({"status": False, "msg": str(exc)}), 500
+    try:
+        _launch_study_task(task_id, store, common_config, *configs)
+    except Exception as exc:
+        store.finish(task_id, "error", error=str(exc))
+        logger.error(f"启动任务错误: {exc}")
+        return jsonify({"status": False, "msg": str(exc), "data": {"task_id": task_id}}), 500
+    return jsonify({"status": True, "data": {"task_id": task_id}})
 
-                task_status[task_id]['total'] = len(course_task)
-
-                # 初始化课程详情
-                for course in course_task:
-                    task_details[task_id]['courses'].append({
-                        'id': course['courseId'],
-                        'title': course['title'],
-                        'status': 'pending',
-                        'chapters': [],
-                        'start_time': None,
-                        'end_time': None
-                    })
-
-                # 为 main.process_course 配置章节开始/完成的回调，用于实时更新章节与任务统计
-                def chapter_start_callback(course_obj, point_obj):
-                    try:
-                        # 更新当前课程与章节名称，便于前端展示“正在学习”信息
-                        task_status[task_id]['current_course'] = course_obj.get('title', task_status[task_id].get('current_course', ''))
-                        task_status[task_id]['current_chapter'] = point_obj.get('title', '')
-                    except Exception as e:
-                        logger.debug(f"更新当前章节状态失败: {e}")
-
-                def chapter_done_callback(course_obj, point_obj):
-                    try:
-                        if task_id not in task_status or task_id not in task_details:
-                            return
-
-                        stats = task_status[task_id]['stats']
-                        courses_detail = task_details[task_id]['courses']
-                        course_id = course_obj.get('courseId')
-
-                        target_course = None
-                        for c in courses_detail:
-                            if c.get('id') == course_id:
-                                target_course = c
-                                break
-
-                        if not target_course:
-                            return
-
-                        chapters = target_course.get('chapters', [])
-                        for chapter in chapters:
-                            if chapter.get('id') == point_obj.get('id'):
-                                if not chapter.get('has_finished'):
-                                    chapter['has_finished'] = True
-                                    chapter['status'] = 'completed'
-                                    try:
-                                        job_count = int(chapter.get('jobCount', 1) or 1)
-                                    except (TypeError, ValueError):
-                                        job_count = 1
-                                    stats['completed_chapters'] += 1
-                                    stats['completed_tasks'] += job_count
-                                else:
-                                    # 已完成章节统一标记为 completed
-                                    chapter['status'] = 'completed'
-                                break
-                    except Exception as e:
-                        logger.debug(f"更新章节统计失败: {e}")
-
-                # 将回调注入 common_config，供 main.process_course / process_chapter 使用
-                common_config['chapter_start_callback'] = chapter_start_callback
-                common_config['chapter_done_callback'] = chapter_done_callback
-
-                for idx, course in enumerate(course_task):
-                    course_detail = task_details[task_id]['courses'][idx]
-                    course_detail['status'] = 'running'
-                    course_detail['start_time'] = time.time()
-                    
-                    task_status[task_id]['current_course'] = course['title']
-                    task_status[task_id]['progress'] = idx
-                    
-                    # 获取章节信息并处理
-                    try:
-                        point_list = chaoxing.get_course_point(
-                            course['courseId'], course['clazzId'], course['cpi']
-                        )
-
-                        points = point_list.get('points', [])
-                        stats = task_status[task_id]['stats']
-
-                        # 统计总章节数
-                        stats['total_chapters'] += len(points)
-
-                        # 记录章节信息与任务数量
-                        for point in points:
-                            has_finished = point.get('has_finished', False)
-                            # jobCount 来自 decode_course_point，表示章节内任务数量，缺失时按 1 计
-                            try:
-                                job_count = int(point.get('jobCount', 1) or 1)
-                            except (TypeError, ValueError):
-                                job_count = 1
-
-                            chapter_info = {
-                                'id': point.get('id'),
-                                'title': point.get('title', ''),
-                                'status': 'completed' if has_finished else 'pending',
-                                'has_finished': has_finished,
-                                'jobCount': job_count,
-                            }
-                            course_detail['chapters'].append(chapter_info)
-
-                            # 累计任务统计
-                            stats['total_tasks'] += job_count
-                            if has_finished:
-                                stats['completed_chapters'] += 1
-                                stats['completed_tasks'] += job_count
-
-                        # 处理课程（原有逻辑，但章节/任务统计通过回调实时更新）
-                        main_module.process_course(chaoxing, course, common_config)
-
-                        # 课程处理完成后，确保已完成的章节状态为 completed（统计已在回调中完成）
-                        for chapter in course_detail['chapters']:
-                            if chapter.get('has_finished'):
-                                chapter['status'] = 'completed'
-
-                        course_detail['status'] = 'completed'
-                        course_detail['end_time'] = time.time()
-
-                    except Exception as course_error:
-                        logger.error(f"课程处理失败 {course['title']}: {course_error}")
-                        course_detail['status'] = 'error'
-                        course_detail['error'] = str(course_error)
-                        course_detail['end_time'] = time.time()
-                    
-                    task_status[task_id]['progress'] = idx + 1
-                
-                task_status[task_id]['status'] = 'completed'
-
-                # 发送完成通知
-                if notification:
-                    notification.send("超星学习通: 所有课程学习任务已完成")
-                
-            except Exception as e:
-                logger.error(f"任务执行错误: {e}")
-                task_status[task_id]['status'] = 'error'
-                task_status[task_id]['error'] = str(e)
-                
-                # 发送错误通知
-                if notification:
-                    try:
-                        notification.send(f"超星学习通: 出现错误 {type(e).__name__}: {e}\n{traceback.format_exc()}")
-                    except Exception:
-                        pass
-            finally:
-                # 无论任务成功或失败，都移除当前任务的日志捕获 sink
-                try:
-                    logger.remove(log_sink_id)
-                except Exception:
-                    pass
-                # 任务结束后延迟清理状态缓存, 防止 task_status/task_details 无限增长
-                def _cleanup_task_state():
-                    time.sleep(3600)
-                    task_status.pop(task_id, None)
-                    task_details.pop(task_id, None)
-                threading.Thread(target=_cleanup_task_state, daemon=True).start()
-        
-        thread = threading.Thread(target=run_task, daemon=True)
-        thread.start()
-        
-        return jsonify({
-            'status': True,
-            'data': {
-                'task_id': task_id
-            }
-        })
-        
-    except Exception as e:
-        logger.error(f"启动任务错误: {e}")
-        return jsonify({'status': False, 'msg': str(e)}), 500
 
 @app.route('/api/task/<task_id>', methods=['GET'])
 def get_task_status(task_id):
-    """获取任务状态"""
-    if task_id not in task_status:
-        return jsonify({'status': False, 'msg': '任务不存在'}), 404
-    
-    return jsonify({
-        'status': True,
-        'data': task_status[task_id]
-    })
+    try:
+        return jsonify({"status": True, "data": task_store.get_status(task_id)})
+    except KeyError:
+        return jsonify({"status": False, "msg": "任务不存在或已过期"}), 404
+
 
 @app.route('/api/task/<task_id>/details', methods=['GET'])
 def get_task_details(task_id):
-    """获取任务详细信息"""
-    if task_id not in task_details:
-        return jsonify({'status': False, 'msg': '任务详情不存在'}), 404
-    
-    return jsonify({
-        'status': True,
-        'data': task_details[task_id]
-    })
+    try:
+        return jsonify({"status": True, "data": task_store.get_details(task_id)})
+    except KeyError:
+        return jsonify({"status": False, "msg": "任务详情不存在或已过期"}), 404
+
 
 @app.route('/api/logs/<task_id>', methods=['GET'])
 def get_logs(task_id):
-    """获取任务日志"""
-    logs = []
-    skipped = []
-    # 只消费进入时已存在的条目数量, 避免与生产者竞争造成无限循环;
-    # 属于其他任务的条目暂存后统一放回, 保证多任务日志互不丢弃
-    count = log_queue.qsize()
-    for _ in range(count):
-        try:
-            log_entry = log_queue.get_nowait()
-        except queue.Empty:
-            break
-        if log_entry['task_id'] == task_id:
-            # 分析日志级别
-            message = log_entry['message']
-            level = 'info'
-            if 'ERROR' in message.upper() or '错误' in message or '失败' in message:
-                level = 'error'
-            elif 'WARNING' in message.upper() or '警告' in message:
-                level = 'warning'
-            elif 'SUCCESS' in message.upper() or '成功' in message or '完成' in message:
-                level = 'success'
-
-            logs.append({
-                'message': message,
-                'level': level,
-                'timestamp': time.time()
-            })
-        else:
-            skipped.append(log_entry)
-
-    for entry in skipped:
-        try:
-            log_queue.put_nowait(entry)
-        except queue.Full:
-            break
-
-    return jsonify({
-        'status': True,
-        'data': logs
-    })
+    cursor = request.args.get("after", "0")
+    if not cursor.isascii() or not cursor.isdecimal():
+        return jsonify({"status": False, "msg": "after 必须为非负整数"}), 400
+    try:
+        after = int(cursor)
+    except ValueError:
+        return jsonify({"status": False, "msg": "after 必须为非负整数"}), 400
+    try:
+        return jsonify({"status": True, **task_store.read_logs(task_id, after)})
+    except KeyError:
+        return jsonify({"status": False, "msg": "任务日志不存在或已过期"}), 404
 
 @app.route('/api/health', methods=['GET'])
 def health():

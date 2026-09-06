@@ -1,26 +1,22 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Button from './ui/Button';
 import Input from './ui/Input';
 import Label from './ui/Label';
 import { LogIn, Loader2, KeyRound, AlertCircle } from 'lucide-react';
 import api from '../api/axios';
-
-// 本地记忆的登录凭据(仅存于本机浏览器);点击退出登录时清除
-export const SAVED_LOGIN_KEY = 'chaoxing_saved_login';
+import { sessionStore } from '../lib/sessionStore';
 
 const Login = ({ onLoginSuccess }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const userRef = useRef(null);
-  const autoLoginTried = useRef(false);
+  const requestRef = useRef(null);
+  const successRef = useRef(onLoginSuccess);
+  successRef.current = onLoginSuccess;
 
-  useEffect(() => {
-    userRef.current?.focus();
-  }, []);
-
-  const doLogin = async (u, p, { save = false } = {}) => {
+  const doLogin = useCallback(async (u, p, { useCookies = false, signal }) => {
     setError('');
     setLoading(true);
 
@@ -28,50 +24,57 @@ const Login = ({ onLoginSuccess }) => {
       const response = await api.post('/login', {
         username: u,
         password: p,
-      });
+        use_cookies: useCookies,
+      }, { signal });
+      if (signal.aborted) return;
 
       if (response.data.status) {
-        if (save) {
-          try {
-            localStorage.setItem(SAVED_LOGIN_KEY, JSON.stringify({ username: u, password: p }));
-          } catch (e) {
-            // 存储失败不影响登录流程
-          }
+        setPassword('');
+        let persistenceError = '';
+        try { await sessionStore.rememberLogin(u); } catch {
+          persistenceError = '账号记忆未能保存，刷新后可能需要重新登录';
         }
-        onLoginSuccess({ username: u, password: p });
+        if (!signal.aborted) await successRef.current({ username: u, password: '', use_cookies: true }, persistenceError);
       } else {
         setError(response.data.msg || '登录失败,请检查账号信息后重试');
       }
     } catch (err) {
-      setError(err.response?.data?.msg || '网络连接异常,请确认服务已启动后重试');
+      if (!signal.aborted) setError(useCookies ? '保存的登录会话不可用，请输入密码重新登录' : err.response?.data?.msg || '网络连接异常,请确认服务已启动后重试');
     } finally {
-      setLoading(false);
+      if (!signal.aborted) setLoading(false);
     }
-  };
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    await doLogin(username, password, { save: true });
+    if (loading) return;
+    requestRef.current?.abort();
+    const controller = new AbortController();
+    requestRef.current = controller;
+    await doLogin(username.trim(), password, { signal: controller.signal });
   };
 
-  // 启动时若本地保存过凭据则自动登录
+  // The desktop bridge persists across random backend ports; only cookies are reused.
   useEffect(() => {
-    if (autoLoginTried.current) return;
-    autoLoginTried.current = true;
-
-    let saved = null;
-    try {
-      saved = JSON.parse(localStorage.getItem(SAVED_LOGIN_KEY) || 'null');
-    } catch (e) {
-      saved = null;
-    }
-    if (saved?.username && saved?.password) {
-      setUsername(saved.username);
-      setPassword(saved.password);
-      doLogin(saved.username, saved.password);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    const controller = new AbortController();
+    requestRef.current = controller;
+    const restore = async () => {
+      try {
+        const saved = await sessionStore.read();
+        if (controller.signal.aborted) return;
+        if (saved.login) {
+          setUsername(saved.login.username);
+          await doLogin(saved.login.username, '', { useCookies: true, signal: controller.signal });
+        }
+      } catch {
+        if (!controller.signal.aborted) setError('读取保存的账号失败，请手动登录');
+      } finally {
+        if (!controller.signal.aborted) { setLoading(false); userRef.current?.focus(); }
+      }
+    };
+    restore();
+    return () => { controller.abort(); requestRef.current?.abort(); };
+  }, [doLogin]);
 
   const errId = 'login-error';
 
@@ -102,6 +105,7 @@ const Login = ({ onLoginSuccess }) => {
                 autoComplete="username"
                 placeholder="请输入手机号"
                 value={username}
+                disabled={loading}
                 onChange={(e) => setUsername(e.target.value)}
                 required
               />
@@ -115,6 +119,7 @@ const Login = ({ onLoginSuccess }) => {
                 autoComplete="current-password"
                 placeholder="请输入密码"
                 value={password}
+                disabled={loading}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
@@ -149,7 +154,7 @@ const Login = ({ onLoginSuccess }) => {
 
         <p className="mt-6 text-center text-xs leading-relaxed text-faint">
           <KeyRound className="mr-1 inline h-3 w-3 -translate-y-px" aria-hidden="true" />
-          账号信息仅用于本机登录,不会上传至任何第三方
+          本机记忆账号并使用登录会话，密码不写入本地存储
         </p>
         <p className="mt-1.5 text-center text-xs leading-relaxed text-faint">
           本程序仅供学习和研究使用，请勿用于商业或非法用途。

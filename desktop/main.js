@@ -3,7 +3,8 @@ const os = require('os');
 const path = require('path');
 const net = require('net');
 const { spawn, exec } = require('child_process');
-const { app, BrowserWindow, Menu, dialog } = require('electron');
+const { app, BrowserWindow, Menu, dialog, ipcMain } = require('electron');
+const { SessionStore, registerSessionIpc } = require('./session-store');
 
 let mainWindow = null;
 let backend = null;
@@ -23,6 +24,11 @@ try {
 }
 const MAIN_LOG = path.join(dataDir, 'main.log');
 const BACKEND_LOG = path.join(dataDir, 'backend.log');
+registerSessionIpc(ipcMain, {
+  getWindow: () => mainWindow,
+  getOrigin: () => port ? `http://127.0.0.1:${port}` : null,
+  store: new SessionStore(dataDir),
+});
 
 /**
  * 主进程日志：启动失败时用于定位问题
@@ -179,6 +185,7 @@ function createWindow() {
     autoHideMenuBar: true,
     backgroundColor: '#0f172a',
     webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
@@ -189,12 +196,15 @@ function createWindow() {
 
   // 安全限制：外链一律不新开窗口，导航限制在本地后端
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
-  mainWindow.webContents.on('will-navigate', (e, url) => {
-    if (!url.startsWith(`http://127.0.0.1:${port}`) && !url.startsWith('data:text/html')) {
-      e.preventDefault();
-    }
-  });
+  const restrictNavigation = (e, url) => {
+    try {
+      if (!port || new URL(url).origin !== `http://127.0.0.1:${port}`) e.preventDefault();
+    } catch { e.preventDefault(); }
+  };
+  mainWindow.webContents.on('will-navigate', restrictNavigation);
+  mainWindow.webContents.on('will-redirect', restrictNavigation);
 
+  // Programmatic loadURL may display the loading/error data pages; their IPC is denied.
   mainWindow.loadURL(LOADING_PAGE);
   mainWindow.on('closed', () => {
     mainWindow = null;

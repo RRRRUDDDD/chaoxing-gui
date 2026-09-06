@@ -15,6 +15,9 @@ import requests
 from api.logger import logger
 
 
+NOTIFICATION_TIMEOUT = (5, 10)
+
+
 class NotificationService(ABC):
     """
     通知服务基类，定义通知服务的公共接口和实现。
@@ -170,7 +173,7 @@ class ServerChan(NotificationService):
         }
 
         try:
-            response = requests.post(self.url, json=params, headers=headers)
+            response = requests.post(self.url, json=params, headers=headers, timeout=NOTIFICATION_TIMEOUT)
             response.raise_for_status()
             result = response.json()
             logger.info(f"Server酱通知发送成功: {result}")
@@ -206,7 +209,7 @@ class Qmsg(NotificationService):
         headers = {'Content-Type': 'application/json;charset=utf-8'}
 
         try:
-            response = requests.post(self.url, params=params, headers=headers)
+            response = requests.post(self.url, params=params, headers=headers, timeout=NOTIFICATION_TIMEOUT)
             response.raise_for_status()
             result = response.json()
             logger.info(f"Qmsg酱通知发送成功: {result}")
@@ -241,7 +244,7 @@ class Bark(NotificationService):
         params = {'body': message}
 
         try:
-            response = requests.post(self.url, params=params)
+            response = requests.post(self.url, params=params, timeout=NOTIFICATION_TIMEOUT)
             response.raise_for_status()
             result = response.json()
             logger.info(f"Bark通知发送成功: {result}")
@@ -279,7 +282,7 @@ class Telegram(NotificationService):
         }
 
         try:
-            response = requests.post(self.url, data=params)
+            response = requests.post(self.url, data=params, timeout=NOTIFICATION_TIMEOUT)
             response.raise_for_status()
             result = response.json()
             if result.get('ok'):

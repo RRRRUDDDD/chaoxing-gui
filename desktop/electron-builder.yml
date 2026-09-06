@@ -4,6 +4,8 @@ directories:
   output: release
 files:
   - main.js
+  - preload.js
+  - session-store.js
   - package.json
 extraResources:
   - from: backend/chaoxing-backend

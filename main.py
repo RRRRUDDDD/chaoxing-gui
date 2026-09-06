@@ -2,20 +2,16 @@
 import argparse
 import configparser
 import enum
+import math
 import sys
 import threading
 import time
 import traceback
 from concurrent.futures.thread import ThreadPoolExecutor
-from dataclasses import dataclass
+from contextlib import nullcontext
+from contextvars import copy_context
+from dataclasses import dataclass, field
 from queue import PriorityQueue
-try:
-    from queue import ShutDown
-except ImportError:
-    # ShutDown is only available in Python 3.13+
-    class ShutDown(Exception):
-        pass
-from threading import RLock
 from typing import Any
 
 from tqdm import tqdm
@@ -33,6 +29,8 @@ class ChapterResult(enum.Enum):
     ERROR=1
     NOT_OPEN=2
     PENDING=3
+    EMPTY=4
+    SKIPPED=5
 
 
 def log_error(func):
@@ -51,6 +49,19 @@ def str_to_bool(value):
     if isinstance(value, bool):
         return value
     return str(value).strip().lower() in {"1", "true", "yes", "y", "on"}
+
+
+def validate_jobs(value):
+    """Validate the same worker limit for CLI and API callers."""
+    if isinstance(value, bool) or not isinstance(value, (int, str)):
+        raise InputFormatError("并发章节数必须为 1 到 16 的整数")
+    try:
+        jobs = int(value)
+    except ValueError as exc:
+        raise InputFormatError("并发章节数必须为 1 到 16 的整数") from exc
+    if not 1 <= jobs <= 16:
+        raise InputFormatError("并发章节数必须为 1 到 16 的整数")
+    return jobs
 
 
 def parse_args():
@@ -180,9 +191,12 @@ def init_chaoxing(common_config, tiku_config):
     username = common_config.get("username", "")
     password = common_config.get("password", "")
     use_cookies = common_config.get("use_cookies", False)
+    validate_jobs(common_config.get("jobs", 4))
     
     # 如果没有提供用户名密码，从命令行获取
     if (not username or not password) and not use_cookies:
+        if not common_config.get("interactive", True):
+            raise InputFormatError("用户名或密码不能为空")
         username = input("请输入你的手机号, 按回车确认\n手机号:")
         password = input("请输入你的密码, 按回车确认\n密码:")
     
@@ -192,7 +206,13 @@ def init_chaoxing(common_config, tiku_config):
     tiku = Tiku()
     tiku.config_set(tiku_config)  # 载入配置
     tiku = tiku.get_tiku_from_config()  # 载入题库
-    tiku.init_tiku()  # 初始化题库
+    try:
+        tiku.init_tiku()
+    except BaseException:
+        close_tiku = getattr(tiku, 'close', None)
+        if callable(close_tiku):
+            close_tiku()
+        raise
     
     # 获取查询延迟设置
     query_delay = tiku_config.get("delay", 0)
@@ -249,12 +269,12 @@ def process_job(chaoxing: Chaoxing, course: dict, job: dict, job_info: dict, spe
             live = Live(
                 attachment=job,
                 defaults=defaults,
-                course_id=course.get("courseId")
+                course_id=course.get("courseId"),
+                session=chaoxing.session_manager.get_session(),
             )
 
             # 直播刷取是同步循环, 直接在当前线程等待完成
-            LiveProcessor.run_live(live, speed)
-            return StudyResult.SUCCESS
+            return StudyResult.SUCCESS if LiveProcessor.run_live(live, speed) else StudyResult.ERROR
         except Exception as e:
             logger.error(f"处理直播任务时出错: {str(e)}")
             return StudyResult.ERROR
@@ -266,219 +286,349 @@ def process_job(chaoxing: Chaoxing, course: dict, job: dict, job_info: dict, spe
 @dataclass(order=True)
 class ChapterTask:
     index: int
-    point: dict[str, Any]
-    result: ChapterResult = ChapterResult.PENDING
-    tries: int = 0
+    point: dict[str, Any] = field(compare=False)
+    result: ChapterResult = field(default=ChapterResult.PENDING, compare=False)
+    tries: int = field(default=0, compare=False)
+
+
+@dataclass(frozen=True)
+class CourseResult:
+    tasks: tuple[ChapterTask, ...]
+
+    @property
+    def completed(self):
+        return [task for task in self.tasks if task.result == ChapterResult.SUCCESS]
+
+    @property
+    def empty(self):
+        return [task for task in self.tasks if task.result == ChapterResult.EMPTY]
+
+    @property
+    def skipped(self):
+        return [task for task in self.tasks if task.result == ChapterResult.SKIPPED]
+
+    @property
+    def failed(self):
+        return [task for task in self.tasks if task.result not in
+                {ChapterResult.SUCCESS, ChapterResult.EMPTY, ChapterResult.SKIPPED}]
+
+    @property
+    def success(self):
+        return not self.failed and not self.skipped
+
+
+def _known_job_count(point):
+    try:
+        return max(0, int(point.get('jobCount', 1)))
+    except (TypeError, ValueError):
+        return 1
+
+
+def _chapter_counts(point, result):
+    if '_task_stats' not in point:
+        count = _known_job_count(point)
+        point['_task_stats'] = {
+            'total': count,
+            'completed': count if result == ChapterResult.SUCCESS else 0,
+            'failed': count if result == ChapterResult.ERROR else 0,
+            'skipped': count if result == ChapterResult.SKIPPED else 0,
+        }
+
+
+def _job_key(job):
+    identifier = job.get('jobid') or job.get('objectid') or job.get('id')
+    if identifier is None or str(identifier) == '':
+        return None
+    return str(job.get('type', '')), str(identifier)
+
+
+def _record_job_counts(point):
+    outcomes = list(point['_job_results'].values())
+    point['_task_stats'] = {
+        'total': len(outcomes),
+        'completed': sum(result == StudyResult.SUCCESS for result in outcomes),
+        'failed': sum(result.is_failure() for result in outcomes),
+        'skipped': sum(result == StudyResult.SKIPPED for result in outcomes),
+    }
+
+
+def _session_context(chaoxing):
+    manager = getattr(chaoxing, 'session_manager', None)
+    return manager.context() if manager is not None else nullcontext()
+
+
+def _close_thread_session(chaoxing):
+    manager = getattr(chaoxing, 'session_manager', None)
+    if manager is not None:
+        manager.close_current_session()
+
 
 class JobProcessor:
-    def __init__(self, chaoxing: Chaoxing, course: dict[str, Any], tasks: list[ChapterTask], config: dict[str, Any]):
+    def __init__(self, chaoxing: Chaoxing, course: dict[str, Any],
+                 tasks: list[ChapterTask], config: dict[str, Any]):
         self.chaoxing = chaoxing
         self.course = course
         self.speed = config["speed"]
         self.max_tries = 5
         self.tasks = tasks
+        for task in tasks:
+            task.point.pop('_job_results', None)
+            task.point.pop('_task_stats', None)
         self.failed_tasks: list[ChapterTask] = []
         self.task_queue: PriorityQueue[ChapterTask] = PriorityQueue()
         self.retry_queue: PriorityQueue[ChapterTask] = PriorityQueue()
-        self.wait_queue: PriorityQueue[ChapterTask] = PriorityQueue()
         self.threads: list[threading.Thread] = []
-        self.worker_num = config["jobs"]
+        self.worker_num = validate_jobs(config.get("jobs", 4))
         self.config = config
-        self.retry_interval = config.get("retry_interval", 1.0)
+        self.retry_interval = float(config.get("retry_interval", 1.0))
+        if not math.isfinite(self.retry_interval) or not 0 <= self.retry_interval <= 300:
+            raise InputFormatError("重试间隔必须为 0 到 300 秒")
+        self._stop = threading.Event()
+        self._sentinel = ChapterTask(sys.maxsize, {})
+        self._workers = []
+        self._retry_worker = None
+        self._started = False
 
     def run(self):
+        if self._started:
+            raise RuntimeError('A course processor can only run once')
+        self._started = True
+        if not self.tasks:
+            return CourseResult(())
         for task in self.tasks:
             self.task_queue.put(task)
-
-        for i in range(self.worker_num):
-            thread = threading.Thread(target=self.worker_thread, daemon=True)
-            self.threads.append(thread)
-            thread.start()
-
-        threading.Thread(target=self.retry_thread, daemon=True).start()
-
-        self.task_queue.join()
-        time.sleep(0.5)
-
-
-    @log_error
-    def worker_thread(self):
-        tqdm.set_lock(tqdm.get_lock())
-        while True:
-            try:
-                task = self.task_queue.get()
-            except ShutDown:
-                logger.info("Queue shut down")
-                return
-
-            # 章节处理异常不能让线程死亡, 否则该任务永远没有 task_done(), 队列 join 将永久阻塞
-            try:
-                task.result = process_chapter(self.chaoxing, self.course, task.point, self.speed, self.config)
-            except BaseException as e:
-                logger.error("章节处理异常, 按失败重试: {} -> {}", task.point.get("title"), e)
-                task.result = ChapterResult.ERROR
-
-            match task.result:
-                case ChapterResult.SUCCESS:
-                    logger.debug("Task success: {}", task.point["title"])
-                    self.task_queue.task_done()
-                    logger.debug(f"unfinished task: {self.task_queue.unfinished_tasks}")
-
-                case ChapterResult.NOT_OPEN:
-                    if self.config["notopen_action"] == "continue":
-                        logger.warning("章节未开启: {}, 正在跳过", task.point["title"])
-                        self.task_queue.task_done()
-                        continue
-
-                    task.tries += 1
-                    if task.tries >= self.max_tries:
-                        logger.error(
-                            "章节未开启: {} 可能由于上一章节的章节检测未完成, 也可能由于该章节因为时效已关闭，"
-                            "请手动检查完成并提交再重试。或者在配置中配置(自动跳过关闭章节/开启题库并启用提交)",
-                            task.point["title"])
-                        self.task_queue.task_done()
-                        continue
-
-                    self.retry_queue.put(task)
-
-                case ChapterResult.ERROR:
-                    task.tries += 1
-                    logger.warning("Retrying task {} ({}/{} attempts)", task.point["title"], task.tries,
-                                   self.max_tries)
-                    if task.tries >= self.max_tries:
-                        logger.error("Max retries reached for task: {}", task.point["title"])
-                        self.failed_tasks.append(task)
-                        self.task_queue.task_done()
-                        continue
-                    self.retry_queue.put(task)
-
-                case _:
-                    logger.error("Invalid task state {} for task {}", task.result, task.point["title"])
-                    self.failed_tasks.append(task)
-                    self.task_queue.task_done()
-
-    @log_error
-    def retry_thread(self):
         try:
-            while True:
-                task = self.retry_queue.get()
-                self.task_queue.put(task)
-                self.task_queue.task_done() # task_done is not called when a task failed and needs to be retried, so if is reput into the queue, the task num will increase by one and become more than the real task number
-                time.sleep(self.retry_interval)
-        except ShutDown:
-            pass
+            self._retry_worker = self._start_thread(self.retry_thread, 'chaoxing-retry')
+            for i in range(min(self.worker_num, len(self.tasks))):
+                self._workers.append(self._start_thread(self.worker_thread, f'chaoxing-worker-{i + 1}'))
+            self.task_queue.join()
+            self.retry_queue.join()
+            return CourseResult(tuple(self.tasks))
+        finally:
+            self._stop.set()
+            for _ in self._workers:
+                self.task_queue.put(self._sentinel)
+            if self._retry_worker is not None:
+                self.retry_queue.put(self._sentinel)
+            for thread in self.threads:
+                thread.join()
 
+    def _start_thread(self, target, name):
+        context = copy_context()
+        thread = threading.Thread(target=context.run, args=(target,), name=name)
+        thread.start()
+        self.threads.append(thread)
+        return thread
 
-def process_chapter(chaoxing: Chaoxing, course:dict[str, Any], point:dict[str, Any], speed:float, config: dict[str, Any] | None = None) -> ChapterResult:
-    """处理单个章节
-
-    当所有任务点成功完成时，如果 config 中提供了 chapter_done_callback，
-    则回调通知外部（如 Web 端）更新进度统计。
-    """
-    logger.info(f'当前章节: {point["title"]}')
-
-    # 通知外部当前章节开始（用于前端显示当前正在学习的章节）
-    if config is not None:
-        start_cb = config.get("chapter_start_callback")
-        if callable(start_cb):
-            try:
-                start_cb(course, point)
-            except Exception as e:
-                logger.debug(f"调用 chapter_start_callback 时出错: {e}")
-    if point["has_finished"]:
-        logger.info(f'章节：{point["title"]} 已完成所有任务点')
-        # 已经在超星端标记为完成的章节，这里直接视为成功，但不再重复回调
-        return ChapterResult.SUCCESS
-    
-    # 随机等待，避免请求过快
-    chaoxing.rate_limiter.limit_rate(random_time=True,random_min=0, random_max=0.2)
-    
-    # 获取当前章节的所有任务点
-    job_info = None
-    jobs, job_info = chaoxing.get_job_list(course, point)
-
-    # 发现未开放章节, 根据配置处理
-    if job_info.get("notOpen", False):
-        return ChapterResult.NOT_OPEN
-
-    # 空任务列表由 get_job_list 内部的 study_emptypage 处理, 此处无需额外逻辑
-    job_results:list[StudyResult]=[]
-    video_progress_callback = config.get("video_progress_callback") if config else None
-    with ThreadPoolExecutor(max_workers=5) as executor:
-        for result in executor.map(lambda job: process_job(chaoxing, course, job, job_info, speed, progress_callback=video_progress_callback), jobs):
-            job_results.append(result)
-    
-    for result in job_results:
-        if result.is_failure():
-            return ChapterResult.ERROR
-
-    # 所有任务点均成功，通知外部本章节已完成（用于前端进度统计）
-    if config is not None:
-        callback = config.get("chapter_done_callback")
+    def _finish_task(self, task):
+        _chapter_counts(task.point, task.result)
+        if task.result == ChapterResult.ERROR:
+            self.failed_tasks.append(task)
+        callback = self.config.get('chapter_result_callback')
         if callable(callback):
             try:
-                callback(course, point)
-            except Exception as e:
-                logger.debug(f"调用 chapter_done_callback 时出错: {e}")
+                callback(self.course, task.point, task.result)
+            except Exception as exc:
+                logger.error('更新章节结果失败: {}', exc)
 
-    return ChapterResult.SUCCESS
+    def worker_thread(self):
+        try:
+            while True:
+                task = self.task_queue.get()
+                deferred_ack = False
+                try:
+                    if task is self._sentinel:
+                        return
+                    try:
+                        if self._stop.is_set():
+                            task.result = ChapterResult.ERROR
+                        else:
+                            with _session_context(self.chaoxing):
+                                task.result = process_chapter(self.chaoxing, self.course, task.point,
+                                                              self.speed, self.config)
+                    except BaseException as exc:
+                        logger.error('章节处理异常: {} -> {}', task.point.get('title'), exc)
+                        task.point['_error'] = str(exc)
+                        task.result = ChapterResult.ERROR
+
+                    if task.result == ChapterResult.NOT_OPEN and self.config.get('notopen_action') == 'continue':
+                        task.result = ChapterResult.SKIPPED
+                        if task.point.get('_job_results'):
+                            task.point['_job_results'] = {
+                                key: StudyResult.SKIPPED if result.is_failure() else result
+                                for key, result in task.point['_job_results'].items()
+                            }
+                            _record_job_counts(task.point)
+                    if task.result in {ChapterResult.ERROR, ChapterResult.NOT_OPEN}:
+                        task.tries += 1
+                        if task.tries < self.max_tries and not self._stop.is_set():
+                            self.retry_queue.put(task)
+                            deferred_ack = True
+                            continue
+                        if task.result == ChapterResult.NOT_OPEN:
+                            task.point['_error'] = '章节未开放，已达到最大重试次数'
+                        task.result = ChapterResult.ERROR
+                        logger.error('章节重试耗尽: {}', task.point.get('title'))
+                    elif task.result not in {ChapterResult.SUCCESS, ChapterResult.EMPTY, ChapterResult.SKIPPED}:
+                        task.result = ChapterResult.ERROR
+                    self._finish_task(task)
+                finally:
+                    if not deferred_ack:
+                        self.task_queue.task_done()
+        finally:
+            _close_thread_session(self.chaoxing)
+
+    def retry_thread(self):
+        while True:
+            task = self.retry_queue.get()
+            try:
+                if task is self._sentinel:
+                    return
+                try:
+                    if self._stop.wait(self.retry_interval):
+                        task.result = ChapterResult.ERROR
+                        self._finish_task(task)
+                    else:
+                        # Transfer before acknowledging the previous attempt:
+                        # join() must not return while a retry is outstanding.
+                        self.task_queue.put(task)
+                finally:
+                    self.task_queue.task_done()
+            finally:
+                self.retry_queue.task_done()
 
 
+def process_chapter(chaoxing: Chaoxing, course: dict[str, Any], point: dict[str, Any],
+                    speed: float, config: dict[str, Any] | None = None) -> ChapterResult:
+    """Process every job and retain counts without treating skipped work as done."""
+    config = config or {}
+    logger.info('当前章节: {}', point["title"])
+    if point.get('_job_results'):
+        _record_job_counts(point)
+    else:
+        point.pop('_task_stats', None)
+    point.pop('_error', None)
 
-def process_course(chaoxing: Chaoxing, course:dict[str, Any], config: dict):
-    """处理单个课程"""
-    logger.info(f"开始学习课程: {course['title']}")
-    
-    # 获取当前课程的所有章节
-    point_list = chaoxing.get_course_point(
-        course["courseId"], course["clazzId"], course["cpi"]
-    )
+    start_callback = config.get('chapter_start_callback')
+    if callable(start_callback):
+        try:
+            start_callback(course, point)
+        except Exception as exc:
+            logger.debug('调用章节开始回调失败: {}', exc)
 
-    # 为了支持课程任务回滚, 采用下标方式遍历任务点
+    if point.get('has_finished', False):
+        _chapter_counts(point, ChapterResult.SUCCESS)
+        return ChapterResult.SUCCESS
 
-    _old_format_sizeof = tqdm.format_sizeof
-    tqdm.format_sizeof = format_time
-    tqdm.set_lock(RLock())
+    chaoxing.rate_limiter.limit_rate(random_time=True, random_min=0, random_max=0.2)
+    jobs, job_info = chaoxing.get_job_list(course, point)
+    if job_info.get('notOpen', False):
+        return ChapterResult.NOT_OPEN
 
-    tasks=[]
-    for i, point in enumerate(point_list["points"]):
-        task = ChapterTask(point=point, index=i)
-        tasks.append(task)
-    p = JobProcessor(chaoxing, course, tasks, config)
-    p.run()
+    outcomes = point.setdefault('_job_results', {})
+    # The upstream parser filters passed attachments. Keep their identities so
+    # a shrinking pending list cannot discard earlier successful work.
+    for job in job_info.get('passed_jobs', []):
+        key = _job_key(job)
+        if key is not None:
+            outcomes[key] = StudyResult.SUCCESS
+    pending = {}
+    for job in jobs:
+        key = _job_key(job)
+        if key is None:
+            raise ValueError('任务点缺少稳定标识')
+        if outcomes.get(key) not in {StudyResult.SUCCESS, StudyResult.SKIPPED}:
+            pending[key] = job
+            outcomes.setdefault(key, StudyResult.ERROR)
+    _record_job_counts(point)
+
+    video_progress_callback = config.get('video_progress_callback')
+
+    def run_job(job):
+        try:
+            with _session_context(chaoxing):
+                result = process_job(chaoxing, course, job, job_info, speed,
+                                     progress_callback=video_progress_callback)
+                return result if isinstance(result, StudyResult) else StudyResult.ERROR
+        finally:
+            _close_thread_session(chaoxing)
+
+    if pending:
+        with ThreadPoolExecutor(max_workers=min(5, len(pending))) as executor:
+            futures = [(key, executor.submit(copy_context().run, run_job, job))
+                       for key, job in pending.items()]
+            for key, future in futures:
+                try:
+                    outcomes[key] = future.result()
+                except BaseException as exc:
+                    logger.error('任务点执行失败: {}', exc)
+                    point['_error'] = str(exc)
+                    outcomes[key] = StudyResult.ERROR
+    _record_job_counts(point)
+    if point['_task_stats']['failed']:
+        return ChapterResult.ERROR
+    if point['_task_stats']['skipped']:
+        return ChapterResult.SKIPPED
+
+    callback = config.get('chapter_done_callback')
+    if callable(callback):
+        try:
+            callback(course, point)
+        except Exception as exc:
+            logger.debug('调用章节完成回调失败: {}', exc)
+    return ChapterResult.SUCCESS if outcomes else ChapterResult.EMPTY
 
 
-    tqdm.format_sizeof = _old_format_sizeof
+def process_course(chaoxing: Chaoxing, course: dict[str, Any], config: dict,
+                   point_list=None) -> CourseResult:
+    """Return final chapter outcomes, reusing a supplied chapter snapshot."""
+    logger.info("开始学习课程: {}", course['title'])
+    validate_jobs(config.get('jobs', 4))
+    if point_list is None:
+        point_list = chaoxing.get_course_point(course['courseId'], course['clazzId'], course['cpi'])
+    if not isinstance(point_list, dict) or not isinstance(point_list.get('points'), list):
+        raise ValueError('课程章节响应格式错误')
+    tasks = [ChapterTask(index=i, point=point) for i, point in enumerate(point_list['points'])]
+    return JobProcessor(chaoxing, course, tasks, config).run()
 
 
-
-def filter_courses(all_course, course_list):
-    """过滤要学习的课程"""
+def filter_courses(all_course, course_list, *, interactive=False):
+    """Validate API selections; interactive selection is explicitly CLI-only."""
     if not course_list:
-        # 手动输入要学习的课程ID列表
+        if not interactive:
+            raise InputFormatError('请选择至少一门有效课程')
         print("*" * 10 + "课程列表" + "*" * 10)
         for course in all_course:
             print(f"ID: {course['courseId']} 课程名: {course['title']}")
         print("*" * 28)
         try:
             course_list = input(
-                "请输入想要学习的课程列表,以逗号分隔,例: 2151141,189191,198198\n"
-            ).split(",")
-        except Exception as e:
-            raise InputFormatError("输入格式错误") from e
+                "请输入想要学习的课程列表,以逗号分隔,例: 2151141,189191,198198（直接回车选择全部）\n"
+            ).split(',')
+            if not any(item.strip() for item in course_list):
+                course_list = [str(course['courseId']) for course in all_course]
+        except Exception as exc:
+            raise InputFormatError('输入格式错误') from exc
 
-    # 筛选需要学习的课程
+    if not isinstance(course_list, (list, tuple)) or not course_list:
+        raise InputFormatError('请选择至少一门有效课程')
+    if any(isinstance(item, bool) or not isinstance(item, (str, int)) for item in course_list):
+        raise InputFormatError('课程 ID 格式错误')
+    selected_ids = {str(item).strip() for item in course_list}
+    available_ids = {str(course['courseId']) for course in all_course}
+    unknown_ids = selected_ids - available_ids
+    if unknown_ids:
+        raise InputFormatError('课程选择已失效，请重新选择: ' + ', '.join(sorted(unknown_ids)))
+
     course_task = []
-    course_ids = []
+    course_ids = set()
     for course in all_course:
-        if course["courseId"] in course_list and course["courseId"] not in course_ids:
+        course_id = str(course['courseId'])
+        if course_id in selected_ids and course_id not in course_ids:
             course_task.append(course)
-            course_ids.append(course["courseId"])
-    
-    # 如果没有指定课程，则学习所有课程
+            course_ids.add(course_id)
     if not course_task:
-        course_task = all_course
-    
+        raise InputFormatError('没有可学习的课程')
     return course_task
 
 
@@ -496,6 +646,8 @@ def format_time(num, suffix='', divisor=''):
 
 def main():
     """主程序入口"""
+    chaoxing = None
+    notification = None
     try:
         # 初始化配置
         common_config, tiku_config, notification_config = init_config()
@@ -522,15 +674,22 @@ def main():
         all_course = chaoxing.get_course_list()
         
         # 过滤要学习的课程
-        course_task = filter_courses(all_course, common_config.get("course_list"))
+        course_task = filter_courses(all_course, common_config.get("course_list"), interactive=True)
         
         # 开始学习
         logger.info(f"课程列表过滤完毕, 当前课程任务数量: {len(course_task)}")
-        for course in course_task:
-            process_course(chaoxing, course, common_config)
+        results = [process_course(chaoxing, course, common_config) for course in course_task]
+        failed = sum(len(result.failed) for result in results)
+        skipped = sum(len(result.skipped) for result in results)
+        if failed or skipped:
+            message = f"课程处理结束：{failed} 个章节失败，{skipped} 个章节跳过"
+            logger.warning(message)
+            notification.send(f"chaoxing : {message}")
+            return 1
         
         logger.info("所有课程学习任务已完成")
         notification.send("chaoxing : 所有课程学习任务已完成")
+        return 0
         
     except SystemExit as e:
         if e.code != 0:
@@ -538,6 +697,7 @@ def main():
         sys.exit(e.code)
     except KeyboardInterrupt as e:
         logger.error(f"错误: 程序被用户手动中断, {e}")
+        return 130
     except BaseException as e:
         logger.error(f"错误: {type(e).__name__}: {e}")
         logger.error(traceback.format_exc())
@@ -546,7 +706,10 @@ def main():
         except Exception:
             pass  # 如果通知发送失败，忽略异常
         raise e
+    finally:
+        if chaoxing is not None:
+            chaoxing.close()
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

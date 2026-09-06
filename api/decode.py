@@ -5,13 +5,16 @@
 该模块负责解析超星学习通平台的课程、章节、任务点等各种数据，
 并转换为程序内部使用的结构化数据格式。
 """
+import hashlib
 import json
 import re
 import os
 import sys
 import tempfile
 import threading
+import time
 import io
+from collections import OrderedDict
 from collections.abc import Mapping
 from typing import List, Dict, Tuple, Any, Optional, Union
 
@@ -20,8 +23,14 @@ from bs4 import BeautifulSoup, NavigableString
 from api.font_decoder import FontDecoder
 from api.logger import logger
 from api.config import GlobalConst as gc
-from api.cookies import use_cookies
-from api.vision_ocr import vision_ocr, is_vision_ocr_enabled
+from api.session import get_current_session
+from api.vision_ocr import (
+    OCRResult,
+    get_ocr_config,
+    is_vision_ocr_enabled,
+    ocr_config_fingerprint,
+    vision_ocr_result,
+)
 import requests
 
 try:
@@ -35,6 +44,44 @@ _PADDLE_OCR_ENGINE = None
 _PADDLE_OCR_INITIALIZED = False
 _PADDLE_OCR_DEVICE = None  # 记录当前 OCR 引擎运行的设备（gpu / cpu）
 _PADDLE_OCR_LOCK = threading.RLock()
+_PADDLE_OCR_RETRY_AT = 0.0
+_PADDLE_OCR_RETRY_SECONDS = 60.0
+
+# URL 缓存按借用会话隔离，内容缓存按图片哈希和完整引擎配置复用。
+# 有效文本缓存一小时，确认空白缓存一分钟，临时失败只缓存五秒。
+_OCR_CACHE_MAXSIZE = 256
+_OCR_TEXT_TTL = 3600.0
+_OCR_EMPTY_TTL = 60.0
+_OCR_FAILURE_TTL = 5.0
+_OCR_URL_CACHE = OrderedDict()
+_OCR_CONTENT_CACHE = OrderedDict()
+_OCR_CACHE_LOCK = threading.Lock()
+# 有界分片锁抑制相同 URL/内容的并发重复请求；不在全局缓存锁内联网。
+_OCR_URL_LOCKS = [threading.Lock() for _ in range(32)]
+_OCR_CONTENT_LOCKS = [threading.Lock() for _ in range(32)]
+
+
+def _get_ocr_cache(cache, key) -> Optional[OCRResult]:
+    with _OCR_CACHE_LOCK:
+        entry = cache.get(key)
+        if entry is not None:
+            expires_at, result = entry
+            if expires_at > time.monotonic():
+                cache.move_to_end(key)
+                return result
+            del cache[key]
+    return None
+
+
+def _put_ocr_cache(cache, key, result: OCRResult) -> None:
+    ttl = _OCR_TEXT_TTL if result.text and result.success else (
+        _OCR_EMPTY_TTL if result.success else _OCR_FAILURE_TTL
+    )
+    with _OCR_CACHE_LOCK:
+        cache[key] = (time.monotonic() + ttl, result)
+        cache.move_to_end(key)
+        while len(cache) > _OCR_CACHE_MAXSIZE:
+            cache.popitem(last=False)
 
 
 def _import_paddle_ocr_class():
@@ -137,11 +184,14 @@ def _init_paddle_ocr(preferred_device: Optional[str] = None):
 
     - 优先使用环境中安装的 PaddleOCR 3.x（与 PaddleX 版本保持一致）；
     - 未安装时回退到项目根目录下的源码副本；
-    - 初始化失败时记录日志并返回 None，不影响主流程。
+    - 初始化失败后 60 秒内不重复导入或构建引擎，不影响主流程。
     """
     global _PADDLE_OCR_ENGINE, _PADDLE_OCR_INITIALIZED, _PADDLE_OCR_DEVICE
+    global _PADDLE_OCR_RETRY_AT
 
     with _PADDLE_OCR_LOCK:
+        if time.monotonic() < _PADDLE_OCR_RETRY_AT:
+            return None
         if preferred_device and preferred_device != _PADDLE_OCR_DEVICE:
             # 强制切换设备时需要重新初始化
             _PADDLE_OCR_INITIALIZED = False
@@ -193,6 +243,7 @@ def _init_paddle_ocr(preferred_device: Optional[str] = None):
                             raise modern_exc
                     _PADDLE_OCR_ENGINE = engine
                     _PADDLE_OCR_DEVICE = device
+                    _PADDLE_OCR_RETRY_AT = 0.0
                     logger.info(f"PaddleOCR 初始化成功 ({device.upper()})，将用于题目图片 OCR")
                     return _PADDLE_OCR_ENGINE
                 except Exception as exc_device:
@@ -211,6 +262,7 @@ def _init_paddle_ocr(preferred_device: Optional[str] = None):
                 logger.warning(f"PaddleOCR 初始化失败，将不使用本地 OCR: {exc}")
             _PADDLE_OCR_ENGINE = None
             _PADDLE_OCR_DEVICE = None
+            _PADDLE_OCR_RETRY_AT = time.monotonic() + _PADDLE_OCR_RETRY_SECONDS
 
         return _PADDLE_OCR_ENGINE
 
@@ -290,60 +342,40 @@ def _preprocess_image_for_ocr(image_bytes: bytes, enhance_mode: int = 0) -> byte
         return image_bytes
 
 
-def _call_http_ocr(ocr_endpoint: str, image_bytes: bytes, img_url: str) -> str:
+def _call_http_ocr(ocr_endpoint: str, image_bytes: bytes, img_url: str) -> OCRResult:
     """调用 HTTP OCR 服务"""
+    ocr_resp = None
     try:
         files = {"file": ("question.png", image_bytes, "image/png")}
         ocr_resp = requests.post(ocr_endpoint, files=files, timeout=20)
         if ocr_resp.status_code != 200:
             logger.debug(f"HTTP OCR 服务返回异常状态码: {ocr_resp.status_code}")
-            return ""
+            return OCRResult()
         data = ocr_resp.json()
+        # 显式空字段表示成功但未识别到文字，缺失字段属于无效响应。
+        for key in ("latex", "text", "result", "data"):
+            value = data.get(key)
+            if isinstance(value, str):
+                if value.strip():
+                    logger.debug(f"HTTP OCR 识别成功: {value[:100]}... 来自 {img_url}")
+                    return OCRResult(value.strip(), success=True)
+        return OCRResult(success=any(isinstance(data.get(key), str) for key in ("latex", "text", "result", "data")))
     except Exception as exc:
         logger.debug(f"调用 HTTP OCR 服务失败: {exc}")
-        return ""
-
-    # 尝试从常见字段中读取 LaTeX/文本结果
-    for key in ("latex", "text", "result", "data"):
-        value = data.get(key)
-        if isinstance(value, str) and value.strip():
-            logger.debug(f"HTTP OCR 识别成功: {value[:100]}... 来自 {img_url}")
-            return value.strip()
-
-    return ""
+        return OCRResult()
+    finally:
+        if ocr_resp is not None:
+            ocr_resp.close()
 
 
-def _ocr_image_to_text(img_url: str) -> str:
-    """可选的 OCR 钩子：将题干中的图片转为接近 LaTeX 的文本。
-
-    OCR 识别逻辑：
-    - 若配置了外部 AI 视觉模型（CHAOXING_VISION_OCR_PROVIDER + KEY），则使用外部 OCR，跳过本地
-    - 若未配置外部 OCR，则尝试本地 PaddleOCR（需要 CHAOXING_ENABLE_OCR=1）
-    - 最后可选 HTTP OCR 服务作为兜底（CHAOXING_OCR_ENDPOINT）
-
-    在未开启任何 OCR 时，本函数直接返回空字符串，不影响原有逻辑。
-    """
-    if not img_url:
-        return ""
-
-    # 判断是否配置了外部 AI 视觉 OCR
-    use_external_ocr = is_vision_ocr_enabled()
-
-    # 检查是否有任何 OCR 方式可用
-    has_any_ocr = (
-        use_external_ocr
-        or ENABLE_LOCAL_OCR
-        or os.environ.get("CHAOXING_OCR_ENDPOINT", "").strip()
-    )
-    if not has_any_ocr:
-        return ""
-
-    # 下载图片
+def _download_ocr_image(img_url: str, session) -> Optional[bytes]:
+    """借用账号线程会话；独立调用只用无账号 cookies 的临时会话。"""
+    owned_session = session is None
+    resp = None
     try:
-        # 使用带登录 Cookie 的会话下载图片，避免 403
-        session = requests.Session()
-        session.headers.update(gc.HEADERS)
-        session.cookies.update(use_cookies())
+        if owned_session:
+            session = requests.Session()
+            session.headers.update(gc.HEADERS)
 
         # 对超星图片域名补充一个简单 Referer，进一步降低 403 概率
         extra_headers = {}
@@ -353,37 +385,25 @@ def _ocr_image_to_text(img_url: str) -> str:
         resp = session.get(img_url, headers=extra_headers or None, timeout=8)
         if resp.status_code != 200:
             logger.debug(f"下载题目图片失败: {img_url} -> {resp.status_code}")
-            return ""
-        image_bytes = resp.content
+            return None
+        return resp.content or None
     except Exception as exc:
         logger.debug(f"下载题目图片异常: {exc}")
-        return ""
-
-    # 1) 若配置了外部 AI 视觉 OCR，优先使用，跳过本地 OCR
-    if use_external_ocr:
+        return None
+    finally:
         try:
-            vision_result = vision_ocr(image_bytes)
-            if vision_result:
-                logger.debug(f"外部 AI 视觉 OCR 识别成功: {vision_result[:100]}... 来自 {img_url}")
-                return vision_result
-            else:
-                logger.debug(f"外部 AI 视觉 OCR 未识别出文本 来自 {img_url}")
-        except Exception as exc:
-            logger.debug(f"外部 AI 视觉 OCR 调用失败: {exc}")
-        # 外部 OCR 失败时，不回退到本地，直接尝试 HTTP OCR 或返回空
-        ocr_endpoint = os.environ.get("CHAOXING_OCR_ENDPOINT", "").strip()
-        if ocr_endpoint:
-            return _call_http_ocr(ocr_endpoint, image_bytes, img_url)
-        return ""
+            if resp is not None:
+                resp.close()
+        finally:
+            if owned_session and session is not None:
+                session.close()
 
-    # 2) 未配置外部 OCR 时，使用本地 PaddleOCR
-    if ENABLE_LOCAL_OCR:
-        engine = _init_paddle_ocr()
-    else:
-        engine = None
 
+def _local_ocr_result(image_bytes: bytes, img_url: str) -> OCRResult:
+    engine = _init_paddle_ocr()
     if engine is not None:
         tmp_path = None
+        had_error = False
         try:
             # 尝试多种预处理模式，直到获得有效文本
             # 模式 0: 标准预处理（对比度+锐化）
@@ -416,7 +436,7 @@ def _ocr_image_to_text(img_url: str) -> str:
                             else:
                                 # PaddleOCR 2.x fallback; 3.x exposes predict().
                                 ocr_result = engine.ocr(tmp_path)
-                        final_texts = _parse_paddle_ocr_result(ocr_result)
+                            final_texts = _parse_paddle_ocr_result(ocr_result)
                         break
                     except Exception as exc:
                         global _PADDLE_OCR_DEVICE
@@ -428,15 +448,19 @@ def _ocr_image_to_text(img_url: str) -> str:
                             logger.debug(f"PaddleOCR GPU 推理失败，切换到 CPU: {exc}")
                             engine = _init_paddle_ocr(preferred_device="cpu")
                             if engine is None:
+                                had_error = True
                                 break
                             continue
                         logger.debug(f"PaddleOCR 识别失败 (模式{preprocess_mode}): {exc}")
+                        had_error = True
                         break
                 
                 if final_texts:
                     logger.debug(
                         f"PaddleOCR 提取文本成功 (预处理模式{preprocess_mode}): {' '.join(final_texts)} 来自 {img_url}"
                     )
+                    break
+                elif engine is None:
                     break
                 else:
                     logger.debug(f"PaddleOCR 预处理模式{preprocess_mode}未识别出文本，尝试下一模式")
@@ -446,7 +470,11 @@ def _ocr_image_to_text(img_url: str) -> str:
             
             if final_texts:
                 # 将多行结果合并为一行，交给大模型进一步理解
-                return " ".join(final_texts)
+                return OCRResult(" ".join(final_texts), success=True)
+            return OCRResult(success=not had_error)
+        except Exception as exc:
+            logger.debug(f"PaddleOCR 识别失败: {exc}")
+            return OCRResult()
         finally:
             if tmp_path:
                 try:
@@ -454,12 +482,60 @@ def _ocr_image_to_text(img_url: str) -> str:
                 except OSError:
                     pass
 
-    # 3) 若配置了 HTTP OCR 服务，则作为最后兜底
-    ocr_endpoint = os.environ.get("CHAOXING_OCR_ENDPOINT", "").strip()
-    if ocr_endpoint:
-        return _call_http_ocr(ocr_endpoint, image_bytes, img_url)
+    return OCRResult()
 
-    return ""
+
+def _recognize_ocr_image(image_bytes: bytes, img_url: str, config: dict) -> OCRResult:
+    # 保留原有优先级：外部视觉 > 本地（未配置外部时）> HTTP fallback。
+    has_primary = is_vision_ocr_enabled(config) or config["enable_local"]
+    result = OCRResult()
+    if is_vision_ocr_enabled(config):
+        result = vision_ocr_result(image_bytes, config)
+    elif config["enable_local"]:
+        result = _local_ocr_result(image_bytes, img_url)
+    if result.text:
+        return result
+
+    if config["http_endpoint"]:
+        fallback = _call_http_ocr(config["http_endpoint"], image_bytes, img_url)
+        if fallback.text or not has_primary:
+            return fallback
+        # 任一引擎暂时失败时使用短重试窗口，不能让空白兜底掩盖故障。
+        return OCRResult(success=result.success and fallback.success)
+    return result
+
+
+def _ocr_image_to_text(img_url: str) -> str:
+    """按任务配置识别题目图片，缓存有界且临时网络失败可短期重试。"""
+    if not img_url:
+        return ""
+    config = get_ocr_config()
+    if not (is_vision_ocr_enabled(config) or config["enable_local"] or config["http_endpoint"]):
+        return ""
+    fingerprint = ocr_config_fingerprint(config)
+    session = get_current_session()
+    # 保留会话对象本身而不是 id，避免会话释放后 id 复用命中其他账号。
+    url_key = (session, img_url, fingerprint)
+    with _OCR_URL_LOCKS[hash(url_key) % len(_OCR_URL_LOCKS)]:
+        cached = _get_ocr_cache(_OCR_URL_CACHE, url_key)
+        if cached is not None:
+            return cached.text
+
+        result = OCRResult()
+        try:
+            image_bytes = _download_ocr_image(img_url, session)
+            if image_bytes is not None:
+                content_key = (hashlib.sha256(image_bytes).hexdigest(), fingerprint)
+                with _OCR_CONTENT_LOCKS[hash(content_key) % len(_OCR_CONTENT_LOCKS)]:
+                    result = _get_ocr_cache(_OCR_CONTENT_CACHE, content_key)
+                    if result is None:
+                        result = _recognize_ocr_image(image_bytes, img_url, config)
+                        _put_ocr_cache(_OCR_CONTENT_CACHE, content_key, result)
+        except Exception as exc:
+            logger.debug(f"题目图片 OCR 失败: {exc}")
+            result = OCRResult()
+        _put_ocr_cache(_OCR_URL_CACHE, url_key, result)
+        return result.text
 
 
 def _normalize_bool(value: Union[str, bool, int, float]) -> bool:
@@ -620,33 +696,86 @@ def decode_course_card(html_text: str) -> Tuple[List[Dict[str, Any]], Dict[str, 
         html_text: 任务点列表页面的HTML内容
         
     Returns:
-        任务点列表和任务信息的元组
+        待办任务点列表和任务信息的元组；passed_jobs 保留明确已完成的任务身份
     """
     logger.trace("开始解码任务点列表...")
+    job_info = {"passed_jobs": []}
     
     # 检查章节是否未开放
     if "章节未开放" in html_text:
-        return [], {"notOpen": True}
+        job_info["notOpen"] = True
+        return [], job_info
 
     # 提取mArg参数
     temp = re.findall(r"mArg=\{(.*?)\};", html_text.replace(" ", ""))
     if not temp:
-        return [], {}
+        return [], job_info
 
     # 解析JSON数据
     cards_data = json.loads("{" + temp[0] + "}")
 
     if not cards_data:
-        return [], {}
+        return [], job_info
 
     # 提取任务信息
-    job_info = _extract_job_info(cards_data)
+    job_info.update(_extract_job_info(cards_data))
 
     # 处理所有附件任务
     cards = cards_data.get("attachments", [])
+    job_info["passed_jobs"] = _extract_passed_jobs(cards)
     job_list = _process_attachment_cards(cards)
 
     return job_list, job_info
+
+
+def _extract_passed_jobs(cards: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """保留明确已完成任务的身份，允许完成后缺少 job 和播放参数。"""
+    passed_jobs = []
+    for card in cards:
+        card_type = card.get("type", "")
+        property_data = card.get("property", {})
+        if not isinstance(card_type, str) or not isinstance(property_data, dict):
+            continue
+        is_read = card_type == "read"
+        if not (_normalize_bool(card.get("isPassed", False)) or (
+            is_read and _normalize_bool(property_data.get("read", False))
+        )):
+            continue
+
+        # 与待办解析保持一致：无 job 的阅读任务优先，其余按直播特征识别。
+        if is_read and card.get("job") is None:
+            job_type = "read"
+        else:
+            type_fields = (card_type, property_data.get("type", ""),
+                           property_data.get("resourceType", ""))
+            is_live = any(isinstance(value, str) and "live" in value.lower()
+                          for value in type_fields) or any(
+                property_data.get(key) is not None for key in ("liveId", "streamName", "vdoid")
+            )
+            job_type = "live" if is_live else card_type.lower()
+        if job_type not in {"video", "document", "workid", "read", "live"}:
+            continue
+
+        # 使用各任务解析器已有的 ID 来源，避免重试时同一任务产生不同的键。
+        identity = {"jobid": card.get("jobid", "")}
+        if job_type in {"video", "live"}:
+            identity["objectid"] = card.get("objectId", "")
+        elif job_type == "document":
+            identity["objectid"] = property_data.get("objectid", "")
+        elif job_type == "read":
+            identity["id"] = property_data.get("id", "")
+        if job_type == "live" and "jobid" not in card:
+            live_id = card.get("id")
+            if isinstance(live_id, (str, int)) and not isinstance(live_id, bool):
+                identity["jobid"] = str(live_id)
+        identity = {
+            key: value for key, value in identity.items()
+            if isinstance(value, (str, int)) and not isinstance(value, bool) and str(value).strip()
+        }
+        identifier = identity.get("jobid") or identity.get("objectid") or identity.get("id")
+        if identifier is not None:
+            passed_jobs.append({"type": job_type, **identity})
+    return passed_jobs
 
 
 def _extract_job_info(cards_data: Dict[str, Any]) -> Dict[str, Any]:

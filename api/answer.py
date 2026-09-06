@@ -1,4 +1,5 @@
 import configparser
+import hashlib
 import json
 import os
 import random
@@ -7,6 +8,7 @@ import shutil
 import tempfile
 import threading
 import time
+import unicodedata
 from pathlib import Path
 from re import sub
 from typing import Optional
@@ -18,7 +20,7 @@ from urllib3 import disable_warnings, exceptions
 
 from api.answer_check import *
 from api.logger import logger
-from api.decode import _ocr_image_to_text, ENABLE_LOCAL_OCR
+from api.decode import _ocr_image_to_text
 
 
 def _strip_json_block(md_str: str) -> str:
@@ -70,14 +72,11 @@ _IMG_TAG_PATTERN = re.compile(r'<img[^>]*src=["\'](.*?)["\'][^>]*>', re.IGNORECA
 
 
 def _apply_ocr_to_title_if_needed(q_info: dict) -> None:
-    """在题目标题中检测图片链接，并在本地 OCR 启用时用识别文本替换图片标签。
+    """按当前任务 OCR 配置用识别文本替换题目图片。
 
     仅处理作业题目的标题字符串，不影响其他阅读类内容；
     当 OCR 不可用或识别失败时，不修改原始标题。
     """
-    if not ENABLE_LOCAL_OCR:
-        return
-
     title = q_info.get("title")
     if not isinstance(title, str) or "<img" not in title:
         return
@@ -96,8 +95,8 @@ def _apply_ocr_to_title_if_needed(q_info: dict) -> None:
 
         if text:
             return f"[公式: {text}]"
-        # OCR 失败时也不要把裸露的 <img> 标签发给大模型，改为通用占位符
-        return "[公式图片]"
+        # 保留图片身份和重试机会，不能把不同公式合并成同一个缓存键。
+        return match.group(0)
 
     new_title = _IMG_TAG_PATTERN.sub(_repl, title)
     if new_title != title:
@@ -108,17 +107,41 @@ class CacheDAO:
     """
     @Author: SocialSisterYi
     @Reference: https://github.com/SocialSisterYi/xuexiaoyi-to-xuexitong-tampermonkey-proxy
+
+    默认每 32 次实际更新或 Tiku.close() 时原子落盘。磁盘正常时，崩溃最多
+    丢失最后一批未完成 flush 的 32 次更新；写盘失败保留脏数据重试，此时不保证该上限。
+    锁和批量写入只协调本进程，多个进程不可同时写同一缓存文件。
     """
     DEFAULT_CACHE_FILE = "cache.json"
+    FLUSH_EVERY = 32
+    KEY_VERSION = 2
+    KEY_PREFIX = "question:v2:"
     _shared_instance: Optional["CacheDAO"] = None
     _shared_lock = threading.Lock()
 
-    def __init__(self, file: str = DEFAULT_CACHE_FILE):
+    def __init__(self, file: str = DEFAULT_CACHE_FILE, *, flush_every: int = FLUSH_EVERY):
+        if isinstance(flush_every, bool) or not isinstance(flush_every, int) or flush_every < 1:
+            raise ValueError("flush_every must be a positive integer")
         self.cache_file = Path(file)
         self._lock = threading.RLock()
-        self._memory_cache: Optional[dict] = None  # 进程内缓存, 避免每题全量读写文件
-        if not self.cache_file.is_file():
-            self._write_cache({})
+        self._memory_cache: Optional[dict] = None
+        self._pending_writes = 0
+        self._flush_every = flush_every
+
+    @classmethod
+    def question_key(cls, q_info: dict) -> str:
+        """版本、规范题干、题型和有序选项共同确定答案；不读取旧题干键。"""
+        def normalize(value) -> str:
+            return " ".join(unicodedata.normalize("NFC", str(value or "")).split())
+
+        payload = {
+            "version": cls.KEY_VERSION,
+            "title": normalize(q_info.get("title")),
+            "type": normalize(q_info.get("type")),
+            "options": [normalize(option) for option in _prepare_option_lines(q_info.get("options"))],
+        }
+        encoded = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf8")
+        return cls.KEY_PREFIX + hashlib.sha256(encoded).hexdigest()
 
     @classmethod
     def get_shared(cls, file: str = DEFAULT_CACHE_FILE) -> "CacheDAO":
@@ -129,21 +152,21 @@ class CacheDAO:
             return cls._shared_instance
 
     def _read_cache(self) -> dict:
-        # 命中内存缓存时直接返回, 不再读文件
-        if self._memory_cache is not None:
-            return self._memory_cache
-        # 新增缓存文件读取的异常处理
-        try:
-            with self._lock:
-                if self._memory_cache is not None:
-                    return self._memory_cache
+        # 检查、冷读和首次发布必须位于同一临界区，不能在解锁后发布旧快照。
+        with self._lock:
+            if self._memory_cache is not None:
+                return self._memory_cache
+            data = {}
+            try:
                 if not self.cache_file.is_file():
                     self._memory_cache = {}
                     return self._memory_cache
                 try:
                     with self.cache_file.open("r", encoding="utf8") as fp:
                         data = json.load(fp)
-                except (json.JSONDecodeError, UnicodeDecodeError) as e:
+                    if not isinstance(data, dict):
+                        raise ValueError("cache root must be an object")
+                except (ValueError, UnicodeDecodeError) as e:
                     logger.error(f"缓存文件读取失败: {e}, 尝试恢复...")
                     data = None
                     # 尝试从原始二进制中以 utf-8 忽略错误地恢复有效 JSON 段
@@ -160,7 +183,7 @@ class CacheDAO:
                     except Exception:
                         pass
                     # 若无法恢复，备份损坏文件并返回空缓存
-                    if data is None:
+                    if not isinstance(data, dict):
                         try:
                             bak_name = f"{self.cache_file.name}.bak.{int(time.time())}"
                             bak_path = self.cache_file.with_name(bak_name)
@@ -169,53 +192,65 @@ class CacheDAO:
                         except Exception as ex:
                             logger.error(f"备份损坏缓存失败: {ex}")
                         data = {}
-        except Exception as e:
-            logger.error(f"读取缓存异常: {e}")
-            data = {}
-        self._memory_cache = data
-        return data
+            except Exception as e:
+                logger.error(f"读取缓存异常: {e}")
+                data = {}
+            self._memory_cache = data
+            return self._memory_cache
 
     def _read_cache_locked(self) -> dict:
-        """在已持有实例锁的前提下读取缓存(跳过内存缓存直读文件仅用于写入前同步)"""
+        """兼容旧调用方；读取和发布仍由同一把可重入锁保护。"""
         return self._read_cache()
 
-    def _write_cache(self, data: dict) -> None:
-        # 为缓存写入加锁，防止并发写入损坏文件
-        try:
-            with self._lock:
-                self._memory_cache = data  # 同步内存缓存
+    def _write_cache(self, data: dict) -> bool:
+        """锁内写入临时文件并原子替换，失败不影响已有文件及待写内存。"""
+        with self._lock:
+            tmp_path = None
+            try:
                 parent = self.cache_file.parent
-                if not parent.exists():
-                    parent.mkdir(parents=True, exist_ok=True)
-                # 写入临时文件后原子替换，减少并发写入时的损坏风险
+                parent.mkdir(parents=True, exist_ok=True)
                 fd, tmp_path = tempfile.mkstemp(prefix=self.cache_file.name, dir=str(parent))
-                try:
-                    with os.fdopen(fd, "w", encoding="utf8") as fp:
-                        json.dump(data, fp, ensure_ascii=False, indent=4)
-                        fp.flush()
-                        os.fsync(fp.fileno())
-                    os.replace(tmp_path, str(self.cache_file))
-                except Exception as e:
-                    # 清理临时文件
+                with os.fdopen(fd, "w", encoding="utf8") as fp:
+                    json.dump(data, fp, ensure_ascii=False, indent=4)
+                    fp.flush()
+                    os.fsync(fp.fileno())
+                os.replace(tmp_path, str(self.cache_file))
+                return True
+            except Exception as exc:
+                logger.error(f"缓存原子写入失败，保留待写数据: {exc}")
+                return False
+            finally:
+                if tmp_path and os.path.exists(tmp_path):
                     try:
-                        if os.path.exists(tmp_path):
-                            os.remove(tmp_path)
-                    except Exception:
+                        os.remove(tmp_path)
+                    except OSError:
                         pass
-                    logger.error(f"Failed to write cache atomically: {e}")
-        except IOError as e:
-            logger.error(f"Failed to write cache: {e}")
+
+    def flush(self) -> bool:
+        """同步写入所有待保存答案；失败返回 False，下次 flush 继续重试。"""
+        with self._lock:
+            if not self._pending_writes:
+                return True
+            if not self._write_cache(self._read_cache()):
+                return False
+            self._pending_writes = 0
+            return True
 
     def get_cache(self, question: str) -> Optional[str]:
-        data = self._read_cache()
-        return data.get(question)
+        with self._lock:
+            answer = self._read_cache().get(question)
+            return answer if isinstance(answer, str) else None
 
     def add_cache(self, question: str, answer: str) -> None:
-        # 在同一把锁下完成读-改-写, 防止并发更新互相覆盖
+        # 在同一把锁下更新内存，达到批次大小才全量落盘。
         with self._lock:
             data = self._read_cache()
+            if data.get(question) == answer:
+                return
             data[question] = answer
-            self._write_cache(data)
+            self._pending_writes += 1
+            if self._pending_writes >= self._flush_every:
+                self.flush()
 
 
 # TODO: 重构此部分代码，将此类改为抽象类，加载题库方法改为静态方法，禁止直接初始化此类
@@ -230,6 +265,32 @@ class Tiku:
         self._name = None
         self._api = None
         self._conf = None
+        self._cache_dao: Optional[CacheDAO] = None
+        self._close_lock = threading.Lock()
+
+    def close(self) -> bool:
+        """任务线程退出后调用：flush 答案并关闭本题库拥有的网络资源。"""
+        with self._close_lock:
+            try:
+                cache = self._cache_dao if self._cache_dao is not None else CacheDAO.get_shared()
+                flushed = cache.flush()
+            except Exception as exc:
+                logger.warning(f"关闭题库时缓存 flush 失败: {exc}")
+                flushed = False
+            closed = set()
+            for name in ("client", "_httpx_client", "_session"):
+                resource = getattr(self, name, None)
+                if resource is None:
+                    continue
+                setattr(self, name, None)
+                if id(resource) in closed:
+                    continue
+                closed.add(id(resource))
+                try:
+                    resource.close()
+                except Exception as exc:
+                    logger.warning(f"关闭题库 {name} 失败: {exc}")
+            return flushed
 
     @property
     def name(self):
@@ -318,11 +379,16 @@ class Tiku:
         if self.DISABLE:
             return None
 
+        # 兼容查询预处理，但不修改调用方题目，也不丢弃缓存身份中的有效数字。
+        q_info = dict(q_info)
+
         # 预处理, 去除【单选题】这样与标题无关的字段
         logger.debug(f"原始标题：{q_info['title']}")
 
         # 检测并处理题目中的图片链接：使用本地 OCR 将公式图片转为文本
         _apply_ocr_to_title_if_needed(q_info)
+
+        cache_key = CacheDAO.question_key(q_info)
 
         q_info['title'] = sub(r'^\d+', '', q_info['title'])
         q_info['title'] = sub(r'（\d+\.\d+分）$', '', q_info['title'])
@@ -330,13 +396,14 @@ class Tiku:
 
         # 先过缓存
         cache_dao = CacheDAO.get_shared()
-        answer = cache_dao.get_cache(q_info['title'])
+        self._cache_dao = cache_dao
+        answer = cache_dao.get_cache(cache_key)
         if answer:
             logger.info(f"从缓存中获取答案：{q_info['title']} -> {answer}")
             return answer.strip()
         else:
             answer = self._query(q_info)
-            if answer:
+            if answer and answer.strip():
                 answer = answer.strip()
                 logger.info(f"从{self.name}获取答案：{q_info['title']} -> {answer}")
 
@@ -344,11 +411,11 @@ class Tiku:
                 # 不再依赖 check_answer 的严格类型判断，避免丢弃诸如“输入/输出”、“Babbage machine”这种正常答案
                 from api.answer import AI, SiliconFlow  # type: ignore
                 if isinstance(self, (AI, SiliconFlow)):
-                    cache_dao.add_cache(q_info['title'], answer)
+                    cache_dao.add_cache(cache_key, answer)
                     return answer
 
                 if check_answer(answer, q_info['type'], self):
-                    cache_dao.add_cache(q_info['title'], answer)
+                    cache_dao.add_cache(cache_key, answer)
                     return answer
                 else:
                     logger.info(f"从{self.name}获取到的答案类型与题目类型不符，已舍弃")
