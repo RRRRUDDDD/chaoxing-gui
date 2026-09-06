@@ -6,7 +6,7 @@
   "main": "main.js",
   "private": true,
   "scripts": {
-    "test": "node --test tests/*.test.js",
+    "test": "node --test",
     "dev": "electron .",
     "start": "electron .",
     "dist": "electron-builder --win"
