@@ -1,0 +1,40 @@
+{
+  "scope": "Current Electron/Python/React baseline; not a Tauri implementation verification",
+  "date": "2026-09-06",
+  "baseline": "d384ded24ed66413b0c9928b9cdf706a94656061",
+  "results": [
+    {
+      "name": "python311",
+      "exitCode": 0,
+      "output": "test_long_messages_are_truncated_and_blank_messages_are_ignored (test_task_state.TaskStoreTests.test_long_messages_are_truncated_and_blank_messages_are_ignored) ... ok\r\ntest_only_one_cleanup_thread_is_created_for_many_tasks (test_task_state.TaskStoreTests.test_only_one_cleanup_thread_is_created_for_many_tasks) ... ok\r\ntest_released_account_is_not_removed_when_old_record_expires (test_task_state.TaskStoreTests.test_released_account_is_not_removed_when_old_record_expires) ... ok\r\ntest_snapshots_do_not_expose_mutable_store_state (test_task_state.TaskStoreTests.test_snapshots_do_not_expose_mutable_store_state) ... ok\r\ntest_terminal_ttl_removes_status_details_and_logs_together (test_task_state.TaskStoreTests.test_terminal_ttl_removes_status_details_and_logs_together) ... ok\r\n\r\n----------------------------------------------------------------------\r\nRan 131 tests in 0.598s\r\n\r\nOK\r\n"
+    },
+    {
+      "name": "python313",
+      "exitCode": 0,
+      "output": "test_long_messages_are_truncated_and_blank_messages_are_ignored (test_task_state.TaskStoreTests.test_long_messages_are_truncated_and_blank_messages_are_ignored) ... ok\r\ntest_only_one_cleanup_thread_is_created_for_many_tasks (test_task_state.TaskStoreTests.test_only_one_cleanup_thread_is_created_for_many_tasks) ... ok\r\ntest_released_account_is_not_removed_when_old_record_expires (test_task_state.TaskStoreTests.test_released_account_is_not_removed_when_old_record_expires) ... ok\r\ntest_snapshots_do_not_expose_mutable_store_state (test_task_state.TaskStoreTests.test_snapshots_do_not_expose_mutable_store_state) ... ok\r\ntest_terminal_ttl_removes_status_details_and_logs_together (test_task_state.TaskStoreTests.test_terminal_ttl_removes_status_details_and_logs_together) ... ok\r\n\r\n----------------------------------------------------------------------\r\nRan 131 tests in 0.570s\r\n\r\nOK\r\n"
+    },
+    {
+      "name": "desktop",
+      "exitCode": 0,
+      "output": "✔ corrupt, oversized and credential-bearing disk records are never exposed (1.8239ms)\r\n✔ IPC trusts only the current main window main frame and exact backend origin (0.296ms)\r\n✔ all IPC methods enforce sender and argument boundaries before touching storage (3.1861ms)\r\n✔ sandbox preload exposes four named operations, never a generic IPC API (1.4114ms)\r\nℹ tests 6\r\nℹ suites 0\r\nℹ pass 6\r\nℹ fail 0\r\nℹ cancelled 0\r\nℹ skipped 0\r\nℹ todo 0\r\nℹ duration_ms 87.3044\r\n"
+    },
+    {
+      "name": "web",
+      "exitCode": 0,
+      "output": " RUN  v3.2.7 E:/Downloads/45/chaoxing-gui/web\r\n\r\n ✓ src/lib/courseSelection.test.js (3 tests) 4ms\r\n ✓ src/lib/sessionStore.test.js (3 tests) 8ms\r\n ✓ src/lib/taskPolling.test.js (8 tests) 15ms\r\n ✓ src/components/flows.test.jsx (24 tests) 1799ms\r\n\r\n Test Files  4 passed (4)\r\n      Tests  38 passed (38)\r\n   Start at  20:28:00\r\n   Duration  4.68s (transform 243ms, setup 0ms, collect 1.52s, tests 1.83s, environment 4.62s, prepare 745ms)\r\n\r\n"
+    },
+    {
+      "name": "web-build",
+      "exitCode": 0,
+      "output": "transforming...\r\n[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`\r\nBrowserslist: browsers data (caniuse-lite) is 10 months old. Please run:\r\n  npx update-browserslist-db@latest\r\n  Why you should do it regularly: https://github.com/browserslist/update-db#readme\r\n✓ 1316 modules transformed.\r\nrendering chunks...\r\ncomputing gzip size...\r\ndist/index.html                   0.94 kB │ gzip:  0.65 kB\r\ndist/assets/index-Bx7N-5WG.css   21.99 kB │ gzip:  5.10 kB\r\ndist/assets/index-x3vABO9S.js   258.39 kB │ gzip: 84.74 kB\r\n✓ built in 3.01s\r\n"
+    }
+  ],
+  "environment": {
+    "python311": "3.11.15",
+    "python313": "3.13.14",
+    "node": "24.14.0",
+    "ciNodeTarget": "20"
+  },
+  "laterBaseline": "5899b5fe0f7d507aa65102b3a80b7e69d8aa4565",
+  "laterChange": "Only desktop/package.json test command changed from glob to node --test; desktop suite rerun and all 6 tests passed."
+}

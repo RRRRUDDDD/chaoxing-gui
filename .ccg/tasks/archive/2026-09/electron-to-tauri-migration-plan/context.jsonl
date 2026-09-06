@@ -1,0 +1,18 @@
+{"path":"desktop/main.js","lines":[21,49,63,127,178,217,239],"purpose":"Electron lifecycle, cwd/data directory, health, navigation and single instance"}
+{"path":"desktop/preload.js","lines":[3],"purpose":"Four named session operations"}
+{"path":"desktop/session-store.js","lines":[4,15,69,77],"purpose":"Session v1 JSON schema, size/atomic IO and IPC sender boundary; no safeStorage"}
+{"path":"desktop/tests/session-store.test.js","purpose":"Six existing desktop compatibility/security tests"}
+{"path":"web/src/lib/sessionStore.js","lines":[21],"purpose":"Serialized persistence and browser/Electron bridge"}
+{"path":"web/src/api/axios.js","lines":[3],"purpose":"Central API boundary and 30s timeout"}
+{"path":"web/src/lib/taskPolling.js","lines":[25],"purpose":"AbortSignal, non-overlapping polling, terminal detail/log retrieval"}
+{"path":"web/src/App.jsx","purpose":"409 task recovery, logout/start races and 404 cleanup"}
+{"path":"app.py","lines":[47,54,463,548,637,734,743,788],"purpose":"Headless flags, runtime memory state, health, EOF hard exit, server startup"}
+{"path":"api/logger.py","lines":[14],"purpose":"Log sink initialized at import time against cwd"}
+{"path":"api/answer.py","lines":[258],"purpose":"Tiku config path captures cwd at import time"}
+{"path":"api/cookies.py","lines":[27],"purpose":"Account cookie file layout"}
+{"path":"chaoxing-backend.spec","lines":[54,60,69],"purpose":"PyInstaller onedir, console pipe support and complete dependency directory"}
+{"path":"desktop/electron-builder.yml","lines":[1,10,19,23],"purpose":"Package identity, backend resources and preserve-data uninstall"}
+{"path":"build_desktop.bat","purpose":"Current frontend/backend/Electron build order"}
+{"path":".github/workflows/main.yml","lines":[30,59,165,194,218],"purpose":"Tests, stdin smoke gap and Windows release pipeline"}
+{"path":".ccg/spec/backend/index.md","purpose":"Required backend conventions"}
+{"path":".ccg/spec/frontend/index.md","purpose":"Required frontend/desktop conventions"}

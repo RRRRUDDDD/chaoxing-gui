@@ -1,0 +1,17 @@
+{
+  "id": "electron-to-tauri-migration-plan",
+  "title": "桌面版 Electron 迁移到 Tauri 的实施计划",
+  "status": "completed",
+  "complexity": "L",
+  "risk": "high",
+  "domain": "desktop",
+  "currentPhase": "completed",
+  "nextAction": "已交付规划；迁移实施从 plan.md 的 P0 开始，实施阶段需完成两路外部审查",
+  "createdAt": "2026-09-06T12:23:22Z",
+  "branch": "main",
+  "scope": "planning_only",
+  "baselineCommit": "5899b5fe0f7d507aa65102b3a80b7e69d8aa4565",
+  "reviewStatus": "local_and_independent_contract_review_completed_external_dual_review_timed_out",
+  "verificationStatus": "existing_regression_tests_and_web_build_passed_tauri_not_implemented",
+  "archivePath": ".ccg/tasks/archive/2026-09/electron-to-tauri-migration-plan"
+}

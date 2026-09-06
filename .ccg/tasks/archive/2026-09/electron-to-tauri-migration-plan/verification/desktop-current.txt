@@ -1,0 +1,18 @@
+
+> chaoxing-desktop@1.1.1 test
+> node --test
+
+✔ account and task persist across process/origin changes; logout removes them (4.469ms)
+✔ payloads reject passwords, extra fields, oversized values and account mismatches (3.2097ms)
+✔ corrupt, oversized and credential-bearing disk records are never exposed (1.5635ms)
+✔ IPC trusts only the current main window main frame and exact backend origin (0.3166ms)
+✔ all IPC methods enforce sender and argument boundaries before touching storage (1.929ms)
+✔ sandbox preload exposes four named operations, never a generic IPC API (0.8822ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 79.3547

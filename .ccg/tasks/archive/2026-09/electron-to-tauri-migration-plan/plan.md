@@ -1,0 +1,325 @@
+# 桌面版 Electron → Tauri 2 迁移计划
+
+日期：2026-09-06。最终代码基线：`5899b5fe0f7d507aa65102b3a80b7e69d8aa4565`，应用版本 `1.1.1`。
+
+**推荐路线：保留 React 和 Python/Flask，使用 Tauri 2 替换 Electron 宿主；React 由 Tauri 本地加载，Rust 管理后端进程，并通过受限命令转发现有 API。** 首期面向 Windows x64。先并存验证，再切换默认构建，最后移除 Electron。
+
+本文是待实施计划。本次已完成代码调研、两路独立分析和现有回归检查；没有添加 Tauri 运行时代码、构建迁移安装包或修改用户数据。
+
+## 1. 范围与交付目标
+
+- 保留登录、按账号选课、设置、启动学习、任务状态/详情/日志、账号恢复和异常提示的现有行为。
+- 保留单实例、启动等待页、1200×800 默认窗口、900×600 最小窗口、关闭窗口退出后端、日志定位能力。
+- 保留独立 Python exe、Python 便携包和普通浏览器 Web 模式；它们继续使用 Flask HTTP 接口。
+- 桌面发布目标为 NSIS 安装包和目录式便携 ZIP。现有 Electron 单文件 portable exe 不作为 Tauri 原生支持的功能承诺。
+- 不在首期重写 Python 业务、迁移 UI 框架、引入自动更新、增加托盘后台驻留或扩展 macOS/Linux。
+- 不承诺迁移后整个安装包只有几 MB：Python、ONNX、OpenCV 等依赖仍保留。分别测量宿主、后端、WebView2 和最终发行包。
+- 工具链采用 Tauri 2、Windows MSVC x64、兼容的稳定 Rust；实施时锁定 Cargo/npm 依赖和 Rust 版本。Python 构建沿用 3.11，回归保留 3.11/3.13，Node 沿用 CI 的 20。
+
+## 2. 当前架构与迁移影响
+
+以下路径均相对于仓库根目录，行号对应上述代码基线。
+
+| 现有能力 | 代码依据 | 迁移处理 |
+|---|---|---|
+| Electron 窗口、导航拦截、单实例 | `desktop/main.js:178`、`:239` | Tauri WebViewWindow、导航限制和 single-instance 插件 |
+| 分配端口、启动 Python、120 秒健康检查、日志 | `desktop/main.js:49`、`:63`、`:127` | Rust 后端管理器；增加可靠启动握手 |
+| 关闭 stdin，再延迟执行 taskkill | `desktop/main.js:217` | 宿主等待真实退出；Windows Job Object 兜底，避免退出后计时器失效 |
+| 四个会话操作和严格调用方检查 | `desktop/preload.js:3`、`desktop/session-store.js:69` | 四个类型化 Rust 命令及明确 capability/command 权限 |
+| 会话文件 | `desktop/session-store.js:15` | 保留 `renderer-session.json` v1 格式及 4096 字节上限 |
+| Web/桌面存储切换 | `web/src/lib/sessionStore.js:21` | 增加 Tauri bridge，保留 Electron 与浏览器分支 |
+| 所有业务请求集中经过 Axios | `web/src/api/axios.js:3` | Tauri 专用 adapter；组件调用方式不变 |
+| Headless、数据目录、CORS、health | `app.py:47`、`:54`、`:637` | 添加只用于 Tauri 的启动/鉴权协议；兼容旧环境变量 |
+| 后端父进程监控 | `app.py:734` | 保留 EOF 兜底；明确其当前调用 `os._exit(0)`，不称为优雅关闭 |
+| Python onedir 包 | `chaoxing-backend.spec:54`、`:69` | 完整保留 exe 与相邻 `_internal/`，作为 Tauri resources 打包 |
+| Electron NSIS/portable | `desktop/electron-builder.yml:10`、`:19` | 增加 Tauri NSIS 与便携 ZIP，验证升级和卸载语义 |
+| 本地/CI 构建发布 | `build_desktop.bat`、`.github/workflows/main.yml:194` | 分阶段替换桌面链路，保留非桌面产物与回归 |
+
+必须纠正的现状假设：
+
+1. 当前没有 `safeStorage` 依赖。会话文件是仅含账号与任务 ID 的 JSON，不需要解密迁移，也不能借迁移重新持久化密码。
+2. `desktop/README.md` 的单 exe 复制、体积估计、卸载清理等描述与实际 onedir/`deleteAppDataOnUninstall: false` 配置不完全一致，应以源码和产物验证为准。
+3. 当前端口是“占用 0 端口后释放，再启动 Flask”，存在窗口期；当前 health 只返回 OK，不能证明端口属于本次后端。
+4. 任务状态在 Python 进程内存中；磁盘保存 taskId 不代表后端重启后可继续执行任务。恢复遇到 404 时沿用现有清理逻辑，不能自动重启学习。
+5. `api/logger.py` 和 `api/answer.py` 在导入时使用工作目录。新宿主必须在启动 Python 前设置 cwd，不能只依赖 `app.py` 后面的 `os.chdir()`。
+
+## 3. 架构决策
+
+### 3.1 页面与 API 通信
+
+| 方案 | 优点 | 代价/约束 | 决策 |
+|---|---|---|---|
+| WebView 直接加载 Flask 动态端口页面 | 最接近现状，Axios 相对路径可复用 | 要给远程页面开放 IPC；动态 origin、子 frame 和页面 CSP 更难约束 | 仅作有明确记录的备选，不默认启用 |
+| 本地 React 页面直接 HTTP 调 Flask | 接口使用直观 | 要下发端口并处理 WebView origin、CORS、浏览器本地网络限制和凭证 | 不作为首选 |
+| 本地 React 页面 → 受限 Rust 命令 → Flask | 页面与后端端口解耦，token 留在宿主；普通 Web 保持原样 | 需要小型 Axios adapter，完整保留错误、取消、超时语义 | **首选** |
+
+```mermaid
+flowchart LR
+    UI[React / Vite] --> Bridge[桌面适配层]
+    Bridge -->|Tauri invoke| Rust[Rust 宿主]
+    Rust -->|固定操作映射 + 本次 token| Flask[127.0.0.1 动态端口 / Flask]
+    Rust --> Store[受控会话文件]
+    Rust -->|启动、就绪、退出| Python[Python onedir 后端]
+    Python --- Flask
+    Browser[普通浏览器 / Electron 过渡版] -->|原有 HTTP /api| Legacy[原有 Flask 模式]
+```
+
+Tauri 使用 `frontendDist: ../../web/dist`（相对于 `desktop/src-tauri/`）；开发时使用 Vite `http://localhost:3000`，设置 `strictPort`，避免静默跳端口。普通 Web 仍代理到 5000。构建 hook 的工作目录在 P0 实测固定。
+
+前端通过官方 `isTauri()` 和自有 `desktopBridge` 判断宿主，不让业务组件散布运行时判断。桌面 bridge 初始化失败必须显示错误，不能悄悄退回 localStorage。
+
+### 3.2 API 适配契约
+
+前端保留 `api.get/post`，新 adapter 将请求转换成有限的 operation；Rust 根据枚举构造 URL。渲染器不能提交任意 URL、主机、端口、命令、文件路径或鉴权头。
+
+| operation | 后端路径/方法 | 参数约束 |
+|---|---|---|
+| `login` | `POST /api/login` | 现有登录 DTO，密码仅传递，不记录/持久化 |
+| `courses` | `POST /api/courses` | 现有账号/Cookie 登录 DTO |
+| `config_read` / `config_write` | `GET/POST /api/config` | 保持设置字段与按账号选课语义 |
+| `start` | `POST /api/start` | 保留 409 与 `data.task_id`，禁止自动重试 |
+| `task_status` / `task_details` | `GET /api/task/{id}`、`/{id}/details` | taskId 白名单，不能注入额外路径 |
+| `task_logs` | `GET /api/logs/{id}?after=n` | taskId 白名单、非负整数游标 |
+
+`/api/health` 由宿主使用，不作为通用请求接口暴露。请求体/响应体有上限；具体上限依据现有最大配置、课程和日志样本在 P0 固定，不截断合法结果冒充成功。
+
+adapter 必须保留：
+
+- HTTP 状态、响应 JSON、`error.response.status/data`；409/404 仍进入原有业务分支。
+- Axios 请求/响应 transform 的一次性语义，避免对已经转换为字符串的 POST JSON 重复编码。
+- 30 秒默认超时、`AbortSignal` 和取消错误。使用 requestId 关联宿主请求，取消/超时后释放宿主请求登记，处理“取消早于登记”的竞态。
+- 取消浏览器等待不表示撤销已经执行的 `/start`；保留后端幂等保护、409 恢复和前端账号代次检查。
+- 轮询上一轮完成后才进入下一轮；终态后的详情/日志补拉和 `after` 游标不变。
+
+Rust HTTP 客户端固定访问本次后端，关闭环境代理和自动重定向；拒绝未知 operation、未知字段、超限参数及启动未就绪时的业务请求。
+
+### 3.3 后端启动与信任边界
+
+新增 Tauri 专用模式（拟用 `CHAOXING_TAURI=1`），同时设置 `CHAOXING_HEADLESS=1`。保留 `CHAOXING_ELECTRON` 兼容别名和旧启动逻辑。
+
+1. Rust 创建本次 instanceId 和足够随机的 token，仅通过子进程环境传入，既不放在命令行、URL、日志，也不下发给渲染器。
+2. Tauri 模式由 Python 绑定 `127.0.0.1:0`；使用支持获取实际绑定端口的线程化 WSGI server，保留当前并发请求能力。普通 Web/独立 exe 的启动分支不改。
+3. 后端通过带固定标记的单行 JSON 输出协议版本、实际端口和 instanceId，例如 `chaoxing-ready` v1；明确 flush。其他 stdout 内容当日志处理，限制单行长度，不能解析任意日志为控制信息。
+4. Rust 用本次 token 请求 health，并核对协议/instanceId；只有通过后才发布 Ready 状态。总启动期限沿用 120 秒，单次探测另设短超时，可取消。
+5. Tauri 模式所有 API，包括 health，校验本次 token；缺失 token 时启动失败，不能退回旧模式。错误 token、非预期 Host/Origin、外部网页和预检不能绕过检查。
+6. CORS 不扩展成 `*`，不为 Tauri 页面开放所有 localhost 端口；原生转发不需要浏览器到 Flask 的跨域权限。普通 Web 和 Electron 模式保留原有契约。
+
+PoC 必须验证 WSGI 绑定/线程模式与冻结后端兼容。若需暂用“宿主选端口”方案，只允许有限重试并做同等实例认证；不能把一个返回 200 的其他服务当成本次后端。
+
+### 3.4 Tauri 权限与页面约束
+
+- 本地主窗口/主 WebView 才能调用批准的应用命令。`build.rs` 用 Tauri 2 `AppManifest::commands` 纳入命令 ACL，再在 capabilities/permissions 中逐项授予；仅注册 invoke handler 不等于限制了命令。
+- 应用命令仅包含 API 操作、取消、启动状态、四个会话操作及确有需要的宿主动作。serde 严格拒绝未知字段，并校验长度、账号一致性和 requestId 所属窗口。
+- 不授予渲染器通用 shell、文件系统、任意 HTTP、任意打开 URL 或启动外部程序的能力。启动 Python 属于 Rust 内部职责。
+- production capability 不添加远程域名授权；生产 CSP 仅允许必要本地脚本/资源与 Tauri IPC 通道，禁止 iframe、object 和外部导航。开发 HMR 例外使用独立 dev 配置。
+- UI 确需的样式/图片资源按现有代码最小放行，不能为了通过开发调试关闭 production CSP。具体 IPC origin 随锁定版本验证，不能套用 Tauri 1 的配置字段。
+- 以真实 WebView2 负向测试证明外部页面、子 frame、额外窗口和错误源不能调用命令；权限错误可诊断，不泄露 token 或请求正文。
+
+## 4. 进程、数据与发行约定
+
+### 4.1 Python 进程管理
+
+Rust 维护 `Starting → Ready → Stopping → Stopped/Failed` 状态机和唯一子进程句柄。
+
+- 开发态使用明确的 Python 路径和绝对 `app.py` 路径，`-u`；cwd 设置为测试/开发专用数据目录。生产态使用 `resource_dir()/backend/chaoxing-backend.exe`，不依赖系统 Python。
+- `stdin` 必须是真实管道，宿主 Ready 后也持续持有；stdout 持续读取，stderr/日志有界收集或直接写文件，避免管道填满挂死。
+- 使用 Windows `CREATE_NO_WINDOW`，不弹控制台。Job Object 持有整个后端进程树，关闭时终止其成员；在 PoC 验证注册时序、子进程继承、宿主崩溃和 CI runner 嵌套 Job 行为。
+- 窗口关闭/系统退出共用幂等停止流程：阻止新请求、取消等待、关闭 stdin、等待后端退出，必要时终止本次 Job，完成后再允许宿主退出。
+- 正常路径在限定时间内回收进程（初始验收目标 5 秒，P0 固定）；强制终止只针对本次已持有的进程树，不按进程名批量杀 Python，也不对可能复用的旧 PID 延迟执行 shell 字符串。
+- 启动失败、缺失资源、权限错误、后端异常退出、点击关闭与就绪同时发生，都有可见状态与日志；不无条件自动重启已执行业务的后端。
+- 单实例锁在启动后端之前获得；第二次启动只恢复/聚焦已有窗口，不再启动 Python。
+
+**关闭语义边界：** 当前 EOF 使用 `os._exit(0)`，会中断活动任务并跳过 Python finally/atexit。首期保持这一已有中断边界，正常终态仍须按现有规则完成资源关闭和日志排空；测试必须覆盖活动任务中断及缓存丢失边界，不能宣称“优雅保存全部任务”。任务在运行时主动关窗应明确提示会中断。完整任务取消、排空和断点续作需要另立后端协议，不隐藏在换壳任务内。
+
+### 4.2 会话与旧数据迁移
+
+保留四个会话方法：`read`、`rememberLogin`、`rememberTask`、`clear`。继续使用 v1 JSON：`version/login/activeTask`，账号只含 `username/use_cookies`，任务只含 `username/taskId`。
+
+- 复用现有严格校验、账号匹配、串行写入、损坏/超限回空、失败可见和 logout 清除临时文件的语义。Windows 原子替换必须实测，不能只依据 Unix 的 rename 行为。
+- 文件写入用户私有目录，Windows 校验 ACL；不把 POSIX `0600` 当作 Windows 权限保证。
+- Tauri identifier 使用稳定的 `com.chaoxing.gui`；业务数据明确放在 `app_data_dir()/data`，日志放在宿主日志目录。不能为兼容目录把 identifier 改成 `chaoxing-desktop`。
+- 旧目录通常为 `%APPDATA%\chaoxing-desktop`，P0 以真实 Electron `app.getPath('userData')` 和发布安装样本核实。开发 profile 与生产数据隔离。
+- 首次迁移采用“关闭旧版 → 只读备份/校验 → 暂存复制 → 原子发布 data 目录 → 写版本标记”。旧版运行时推迟导入；中断后可重试。新目录已有有效数据时不覆盖，不每次启动重复导入。
+- 只迁移固定白名单：`renderer-session.json`、`web_config.json`、`.cookies/` 下账号文件、兼容 `cookies.txt`、实际存在的 `cache.json`/`config.ini`。拒绝越界路径/junction，验证 schema；不复制整个 Chromium/WebView profile。
+- 旧文件成功前后均保留，日志不需要迁移。旧 Electron localStorage 与新 WebView2 不共享；更早没有 JSON 会话文件的用户可重新选择/登录账号，不尝试读取浏览器凭证库。
+- 保留账号和选课不等于恢复运行中的任务；taskId 无效时走现有 404 处理，不自动提交新的学习任务。
+- 回滚先关闭 Tauri，再用旧版和原数据；Tauri 运行后新增的设置不自动反向覆盖旧数据。需要反向导入时先备份并校验同版本格式。
+
+### 4.3 后端资源与打包
+
+首选完整目录 resources，避免破坏 PyInstaller 布局：
+
+```text
+Tauri 安装/便携目录
+├── chaoxing-gui-tauri.exe
+└── backend/
+    ├── chaoxing-backend.exe
+    └── _internal/                 # DLL、Python 模块、OCR 资源等完整保留
+```
+
+- `desktop/scripts/prepare-backend.ps1` 从 `dist/chaoxing-backend/` 生成 staging；Tauri resources 使用保留层级的目录映射。不得只复制 exe，也不能用会平铺路径的 glob 代替整个目录。
+- `externalBin` 是备选：它使用 target triple 命名规则，且依赖目录仍需额外 resources。不能把“可运行 sidecar”理解成“自动收集 Python 依赖”。首选方案不需要 shell 插件。
+- `chaoxing-backend.spec` 的 onedir、`console=True`、OCR 排除项首期保持。暂时保留 Flask 包内 `web/dist`，让 Electron 回滚继续工作；重复前端资源的优化在切换后单独评估。
+- NSIS 默认采用当前用户安装，支持选择路径，卸载保留业务数据。真实安装样本验证 registry、快捷方式、图标和卸载行为。
+- Tauri identifier 与 Electron appId 相同也不保证安装升级兼容。首个 Tauri 版本使用独立安装目录和不同宿主 exe 名，显式导入数据；不把旧 Electron 目录当作可以直接覆盖的目标，也不默认运行旧卸载器。
+- 常规 NSIS 使用 `downloadBootstrapper` 安装缺失的 WebView2；离线发行另生成 `offlineInstaller` 变体或配套离线运行时说明。固定运行时会显著增加体积且需要维护，不作默认。
+- 便携 ZIP 必须包含完整宿主和后端资源，并说明需要 WebView2；双击裸 Tauri exe 不等于完整便携产品。便携默认仍使用用户 AppData，不顺带引入 USB 内自带数据的新行为。
+- 便携环境缺 WebView2 时需有可执行的安装指引/启动器或受验证的宿主提示；验证点在创建 WebView 之前，不能依赖一个尚未启动的 React 页面提示缺失运行时。
+- 测试中文/空格/长路径、无 D 盘、只读安装目录、无 Python/Node/Rust 的干净系统。现有 `desktop/build/installer.nsh` 的 Electron 宏不得直接拷到 Tauri 模板。
+
+## 5. 预期文件范围
+
+迁移在现有 `desktop/` 内渐进添加 `src-tauri/`，避免复制第二套前端；Electron 文件保留到切换验收完成。
+
+| 范围 | 新增/修改内容 |
+|---|---|
+| `desktop/src-tauri/` | `Cargo.toml`/`Cargo.lock`、`build.rs`、`tauri.conf.json`、`capabilities/`、`permissions/`、图标、Rust 测试 |
+| `desktop/src-tauri/src/` | `main.rs`/`lib.rs` 入口，`backend.rs`、`windows_job.rs`、`api_proxy.rs`、`session_store.rs`、`migration.rs` |
+| `desktop/rust-toolchain.toml` | 固定 Rust 工具链，避免 CI 随 stable 漂移 |
+| `desktop/package.json`、`package-lock.json` | 增加 Tauri CLI、`dev:tauri`/`build:tauri`；过渡期显式保留 Electron 脚本 |
+| `web/src/lib/desktopBridge.js` | Tauri/Electron 能力封装，四个会话方法及宿主状态 |
+| `web/src/api/tauriAdapter.js`、`axios.js` | operation 映射、错误/取消/超时兼容 |
+| `web/src/lib/sessionStore.js` | 复用现有串行与清除逻辑，接入新 bridge |
+| `web/src/main.jsx`、必要的启动状态组件 | 后端未 Ready 时展示启动/错误界面，避免提前发业务请求 |
+| `web/vite.config.js`、`web/package*.json` | 固定 dev 端口，加入 Tauri API 依赖；原浏览器代理保留 |
+| `app.py`、拟新增 `api/desktop_runtime.py` | Tauri 模式启动、端口握手、请求鉴权；业务路由契约保留 |
+| `tests/test_desktop_runtime.py`、前端 adapter/bridge 测试 | 启动协议、权限与兼容回归；现有测试持续保留 |
+| `desktop/scripts/prepare-backend.ps1`、`package-portable.ps1`、`smoke-tauri.ps1` | 资源 staging、ZIP、真实宿主/进程树 smoke |
+| 新增 `build_tauri.bat`，后期修改 `build_desktop.bat` | 明确构建前端→Python→资源→Tauri→打包顺序 |
+| `.github/workflows/main.yml`、`.gitignore`、README | 增量 CI、artifact 路径、产物命名、使用与迁移说明 |
+
+默认不修改 `main.py`、`api/base.py` 等学习业务核心。若 PoC 表明必须改业务退出语义，先记录新的范围、测试和估算，再调整实施计划。
+
+## 6. 阶段、依赖与验收门槛
+
+### P0：基线与可行性验证（1–2 人日）
+
+- 固定本计划的代码基线、支持系统、工具链版本、数据目录和 operation DTO；先保存现有 JSON/HTTP 错误样本作为兼容 fixture。
+- 在隔离开发目录验证最小 Tauri 窗口、完整 onedir 资源、stdin 管道、Job Object、端口 0 握手和最小 command 权限。
+- 实测 Electron 安装/便携包的数据目录、卸载注册信息；测安装包体积、宿主/总进程内存、冷/热启动耗时。
+- 记录架构决定和未通过项。若完整后端在真实 Tauri 安装布局不能启动，或无法收紧命令权限，则停在 PoC，不切换构建入口。
+
+**验收：** 无业务账号的 health 流程能在开发态和安装布局运行；源码事实、最终路径、DTO、资源映射和量化基线可复查。
+
+### P1：宿主与后端协议（3–4 人日，可部分并行）
+
+- 搭建 Rust crate 和最小权限；实现窗口/单实例、后端状态机、认证握手、API 转发及生命周期日志。
+- 添加 Tauri 专用 Python runtime 分支与测试；保持普通 Web、Electron、独立 exe 模式。
+- 测试先定义成功与错误/取消/退出路径，再实现。先用假后端做故障注入，再用真实冻结后端验证。
+
+**验收：** 启动/关闭/宿主被强杀/后端退出/缺资源/错 token 均按约定处理；第二实例不创建第二后端；没有僵挂管道、错误端口接管或残留进程。
+
+### P2：前端兼容与数据导入（3–4 人日，可部分并行）
+
+- 接入 adapter、bridge、启动状态页面；Rust 实现会话存储与旧数据导入。
+- 保留原有组件业务逻辑和浏览器/Electron 分支；把 Electron 存储测试行为移植为 Rust 契约测试。
+- 重点验证 409 恢复、404 清理、退出与启动竞态、取消后迟到响应、持久化失败提示、终态日志补拉。
+
+**验收：** 同一套模拟业务流程在浏览器、Electron 过渡版、Tauri 三种宿主通过；旧数据导入可重试、可回滚、无密码新增；桌面存储失败不会落入 localStorage。
+
+### P3：Windows 打包与 CI（2–3 人日）
+
+- 增加 staging、Tauri NSIS、便携 ZIP；图标与安装/卸载信息按实际 Tauri 模板配置。
+- CI 新增 Rust 工具链/cache、fmt/clippy/test、Tauri build、包内容检查、真实宿主 smoke。
+- 保留现有 Python 3.11/3.13、前端测试/构建和独立 exe；过渡期也保留 Electron 包和 Node 会话测试。
+- 构建链中的 PowerShell 原生命令逐个检查退出码；新后台 smoke 进程使用隐藏窗口并持有 stdin，不能照搬缺 stdin 管道的 headless 启动步骤。
+- Tauri 产物明确重命名后放到独立 release 目录，例如 `desktop/release/tauri/chaoxing-gui-tauri-setup-<version>-windows-x64.exe` 和 `chaoxing-gui-tauri-portable-<version>-windows-x64.zip`，避免与 Electron 的 `*.exe` 发布 glob 混淆。
+- 版本从 `pyproject.toml` 定义单一来源并校验 web/desktop/package/Cargo/Tauri 配置、tag 和 artifact；本次迁移版本由实施发版时确定，不固定复用 1.1.1。
+- 明确签名证书是否可用；有证书时签宿主、后端与安装包并验证签名。签名与无证书的用户提示分别记录，不将新证书采购假装成已有条件。
+
+**验收：** CI 在干净 Windows runner 产出可校验的 NSIS/ZIP；运行时无需系统 Python；所有产物来自同一版本，测试失败不能继续发布。
+
+### P4：候选版与回归（2–3 人日）
+
+- 在 Win10/Win11 x64 干净虚拟机执行下节矩阵，包括无 WebView2、有/无网络、不同权限、非默认安装路径、旧数据、卸载和回滚。
+- 先发单独命名的候选产物，使用与正式数据隔离的测试 profile；候选安装和旧版并存不覆盖程序目录。
+- 业务自动化以 mock/fixture 为主。需要真实上游联调时使用获准测试账号，只做明确范围的 smoke，不让测试默认启动真实批量学习。
+- 至少测 10 次冷启动和热启动，记录中位数/p95、宿主及总进程 private bytes、包体积和首次 WebView2 成本。阈值在 P0 基线后固定；明显退化需解决或给出经评审的原因。
+
+**验收：** 下节所有阻塞项通过；两路审查无未解决 Critical；原版安装包和迁移前备份可用，回退演练成功。
+
+### P5：切换默认与清理（约 1 人日）
+
+- `build_desktop.bat` 和 README 默认指向 Tauri，CI 正式桌面 artifact 切换；独立 Python 发行保持。
+- 保留一个候选/稳定验证窗口后，再移除 Electron 依赖、`main.js`、`preload.js`、`session-store.js`、`electron-builder.yml`、旧安装宏、Electron cache 和重复测试。
+- 删除旧文件前确保等价行为已由 Rust/前端/安装测试覆盖；`npm --prefix desktop test` 如被替换，同步更新 CI、README 与 `.ccg/spec/frontend/index.md` 回归入口。
+- 更新任务、审查记录和经过验证的 spec 经验，归档实施任务。
+
+**完成定义：** 默认桌面安装包由 Tauri 构建，浏览器/独立 exe 回归通过，旧数据可导入，发布/卸载/回滚文档准确，无残留 Electron 运行时依赖。
+
+**估算：** 总计约 12–17 人日；按每周 5 个工作日，单人实施约 2.5–3.5 周，另留候选版观察和外部联调时间。多名实施者可并行 P1/P2，但打包/真实系统验证在关键路径上；离线运行时、安装升级或退出协议出现额外问题时重新估算。
+
+## 7. L+ 实施时的并行文件归属
+
+本次只有规划，不启动迁移编码。后续实施按 P0 契约固定后分组；每个文件同一时刻只有一个所有者，子代理使用 `fork_turns="none"`，不再派生代理。
+
+| 所有者 | 第一层独立工作 | 文件归属 |
+|---|---|---|
+| 主代理 | crate/config/权限骨架、会话与迁移模块、接口集成 | `desktop/src-tauri/` 配置/入口、`session_store.rs`、`migration.rs`、desktop package/lock |
+| A：Rust 生命周期 | 后端进程、Job、启动握手、受限转发及对应 Rust 测试 | `backend.rs`、`windows_job.rs`、`api_proxy.rs`、专属测试 |
+| B：Python 协议 | Tauri runtime 分支、鉴权、握手、非桌面兼容 | `app.py`、`api/desktop_runtime.py`、`tests/test_desktop_runtime.py` |
+| C：前端适配 | adapter、bridge、启动界面与契约测试 | 上节列出的 `web/` 文件 |
+
+第二层待契约/布局稳定后，把打包脚本分配给已空闲实施者；主代理统一修改 CI 和入口配置。其他实施者不得修改 package/Cargo/config 或覆盖别人的变更，新增依赖先反馈给所有者。P1/P2/P3 的审查仍按 CCG 进行两路并行交叉验证。
+
+## 8. 测试与发布阻塞项
+
+| 类别 | 必测场景 | 发布门槛 |
+|---|---|---|
+| 原有回归 | Python 3.11/3.13、前端流程/选课/轮询、Electron 过渡版会话 | 全部通过 |
+| Rust 质量 | fmt、clippy warnings、单元/集成、release build | 全部通过，锁文件可复现 |
+| 通信 | POST JSON、409、404、超时、取消早到/迟到、after 游标、无后端 | 错误语义等价，不丢失取消，不隐式重试 start |
+| 安全 | 未授权窗口/frame/origin、未知命令/字段、任意 URL/路径、错误 token、非预期 Host | 被拒绝；合法页面功能可用；敏感值不进入日志 |
+| 生命周期 | 关闭/重复关闭、启动中关闭、第二实例、宿主强杀、后端崩溃、子孙进程、stdout 大量输出 | 有界退出、窗口状态明确、无本次后端残留 |
+| 数据 | JSON 损坏/超大/权限不足、原子替换失败、写入竞态、旧版正在运行、复制中断、重复导入、有效新数据 | 不覆盖有效数据，不新增密码，旧数据保留 |
+| 业务 | 按账号选课、任务恢复入口、终态日志补拉、退出期间启动、任务中断、404 任务清理 | 与现有 spec 一致，无重复真实学习任务 |
+| 打包 | onedir 完整性、OCR 资源、中文/空格路径、无 D 盘、无系统 Python、只读安装目录 | 真实 NSIS 与 ZIP 均可启动 health 和模拟业务 |
+| WebView2 | 已安装、未安装在线、未安装离线、便携首次运行 | 安装/提示符合所选发行方式，无静默白屏 |
+| 安装/回滚 | 旧 Electron→新 Tauri、独立安装目录、快捷方式、卸载留数据、回滚 | 不覆盖旧程序/数据；完整回退可执行 |
+
+实施后的预期自动检查入口（当前尚不存在 Rust 工程和 smoke 脚本）：
+
+```powershell
+python -m unittest discover -s tests -v
+npm --prefix web test
+npm --prefix web run build
+npm --prefix desktop test  # 仅在 Electron 过渡期保留
+cargo fmt --manifest-path desktop/src-tauri/Cargo.toml --all --check
+cargo clippy --manifest-path desktop/src-tauri/Cargo.toml --locked --all-targets -- -D warnings
+cargo test --manifest-path desktop/src-tauri/Cargo.toml --locked
+npm --prefix desktop run build:tauri
+```
+
+WebView2 权限和安装/进程树行为不能只靠 jsdom 或假子进程通过来认定完成。优先自动化已可观测的 smoke；真实 GUI/安装交互用合适的 Windows 驱动或人工矩阵，并留存结果。
+
+## 9. 回滚与停止条件
+
+- P0 的资源/权限/退出验证失败：继续使用 Electron，修订 PoC；不能以开放所有 IPC、关闭 CSP、固定业务端口或遗漏依赖目录绕过。
+- P1/P2 保留 Electron 构建和前端兼容分支；改动按宿主、协议、适配、打包分提交，便于定位回退。
+- 首个正式 Tauri 版本保留旧版下载和原数据；新旧壳不同时处理同一账号任务。导入前检测旧壳运行情况，必要时提示退出并推迟迁移。
+- 有效旧数据被覆盖、宿主退出后有孤儿进程、外部页面取得命令权限、重复启动真实任务、安装包无法启动、回滚失败，均为发版阻塞项。
+- 强制中断中的内存任务/未落盘缓存不在“无损迁移”承诺内；计划不使用未实现的优雅关闭或断点续作为通过理由。
+
+## 10. 本次已完成的验证与参考
+
+全量检查运行于 `d384ded`；后续 `5899b5f` 仅修正桌面测试发现方式，已单独重跑桌面测试。实际本地环境为 Python 3.11.15 / 3.13.14、Node 24.14.0；CI 的 Node 20 仍须保留验证，不能把本地运行等同于 Node 20 验证。
+
+| 检查 | 结果 |
+|---|---|
+| Python 3.11 unittest | 131 项通过 |
+| Python 3.13 unittest | 131 项通过 |
+| `npm --prefix web test` | 4 个文件、38 项通过 |
+| `npm --prefix desktop test` | 6 项通过 |
+| `npm --prefix web run build` | 通过；浏览器兼容数据过期提示不影响构建 |
+
+原始结果见本任务 `verification/`；它们证明现有基线可回归，不证明 Tauri 方案已在真实系统运行。Tauri PoC、Rust 检查、安装包及 WebView2 负向测试均属于未来实施验收。
+
+官方依据（2026-09-06 经 Context7 查询 sidecar、resources、capabilities 与 Windows installer；CSP 为相关配置参考。实施时对锁定版本重新核对细节）：
+
+- [Tauri sidecar](https://v2.tauri.app/develop/sidecar/)：externalBin、目标平台后缀和进程调用。
+- [Embedding additional files](https://v2.tauri.app/develop/resources/)：resources 目录映射和资源路径。
+- [Capabilities](https://v2.tauri.app/security/capabilities/)：local/remote 来源、窗口作用域和 AppManifest command ACL。
+- [Content Security Policy](https://v2.tauri.app/security/csp/)：本地内容的 CSP 与开发/生产差异。
+- [Windows Installer](https://v2.tauri.app/distribute/windows-installer/)：NSIS、MSVC target、WebView2 部署方式。
+
+两路 Claude 分析原文见 `research/analysis-a.md` 与 `research/analysis-b.md`，综合取舍见 `research/synthesis.md`。Claude 两路审查及重试均超时，未取得通过结论；已完成主代理全文核对及独立子代理对通信/权限/会话的复核。最终审查范围和限制见 `review.md`。

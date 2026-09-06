@@ -1,0 +1,17 @@
+
+> chaoxing-web@1.1.1 test
+> vitest run --environment jsdom
+
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+
+ RUN  v3.2.7 E:/Downloads/45/chaoxing-gui/web
+
+ ✓ src/lib/courseSelection.test.js (3 tests) 4ms
+ ✓ src/lib/sessionStore.test.js (3 tests) 8ms
+ ✓ src/lib/taskPolling.test.js (8 tests) 15ms
+ ✓ src/components/flows.test.jsx (24 tests) 1799ms
+
+ Test Files  4 passed (4)
+      Tests  38 passed (38)
+   Start at  20:28:00
+   Duration  4.68s (transform 243ms, setup 0ms, collect 1.52s, tests 1.83s, environment 4.62s, prepare 745ms)
