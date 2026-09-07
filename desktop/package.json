@@ -9,10 +9,14 @@
     "test": "node --test",
     "dev": "electron .",
     "start": "electron .",
-    "dist": "electron-builder --win"
+    "dist": "electron-builder --win",
+    "tauri": "tauri",
+    "dev:tauri": "tauri dev",
+    "build:tauri": "tauri build"
   },
   "devDependencies": {
     "electron": "^33.0.0",
-    "electron-builder": "^26.0.0"
+    "electron-builder": "^26.0.0",
+    "@tauri-apps/cli": "^2.11.4"
   }
 }
