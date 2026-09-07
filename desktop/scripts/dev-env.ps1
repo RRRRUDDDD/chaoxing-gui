@@ -3,6 +3,7 @@
 # 本机 rustup 代理缺失（无 rustup.exe、~/.cargo/bin 为空），需要直接使用工具链目录。
 # 本机 MSVC 检测缺失（无 vswhere.exe、无 VS 注册表键），需要 vcvars64 提供 link.exe/LIB/INCLUDE。
 
+$ErrorActionPreference = 'Stop'
 $toolchainBin = "$env:USERPROFILE\.rustup\toolchains\stable-x86_64-pc-windows-msvc\bin"
 if (-not (Test-Path $toolchainBin)) { throw "未找到 Rust 工具链: $toolchainBin" }
 $env:PATH = "$toolchainBin;$env:PATH"
@@ -13,11 +14,16 @@ $bat = Join-Path $env:TEMP "chaoxing-vcenv-$(Get-Random).bat"
 @'
 @echo off
 call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvars64.bat" >nul 2>&1
-echo ===VCENV===
+if errorlevel 1 exit /b %errorlevel%
 set
 '@ | Set-Content $bat -Encoding ascii
-$envLines = cmd /c "`"$bat`"" | Select-String -Pattern "^(LIB|INCLUDE|Path)=" -SimpleMatch:$false
-Remove-Item $bat -ErrorAction SilentlyContinue
+try {
+  $vcOutput = & cmd.exe /d /c "`"$bat`""
+  if ($LASTEXITCODE -ne 0) { throw "vcvars64 failed with exit code $LASTEXITCODE" }
+  $envLines = $vcOutput | Select-String -Pattern "^(LIB|INCLUDE|Path)=" -SimpleMatch:$false
+} finally {
+  Remove-Item -LiteralPath $bat -ErrorAction SilentlyContinue
+}
 foreach ($line in $envLines) {
   $name, $value = $line.Line -split '=', 2
   switch ($name) {
@@ -32,4 +38,6 @@ if ($env:VCVARS_PATH) {
   foreach ($dir in $vcDirs) { if (Test-Path $dir) { $env:PATH = "$dir;$env:PATH" } }
   Remove-Item Env:VCVARS_PATH -ErrorAction SilentlyContinue
 }
-Write-Host "Rust 工具链与 MSVC 链接环境已就绪: $(cargo --version)"
+$cargoVersion = & cargo --version
+if ($LASTEXITCODE -ne 0) { throw "cargo failed with exit code $LASTEXITCODE" }
+Write-Host "Rust 工具链与 MSVC 链接环境已就绪: $cargoVersion"

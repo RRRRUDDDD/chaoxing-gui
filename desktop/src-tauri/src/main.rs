@@ -1,5 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-fn main() {
-    chaoxing_desktop_lib::run();
+mod webview_runtime;
+
+fn main() -> std::process::ExitCode {
+    webview_runtime::run(chaoxing_desktop_lib::run)
 }

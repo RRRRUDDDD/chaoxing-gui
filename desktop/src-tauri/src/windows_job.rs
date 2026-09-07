@@ -22,16 +22,18 @@ impl Job {
         unsafe {
             let handle = CreateJobObjectW(None, PCWSTR::null())
                 .map_err(|e| format!("CreateJobObject: {e}"))?;
+            // Own the handle before fallible setup so an error also closes it.
+            let job = Self(handle);
             let mut info = JOBOBJECT_EXTENDED_LIMIT_INFORMATION::default();
             info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
             SetInformationJobObject(
-                handle,
+                job.0,
                 JobObjectExtendedLimitInformation,
                 &info as *const _ as *const core::ffi::c_void,
                 std::mem::size_of::<JOBOBJECT_EXTENDED_LIMIT_INFORMATION>() as u32,
             )
             .map_err(|e| format!("SetInformationJobObject: {e}"))?;
-            Ok(Job(handle))
+            Ok(job)
         }
     }
 

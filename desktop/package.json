@@ -12,11 +12,14 @@
     "dist": "electron-builder --win",
     "tauri": "tauri",
     "dev:tauri": "tauri dev",
-    "build:tauri": "tauri build"
+    "build:tauri": "pwsh -NoProfile -File scripts/build-tauri.ps1",
+    "check:version": "python scripts/version.py --check",
+    "sync:version": "python scripts/version.py --sync"
   },
   "devDependencies": {
     "electron": "^33.0.0",
     "electron-builder": "^26.0.0",
-    "@tauri-apps/cli": "^2.11.4"
+    "@tauri-apps/cli": "2.11.4",
+    "playwright-core": "1.63.0"
   }
 }
