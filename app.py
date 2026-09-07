@@ -45,11 +45,13 @@ else:
 
 # === 环境变量：支持 Electron 无头模式 ===
 HEADLESS = os.environ.get("CHAOXING_HEADLESS") == "1" or os.environ.get("CHAOXING_ELECTRON") == "1"
-PORT = int(os.environ.get("CHAOXING_PORT", "5000"))
+TAURI_MODE = os.environ.get("CHAOXING_TAURI") == "1"
+PORT = 0 if TAURI_MODE else int(os.environ.get("CHAOXING_PORT", "5000"))
 # 仅限本机访问时也绑定回环地址, 避免局域网内其他设备访问控制台/配置接口
 HOST = "127.0.0.1"
 # CORS 限定为本机来源, 防止用户浏览器中打开的任意网页跨域读取配置接口
-CORS(app, origins=[f"http://localhost:{PORT}", f"http://127.0.0.1:{PORT}"])
+if not TAURI_MODE:
+    CORS(app, origins=[f"http://localhost:{PORT}", f"http://127.0.0.1:{PORT}"])
 # 数据目录：Electron 传入 %APPDATA%/<app>；未设置时沿用脚本目录（独立 exe / 开发模式行为不变）
 DATA_DIR = os.environ.get("CHAOXING_DATA_DIR") or os.path.dirname(__file__)
 
@@ -765,11 +767,10 @@ if __name__ == "__main__":
             os.makedirs(DATA_DIR, exist_ok=True)
             os.chdir(DATA_DIR)
         except Exception as e:
-            logger.warning(f"切换数据目录失败，沿用当前目录: {e}")
+            logger.error(f"Tauri 数据目录不可用: {e}")
+            sys.exit(1)
 
-        # Tauri 模式：不注册 CORS（原生转发无跨域需求）。CORS 已在模块
-        # 导入期注册，这里豁免所有响应头即可恢复无 CORS 行为。
-        # （见 tests/test_desktop_runtime.py 的 CORS 断言）
+        # Tauri 的原生代理无需 CORS；导入期已跳过注册。
         threading.Thread(target=watch_parent_stdin, daemon=True).start()
         try:
             run_tauri_server(app, token, instance_id)
@@ -856,4 +857,3 @@ if __name__ == "__main__":
         logger.info("接收到退出信号")
         if tray_icon:
             tray_icon.stop()
-

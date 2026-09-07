@@ -11,6 +11,7 @@
     "withGlobalTauri": true,
     "windows": [
       {
+        "create": false,
         "title": "超星学习通 · 自动化学习助手",
         "width": 1200,
         "height": 800,
@@ -20,7 +21,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src ipc: http://ipc.localhost"
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src ipc: http://ipc.localhost; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'"
     }
   },
   "bundle": {

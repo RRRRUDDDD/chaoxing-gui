@@ -8,7 +8,7 @@
 //! - the backend exits instantly if stdin has no pipe — host must hold one;
 //! - the backend writes runtime files into its cwd, so cwd must be the data dir.
 
-use crate::api_proxy::{ApiOperation, ProxyError, ProxyResponse};
+use crate::api_proxy::{ApiOperation, ApiRequest, ProxyError, ProxyResponse};
 use crate::windows_job::Job;
 use serde::Serialize;
 use std::collections::HashMap;
@@ -28,7 +28,13 @@ const HEALTH_INTERVAL: Duration = Duration::from_millis(300);
 const HEALTH_TIMEOUT: Duration = Duration::from_millis(2000);
 /// Grace period after stdin EOF before TerminateJobObject.
 const STOP_GRACE: Duration = Duration::from_secs(5);
+const POLL_INTERVAL: Duration = Duration::from_millis(25);
+const API_TIMEOUT: Duration = Duration::from_secs(30);
 const MAX_HANDSHAKE_LINE: usize = 8192;
+const MAX_HEALTH_BODY: usize = 64 * 1024;
+const MAX_INFLIGHT_REQUESTS: usize = 64;
+const MAX_RECENT_REQUESTS: usize = 1024;
+const RECENT_REQUEST_TTL: Duration = Duration::from_secs(60);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -43,7 +49,7 @@ pub enum BackendPhase {
 #[derive(Debug, Serialize)]
 pub struct BackendStatus {
     pub phase: BackendPhase,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip)]
     pub port: Option<u16>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
@@ -55,15 +61,129 @@ pub struct BackendState {
     pub port: Mutex<Option<u16>>,
     pub token: Mutex<String>,
     pub instance_id: Mutex<String>,
-    /// Job handle kept alive for the whole app lifetime (P0 PoC finding).
+    /// Kept alive through startup/Ready, then owned by teardown until the tree is killed.
     pub job: Mutex<Option<Job>>,
     pub error: Mutex<Option<String>>,
-    /// request_id -> cancel flag registry for api_proxy.
-    pub cancels: Mutex<HashMap<u64, Arc<AtomicBool>>>,
+    requests: Mutex<RequestRegistry>,
     pub data_dir: std::path::PathBuf,
     pub log_dir: std::path::PathBuf,
     next_request_id: AtomicU64,
+    start_claimed: AtomicBool,
+    /// Only short transitions/spawn registration; never held during HTTP or grace.
+    lifecycle_lock: Mutex<()>,
     stop_lock: Mutex<()>,
+}
+
+#[derive(Clone, Copy)]
+enum RecentResult {
+    Cancelled,
+    Completed,
+}
+
+#[derive(Default)]
+struct RequestRegistry {
+    active: HashMap<u64, Arc<AtomicBool>>,
+    recent: HashMap<u64, (Instant, RecentResult)>,
+    closed: bool,
+}
+
+impl RequestRegistry {
+    fn prune(&mut self, now: Instant) {
+        self.recent
+            .retain(|_, (time, _)| now.duration_since(*time) < RECENT_REQUEST_TTL);
+    }
+
+    fn remember(&mut self, id: u64, outcome: RecentResult, now: Instant) {
+        self.prune(now);
+        if !self.recent.contains_key(&id) && self.recent.len() >= MAX_RECENT_REQUESTS {
+            if let Some(oldest) = self
+                .recent
+                .iter()
+                .min_by_key(|(_, (time, _))| *time)
+                .map(|(id, _)| *id)
+            {
+                self.recent.remove(&oldest);
+            }
+        }
+        self.recent.insert(id, (now, outcome));
+    }
+
+    fn register(&mut self, id: u64) -> Result<Arc<AtomicBool>, ProxyError> {
+        self.prune(Instant::now());
+        if self.closed {
+            return Err(ProxyError::BackendNotReady {
+                phase: "stopped".into(),
+            });
+        }
+        if let Some(flag) = self.active.get(&id) {
+            return if flag.load(Ordering::Acquire) {
+                Err(ProxyError::Cancelled)
+            } else {
+                Err(ProxyError::InvalidRequest {
+                    reason: "requestId is already in use".into(),
+                })
+            };
+        }
+        if let Some((_, outcome)) = self.recent.get(&id) {
+            return match outcome {
+                RecentResult::Cancelled => Err(ProxyError::Cancelled),
+                RecentResult::Completed => Err(ProxyError::InvalidRequest {
+                    reason: "requestId was already completed".into(),
+                }),
+            };
+        }
+        if self.active.len() >= MAX_INFLIGHT_REQUESTS {
+            return Err(ProxyError::InvalidRequest {
+                reason: "too many in-flight requests".into(),
+            });
+        }
+        let flag = Arc::new(AtomicBool::new(false));
+        self.active.insert(id, flag.clone());
+        Ok(flag)
+    }
+
+    fn cancel(&mut self, id: u64) -> bool {
+        if let Some(flag) = self.active.get(&id) {
+            flag.store(true, Ordering::Release);
+            // The HTTP worker owns this entry until its entire body read settles.
+            return true;
+        }
+        if !self.closed {
+            self.remember(id, RecentResult::Cancelled, Instant::now());
+        }
+        false
+    }
+
+    fn finish(&mut self, id: u64, flag: &Arc<AtomicBool>) -> bool {
+        let cancelled = flag.load(Ordering::Acquire);
+        if self
+            .active
+            .get(&id)
+            .is_some_and(|current| Arc::ptr_eq(current, flag))
+        {
+            self.active.remove(&id);
+            if !self.closed {
+                self.remember(
+                    id,
+                    if cancelled {
+                        RecentResult::Cancelled
+                    } else {
+                        RecentResult::Completed
+                    },
+                    Instant::now(),
+                );
+            }
+        }
+        cancelled
+    }
+
+    fn close(&mut self) {
+        self.closed = true;
+        for flag in self.active.values() {
+            flag.store(true, Ordering::Release);
+        }
+        self.recent.clear();
+    }
 }
 
 impl BackendState {
@@ -76,15 +196,18 @@ impl BackendState {
             instance_id: Mutex::new(String::new()),
             job: Mutex::new(None),
             error: Mutex::new(None),
-            cancels: Mutex::new(HashMap::new()),
+            requests: Mutex::new(RequestRegistry::default()),
             next_request_id: AtomicU64::new(1),
+            start_claimed: AtomicBool::new(false),
             data_dir,
             log_dir,
+            lifecycle_lock: Mutex::new(()),
             stop_lock: Mutex::new(()),
         }
     }
 
     pub fn status(&self) -> BackendStatus {
+        self.observe_exit();
         BackendStatus {
             phase: *self.phase.lock().unwrap_or_else(|e| e.into_inner()),
             port: *self.port.lock().unwrap_or_else(|e| e.into_inner()),
@@ -93,13 +216,71 @@ impl BackendState {
     }
 
     pub fn next_request_id(&self) -> u64 {
-        self.next_request_id.fetch_add(1, Ordering::Relaxed)
+        self.next_request_id
+            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |id| {
+                Some(if id >= crate::api_proxy::MAX_REQUEST_ID {
+                    1
+                } else {
+                    id + 1
+                })
+            })
+            .unwrap_or_else(|id| id)
     }
 
     fn fail(&self, msg: String) {
+        let _transition = self
+            .lifecycle_lock
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        self.fail_locked(msg);
+    }
+
+    // Caller owns lifecycle_lock. Stopping/Stopped must never become Failed/Ready.
+    fn fail_locked(&self, msg: String) {
+        let mut phase = self.phase.lock().unwrap_or_else(|e| e.into_inner());
+        if !matches!(*phase, BackendPhase::Starting | BackendPhase::Ready) {
+            return;
+        }
         *self.error.lock().unwrap_or_else(|e| e.into_inner()) = Some(msg.clone());
-        *self.phase.lock().unwrap_or_else(|e| e.into_inner()) = BackendPhase::Failed;
+        *phase = BackendPhase::Failed;
+        drop(phase);
+        self.requests
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .close();
+        *self.port.lock().unwrap_or_else(|e| e.into_inner()) = None;
+        // Terminate even when the direct child has exited: its grandchildren may live.
+        if let Some(job) = self.job.lock().unwrap_or_else(|e| e.into_inner()).take() {
+            job.terminate();
+        }
+        if let Some(mut child) = self.child.lock().unwrap_or_else(|e| e.into_inner()).take() {
+            let _ = child.kill();
+            let _ = child.try_wait();
+        }
         host_log(&self.log_dir, &format!("[backend] FAILED: {msg}"));
+    }
+
+    fn observe_exit(&self) {
+        // A status query stays responsive while spawn/stop is changing ownership.
+        let Ok(_transition) = self.lifecycle_lock.try_lock() else {
+            return;
+        };
+        if *self.phase.lock().unwrap_or_else(|e| e.into_inner()) != BackendPhase::Ready {
+            return;
+        }
+        let error = self
+            .child
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .as_mut()
+            .and_then(|child| match child.try_wait() {
+                Ok(Some(status)) => Some(format!("后端进程意外退出: {status}")),
+                Ok(None) => None,
+                Err(error) => Some(format!("无法检查后端进程: {error}")),
+            });
+        if let Some(error) = error {
+            self.fail_locked(error);
+        }
     }
 }
 
@@ -265,16 +446,23 @@ pub fn detect_launch(app: &tauri::AppHandle) -> Result<BackendLaunch, String> {
     }
 }
 
-/// Spawn the backend, do handshake + health, update state. Runs synchronously
-/// in setup (single-instance lock already held — no second backend possible).
+/// Runs on the host's background startup worker after state registration.
+/// Spawn/ownership transfer is serialized with stop; handshake/HTTP never hold it.
 pub fn start_backend(state: &Arc<BackendState>, launch: BackendLaunch) -> Result<(), String> {
-    std::fs::create_dir_all(&state.data_dir).map_err(|e| format!("create data dir: {e}"))?;
-    std::fs::create_dir_all(&state.log_dir).map_err(|e| format!("create log dir: {e}"))?;
+    if state.start_claimed.swap(true, Ordering::AcqRel) {
+        return Err("后端启动已请求，不能自动重启".into());
+    }
+    check_starting(state)?;
+    for (label, directory) in [("data", &state.data_dir), ("log", &state.log_dir)] {
+        if let Err(error) = std::fs::create_dir_all(directory) {
+            let message = format!("create {label} dir: {error}");
+            state.fail(message.clone());
+            return Err(message);
+        }
+    }
 
     let token = random_hex(32);
     let instance_id = random_hex(8);
-    *state.token.lock().unwrap_or_else(|e| e.into_inner()) = token.clone();
-    *state.instance_id.lock().unwrap_or_else(|e| e.into_inner()) = instance_id.clone();
 
     let job = Job::create().map_err(|e| {
         state.fail(format!("创建 Job Object 失败: {e}"));
@@ -316,83 +504,140 @@ pub fn start_backend(state: &Arc<BackendState>, launch: BackendLaunch) -> Result
             return Err(msg);
         }
     }
-    let mut child = match cmd.spawn() {
-        Ok(c) => c,
-        Err(e) => {
-            let msg = format!("启动后端失败: {e}");
-            state.fail(msg.clone());
-            return Err(msg);
+    let (stdout, stderr) = {
+        let _transition = state
+            .lifecycle_lock
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        check_starting(state)?;
+        let mut child = match cmd.spawn() {
+            Ok(child) => child,
+            Err(error) => {
+                let message = format!("启动后端失败: {error}");
+                state.fail_locked(message.clone());
+                return Err(message);
+            }
+        };
+        let assigned = job.assign(child.id());
+        let stdout = child.stdout.take().expect("stdout piped");
+        let stderr = child.stderr.take().expect("stderr piped");
+        // From this point every failure/stop path can reach both process handles.
+        *state.child.lock().unwrap_or_else(|e| e.into_inner()) = Some(child);
+        *state.job.lock().unwrap_or_else(|e| e.into_inner()) = Some(job);
+        *state.token.lock().unwrap_or_else(|e| e.into_inner()) = token.clone();
+        *state.instance_id.lock().unwrap_or_else(|e| e.into_inner()) = instance_id.clone();
+        if let Err(error) = assigned {
+            let message = format!("后端进程加入 Job 失败: {error}");
+            state.fail_locked(message.clone());
+            return Err(message);
         }
+        (stdout, stderr)
     };
-
-    if let Err(e) = job.assign(child.id()) {
-        let _ = child.kill();
-        state.fail(format!("后端进程加入 Job 失败: {e}"));
-        return Err(e);
-    }
-
-    let stdout = child.stdout.take().expect("stdout piped");
-    let stderr = child.stderr.take().expect("stderr piped");
     let log_dir = state.log_dir.clone();
     let (handshake_rx, _stdout_thread) =
         read_handshake(stdout, instance_id.clone(), log_dir.clone());
     let _stderr_thread = drain_stderr(stderr, log_dir.clone());
 
-    let ready = match handshake_rx.recv_timeout(deadline.saturating_duration_since(Instant::now()))
-    {
-        Ok(Handshake::Ready(r)) => Some(r),
-        Ok(Handshake::Eof) => None,
-        Err(_) => None,
-    };
-    let ready = match ready {
-        Some(r) => r,
-        None => {
-            // Distinguish EOF (crash) from timeout for the error message.
-            let msg = match child.try_wait() {
-                Ok(Some(status)) => format!("后端在就绪握手前退出: {status}"),
-                _ => "就绪握手超时（120s）".to_string(),
-            };
-            terminate_and_collect(&job, &mut child);
-            state.fail(msg.clone());
-            return Err(msg);
-        }
-    };
-
-    let port = ready.port;
-    *state.port.lock().unwrap_or_else(|e| e.into_inner()) = Some(port);
-
-    // Health probe with token + instanceId double check.
-    if let Err(msg) = health_until_ready(port, &token, &instance_id, deadline, &mut child) {
-        terminate_and_collect(&job, &mut child);
-        state.fail(msg.clone());
-        return Err(msg);
+    let result: Result<(), String> = (|| {
+        let ready = await_handshake(state, &handshake_rx, deadline)?;
+        health_until_ready(state, ready.port, &token, &instance_id, deadline)?;
+        let _transition = state
+            .lifecycle_lock
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        check_starting(state)?;
+        check_starting_child(state)?;
+        *state.port.lock().unwrap_or_else(|e| e.into_inner()) = Some(ready.port);
+        *state.phase.lock().unwrap_or_else(|e| e.into_inner()) = BackendPhase::Ready;
+        host_log(&log_dir, &format!("[backend] ready on port {}", ready.port));
+        Ok(())
+    })();
+    if let Err(message) = &result {
+        state.fail(message.clone());
     }
+    result
+}
 
-    *state.child.lock().unwrap_or_else(|e| e.into_inner()) = Some(child);
-    *state.job.lock().unwrap_or_else(|e| e.into_inner()) = Some(job);
-    *state.phase.lock().unwrap_or_else(|e| e.into_inner()) = BackendPhase::Ready;
-    host_log(&log_dir, &format!("[backend] ready on port {port}"));
-    Ok(())
+fn check_starting(state: &BackendState) -> Result<(), String> {
+    if *state.phase.lock().unwrap_or_else(|e| e.into_inner()) == BackendPhase::Starting {
+        Ok(())
+    } else {
+        Err("后端启动已取消或已结束".into())
+    }
+}
+
+fn check_starting_child(state: &BackendState) -> Result<(), String> {
+    let mut child = state.child.lock().unwrap_or_else(|e| e.into_inner());
+    match child.as_mut().map(Child::try_wait) {
+        Some(Ok(None)) => Ok(()),
+        Some(Ok(Some(status))) => Err(format!("后端进程在启动期间退出: {status}")),
+        Some(Err(error)) => Err(format!("无法检查后端进程: {error}")),
+        None => Err("后端启动已取消".into()),
+    }
+}
+
+fn await_handshake(
+    state: &BackendState,
+    receiver: &std::sync::mpsc::Receiver<Handshake>,
+    deadline: Instant,
+) -> Result<ReadyLine, String> {
+    loop {
+        check_starting(state)?;
+        check_starting_child(state)?;
+        let remaining = deadline.saturating_duration_since(Instant::now());
+        if remaining.is_zero() {
+            return Err("就绪握手超时（120s）".into());
+        }
+        match receiver.recv_timeout(remaining.min(POLL_INTERVAL)) {
+            Ok(Handshake::Ready(ready)) if ready.port != 0 => return Ok(ready),
+            Ok(Handshake::Ready(_)) => return Err("就绪握手 port 无效".into()),
+            Ok(Handshake::Eof) | Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => {
+                return Err("后端在就绪握手前退出".into());
+            }
+            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {}
+        }
+    }
+}
+
+fn loopback_agent(timeout: Duration) -> ureq::Agent {
+    ureq::AgentBuilder::new()
+        .try_proxy_from_env(false)
+        .redirects(0)
+        .timeout_connect(timeout)
+        .timeout(timeout)
+        .build()
 }
 
 fn health_until_ready(
+    state: &BackendState,
     port: u16,
     token: &str,
     instance_id: &str,
     deadline: Instant,
-    child: &mut Child,
 ) -> Result<(), String> {
-    let agent = ureq::AgentBuilder::new()
-        .timeout(HEALTH_TIMEOUT)
-        .redirects(0)
-        .build();
     let url = format!("http://127.0.0.1:{port}/api/health");
     loop {
+        check_starting(state)?;
+        check_starting_child(state)?;
+        let remaining = deadline.saturating_duration_since(Instant::now());
+        if remaining.is_zero() {
+            return Err("health 探测超时（120s）".into());
+        }
+        let agent = loopback_agent(HEALTH_TIMEOUT.min(remaining));
         match agent.get(&url).set("X-Auth-Token", token).call() {
             Ok(resp) => {
                 if resp.status() == 200 {
-                    let body = resp.into_string().unwrap_or_default();
-                    let ok = serde_json::from_str::<serde_json::Value>(&body)
+                    let mut body = Vec::new();
+                    let read = resp
+                        .into_reader()
+                        .take(MAX_HEALTH_BODY as u64 + 1)
+                        .read_to_end(&mut body);
+                    check_starting(state)?;
+                    read.map_err(|error| format!("读取 health 响应失败: {error}"))?;
+                    if body.len() > MAX_HEALTH_BODY {
+                        return Err("health 响应过大".into());
+                    }
+                    let ok = serde_json::from_slice::<serde_json::Value>(&body)
                         .ok()
                         .and_then(|v| {
                             v.get("instanceId")
@@ -409,73 +654,78 @@ fn health_until_ready(
             }
             Err(_) => { /* connect refused while backend boots */ }
         }
-        if child.try_wait().map(|s| s.is_some()).unwrap_or(false) {
-            return Err("后端进程在 health 探测期间退出".into());
-        }
+        check_starting(state)?;
+        check_starting_child(state)?;
         if Instant::now() >= deadline {
             return Err("health 探测超时（120s）".into());
         }
-        std::thread::sleep(HEALTH_INTERVAL);
+        let next_probe = (Instant::now() + HEALTH_INTERVAL).min(deadline);
+        while Instant::now() < next_probe {
+            check_starting(state)?;
+            std::thread::sleep(
+                POLL_INTERVAL.min(next_probe.saturating_duration_since(Instant::now())),
+            );
+        }
     }
-}
-
-fn terminate_and_collect(job: &Job, child: &mut Child) {
-    let _ = child.kill();
-    let _ = child.wait();
-    job.terminate();
 }
 
 /// Idempotent stop: stdin EOF → up to 5s grace → TerminateJobObject.
 pub fn stop_backend(state: &Arc<BackendState>) {
     let _guard = state.stop_lock.lock().unwrap_or_else(|e| e.into_inner());
-    let mut phase = state.phase.lock().unwrap_or_else(|e| e.into_inner());
-    if matches!(
-        *phase,
-        BackendPhase::Stopping | BackendPhase::Stopped | BackendPhase::Failed
-    ) {
-        return;
-    }
-    *phase = BackendPhase::Stopping;
-    drop(phase);
-
-    // Cancel all in-flight requests.
-    {
-        let mut cancels = state.cancels.lock().unwrap_or_else(|e| e.into_inner());
-        for flag in cancels.values() {
-            flag.store(true, Ordering::Relaxed);
+    let (mut child, job) = {
+        let _transition = state
+            .lifecycle_lock
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        let mut phase = state.phase.lock().unwrap_or_else(|e| e.into_inner());
+        if *phase == BackendPhase::Stopped {
+            return;
         }
-        cancels.clear();
-    }
-
-    let mut child_opt = state.child.lock().unwrap_or_else(|e| e.into_inner());
-    if let Some(ref mut child) = *child_opt {
+        *phase = BackendPhase::Stopping;
+        drop(phase);
+        state
+            .requests
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .close();
+        *state.port.lock().unwrap_or_else(|e| e.into_inner()) = None;
+        let child = state.child.lock().unwrap_or_else(|e| e.into_inner()).take();
+        let job = state.job.lock().unwrap_or_else(|e| e.into_inner()).take();
+        (child, job)
+    };
+    if let Some(child) = child.as_mut() {
         child.stdin.take(); // drop = EOF → backend watchdog os._exit(0)
         let deadline = Instant::now() + STOP_GRACE;
-        loop {
-            if child.try_wait().map(|s| s.is_some()).unwrap_or(false) {
-                break;
-            }
-            if Instant::now() >= deadline {
-                break;
-            }
-            std::thread::sleep(Duration::from_millis(100));
+        while matches!(child.try_wait(), Ok(None)) && Instant::now() < deadline {
+            std::thread::sleep(POLL_INTERVAL);
         }
-        if child.try_wait().map(|s| s.is_none()).unwrap_or(false) {
-            if let Some(job) = state.job.lock().unwrap_or_else(|e| e.into_inner()).as_ref() {
-                job.terminate();
-            }
-        }
-        let _ = child.wait();
     }
-    *child_opt = None;
-    *state.phase.lock().unwrap_or_else(|e| e.into_inner()) = BackendPhase::Stopped;
+    // Always reap the Job: a graceful direct-child exit may leave grandchildren.
+    if let Some(job) = job.as_ref() {
+        job.terminate();
+    }
+    if let Some(child) = child.as_mut() {
+        let _ = child.kill();
+        let deadline = Instant::now() + Duration::from_millis(500);
+        while matches!(child.try_wait(), Ok(None)) && Instant::now() < deadline {
+            std::thread::sleep(POLL_INTERVAL);
+        }
+    }
+    drop(child);
+    drop(job);
+    {
+        let _transition = state
+            .lifecycle_lock
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        *state.phase.lock().unwrap_or_else(|e| e.into_inner()) = BackendPhase::Stopped;
+    }
     host_log(&state.log_dir, "[backend] stopped");
-    // Job handle stays in state.job until app exit; KILL_ON_JOB_CLOSE covers
-    // the case where we never terminated explicitly (incl. panic unwind).
 }
 
 /// Non-Ready guard for business requests.
 pub fn ensure_ready(state: &BackendState) -> Result<(), ProxyError> {
+    state.observe_exit();
     match *state.phase.lock().unwrap_or_else(|e| e.into_inner()) {
         BackendPhase::Ready => Ok(()),
         phase => Err(ProxyError::BackendNotReady {
@@ -488,8 +738,8 @@ pub fn ensure_ready(state: &BackendState) -> Result<(), ProxyError> {
 }
 
 /// Forward one whitelisted operation to the backend over loopback HTTP.
-/// Cancellation: flag checked before send; an in-flight ureq call can only be
-/// abandoned (bounded ≤ timeout), the result is dropped. Recorded trade-off.
+/// A cancelled worker can still occupy its HTTP socket for at most 30 seconds.
+/// Keep its ID guarded until the entire response body settles, then drop the result.
 pub fn api_request(
     state: &Arc<BackendState>,
     op: ApiOperation,
@@ -498,34 +748,41 @@ pub fn api_request(
     payload: serde_json::Value,
     request_id: u64,
 ) -> Result<ProxyResponse, ProxyError> {
+    let request = ApiRequest {
+        operation: op,
+        task_id,
+        after,
+        payload,
+        request_id,
+    };
+    request.validate()?;
     ensure_ready(state)?;
-
-    let port = state.port.lock().unwrap_or_else(|e| e.into_inner()).ok_or(
-        ProxyError::BackendNotReady {
-            phase: "Starting".into(),
-        },
-    )?;
-
-    let path = crate::api_proxy::build_path(op, task_id.as_deref(), after)
+    let path = crate::api_proxy::build_path(op, request.task_id.as_deref(), request.after)
         .map_err(|reason| ProxyError::InvalidRequest { reason })?;
-
-    // Register cancel flag; if already cancelled, refuse.
-    let flag = Arc::new(AtomicBool::new(false));
-    {
-        let mut cancels = state.cancels.lock().unwrap_or_else(|e| e.into_inner());
-        if cancels.contains_key(&request_id) {
-            return Err(ProxyError::Cancelled);
-        }
-        cancels.insert(request_id, flag.clone());
-    }
+    // Serialize registration with stop: it either refuses or is included in close().
+    let (port, flag) = {
+        let _transition = state
+            .lifecycle_lock
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        ensure_ready(state)?;
+        let port = state.port.lock().unwrap_or_else(|e| e.into_inner()).ok_or(
+            ProxyError::BackendNotReady {
+                phase: "starting".into(),
+            },
+        )?;
+        let flag = state
+            .requests
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .register(request_id)?;
+        (port, flag)
+    };
 
     let result = (|| {
         let method = op.route().0;
         let url = format!("http://127.0.0.1:{port}{path}");
-        let agent = ureq::AgentBuilder::new()
-            .timeout(Duration::from_secs(30))
-            .redirects(0)
-            .build();
+        let agent = loopback_agent(API_TIMEOUT);
         let mut req = agent.request(method, &url);
         let token = state
             .token
@@ -534,9 +791,10 @@ pub fn api_request(
             .clone();
         req = req.set("X-Auth-Token", &token);
         let body_bytes: Option<Vec<u8>> = if op.is_post() {
-            let body = serde_json::to_vec(&payload).map_err(|e| ProxyError::InvalidRequest {
-                reason: format!("payload 序列化失败: {e}"),
-            })?;
+            let body =
+                serde_json::to_vec(&request.payload).map_err(|e| ProxyError::InvalidRequest {
+                    reason: format!("payload 序列化失败: {e}"),
+                })?;
             if body.len() > crate::api_proxy::MAX_REQUEST_BODY {
                 return Err(ProxyError::InvalidRequest {
                     reason: "请求体超过 1MB 上限".into(),
@@ -546,69 +804,157 @@ pub fn api_request(
         } else {
             None
         };
+        // Also cover cancellation while validating/serializing/creating the request.
+        if flag.load(Ordering::Acquire) {
+            return Err(ProxyError::Cancelled);
+        }
         let resp = match body_bytes {
             Some(b) => req.set("Content-Type", "application/json").send_bytes(&b),
             None => req.call(),
         };
-        // Cancelled after completion: report cancelled, drop the response.
-        if flag.load(Ordering::Relaxed) {
+        if flag.load(Ordering::Acquire) {
             return Err(ProxyError::Cancelled);
         }
-        match resp {
-            Ok(resp) => {
-                let status = resp.status();
-                let reader = resp.into_reader();
-                let mut body = Vec::new();
-                let mut limited = reader.take(crate::api_proxy::MAX_RESPONSE_BODY as u64 + 1);
-                std::io::Read::read_to_end(&mut limited, &mut body).map_err(|e| {
-                    ProxyError::Network {
-                        reason: format!("读取响应失败: {e}"),
-                    }
-                })?;
-                if body.len() > crate::api_proxy::MAX_RESPONSE_BODY {
-                    return Err(ProxyError::Network {
-                        reason: "响应体超过 2MB 上限".into(),
-                    });
-                }
-                let body: serde_json::Value =
-                    serde_json::from_slice(&body).unwrap_or(serde_json::Value::Null);
-                Ok(ProxyResponse { status, body })
-            }
-            Err(ureq::Error::Status(code, resp)) => {
-                let reader = resp.into_reader();
-                let mut body = Vec::new();
-                let mut limited = reader.take(crate::api_proxy::MAX_RESPONSE_BODY as u64 + 1);
-                let _ = std::io::Read::read_to_end(&mut limited, &mut body);
-                let body: serde_json::Value =
-                    serde_json::from_slice(&body).unwrap_or(serde_json::Value::Null);
-                Ok(ProxyResponse { status: code, body })
-            }
-            Err(e) => Err(ProxyError::Network {
-                reason: format!("{e}"),
-            }),
+        // HTTP errors use exactly the same bounded body read as successful responses.
+        let resp = match resp {
+            Ok(resp) | Err(ureq::Error::Status(_, resp)) => resp,
+            Err(error) => return Err(http_error(&error)),
+        };
+        let status = resp.status();
+        let declared_len = resp
+            .header("Content-Length")
+            .and_then(|value| value.parse::<u64>().ok());
+        if declared_len.is_some_and(|length| length > crate::api_proxy::MAX_RESPONSE_BODY as u64) {
+            return Err(ProxyError::Network {
+                reason: "响应体超过 2MB 上限".into(),
+            });
         }
+        let mut body = Vec::new();
+        let read = resp
+            .into_reader()
+            .take(crate::api_proxy::MAX_RESPONSE_BODY as u64 + 1)
+            .read_to_end(&mut body);
+        // Cancellation takes precedence over a late successful/error body or read error.
+        if flag.load(Ordering::Acquire) {
+            return Err(ProxyError::Cancelled);
+        }
+        read.map_err(|error| http_error(&error))?;
+        if body.len() > crate::api_proxy::MAX_RESPONSE_BODY {
+            return Err(ProxyError::Network {
+                reason: "响应体超过 2MB 上限".into(),
+            });
+        }
+        if declared_len.is_some_and(|length| length != body.len() as u64) {
+            return Err(ProxyError::Network {
+                reason: "响应体长度与 Content-Length 不符".into(),
+            });
+        }
+        let body = serde_json::from_slice(&body).map_err(|error| ProxyError::Network {
+            reason: format!("响应不是有效 JSON: {error}"),
+        })?;
+        Ok(ProxyResponse { status, body })
     })();
 
-    // Deregister; a cancel arriving after deregistration sees no entry → Cancelled.
-    state
-        .cancels
+    // Serialize completion with cancellation, including JSON parsing time.
+    if state
+        .requests
         .lock()
         .unwrap_or_else(|e| e.into_inner())
-        .remove(&request_id);
-    result
+        .finish(request_id, &flag)
+    {
+        Err(ProxyError::Cancelled)
+    } else {
+        result
+    }
 }
 
 pub fn api_cancel(state: &Arc<BackendState>, request_id: u64) -> bool {
-    match state
-        .cancels
+    if !crate::api_proxy::valid_request_id(request_id) {
+        return false;
+    }
+    state
+        .requests
         .lock()
         .unwrap_or_else(|e| e.into_inner())
-        .remove(&request_id)
-    {
-        Some(flag) => {
-            flag.store(true, Ordering::Relaxed);
-            true
+        .cancel(request_id)
+}
+
+fn http_error(error: &(dyn std::error::Error + 'static)) -> ProxyError {
+    let mut cause = Some(error);
+    while let Some(current) = cause {
+        if current.downcast_ref::<std::io::Error>().is_some_and(|io| {
+            matches!(
+                io.kind(),
+                std::io::ErrorKind::TimedOut | std::io::ErrorKind::WouldBlock
+            )
+        }) {
+            return ProxyError::Timeout {
+                reason: "后端请求超时（30s）".into(),
+            };
         }
-        None => false,
+        cause = current.source();
+    }
+    ProxyError::Network {
+        reason: format!("后端请求失败: {error}"),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn early_cancel_ledger_is_bounded_and_expires() {
+        let mut requests = RequestRegistry::default();
+        for id in 1..=(MAX_RECENT_REQUESTS as u64 + 20) {
+            assert!(!requests.cancel(id));
+            assert!(requests.recent.len() <= MAX_RECENT_REQUESTS);
+        }
+        requests.recent.insert(
+            42,
+            (Instant::now() - RECENT_REQUEST_TTL, RecentResult::Cancelled),
+        );
+        assert!(
+            requests.register(42).is_ok(),
+            "expired early cancellation must be released"
+        );
+    }
+
+    #[test]
+    fn inflight_capacity_and_cancellation_ownership_are_bounded() {
+        let mut requests = RequestRegistry::default();
+        let mut workers = Vec::new();
+        for id in 1..=MAX_INFLIGHT_REQUESTS as u64 {
+            workers.push((id, requests.register(id).unwrap()));
+        }
+        assert!(matches!(
+            requests.register(9999),
+            Err(ProxyError::InvalidRequest { .. })
+        ));
+        assert!(requests.cancel(1));
+        assert_eq!(requests.active.len(), MAX_INFLIGHT_REQUESTS);
+        // Evicting early-cancel/completion tombstones cannot evict a live worker.
+        for id in 10_000..(10_000 + MAX_RECENT_REQUESTS as u64 + 20) {
+            requests.cancel(id);
+        }
+        assert!(matches!(requests.register(1), Err(ProxyError::Cancelled)));
+        requests.close();
+        assert!(requests.recent.is_empty());
+        for (id, flag) in workers {
+            assert!(flag.load(Ordering::Acquire));
+            assert!(requests.finish(id, &flag));
+        }
+        assert!(requests.active.is_empty());
+        assert!(requests.recent.is_empty());
+        assert!(!requests.cancel(123));
+        assert!(requests.recent.is_empty());
+    }
+
+    #[test]
+    fn timeout_io_error_is_distinct_from_network_error() {
+        let timeout = std::io::Error::new(std::io::ErrorKind::TimedOut, "fixture timeout");
+        assert!(matches!(http_error(&timeout), ProxyError::Timeout { .. }));
+        let network = std::io::Error::new(std::io::ErrorKind::ConnectionReset, "fixture reset");
+        assert!(matches!(http_error(&network), ProxyError::Network { .. }));
     }
 }
