@@ -1,0 +1,8 @@
+PASS tauri-normal-window-close
+AssertionError [ERR_ASSERTION]: object operation
+
+false !== true
+
+    at nativeContracts (file:///E:/Downloads/45/chaoxing-gui/desktop/scripts/p2-smoke.mjs:315:43)
+    at async file:///E:/Downloads/45/chaoxing-gui/desktop/scripts/p2-smoke.mjs:449:54
+Evidence: E:\Downloads\45\chaoxing-gui\.ccg\tasks\electron-to-tauri-p2\verification\p2-smoke-native.json

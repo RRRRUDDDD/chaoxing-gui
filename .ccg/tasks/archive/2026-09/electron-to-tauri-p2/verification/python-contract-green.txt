@@ -1,0 +1,45 @@
+test_normal_browser_mode_keeps_cors_and_unauthenticated_health (tests.test_tauri_entry_contract.TauriEntryContractTests.test_normal_browser_mode_keeps_cors_and_unauthenticated_health) ... ok
+test_tauri_ignores_legacy_port_environment (tests.test_tauri_entry_contract.TauriEntryContractTests.test_tauri_ignores_legacy_port_environment) ... ok
+test_tauri_origin_is_rejected_without_cors_even_with_valid_token (tests.test_tauri_entry_contract.TauriEntryContractTests.test_tauri_origin_is_rejected_without_cors_even_with_valid_token) ... ok
+test_app_entry_has_no_tauri_side_effect (tests.test_desktop_runtime.NormalModeTests.test_app_entry_has_no_tauri_side_effect)
+app.py ģ�鵼�루�� TAURI env����Ӧע�� guard ��ı� CORS�� ... ok
+test_health_without_token_200 (tests.test_desktop_runtime.NormalModeTests.test_health_without_token_200) ... 127.0.0.1 - - [07/Sep/2026 21:00:14] "GET /api/health HTTP/1.1" 200 -
+ok
+test_empty_token_raises (tests.test_desktop_runtime.ParseReadyEnvTests.test_empty_token_raises) ... ok
+test_missing_instance_raises (tests.test_desktop_runtime.ParseReadyEnvTests.test_missing_instance_raises) ... ok
+test_missing_token_raises (tests.test_desktop_runtime.ParseReadyEnvTests.test_missing_token_raises) ... ok
+test_no_fallback_in_real_environ (tests.test_desktop_runtime.ParseReadyEnvTests.test_no_fallback_in_real_environ)
+��ʵ os.environ ȱ�ٱ���ʱ�����״������������˾�ģʽ���� ... ok
+test_valid_env_returns_pair (tests.test_desktop_runtime.ParseReadyEnvTests.test_valid_env_returns_pair) ... ok
+test_ready_line_format (tests.test_desktop_runtime.ReadyLineTests.test_ready_line_format) ... ok
+{"ready":"chaoxing-ready","version":1,"port":18594,"instanceId":"inst-xyz789"}
+test_binds_random_port_and_connectable (tests.test_desktop_runtime.TokenGuardTests.test_binds_random_port_and_connectable) ... ok
+{"ready":"chaoxing-ready","version":1,"port":18595,"instanceId":"inst-xyz789"}
+test_business_route_without_token_401 (tests.test_desktop_runtime.TokenGuardTests.test_business_route_without_token_401) ... 127.0.0.1 - - [07/Sep/2026 21:00:15] "GET /api/config HTTP/1.1" 401 -
+ok
+{"ready":"chaoxing-ready","version":1,"port":18598,"instanceId":"inst-xyz789"}
+test_correct_token_and_host_200 (tests.test_desktop_runtime.TokenGuardTests.test_correct_token_and_host_200) ... 127.0.0.1 - - [07/Sep/2026 21:00:15] "GET /api/health HTTP/1.1" 200 -
+ok
+{"ready":"chaoxing-ready","version":1,"port":18600,"instanceId":"inst-xyz789"}
+test_correct_token_business_route_200 (tests.test_desktop_runtime.TokenGuardTests.test_correct_token_business_route_200) ... 127.0.0.1 - - [07/Sep/2026 21:00:16] "GET /api/task/t1 HTTP/1.1" 200 -
+ok
+{"ready":"chaoxing-ready","version":1,"port":18981,"instanceId":"inst-xyz789"}
+test_health_forged_host_401 (tests.test_desktop_runtime.TokenGuardTests.test_health_forged_host_401) ... 127.0.0.1 - - [07/Sep/2026 21:00:16] "GET /api/health HTTP/1.1" 401 -
+ok
+{"ready":"chaoxing-ready","version":1,"port":18983,"instanceId":"inst-xyz789"}
+test_health_without_token_401 (tests.test_desktop_runtime.TokenGuardTests.test_health_without_token_401) ... 127.0.0.1 - - [07/Sep/2026 21:00:17] "GET /api/health HTTP/1.1" 401 -
+ok
+{"ready":"chaoxing-ready","version":1,"port":12959,"instanceId":"inst-xyz789"}
+test_health_wrong_token_401 (tests.test_desktop_runtime.TokenGuardTests.test_health_wrong_token_401) ... 127.0.0.1 - - [07/Sep/2026 21:00:17] "GET /api/health HTTP/1.1" 401 -
+ok
+{"ready":"chaoxing-ready","version":1,"port":12961,"instanceId":"inst-xyz789"}
+test_no_cors_header_in_tauri_mode (tests.test_desktop_runtime.TokenGuardTests.test_no_cors_header_in_tauri_mode) ... 127.0.0.1 - - [07/Sep/2026 21:00:18] "GET /api/health HTTP/1.1" 200 -
+ok
+{"ready":"chaoxing-ready","version":1,"port":12963,"instanceId":"inst-xyz789"}
+test_options_preflight_401 (tests.test_desktop_runtime.TokenGuardTests.test_options_preflight_401) ... 127.0.0.1 - - [07/Sep/2026 21:00:18] "OPTIONS /api/config HTTP/1.1" 401 -
+ok
+
+----------------------------------------------------------------------
+Ran 20 tests in 9.587s
+
+OK

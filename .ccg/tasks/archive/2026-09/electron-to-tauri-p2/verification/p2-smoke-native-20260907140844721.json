@@ -1,0 +1,98 @@
+{
+  "startedAt": "2026-09-07T14:08:44.721Z",
+  "profileRoot": "C:\\Users\\RUD\\AppData\\Local\\Temp\\chaoxing-p2-smoke-3eTraV",
+  "driver": "Real browser engines over CDP; DOM click after visible/enabled checks (native mouse events are not delivered in this Windows desktop session)",
+  "checks": [
+    {
+      "name": "tauri-native-ipc-boundaries",
+      "result": "PASS",
+      "rejected": [
+        {
+          "name": "unknown command",
+          "rejected": true
+        },
+        {
+          "name": "unknown status field",
+          "rejected": true
+        },
+        {
+          "name": "positional envelope",
+          "rejected": true
+        },
+        {
+          "name": "credentials in session",
+          "rejected": true
+        },
+        {
+          "name": "missing nullable key",
+          "rejected": true
+        },
+        {
+          "name": "positional task",
+          "rejected": true
+        },
+        {
+          "name": "positional request",
+          "rejected": true
+        },
+        {
+          "name": "object operation",
+          "rejected": true
+        },
+        {
+          "name": "unknown URL field",
+          "rejected": true
+        },
+        {
+          "name": "path traversal",
+          "rejected": true
+        },
+        {
+          "name": "invalid cancel ID",
+          "rejected": true
+        },
+        {
+          "name": "ungranted window command",
+          "rejected": true
+        }
+      ],
+      "frameDirective": "frame-src",
+      "foreignNavigationBlocked": true
+    },
+    {
+      "name": "tauri-native-cancellation",
+      "result": "PASS",
+      "early": "cancelled",
+      "inflight": "cancelled",
+      "status": "ready",
+      "statusMs": 2.100000001490116
+    },
+    {
+      "name": "tauri-native-storage-failure",
+      "result": "PASS",
+      "readFailureVisible": true,
+      "loginFailureVisible": true,
+      "taskFailureVisible": true,
+      "localStorageUnchanged": true
+    },
+    {
+      "name": "tauri-ready-backend-death",
+      "result": "PASS",
+      "restarted": false,
+      "failedStateVisible": true
+    },
+    {
+      "name": "tauri-normal-window-close",
+      "result": "PASS",
+      "hostPid": 30812,
+      "backendPids": [
+        21168
+      ],
+      "elapsedMs": 1060,
+      "exitCode": 0,
+      "signal": null
+    }
+  ],
+  "success": true,
+  "endedAt": "2026-09-07T14:08:51.019Z"
+}

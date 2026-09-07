@@ -1,0 +1,7 @@
+{
+  "testedFile": "C:\\Users\\RUD\\AppData\\Local\\Temp\\chaoxing-p2-smoke-mBU0JF\\tauri-1788790148758\\data\\web_config.json",
+  "ownerIsCurrentUser": true,
+  "broadPrincipalAllowRules": 0,
+  "scope": "isolated current-user profile, not production installer ACL matrix",
+  "success": true
+}

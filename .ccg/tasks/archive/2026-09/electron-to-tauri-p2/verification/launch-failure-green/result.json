@@ -1,0 +1,9 @@
+{
+  "injection": "missing Chromium executable after fixture spawn",
+  "exitedWithin8Seconds": true,
+  "requiredForcedCleanup": false,
+  "exitCode": 1,
+  "fixturePid": 27876,
+  "fixtureAlive": false,
+  "expectedFailurePassed": true
+}

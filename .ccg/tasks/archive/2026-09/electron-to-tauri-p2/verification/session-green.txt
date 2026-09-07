@@ -1,0 +1,29 @@
+   Compiling windows v0.62.2
+   Compiling chaoxing-desktop v1.1.1 (E:\Downloads\45\chaoxing-gui\desktop\src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 7.31s
+     Running unittests src\lib.rs (desktop\src-tauri\target\debug\deps\chaoxing_desktop_lib-2a1ff3ed348a2ecd.exe)
+
+running 20 tests
+test session_store::tests::corrupt_json_returns_none ... ok
+test session_store::tests::oversized_file_returns_none ... ok
+test session_store::tests::rejects_active_task_account_mismatch ... ok
+test session_store::tests::p2_missing_nullable_keys_are_invalid_like_node ... ok
+test session_store::tests::p2_read_io_failure_is_visible ... ok
+test session_store::tests::rejects_control_chars_in_username ... ok
+test session_store::tests::rejects_bad_task_id ... ok
+test session_store::tests::rejects_oversized_username ... ok
+test session_store::tests::remember_task_without_login_errors ... ok
+test session_store::tests::rejects_unknown_extra_field ... ok
+test session_store::tests::rejects_use_cookies_false ... ok
+test session_store::tests::p2_written_session_has_all_node_schema_keys ... ok
+test session_store::tests::clear_removes_session_and_tmp ... ok
+test session_store::tests::p2_write_creates_private_profile_parent ... ok
+test session_store::tests::remember_task_account_mismatch_errors ... ok
+test session_store::tests::p2_empty_task_id_cannot_replace_saved_task ... ok
+test session_store::tests::persists_login_and_task_across_reads ... ok
+test session_store::tests::login_switch_clears_active_task ... ok
+test session_store::tests::p2_username_length_and_whitespace_match_javascript ... ok
+test session_store::tests::p2_failed_windows_replace_preserves_previous_file ... ok
+
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.01s
+

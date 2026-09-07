@@ -1,0 +1,5 @@
+browserType.launch: Failed to launch chromium because executable doesn't exist at E:\Downloads\45\chaoxing-gui\desktop\src-tauri\target\p2-intentionally-missing-chrome.exe
+    at launch (E:\Downloads\45\chaoxing-gui\desktop\scripts\p2-smoke.mjs:90:32)
+    at async business (E:\Downloads\45\chaoxing-gui\desktop\scripts\p2-smoke.mjs:196:15)
+    at async file:///E:/Downloads/45/chaoxing-gui/desktop/scripts/p2-smoke.mjs:478:52
+

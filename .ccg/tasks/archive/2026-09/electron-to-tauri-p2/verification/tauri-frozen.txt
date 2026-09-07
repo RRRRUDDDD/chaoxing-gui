@@ -1,0 +1,3 @@
+PASS tauri-real-frozen-backend
+PASS tauri-normal-window-close
+Evidence: E:\Downloads\45\chaoxing-gui\.ccg\tasks\electron-to-tauri-p2\verification\p2-smoke-frozen.json

@@ -1,0 +1,36 @@
+{
+  "startedAt": "2026-09-07T13:42:47.303Z",
+  "profileRoot": "C:\\Users\\RUD\\AppData\\Local\\Temp\\chaoxing-p2-smoke-dzlMwY",
+  "driver": "Real browser engines over CDP; DOM click after visible/enabled checks (native mouse events are not delivered in this Windows desktop session)",
+  "checks": [
+    {
+      "name": "tauri-business",
+      "result": "PASS",
+      "transport": "native invoke -> HTTP fixture",
+      "cases": [
+        "account selection",
+        "config save",
+        "409 restore without repeat start",
+        "terminal log retry",
+        "after cursor dedup",
+        "refresh restore",
+        "404 clears task",
+        "logout clears account"
+      ],
+      "counters": {
+        "start": 1,
+        "status": 3,
+        "logs": 3,
+        "after": [
+          0,
+          1,
+          1
+        ],
+        "configWrites": 1
+      }
+    }
+  ],
+  "success": false,
+  "error": "Error: Tauri host exit timed out\n    at until (file:///E:/Downloads/45/chaoxing-gui/desktop/scripts/p2-smoke.mjs:37:9)\n    at async Object.stop (file:///E:/Downloads/45/chaoxing-gui/desktop/scripts/p2-smoke.mjs:119:9)\n    at async business (file:///E:/Downloads/45/chaoxing-gui/desktop/scripts/p2-smoke.mjs:196:15)\n    at async file:///E:/Downloads/45/chaoxing-gui/desktop/scripts/p2-smoke.mjs:258:52",
+  "endedAt": "2026-09-07T13:43:04.156Z"
+}

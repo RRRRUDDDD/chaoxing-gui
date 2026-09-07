@@ -1,0 +1,6 @@
+PASS tauri-native-ipc-boundaries
+PASS tauri-native-cancellation
+PASS tauri-native-storage-failure
+PASS tauri-ready-backend-death
+PASS tauri-normal-window-close
+Evidence: E:\Downloads\45\chaoxing-gui\.ccg\tasks\electron-to-tauri-p2\verification\p2-smoke-native.json

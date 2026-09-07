@@ -1,0 +1,44 @@
+   Compiling windows v0.62.2
+   Compiling chaoxing-desktop v1.1.1 (E:\Downloads\45\chaoxing-gui\desktop\src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 8.12s
+     Running unittests src\lib.rs (desktop\src-tauri\target\debug\deps\chaoxing_desktop_lib-ef60e0358d8285c5.exe)
+
+running 7 tests
+
+thread 'session_store::tests::p2_username_length_and_whitespace_match_javascript' (13736) panicked at src\session_store.rs:444:13:
+rejected 中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test session_store::tests::p2_username_length_and_whitespace_match_javascript ... FAILED
+
+thread 'session_store::tests::p2_missing_nullable_keys_are_invalid_like_node' (4928) panicked at src\session_store.rs:422:13:
+accepted missing keys: {"version":1}
+test session_store::tests::p2_missing_nullable_keys_are_invalid_like_node ... FAILED
+
+thread 'session_store::tests::p2_write_creates_private_profile_parent' (2376) panicked at src\session_store.rs:456:40:
+called `Result::unwrap()` on an `Err` value: Io(Os { code: 3, kind: NotFound, message: "系统找不到指定的路径。" })
+test session_store::tests::p2_write_creates_private_profile_parent ... FAILED
+test session_store::tests::p2_read_io_failure_is_visible ... ok
+
+thread 'session_store::tests::p2_written_session_has_all_node_schema_keys' (29948) panicked at src\session_store.rs:405:9:
+assertion `left == right` failed
+  left: Object {"login": Object {"use_cookies": Bool(true), "username": String("alice")}, "version": Number(1)}
+ right: Object {"activeTask": Null, "login": Object {"use_cookies": Bool(true), "username": String("alice")}, "version": Number(1)}
+test session_store::tests::p2_written_session_has_all_node_schema_keys ... FAILED
+
+thread 'session_store::tests::p2_empty_task_id_cannot_replace_saved_task' (29656) panicked at src\session_store.rs:434:9:
+assertion failed: remember_task(&path, "alice", "").is_err()
+test session_store::tests::p2_empty_task_id_cannot_replace_saved_task ... FAILED
+test session_store::tests::p2_failed_windows_replace_preserves_previous_file ... ok
+
+failures:
+
+failures:
+    session_store::tests::p2_empty_task_id_cannot_replace_saved_task
+    session_store::tests::p2_missing_nullable_keys_are_invalid_like_node
+    session_store::tests::p2_username_length_and_whitespace_match_javascript
+    session_store::tests::p2_write_creates_private_profile_parent
+    session_store::tests::p2_written_session_has_all_node_schema_keys
+
+test result: FAILED. 2 passed; 5 failed; 0 ignored; 0 measured; 26 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--lib`

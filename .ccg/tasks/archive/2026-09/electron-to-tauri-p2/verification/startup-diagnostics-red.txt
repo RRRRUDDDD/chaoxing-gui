@@ -1,0 +1,105 @@
+
+> chaoxing-web@1.1.1 test
+> vitest run --environment jsdom src/components/DesktopStartup.test.jsx
+
+
+ RUN  v3.2.7 E:/Downloads/45/chaoxing-gui/web
+
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+ ❯ src/components/DesktopStartup.test.jsx (14 tests | 3 failed) 231ms
+   ✓ desktop startup > renders the browser and Electron app immediately without querying desktop status 32ms
+   × desktop startup > mounts the app only after readiness and continues watching for service death 91ms
+     → expected '学习服务启动失败请关闭应用后重新打开，或稍后重新检查。重新检查' to contain 'exit code fixture'
+   ✓ desktop startup > serializes slow status queries, including StrictMode effect replay 7ms
+   ✓ desktop startup > shows an actionable Chinese failed state and only rereads on recheck 26ms
+   ✓ desktop startup > shows an actionable Chinese stopped state and only rereads on recheck 13ms
+   ✓ desktop startup > fails visibly when status cannot be read or validated (Error: invoke error) 10ms
+   ✓ desktop startup > fails visibly when status cannot be read or validated ({ phase: 'unknown' }) 8ms
+   ✓ desktop startup > fails visibly when status cannot be read or validated (undefined) 10ms
+   ✓ desktop startup > never opens the app when runtime initialization throws 7ms
+   ✓ desktop startup > ignores a late status resolve after unmount and cancels timers 3ms
+   ✓ desktop startup > ignores a late status reject after unmount and cancels timers 2ms
+   ✓ desktop startup > unmounts the app while the service stops, then reports the stopped state 5ms
+   × desktop startup > shows a host failure reason as text, including the instruction to close legacy Electron 6ms
+     → expected '学习服务启动失败请关闭应用后重新打开，或稍后重新检查。重新检查' to contain '请先关闭旧版桌面应用，再重新打开。<img src=x onerror=a…'
+   × desktop startup > keeps an import warning visible after the business app becomes ready 8ms
+     → Unable to find an accessible element with the role "status"
+
+There are no accessible roles. But there might be some inaccessible roles. If you wish to access them, then set the `hidden` option to `true`. Learn more about this here: https://testing-library.com/docs/dom-testing-library/api-queries#byrole
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div>[39m
+      [0m业务界面[0m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</body>[39m
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/components/DesktopStartup.test.jsx > desktop startup > mounts the app only after readiness and continues watching for service death
+AssertionError: expected '学习服务启动失败请关闭应用后重新打开，或稍后重新检查。重新检查' to contain 'exit code fixture'
+
+Expected: "exit code fixture"
+Received: "学习服务启动失败请关闭应用后重新打开，或稍后重新检查。重新检查"
+
+ ❯ src/components/DesktopStartup.test.jsx:44:51
+     42|     expect(screen.queryByText('业务界面')).toBeNull();
+     43|     expect(screen.getByRole('alert').textContent).toContain('服务');
+     44|     expect(screen.getByRole('alert').textContent).toContain('exit code…
+       |                                                   ^
+     45|     expect(screen.getByRole('button', { name: '重新检查' })).toBeTruthy();
+     46|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  src/components/DesktopStartup.test.jsx > desktop startup > shows a host failure reason as text, including the instruction to close legacy Electron
+AssertionError: expected '学习服务启动失败请关闭应用后重新打开，或稍后重新检查。重新检查' to contain '请先关闭旧版桌面应用，再重新打开。<img src=x onerror=a…'
+
+Expected: "请先关闭旧版桌面应用，再重新打开。<img src=x onerror=alert(1)>"
+Received: "学习服务启动失败请关闭应用后重新打开，或稍后重新检查。重新检查"
+
+ ❯ src/components/DesktopStartup.test.jsx:128:51
+    126|     show();
+    127|     await tick();
+    128|     expect(screen.getByRole('alert').textContent).toContain(error);
+       |                                                   ^
+    129|     expect(document.querySelector('img[src="x"]')).toBeNull();
+    130|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  src/components/DesktopStartup.test.jsx > desktop startup > keeps an import warning visible after the business app becomes ready
+TestingLibraryElementError: Unable to find an accessible element with the role "status"
+
+There are no accessible roles. But there might be some inaccessible roles. If you wish to access them, then set the `hidden` option to `true`. Learn more about this here: https://testing-library.com/docs/dom-testing-library/api-queries#byrole
+
+Ignored nodes: comments, script, style
+<body>
+  <div>
+    <div>
+      业务界面
+    </div>
+  </div>
+</body>
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ src/components/DesktopStartup.test.jsx:137:19
+    135|     await tick();
+    136|     expect(screen.getByText('业务界面')).toBeTruthy();
+    137|     expect(screen.getByRole('status').textContent).toContain('旧账号记录无法导…
+       |                   ^
+    138|   });
+    139| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 11 passed (14)
+   Start at  21:20:07
+   Duration  9.78s (transform 86ms, setup 0ms, collect 7.89s, tests 231ms, environment 823ms, prepare 149ms)
+

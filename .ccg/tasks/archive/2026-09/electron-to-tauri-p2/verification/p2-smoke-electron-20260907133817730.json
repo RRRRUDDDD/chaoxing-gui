@@ -1,0 +1,35 @@
+{
+  "startedAt": "2026-09-07T13:38:17.730Z",
+  "profileRoot": "C:\\Users\\RUD\\AppData\\Local\\Temp\\chaoxing-p2-smoke-WrTkla",
+  "driver": "Real browser engines over CDP; DOM click after visible/enabled checks (native mouse events are not delivered in this Windows desktop session)",
+  "checks": [
+    {
+      "name": "electron-business",
+      "result": "PASS",
+      "transport": "HTTP fixture",
+      "cases": [
+        "account selection",
+        "config save",
+        "409 restore without repeat start",
+        "terminal log retry",
+        "after cursor dedup",
+        "refresh restore",
+        "404 clears task",
+        "logout clears account"
+      ],
+      "counters": {
+        "start": 1,
+        "status": 3,
+        "logs": 3,
+        "after": [
+          0,
+          1,
+          1
+        ],
+        "configWrites": 1
+      }
+    }
+  ],
+  "success": true,
+  "endedAt": "2026-09-07T13:38:23.674Z"
+}

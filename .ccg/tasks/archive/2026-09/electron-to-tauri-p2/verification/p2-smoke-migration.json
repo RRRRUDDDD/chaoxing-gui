@@ -1,0 +1,36 @@
+{
+  "startedAt": "2026-09-07T13:57:24.279Z",
+  "profileRoot": "C:\\Users\\RUD\\AppData\\Local\\Temp\\chaoxing-p2-smoke-CY7QZ8",
+  "driver": "Real browser engines over CDP; DOM click after visible/enabled checks (native mouse events are not delivered in this Windows desktop session)",
+  "checks": [
+    {
+      "name": "tauri-normal-window-close",
+      "result": "PASS",
+      "hostPid": 38048,
+      "backendPid": null,
+      "elapsedMs": 1011,
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "tauri-normal-window-close",
+      "result": "PASS",
+      "hostPid": 10372,
+      "backendPid": 22868,
+      "elapsedMs": 773,
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "old-electron-import-and-rollback",
+      "result": "PASS",
+      "runningLegacyDeferred": true,
+      "sourceUnchanged": true,
+      "nodeReadsRustSession": true,
+      "originalElectronRelaunched": true,
+      "sourceSha256": "87c939b497e225d8037b24cd550e2e9310054ec4818c33169a547f736614868c"
+    }
+  ],
+  "success": true,
+  "endedAt": "2026-09-07T13:57:30.664Z"
+}

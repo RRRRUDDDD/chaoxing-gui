@@ -1,0 +1,21 @@
+{
+  "startedAt": "2026-09-07T14:01:21.365Z",
+  "profileRoot": "C:\\Users\\RUD\\AppData\\Local\\Temp\\chaoxing-p2-smoke-7USR5J",
+  "driver": "Real browser engines over CDP; DOM click after visible/enabled checks (native mouse events are not delivered in this Windows desktop session)",
+  "checks": [
+    {
+      "name": "tauri-normal-window-close",
+      "result": "PASS",
+      "hostPid": 38152,
+      "backendPids": [
+        35612
+      ],
+      "elapsedMs": 1003,
+      "exitCode": 0,
+      "signal": null
+    }
+  ],
+  "success": false,
+  "error": "AssertionError [ERR_ASSERTION]: object operation\n\nfalse !== true\n\n    at nativeContracts (file:///E:/Downloads/45/chaoxing-gui/desktop/scripts/p2-smoke.mjs:315:43)\n    at async file:///E:/Downloads/45/chaoxing-gui/desktop/scripts/p2-smoke.mjs:449:54",
+  "endedAt": "2026-09-07T14:01:24.341Z"
+}

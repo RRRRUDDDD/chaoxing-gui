@@ -1,0 +1,17 @@
+
+> chaoxing-web@1.1.1 build
+> vite build
+
+vite v5.4.21 building for production...
+transforming...
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+Browserslist: browsers data (caniuse-lite) is 10 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+✓ 1321 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.94 kB │ gzip:  0.65 kB
+dist/assets/index-Y9pHXJoT.css   22.45 kB │ gzip:  5.17 kB
+dist/assets/index-DNknFYpJ.js   266.60 kB │ gzip: 87.73 kB
+✓ built in 2.17s

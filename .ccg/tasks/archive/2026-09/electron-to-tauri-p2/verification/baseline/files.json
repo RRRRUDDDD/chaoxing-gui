@@ -1,0 +1,62 @@
+[
+  {
+    "path": "web/src/main.jsx",
+    "sha256": "B304168A300B9A84DB33A6670D3D52F3F893D20EBFFB862A5F0B20D54BA7DB99"
+  },
+  {
+    "path": "web/src/api/axios.js",
+    "sha256": "0832A4985823FE70B5E8086AAE516A0246C14881D14AC04418123112B9B504BC"
+  },
+  {
+    "path": "web/src/lib/sessionStore.js",
+    "sha256": "BE451B57809B5BBA4BFABCC13C176CEB32541DB7ECDCF95A03D2C9BFCA10F5E9"
+  },
+  {
+    "path": "web/package.json",
+    "sha256": "B0F923ECD30710C704AE6347A4535DC710BC57A7598E21E88FD75C373ADDB18C"
+  },
+  {
+    "path": "web/package-lock.json",
+    "sha256": "4AABE64D382A94AC70B261EF6733219E054DCC05DA3EF55A0D140CB88A262DCC"
+  },
+  {
+    "path": "desktop/src-tauri/src/lib.rs",
+    "sha256": "6A6A6C6B96D1028D59ADFCE7C3A4260E2B293DFE4F4C3104E370D3A6F62D1426"
+  },
+  {
+    "path": "desktop/src-tauri/src/session_store.rs",
+    "sha256": "82948AE7D5715B604E1653739A6B63F55628B0B49913BFFF028D4843AF9D2AF9"
+  },
+  {
+    "path": "desktop/src-tauri/src/migration.rs",
+    "sha256": "C634409EBB62BE3ABAF0654A5D741C161CF89019436CD2BC7B4AD7241E91DE6A"
+  },
+  {
+    "path": "desktop/src-tauri/src/backend.rs",
+    "sha256": "BB66A7E628337BDB50D68AD092D5A723408F556BBB644C6637B9B8649CCE50F4"
+  },
+  {
+    "path": "desktop/src-tauri/src/api_proxy.rs",
+    "sha256": "F74587BE0BDCA568402B63E87A9F199D05306A789F1C7EE5954A189F01B8D6B9"
+  },
+  {
+    "path": "desktop/src-tauri/src/bin/fake-backend.rs",
+    "sha256": "82DB46FF256BE6677A71C8A815BA58BF0FAB6613FF7964E69A83D9B78E8A3405"
+  },
+  {
+    "path": "desktop/src-tauri/tests/backend_lifecycle.rs",
+    "sha256": "318076362BC7DE994D619ACEAB964A1FD81EDF442B21B0BA6291764F4B15B7F4"
+  },
+  {
+    "path": "desktop/src-tauri/Cargo.toml",
+    "sha256": "6FB999C017236F5D02BC4EC5C96CE4982ED1947DAFF0F7E2FE965D0D2CBAC9E9"
+  },
+  {
+    "path": "desktop/src-tauri/tauri.conf.json",
+    "sha256": "139908551CFD1B2E1FEA937482F37F1D69923B867F6DDC99BDE6307D41537BA6"
+  },
+  {
+    "path": ".ccg/tasks/archive/2026-09/electron-to-tauri-migration-plan/plan.md",
+    "sha256": "F7EC970826F014E9975A056B2E73EE9BEE5DD7323F75B06DB79FB7B78CDB5167"
+  }
+]

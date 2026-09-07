@@ -1,0 +1,10 @@
+{
+  "stage": "analysis-p0p1",
+  "lane": "analysis-p0p1-a",
+  "startedAt": "2026-09-07T12:42:57.0905774Z",
+  "endedAt": "2026-09-07T12:46:02.8673434Z",
+  "timeoutSeconds": 300,
+  "timedOut": false,
+  "exitCode": 1,
+  "success": false
+}

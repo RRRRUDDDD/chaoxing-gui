@@ -1,0 +1,9 @@
+{
+  "startedAt": "2026-09-07T14:22:26.993Z",
+  "profileRoot": "C:\\Users\\RUD\\AppData\\Local\\Temp\\chaoxing-p2-smoke-CMGxD6",
+  "driver": "Real browser engines over CDP; DOM click after visible/enabled checks (native mouse events are not delivered in this Windows desktop session)",
+  "checks": [],
+  "success": false,
+  "error": "browserType.launch: Failed to launch chromium because executable doesn't exist at E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\p2-intentionally-missing-chrome.exe\n    at launch (E:\\Downloads\\45\\chaoxing-gui\\desktop\\scripts\\p2-smoke.mjs:81:36)\n    at async business (E:\\Downloads\\45\\chaoxing-gui\\desktop\\scripts\\p2-smoke.mjs:164:15)\n    at async file:///E:/Downloads/45/chaoxing-gui/desktop/scripts/p2-smoke.mjs:446:52",
+  "endedAt": "2026-09-07T14:22:27.234Z"
+}

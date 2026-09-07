@@ -1,0 +1,63 @@
+182 INFO: PyInstaller: 6.21.0, contrib hooks: 2026.6
+183 INFO: Python: 3.11.9
+193 INFO: Platform: Windows-10-10.0.26100-SP0
+193 INFO: Python environment: C:\Users\RUD\AppData\Local\Programs\Python\Python311
+195 INFO: wrote E:\Downloads\45\chaoxing-gui\desktop\src-tauri\target\p2-fixture\p2-backend.spec
+198 INFO: Module search paths (PYTHONPATH):
+['E:\\Downloads\\45\\chaoxing-gui',
+ 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\python311.zip',
+ 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\DLLs',
+ 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib',
+ 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311',
+ 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages',
+ 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\win32',
+ 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\win32\\lib',
+ 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\pythonwin',
+ 'E:\\Downloads\\45\\chaoxing-gui\\desktop\\tests\\fixtures']
+615 INFO: checking Analysis
+621 INFO: Building because E:\Downloads\45\chaoxing-gui\desktop\tests\fixtures\p2_backend.py changed
+621 INFO: Looking for Python shared library...
+621 INFO: Using Python shared library: C:\Users\RUD\AppData\Local\Programs\Python\Python311\python311.dll
+621 INFO: Running Analysis Analysis-00.toc
+621 INFO: Target bytecode optimization level: 0
+621 INFO: Initializing module dependency graph...
+622 INFO: Initializing module graph hook caches...
+697 INFO: Analyzing modules for base_library.zip ...
+1512 INFO: Processing standard module hook 'hook-heapq.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\PyInstaller\\hooks'
+1598 INFO: Processing standard module hook 'hook-encodings.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\PyInstaller\\hooks'
+3166 INFO: Processing standard module hook 'hook-math.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\PyInstaller\\hooks'
+3273 INFO: Processing standard module hook 'hook-pickle.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\PyInstaller\\hooks'
+4838 INFO: Caching module dependency graph...
+4882 INFO: Analyzing E:\Downloads\45\chaoxing-gui\desktop\tests\fixtures\p2_backend.py
+5108 INFO: Processing module hooks (post-graph stage)...
+5115 INFO: Performing binary vs. data reclassification (1 entries)
+5117 INFO: Looking for ctypes DLLs
+5127 INFO: Analyzing run-time hooks ...
+5130 INFO: Including run-time hook 'pyi_rth_inspect.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+5136 INFO: Creating base_library.zip...
+5157 INFO: Looking for dynamic libraries
+5275 INFO: Extra DLL search directories (AddDllDirectory): []
+5275 INFO: Extra DLL search directories (PATH): []
+5499 INFO: Warnings written to E:\Downloads\45\chaoxing-gui\desktop\src-tauri\target\p2-fixture\build\p2-backend\warn-p2-backend.txt
+5518 INFO: Graph cross-reference written to E:\Downloads\45\chaoxing-gui\desktop\src-tauri\target\p2-fixture\build\p2-backend\xref-p2-backend.html
+5543 INFO: checking PYZ
+5551 INFO: checking PKG
+5555 INFO: Building because E:\Downloads\45\chaoxing-gui\desktop\tests\fixtures\p2_backend.py changed
+5555 INFO: Building PKG (CArchive) p2-backend.pkg
+5574 INFO: Building PKG (CArchive) p2-backend.pkg completed successfully.
+5575 INFO: Bootloader C:\Users\RUD\AppData\Local\Programs\Python\Python311\Lib\site-packages\PyInstaller\bootloader\Windows-64bit-intel\run.exe
+5575 INFO: checking EXE
+5576 INFO: Rebuilding EXE-00.toc because pkg is more recent
+5576 INFO: Building EXE from EXE-00.toc
+5578 INFO: Copying bootloader EXE to E:\Downloads\45\chaoxing-gui\desktop\src-tauri\target\p2-fixture\build\p2-backend\p2-backend.exe
+5595 INFO: Copying icon to EXE
+5605 INFO: Copying 0 resources to EXE
+5605 INFO: Embedding manifest in EXE
+5612 INFO: Appending PKG archive to EXE
+5613 INFO: Fixing EXE headers
+5684 INFO: Building EXE from EXE-00.toc completed successfully.
+5685 INFO: checking COLLECT
+5687 INFO: Removing dir E:\Downloads\45\chaoxing-gui\desktop\src-tauri\target\p2-fixture\dist\p2-backend
+5693 INFO: Building COLLECT COLLECT-00.toc
+5732 INFO: Building COLLECT COLLECT-00.toc completed successfully.
+5733 INFO: Build complete! The results are available in: E:\Downloads\45\chaoxing-gui\desktop\src-tauri\target\p2-fixture\dist

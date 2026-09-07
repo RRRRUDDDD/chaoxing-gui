@@ -1,0 +1,2 @@
+Evidence: E:\Downloads\45\chaoxing-gui\.ccg\tasks\electron-to-tauri-p2\verification\launch-failure-green\p2-smoke-browser.json
+

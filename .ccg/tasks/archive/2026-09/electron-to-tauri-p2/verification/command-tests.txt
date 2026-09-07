@@ -1,0 +1,45 @@
+   Compiling chaoxing-desktop v1.1.1 (E:\Downloads\45\chaoxing-gui\desktop\src-tauri)
+   Compiling windows v0.62.2
+warning: unused import: `ApiRequest`
+  --> src\backend.rs:11:38
+   |
+11 | use crate::api_proxy::{ApiOperation, ApiRequest, ProxyError, ProxyResponse};
+   |                                      ^^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+error[E0609]: no field `cancels` on type `&Arc<BackendState>`
+   --> src\backend.rs:581:33
+    |
+581 |         let mut cancels = state.cancels.lock().unwrap_or_else(|e| e.into_inner());
+    |                                 ^^^^^^^ unknown field
+    |
+    = note: available fields are: `phase`, `child`, `port`, `token`, `instance_id` ... and 9 others
+
+error[E0609]: no field `cancels` on type `&Arc<BackendState>`
+   --> src\backend.rs:653:33
+    |
+653 |         let mut cancels = state.cancels.lock().unwrap_or_else(|e| e.into_inner());
+    |                                 ^^^^^^^ unknown field
+    |
+    = note: available fields are: `phase`, `child`, `port`, `token`, `instance_id` ... and 9 others
+
+error[E0609]: no field `cancels` on type `&Arc<BackendState>`
+   --> src\backend.rs:732:10
+    |
+732 |         .cancels
+    |          ^^^^^^^ unknown field
+    |
+    = note: available fields are: `phase`, `child`, `port`, `token`, `instance_id` ... and 9 others
+
+error[E0609]: no field `cancels` on type `&Arc<BackendState>`
+   --> src\backend.rs:741:10
+    |
+741 |         .cancels
+    |          ^^^^^^^ unknown field
+    |
+    = note: available fields are: `phase`, `child`, `port`, `token`, `instance_id` ... and 9 others
+
+For more information about this error, try `rustc --explain E0609`.
+warning: `chaoxing-desktop` (lib test) generated 1 warning
+error: could not compile `chaoxing-desktop` (lib test) due to 4 previous errors; 1 warning emitted

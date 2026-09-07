@@ -1,0 +1,37 @@
+{
+  "startedAt": "2026-09-07T13:54:15.935Z",
+  "profileRoot": "C:\\Users\\RUD\\AppData\\Local\\Temp\\chaoxing-p2-smoke-pK5uLl",
+  "driver": "Real browser engines over CDP; DOM click after visible/enabled checks (native mouse events are not delivered in this Windows desktop session)",
+  "checks": [
+    {
+      "name": "tauri-missing-backend-recheck",
+      "result": "PASS",
+      "restarted": false
+    },
+    {
+      "name": "tauri-normal-window-close",
+      "result": "PASS",
+      "hostPid": 26508,
+      "backendPid": null,
+      "elapsedMs": 906,
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "tauri-normal-window-close",
+      "result": "PASS",
+      "hostPid": 16820,
+      "backendPid": 20504,
+      "elapsedMs": 717,
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "tauri-close-during-startup",
+      "result": "PASS",
+      "closedBeforeReady": true
+    }
+  ],
+  "success": true,
+  "endedAt": "2026-09-07T13:54:19.115Z"
+}

@@ -1,0 +1,20 @@
+{
+  "success": true,
+  "files": [
+    "app.py",
+    "desktop/src-tauri/Cargo.toml",
+    "desktop/src-tauri/tauri.conf.json",
+    "desktop/src-tauri/src/lib.rs",
+    "desktop/src-tauri/src/api_proxy.rs",
+    "desktop/src-tauri/src/backend.rs",
+    "desktop/src-tauri/src/session_store.rs",
+    "desktop/src-tauri/src/migration.rs",
+    "desktop/src-tauri/src/bin/fake-backend.rs",
+    "desktop/src-tauri/tests/backend_lifecycle.rs",
+    "desktop/src-tauri/tests/api_lifecycle.rs",
+    "tests/test_tauri_entry_contract.py",
+    ".ccg/spec/frontend/index.md",
+    ".ccg/spec/backend/index.md"
+  ],
+  "baselineCommit": "d4ae08f44772ef68cffb227feb450c05b84a9d9b"
+}

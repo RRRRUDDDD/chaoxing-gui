@@ -1,0 +1,37 @@
+{
+  "startedAt": "2026-09-07T13:54:26.822Z",
+  "profileRoot": "C:\\Users\\RUD\\AppData\\Local\\Temp\\chaoxing-p2-smoke-krPTWj",
+  "driver": "Real browser engines over CDP; DOM click after visible/enabled checks (native mouse events are not delivered in this Windows desktop session)",
+  "checks": [
+    {
+      "name": "tauri-normal-window-close",
+      "result": "PASS",
+      "hostPid": 28056,
+      "backendPid": null,
+      "elapsedMs": 946,
+      "exitCode": 0,
+      "signal": null
+    },
+    {
+      "name": "old-electron-import-and-rollback",
+      "result": "PASS",
+      "runningLegacyDeferred": true,
+      "sourceUnchanged": true,
+      "nodeReadsRustSession": true,
+      "originalElectronSessionReadable": true,
+      "sourceSha256": "87c939b497e225d8037b24cd550e2e9310054ec4818c33169a547f736614868c"
+    },
+    {
+      "name": "tauri-normal-window-close",
+      "result": "PASS",
+      "hostPid": 28588,
+      "backendPid": 10204,
+      "elapsedMs": 715,
+      "exitCode": 0,
+      "signal": null
+    }
+  ],
+  "success": false,
+  "error": "TypeError: Cannot read properties of undefined (reading '_object')\n    at clientConnection.toImpl (C:\\Users\\RUD\\AppData\\Local\\Temp\\chaoxing-p2-tools\\node_modules\\playwright-core\\lib\\coreBundle.js:64027:63)\n    at ElectronApplication2.process (C:\\Users\\RUD\\AppData\\Local\\Temp\\chaoxing-p2-tools\\node_modules\\playwright-core\\lib\\coreBundle.js:63507:41)\n    at migrationRollback (file:///E:/Downloads/45/chaoxing-gui/desktop/scripts/p2-smoke.mjs:270:31)\n    at async file:///E:/Downloads/45/chaoxing-gui/desktop/scripts/p2-smoke.mjs:280:57",
+  "endedAt": "2026-09-07T13:54:32.135Z"
+}

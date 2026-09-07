@@ -1,0 +1,15 @@
+
+> chaoxing-web@1.1.1 test
+> vitest run --environment jsdom src/components/DesktopStartup.test.jsx
+
+
+ RUN  v3.2.7 E:/Downloads/45/chaoxing-gui/web
+
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+ ✓ src/components/DesktopStartup.test.jsx (14 tests) 111ms
+
+ Test Files  1 passed (1)
+      Tests  14 passed (14)
+   Start at  21:21:51
+   Duration  2.36s (transform 74ms, setup 0ms, collect 980ms, tests 111ms, environment 508ms, prepare 183ms)
+

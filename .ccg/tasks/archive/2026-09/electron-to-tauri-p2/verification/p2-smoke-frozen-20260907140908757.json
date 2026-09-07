@@ -1,0 +1,129 @@
+{
+  "startedAt": "2026-09-07T14:09:08.757Z",
+  "profileRoot": "C:\\Users\\RUD\\AppData\\Local\\Temp\\chaoxing-p2-smoke-mBU0JF",
+  "driver": "Real browser engines over CDP; DOM click after visible/enabled checks (native mouse events are not delivered in this Windows desktop session)",
+  "checks": [
+    {
+      "name": "tauri-real-frozen-backend",
+      "result": "PASS",
+      "backend": "E:\\Downloads\\45\\chaoxing-gui\\dist\\chaoxing-backend\\chaoxing-backend.exe",
+      "backendPid": 18924,
+      "contract": {
+        "status": {
+          "phase": "ready"
+        },
+        "read": {
+          "status": 200,
+          "body": {
+            "data": {},
+            "status": true
+          }
+        },
+        "write": {
+          "status": 200,
+          "body": {
+            "msg": "保存成功",
+            "status": true
+          }
+        },
+        "reread": {
+          "status": 200,
+          "body": {
+            "data": {
+              "selectedCoursesByAccount": {
+                "p2-config-fixture": [
+                  "course-1"
+                ]
+              },
+              "settings": {
+                "jobs": 2
+              }
+            },
+            "status": true
+          }
+        },
+        "invalid": [
+          [
+            "login",
+            {
+              "status": 400,
+              "body": {
+                "msg": "用户名不能为空",
+                "status": false
+              }
+            }
+          ],
+          [
+            "courses",
+            {
+              "status": 400,
+              "body": {
+                "msg": "用户名不能为空",
+                "status": false
+              }
+            }
+          ],
+          [
+            "start",
+            {
+              "status": 400,
+              "body": {
+                "msg": "用户名不能为空",
+                "status": false
+              }
+            }
+          ]
+        ],
+        "missing": [
+          [
+            "taskStatus",
+            {
+              "status": 404,
+              "body": {
+                "msg": "任务不存在或已过期",
+                "status": false
+              }
+            }
+          ],
+          [
+            "taskDetails",
+            {
+              "status": 404,
+              "body": {
+                "msg": "任务详情不存在或已过期",
+                "status": false
+              }
+            }
+          ],
+          [
+            "taskLogs",
+            {
+              "status": 404,
+              "body": {
+                "msg": "任务日志不存在或已过期",
+                "status": false
+              }
+            }
+          ]
+        ]
+      },
+      "logInDataDirectory": true,
+      "installLogsUnchanged": true,
+      "upstreamAccountsUsed": false,
+      "learningTaskCreated": false
+    },
+    {
+      "name": "tauri-normal-window-close",
+      "result": "PASS",
+      "hostPid": 10144,
+      "backendPids": [
+        18924
+      ],
+      "elapsedMs": 786,
+      "exitCode": 0,
+      "signal": null
+    }
+  ],
+  "success": true,
+  "endedAt": "2026-09-07T14:09:11.980Z"
+}

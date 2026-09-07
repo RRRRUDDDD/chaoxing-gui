@@ -1,0 +1,25 @@
+
+> chaoxing-web@1.1.1 test
+> vitest run --environment jsdom
+
+
+ RUN  v3.2.7 E:/Downloads/45/chaoxing-gui/web
+
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+ ✓ src/lib/courseSelection.test.js (3 tests) 4ms
+ ✓ src/lib/taskPolling.test.js (8 tests) 13ms
+ ✓ src/lib/sessionStore.test.js (18 tests) 17ms
+ ✓ src/lib/desktopBridge.test.js (5 tests) 215ms
+ ✓ src/api/tauriAdapter.test.js (50 tests) 117ms
+ ✓ src/components/DesktopStartup.test.jsx (14 tests) 179ms
+ ✓ src/components/flows.test.jsx (24 tests) 2410ms
+ ✓ src/api/transportFlow.test.jsx (3 tests) 13247ms
+   ✓ shared task flow over real Axios transports > recovers 409, refreshes, retries final snapshots and clears 404 over browser  4682ms
+   ✓ shared task flow over real Axios transports > recovers 409, refreshes, retries final snapshots and clears 404 over electron  4321ms
+   ✓ shared task flow over real Axios transports > recovers 409, refreshes, retries final snapshots and clears 404 over tauri  4228ms
+
+ Test Files  8 passed (8)
+      Tests  125 passed (125)
+   Start at  21:52:25
+   Duration  18.48s (transform 586ms, setup 0ms, collect 7.01s, tests 16.20s, environment 15.08s, prepare 1.93s)
+

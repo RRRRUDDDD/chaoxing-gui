@@ -1,0 +1,3 @@
+AssertionError [ERR_ASSERTION]: Unknown smoke selection: frozne
+    at file:///E:/Downloads/45/chaoxing-gui/desktop/scripts/p2-smoke.mjs:476:10
+Evidence: E:\Downloads\45\chaoxing-gui\.ccg\tasks\electron-to-tauri-p2\verification\selection-validation\p2-smoke-frozne.json

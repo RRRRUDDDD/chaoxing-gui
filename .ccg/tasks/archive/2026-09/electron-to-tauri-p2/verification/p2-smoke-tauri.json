@@ -1,0 +1,46 @@
+{
+  "startedAt": "2026-09-07T14:10:30.647Z",
+  "profileRoot": "C:\\Users\\RUD\\AppData\\Local\\Temp\\chaoxing-p2-smoke-CyYOQ1",
+  "driver": "Real browser engines over CDP; DOM click after visible/enabled checks (native mouse events are not delivered in this Windows desktop session)",
+  "checks": [
+    {
+      "name": "tauri-business",
+      "result": "PASS",
+      "transport": "native invoke -> HTTP fixture",
+      "cases": [
+        "account selection",
+        "config save",
+        "409 restore without repeat start",
+        "terminal log retry",
+        "after cursor dedup",
+        "refresh restore",
+        "404 clears task",
+        "logout clears account"
+      ],
+      "counters": {
+        "start": 1,
+        "status": 3,
+        "logs": 3,
+        "after": [
+          0,
+          1,
+          1
+        ],
+        "configWrites": 1
+      }
+    },
+    {
+      "name": "tauri-normal-window-close",
+      "result": "PASS",
+      "hostPid": 24756,
+      "backendPids": [
+        7860
+      ],
+      "elapsedMs": 770,
+      "exitCode": 0,
+      "signal": null
+    }
+  ],
+  "success": true,
+  "endedAt": "2026-09-07T14:10:38.262Z"
+}

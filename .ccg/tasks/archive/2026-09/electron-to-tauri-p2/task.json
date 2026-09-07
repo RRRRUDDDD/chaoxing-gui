@@ -1,0 +1,21 @@
+{
+  "id": "electron-to-tauri-p2",
+  "title": "P2 前端兼容、会话桥接、启动状态与旧数据导入",
+  "status": "archived_review_pending",
+  "complexity": "L",
+  "risk": "high",
+  "domain": "desktop",
+  "currentPhase": "review-pending",
+  "nextAction": "归档本轮交付；外部服务恢复后在父任务补P0/P1/P2双路审查，P3-P5仍待实施",
+  "createdAt": "2026-09-07T12:41:00.7822682Z",
+  "branch": "main",
+  "baselineCommit": "d4ae08f44772ef68cffb227feb450c05b84a9d9b",
+  "parentTask": ".ccg/tasks/electron-to-tauri-implementation",
+  "scope": "P2 only; P3-P5 remain pending",
+  "reviewStatus": "external-required-pending-429; final-independent-review-no-open-findings",
+  "archivePath": ".ccg/tasks/archive/2026-09/electron-to-tauri-p2",
+  "implementationStatus": "complete",
+  "localVerificationStatus": "passed",
+  "sourceCommit": "98c7ffe3f9ecb4cf24f2cbf2460ffabbb5d8725f",
+  "archivedAt": "2026-09-07T14:40:01.5853379Z"
+}

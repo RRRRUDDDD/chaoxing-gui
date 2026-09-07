@@ -1,0 +1,9 @@
+{
+  "startedAt": "2026-09-07T14:29:45.104Z",
+  "profileRoot": "C:\\Users\\RUD\\AppData\\Local\\Temp\\chaoxing-p2-smoke-0lB0YQ",
+  "driver": "Real browser engines over CDP; DOM click after visible/enabled checks (native mouse events are not delivered in this Windows desktop session)",
+  "checks": [],
+  "success": false,
+  "error": "AssertionError [ERR_ASSERTION]: Unknown smoke selection: frozne\n    at file:///E:/Downloads/45/chaoxing-gui/desktop/scripts/p2-smoke.mjs:476:10",
+  "endedAt": "2026-09-07T14:29:45.104Z"
+}

@@ -1,0 +1,10 @@
+{
+  "stage": "review-p0p1-p2",
+  "lane": "review-p0p1-p2-a",
+  "startedAt": "2026-09-07T13:41:22.7117148Z",
+  "endedAt": "2026-09-07T13:44:39.5815317Z",
+  "timeoutSeconds": 240,
+  "timedOut": false,
+  "exitCode": 1,
+  "success": false
+}

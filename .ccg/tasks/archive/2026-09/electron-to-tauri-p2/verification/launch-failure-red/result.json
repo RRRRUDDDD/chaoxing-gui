@@ -1,0 +1,6 @@
+{
+  "injection": "missing Chromium executable after fixture spawn",
+  "exitedWithin8Seconds": false,
+  "requiredForcedCleanup": true,
+  "exitCode": -1
+}

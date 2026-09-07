@@ -1,0 +1,12 @@
+ M .ccg/tasks/archive/2026-09/electron-to-tauri-migration-plan/plan.md
+ M .gitignore
+ M app.py
+ M desktop/package.json
+ M web/src/main.jsx
+ M web/vite.config.js
+?? api/desktop_runtime.py
+?? desktop/rust-toolchain.toml
+?? desktop/scripts/
+?? desktop/src-tauri/
+?? poc-window.png
+?? tests/test_desktop_runtime.py

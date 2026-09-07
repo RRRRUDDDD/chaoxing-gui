@@ -1,0 +1,4 @@
+PASS tauri-normal-window-close
+PASS tauri-normal-window-close
+PASS old-electron-import-and-rollback
+Evidence: E:\Downloads\45\chaoxing-gui\.ccg\tasks\electron-to-tauri-p2\verification\p2-smoke-migration.json

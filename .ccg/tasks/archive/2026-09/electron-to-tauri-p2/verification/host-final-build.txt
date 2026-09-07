@@ -1,0 +1,2 @@
+   Compiling chaoxing-desktop v1.1.1 (E:\Downloads\45\chaoxing-gui\desktop\src-tauri)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 10.54s

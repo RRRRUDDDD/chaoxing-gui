@@ -1,0 +1,42 @@
+[
+  {
+    "name": "rust-fmt",
+    "command": "cargo fmt --manifest-path desktop/src-tauri/Cargo.toml --all --check",
+    "startedAt": "2026-09-07T14:06:36.4787405Z",
+    "endedAt": "2026-09-07T14:06:36.6386354Z",
+    "exitCode": 0,
+    "success": true
+  },
+  {
+    "name": "rust-check",
+    "command": "cargo check --manifest-path desktop/src-tauri/Cargo.toml --locked --all-targets -j 1",
+    "startedAt": "2026-09-07T14:06:36.6566625Z",
+    "endedAt": "2026-09-07T14:06:43.0336144Z",
+    "exitCode": 0,
+    "success": true
+  },
+  {
+    "name": "rust-clippy",
+    "command": "cargo clippy --manifest-path desktop/src-tauri/Cargo.toml --locked --all-targets -j 1 -- -D warnings",
+    "startedAt": "2026-09-07T14:06:43.0423449Z",
+    "endedAt": "2026-09-07T14:06:47.1590430Z",
+    "exitCode": 0,
+    "success": true
+  },
+  {
+    "name": "rust-tests",
+    "command": "cargo test --manifest-path desktop/src-tauri/Cargo.toml --locked -j 1",
+    "startedAt": "2026-09-07T14:06:47.1612252Z",
+    "endedAt": "2026-09-07T14:07:50.5648224Z",
+    "exitCode": 0,
+    "success": true
+  },
+  {
+    "name": "host-final-build",
+    "command": "cargo build --manifest-path desktop/src-tauri/Cargo.toml --locked -j 1 --features custom-protocol --bin chaoxing-desktop",
+    "startedAt": "2026-09-07T14:07:50.5663714Z",
+    "endedAt": "2026-09-07T14:08:01.1576914Z",
+    "exitCode": 0,
+    "success": true
+  }
+]
