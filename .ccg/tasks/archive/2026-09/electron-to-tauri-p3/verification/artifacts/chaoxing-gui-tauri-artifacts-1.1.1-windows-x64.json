@@ -1,0 +1,36 @@
+{
+  "version": "1.1.1",
+  "target": "x86_64-pc-windows-msvc",
+  "rust": "rustc 1.95.0 (59807616e 2026-04-14)",
+  "tauri": "2.11.5",
+  "signed": false,
+  "builtAt": "2026-09-07T17:44:24.6453146Z",
+  "artifacts": [
+    {
+      "name": "chaoxing-gui-tauri-setup-1.1.1-windows-x64.exe",
+      "bytes": 153754871,
+      "sha256": "70c18ac432d6e05dff8eea4680b1a3f3c9c1b840370c4460202865d8446ddc09"
+    },
+    {
+      "name": "chaoxing-gui-tauri-setup-1.1.1-windows-x64.exe.manifest.json",
+      "bytes": 1029,
+      "sha256": "ce4baff78b90c029064ff234849912ed41b2fc871916c6ba0d46f2b145f835ac"
+    },
+    {
+      "name": "chaoxing-gui-tauri-portable-1.1.1-windows-x64.zip",
+      "bytes": 186516281,
+      "sha256": "3318ca14cf4c20818f69fedded0f52b479ab542003cc12625e19398f7b993e76"
+    },
+    {
+      "name": "chaoxing-gui-tauri-portable-1.1.1-windows-x64.zip.manifest.json",
+      "bytes": 439,
+      "sha256": "c8225ff8a218ce0a5aed8554afadd0e52caccb0beefcaacac9dfb65936455d62"
+    },
+    {
+      "name": "chaoxing-gui-tauri-portable-1.1.1-windows-x64.zip.sha256",
+      "bytes": 116,
+      "sha256": "43f3f21e7d5624ffd9a1e53e7269873fe5f5676caede0adc862ce275ecb0d570"
+    }
+  ],
+  "acceptance": "Build and content checks only; release host acceptance requires disposable Windows profile smoke"
+}

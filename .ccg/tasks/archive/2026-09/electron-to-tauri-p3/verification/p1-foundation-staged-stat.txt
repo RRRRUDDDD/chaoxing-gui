@@ -1,0 +1,75 @@
+ .gitignore                                         |    5 +
+ app.py                                             |   40 +
+ desktop/package-lock.json                          |  218 +
+ desktop/package.json                               |    8 +-
+ desktop/rust-toolchain.toml                        |    2 +
+ desktop/scripts/dev-env.ps1                        |   35 +
+ desktop/src-tauri/Cargo.lock                       | 5124 ++++++++++++++++++++
+ desktop/src-tauri/Cargo.toml                       |   36 +
+ desktop/src-tauri/build.rs                         |   14 +
+ desktop/src-tauri/capabilities/main.json           |   14 +
+ desktop/src-tauri/icons/128x128.png                |  Bin 0 -> 12030 bytes
+ desktop/src-tauri/icons/128x128@2x.png             |  Bin 0 -> 23918 bytes
+ desktop/src-tauri/icons/32x32.png                  |  Bin 0 -> 2215 bytes
+ desktop/src-tauri/icons/64x64.png                  |  Bin 0 -> 5494 bytes
+ desktop/src-tauri/icons/Square107x107Logo.png      |  Bin 0 -> 10550 bytes
+ desktop/src-tauri/icons/Square142x142Logo.png      |  Bin 0 -> 14021 bytes
+ desktop/src-tauri/icons/Square150x150Logo.png      |  Bin 0 -> 14876 bytes
+ desktop/src-tauri/icons/Square284x284Logo.png      |  Bin 0 -> 26944 bytes
+ desktop/src-tauri/icons/Square30x30Logo.png        |  Bin 0 -> 2039 bytes
+ desktop/src-tauri/icons/Square310x310Logo.png      |  Bin 0 -> 29546 bytes
+ desktop/src-tauri/icons/Square44x44Logo.png        |  Bin 0 -> 3530 bytes
+ desktop/src-tauri/icons/Square71x71Logo.png        |  Bin 0 -> 6649 bytes
+ desktop/src-tauri/icons/Square89x89Logo.png        |  Bin 0 -> 8755 bytes
+ desktop/src-tauri/icons/StoreLogo.png              |  Bin 0 -> 4111 bytes
+ .../android/mipmap-anydpi-v26/ic_launcher.xml      |    5 +
+ .../icons/android/mipmap-hdpi/ic_launcher.png      |  Bin 0 -> 3420 bytes
+ .../android/mipmap-hdpi/ic_launcher_foreground.png |  Bin 0 -> 16202 bytes
+ .../android/mipmap-hdpi/ic_launcher_round.png      |  Bin 0 -> 3521 bytes
+ .../icons/android/mipmap-mdpi/ic_launcher.png      |  Bin 0 -> 3282 bytes
+ .../android/mipmap-mdpi/ic_launcher_foreground.png |  Bin 0 -> 10721 bytes
+ .../android/mipmap-mdpi/ic_launcher_round.png      |  Bin 0 -> 3413 bytes
+ .../icons/android/mipmap-xhdpi/ic_launcher.png     |  Bin 0 -> 8425 bytes
+ .../mipmap-xhdpi/ic_launcher_foreground.png        |  Bin 0 -> 21080 bytes
+ .../android/mipmap-xhdpi/ic_launcher_round.png     |  Bin 0 -> 8789 bytes
+ .../icons/android/mipmap-xxhdpi/ic_launcher.png    |  Bin 0 -> 13466 bytes
+ .../mipmap-xxhdpi/ic_launcher_foreground.png       |  Bin 0 -> 30655 bytes
+ .../android/mipmap-xxhdpi/ic_launcher_round.png    |  Bin 0 -> 13729 bytes
+ .../icons/android/mipmap-xxxhdpi/ic_launcher.png   |  Bin 0 -> 17633 bytes
+ .../mipmap-xxxhdpi/ic_launcher_foreground.png      |  Bin 0 -> 43067 bytes
+ .../android/mipmap-xxxhdpi/ic_launcher_round.png   |  Bin 0 -> 18049 bytes
+ .../android/values/ic_launcher_background.xml      |    4 +
+ desktop/src-tauri/icons/icon.icns                  |  Bin 0 -> 311092 bytes
+ desktop/src-tauri/icons/icon.ico                   |  Bin 0 -> 38742 bytes
+ desktop/src-tauri/icons/icon.png                   |  Bin 0 -> 43765 bytes
+ desktop/src-tauri/icons/ios/AppIcon-20x20@1x.png   |  Bin 0 -> 1114 bytes
+ desktop/src-tauri/icons/ios/AppIcon-20x20@2x-1.png |  Bin 0 -> 3015 bytes
+ desktop/src-tauri/icons/ios/AppIcon-20x20@2x.png   |  Bin 0 -> 3015 bytes
+ desktop/src-tauri/icons/ios/AppIcon-20x20@3x.png   |  Bin 0 -> 5399 bytes
+ desktop/src-tauri/icons/ios/AppIcon-29x29@1x.png   |  Bin 0 -> 1924 bytes
+ desktop/src-tauri/icons/ios/AppIcon-29x29@2x-1.png |  Bin 0 -> 5146 bytes
+ desktop/src-tauri/icons/ios/AppIcon-29x29@2x.png   |  Bin 0 -> 5146 bytes
+ desktop/src-tauri/icons/ios/AppIcon-29x29@3x.png   |  Bin 0 -> 8484 bytes
+ desktop/src-tauri/icons/ios/AppIcon-40x40@1x.png   |  Bin 0 -> 3015 bytes
+ desktop/src-tauri/icons/ios/AppIcon-40x40@2x-1.png |  Bin 0 -> 7779 bytes
+ desktop/src-tauri/icons/ios/AppIcon-40x40@2x.png   |  Bin 0 -> 7779 bytes
+ desktop/src-tauri/icons/ios/AppIcon-40x40@3x.png   |  Bin 0 -> 11908 bytes
+ desktop/src-tauri/icons/ios/AppIcon-512@2x.png     |  Bin 0 -> 151294 bytes
+ desktop/src-tauri/icons/ios/AppIcon-60x60@2x.png   |  Bin 0 -> 11908 bytes
+ desktop/src-tauri/icons/ios/AppIcon-60x60@3x.png   |  Bin 0 -> 17998 bytes
+ desktop/src-tauri/icons/ios/AppIcon-76x76@1x.png   |  Bin 0 -> 7262 bytes
+ desktop/src-tauri/icons/ios/AppIcon-76x76@2x.png   |  Bin 0 -> 14884 bytes
+ .../src-tauri/icons/ios/AppIcon-83.5x83.5@2x.png   |  Bin 0 -> 16618 bytes
+ desktop/src-tauri/src/api_proxy.rs                 |  159 +
+ desktop/src-tauri/src/backend.rs                   |  614 +++
+ desktop/src-tauri/src/bin/fake-backend.rs          |  116 +
+ desktop/src-tauri/src/lib.rs                       |  151 +
+ desktop/src-tauri/src/main.rs                      |    5 +
+ desktop/src-tauri/src/migration.rs                 |  455 ++
+ desktop/src-tauri/src/session_store.rs             |  397 ++
+ desktop/src-tauri/src/windows_job.rs               |  117 +
+ desktop/src-tauri/tauri.conf.json                  |   29 +
+ desktop/src-tauri/tests/backend_lifecycle.rs       |  240 +
+ tests/test_desktop_runtime.py                      |  238 +
+ web/vite.config.js                                 |    1 +
+ 74 files changed, 8025 insertions(+), 2 deletions(-)

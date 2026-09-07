@@ -1,0 +1,9 @@
+{
+  "success": false,
+  "version": "1.1.1",
+  "installer": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\release\\tauri\\chaoxing-gui-tauri-setup-1.1.1-windows-x64.exe",
+  "portable": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\release\\tauri\\chaoxing-gui-tauri-portable-1.1.1-windows-x64.zip",
+  "archiveTool": "C:\\Users\\RUD\\AppData\\Local\\Microsoft\\WindowsApps\\7z.exe",
+  "installerExecuted": false,
+  "error": "Invalid NSIS file length: uninstall.exe"
+}

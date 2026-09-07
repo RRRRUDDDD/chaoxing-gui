@@ -1,0 +1,6 @@
+Exception: E:\Downloads\45\chaoxing-gui\desktop\scripts\package-common.ps1:268:13
+Line |
+ 268 |              Move-PackagePath $item.Source $item.Destination $AllowedP …
+     |              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     | Exception calling "Move" with "2" argument(s): "Access to the path
+     | 'E:\Downloads\45\chaoxing-gui\desktop\src-tauri\resources\.backend-staging-33b993124411416f8869afcb05819e9f' is denied."

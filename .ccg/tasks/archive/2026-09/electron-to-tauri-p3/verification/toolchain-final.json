@@ -1,0 +1,12 @@
+{
+  "capturedAt": "2026-09-07T17:54:02.4291728Z",
+  "powershell": "7.5.4",
+  "windows": "Microsoft Windows NT 10.0.26100.0",
+  "ciExecuted": false,
+  "python311": "Python 3.11.9",
+  "python313": "Python 3.13.14",
+  "node20": "v20.20.0",
+  "nodeDefault": "v24.14.0",
+  "rust": "rustc 1.95.0 (59807616e 2026-04-14)",
+  "cargo": "cargo 1.95.0 (f2d3ce0bd 2026-03-21)"
+}

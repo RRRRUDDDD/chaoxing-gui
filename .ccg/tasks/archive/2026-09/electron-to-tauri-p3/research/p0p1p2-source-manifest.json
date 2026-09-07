@@ -1,0 +1,237 @@
+[
+  {
+    "path": ".github/workflows/main.yml",
+    "sha256": "770ece8e8746f45745cd9c3eb0b69bb7de845a3b15e029d428100302b98ee276",
+    "bytes": 7745
+  },
+  {
+    "path": "api/desktop_runtime.py",
+    "sha256": "682d766d2989203d65169729194c319f784bc17414359160c21edbb095b34da4",
+    "bytes": 4572
+  },
+  {
+    "path": "app.py",
+    "sha256": "6755397ca429ed85cfc3b76be8ce038d09626c3f18a0a10c37eff87c90aa8551",
+    "bytes": 36150
+  },
+  {
+    "path": "build_desktop.bat",
+    "sha256": "8ff78fabdf7feee69841de40d142b5eee3a30c56f72f1e91ec84cd3bcecab8a2",
+    "bytes": 1398
+  },
+  {
+    "path": "chaoxing-backend.spec",
+    "sha256": "5c56dfe3d648e2a3dbcd10f0f3a2ebe8d098310c78e56abcf54257f6f8651682",
+    "bytes": 1844
+  },
+  {
+    "path": "desktop/README.md",
+    "sha256": "443c5fb511c23579789ea0934e3d86270c5300addc20461bba878ec88e555845",
+    "bytes": 5368
+  },
+  {
+    "path": "desktop/electron-builder.yml",
+    "sha256": "502004501a0e12b716e86fcf661b31f9cdddaad0b4b87e841d71ae1830856ce9",
+    "bytes": 616
+  },
+  {
+    "path": "desktop/package-lock.json",
+    "sha256": "0cda04e88102b23a56b5531fc3a4d001572292b057f9066a05d9207cf14f7cc1",
+    "bytes": 148807
+  },
+  {
+    "path": "desktop/package.json",
+    "sha256": "92b95930b5d899cc4d9c94fc7708555bb9a04b11a21f9f7b1ec5f58f85d68076",
+    "bytes": 560
+  },
+  {
+    "path": "desktop/rust-toolchain.toml",
+    "sha256": "696c2536031250a4fa61a1ec4daeba2e8ea2b1c5b725e659e19bf12be076c5f3",
+    "bytes": 31
+  },
+  {
+    "path": "desktop/scripts/dev-env.ps1",
+    "sha256": "2cb48d6488e2f3b04a2451524c1932ee453878b557a130649f668aaf6191d1e5",
+    "bytes": 1815
+  },
+  {
+    "path": "desktop/scripts/p2-close-window.ps1",
+    "sha256": "dcee5c7f4cdc32d8281b837d2a1f83703c0784ff70475677509bed6440a3d5be",
+    "bytes": 1841
+  },
+  {
+    "path": "desktop/scripts/p2-smoke.mjs",
+    "sha256": "89340a141fbd90aa328ee9d914a928af5f2bd16e80daed6545349005416fe76b",
+    "bytes": 29987
+  },
+  {
+    "path": "desktop/src-tauri/Cargo.lock",
+    "sha256": "089cd4eecefc5a22864ed699d13ac5a3f7b86a383564df7c3d1639d1f8b06020",
+    "bytes": 125278
+  },
+  {
+    "path": "desktop/src-tauri/Cargo.toml",
+    "sha256": "1d16b123de16ec213e6c56c752601a68638082b8aaa0292fb2e7ab463d27d7fa",
+    "bytes": 1101
+  },
+  {
+    "path": "desktop/src-tauri/build.rs",
+    "sha256": "43d55594221c4fd872115e739195efa46e4550a08d98aac8307a8ff6527a055e",
+    "bytes": 387
+  },
+  {
+    "path": "desktop/src-tauri/capabilities/main.json",
+    "sha256": "7ed4ec41aa6cdb4bee3038811221da499d1dab87155e1722260d9dd678a7bfdf",
+    "bytes": 336
+  },
+  {
+    "path": "desktop/src-tauri/src/api_proxy.rs",
+    "sha256": "48bf2a91985cdcabf9d51bf33eecb5b105459bc58aa0dca6dbc7476fbc423687",
+    "bytes": 12737
+  },
+  {
+    "path": "desktop/src-tauri/src/backend.rs",
+    "sha256": "3681c7618f30bcf5dd47400aabf608e999831a9a62006348f7e1f32b6c2ba217",
+    "bytes": 34447
+  },
+  {
+    "path": "desktop/src-tauri/src/bin/fake-backend.rs",
+    "sha256": "c5b684ab66f1821f5e676e08112e1592b428c57c8a1648edccab31e86789bc70",
+    "bytes": 6108
+  },
+  {
+    "path": "desktop/src-tauri/src/lib.rs",
+    "sha256": "3fad803dd1a266518b7d0d475436e7fd5fb1654af4ba088e57756c7e3a145666",
+    "bytes": 16427
+  },
+  {
+    "path": "desktop/src-tauri/src/main.rs",
+    "sha256": "9ecc4f63451521e35bf39142ae93a176769ea960caabe03d5396d6a12cf2efd2",
+    "bytes": 115
+  },
+  {
+    "path": "desktop/src-tauri/src/migration.rs",
+    "sha256": "6bd9f2d125788b17d63603754f05c8f282c1da7b294bebeeb4c7888bcf915bb5",
+    "bytes": 52694
+  },
+  {
+    "path": "desktop/src-tauri/src/session_store.rs",
+    "sha256": "09a1ba5eb4909d3ca764d5495ba2c7da763d42aa58b1f91084cd4dd036c2e3d1",
+    "bytes": 23266
+  },
+  {
+    "path": "desktop/src-tauri/src/windows_job.rs",
+    "sha256": "b15468f8b7659b1cd8e047fdbb6750fe68f524900c6cbf6234123c8cf46a2d12",
+    "bytes": 4786
+  },
+  {
+    "path": "desktop/src-tauri/tauri.conf.json",
+    "sha256": "5131a66b0f9f4fe0989da24410143bb5a2f01a580b7a26be07a97c5fe405f4a0",
+    "bytes": 810
+  },
+  {
+    "path": "desktop/src-tauri/tests/api_lifecycle.rs",
+    "sha256": "96f0945ee2cf182985cf4f166dcfec6c59455f99d089a9269f857e139a614ceb",
+    "bytes": 16040
+  },
+  {
+    "path": "desktop/src-tauri/tests/backend_lifecycle.rs",
+    "sha256": "6ca31c3a4d0bf40c61a8dc4ae618c3b032ba5e5b77f3ee5c7a3c1761a7497260",
+    "bytes": 15083
+  },
+  {
+    "path": "desktop/tests/fixtures/p2-electron.cjs",
+    "sha256": "1a02be34be1f1884a784bc4dbec6c418305d94fe321a8b2aaaa5e8baefcd338a",
+    "bytes": 1084
+  },
+  {
+    "path": "desktop/tests/fixtures/p2_backend.py",
+    "sha256": "be500b4138be63a0041a9816f8f05353cce6d388ab3c557dc90a9836394b622d",
+    "bytes": 6885
+  },
+  {
+    "path": "pyproject.toml",
+    "sha256": "ce25748d7b627d8b5a7119ccadff5f4bd7faf8ffae5cdb5667932483119601f4",
+    "bytes": 368
+  },
+  {
+    "path": "tests/test_desktop_runtime.py",
+    "sha256": "7b051f1911a8688d0f3ef7eb9b6455690039ef24bccf9a814b59465288ee7b00",
+    "bytes": 8360
+  },
+  {
+    "path": "tests/test_tauri_entry_contract.py",
+    "sha256": "4d1c5747f7af9591f971c5c0a8313c7a3299b6b49af16fbd5f1b7c8be6c71beb",
+    "bytes": 3331
+  },
+  {
+    "path": "web/package-lock.json",
+    "sha256": "dd8da04ebacb11c500149e3eb1ebd25df4fcf4652abf43b1e6e8830dd630e6c8",
+    "bytes": 143151
+  },
+  {
+    "path": "web/package.json",
+    "sha256": "d04c43c4ca8df865356593761f2df84db0f9ce16a129c69c2a1f13d17478c99f",
+    "bytes": 812
+  },
+  {
+    "path": "web/src/api/axios.js",
+    "sha256": "1758d82ad2e3f789a851bf104cc1c302a7d66b2e9e19dff4207933198fec0df1",
+    "bytes": 591
+  },
+  {
+    "path": "web/src/api/tauriAdapter.js",
+    "sha256": "f1e87f85a874f16df34553c6b4b8760702f4e2013941887bf4558443b3758825",
+    "bytes": 7963
+  },
+  {
+    "path": "web/src/api/tauriAdapter.test.js",
+    "sha256": "c8eb7a34ac923418662050f24e2981cada879e945e65d47cdbe5d439ee4f9070",
+    "bytes": 11582
+  },
+  {
+    "path": "web/src/api/transportFlow.test.jsx",
+    "sha256": "ba56e0592c9efea586963e2c21b32097c6cb7010f20f8b87355f271482b9b57c",
+    "bytes": 9056
+  },
+  {
+    "path": "web/src/components/DesktopStartup.jsx",
+    "sha256": "c3c228785cf70e23f0459ea692f5f4ddd6d00c272dbe9653e49449009959d45d",
+    "bytes": 4389
+  },
+  {
+    "path": "web/src/components/DesktopStartup.test.jsx",
+    "sha256": "82fdbb07f43037fd0ff67f6840cdb3b5ff8322300d4992652b8beb1db3c5e5b3",
+    "bytes": 6841
+  },
+  {
+    "path": "web/src/lib/desktopBridge.js",
+    "sha256": "7cae27d085e6f2b27639ab67b143cc353823cd995952fe840973a81d4210f2ea",
+    "bytes": 774
+  },
+  {
+    "path": "web/src/lib/desktopBridge.test.js",
+    "sha256": "8a82783b276569dcf608d9b4b3299e7d629521fef80b69568784e342478249fa",
+    "bytes": 3195
+  },
+  {
+    "path": "web/src/lib/sessionStore.js",
+    "sha256": "594c1af7c5bd357b32b5c95a5e94d8bf8ecb551fc058799434dbc1e3a114f2ee",
+    "bytes": 5257
+  },
+  {
+    "path": "web/src/lib/sessionStore.test.js",
+    "sha256": "5d274726e1427099e423df5e507bad15274ed2ae95f69301697f0f20ab3c6808",
+    "bytes": 7057
+  },
+  {
+    "path": "web/src/main.jsx",
+    "sha256": "3d9ffc94b24ba1237d38c65588a8361c8fbe825a8e01d37fee3a3a7fc10ca417",
+    "bytes": 343
+  },
+  {
+    "path": "web/vite.config.js",
+    "sha256": "cdf6b1176b9b4c66dd01734892a5bdca58cb5d7b1d6e0793af6944660507bcc0",
+    "bytes": 314
+  }
+]

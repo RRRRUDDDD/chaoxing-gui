@@ -1,0 +1,7534 @@
+
+NanaZip 6.5 Update (x64) : (c) M2-Team and Contributors. All rights reserved.
+
+Scanning the drive for archives:
+1 file, 153754871 bytes (147 MiB)
+
+Listing archive: E:\Downloads\45\chaoxing-gui\desktop\release\tauri\chaoxing-gui-tauri-setup-1.1.1-windows-x64.exe
+
+--
+Path = E:\Downloads\45\chaoxing-gui\desktop\release\tauri\chaoxing-gui-tauri-setup-1.1.1-windows-x64.exe
+Type = Nsis
+Physical Size = 153754871
+Method = LZMA:23
+Solid = +
+Headers Size = 403968
+Embedded Stub Size = 79360
+SubType = NSIS-3 Unicode
+
+----------
+Path = $PLUGINSDIR\System.dll
+Size = 12288
+Packed Size = 153675507
+Modified = 
+Attributes = 
+Method = LZMA:23
+Solid = +
+Offset = 0
+
+Path = $PLUGINSDIR\modern-wizard.bmp
+Size = 26494
+Packed Size = 
+Modified = 2026-09-07 14:47:22.0000000
+Attributes = 
+Method = LZMA:23
+Solid = +
+Offset = 12292
+
+Path = $PLUGINSDIR\nsDialogs.dll
+Size = 9728
+Packed Size = 
+Modified = 
+Attributes = 
+Method = LZMA:23
+Solid = +
+Offset = 38790
+
+Path = $PLUGINSDIR\nsis_tauri_utils.dll
+Size = 34304
+Packed Size = 
+Modified = 
+Attributes = 
+Method = LZMA:23
+Solid = +
+Offset = 48522
+
+Path = $PLUGINSDIR\StartMenu.dll
+Size = 7680
+Packed Size = 
+Modified = 
+Attributes = 
+Method = LZMA:23
+Solid = +
+Offset = 82830
+
+Path = $PLUGINSDIR\LangDLL.dll
+Size = 5632
+Packed Size = 
+Modified = 
+Attributes = 
+Method = LZMA:23
+Solid = +
+Offset = 90514
+
+Path = $PLUGINSDIR\NSISdl.dll
+Size = 15360
+Packed Size = 
+Modified = 
+Attributes = 
+Method = LZMA:23
+Solid = +
+Offset = 96150
+
+Path = chaoxing-gui-tauri.exe
+Size = 9379328
+Packed Size = 
+Modified = 2026-09-08 01:41:06.0000000
+Attributes = 
+Method = LZMA:23
+Solid = +
+Offset = 111514
+
+Path = LICENSE
+Size = 35823
+Packed Size = 
+Modified = 2026-09-06 12:19:54.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 9490846
+
+Path = Install-WebView2.cmd
+Size = 224
+Packed Size = 
+Modified = 2026-09-07 23:40:56.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 9526673
+
+Path = Install-WebView2.ps1
+Size = 3524
+Packed Size = 
+Modified = 2026-09-07 23:40:56.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 9526901
+
+Path = Portable-Common.ps1
+Size = 3978
+Packed Size = 
+Modified = 2026-09-07 23:40:56.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 9530429
+
+Path = README.txt
+Size = 1847
+Packed Size = 
+Modified = 2026-09-07 23:40:56.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 9534411
+
+Path = Start-Chaoxing.cmd
+Size = 252
+Packed Size = 
+Modified = 2026-09-07 23:40:56.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 9536262
+
+Path = Start-Chaoxing.ps1
+Size = 1906
+Packed Size = 
+Modified = 2026-09-07 23:57:28.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 9536518
+
+Path = backend\_internal\81d243bd2c585b0f4821__mypyc.cp311-win_amd64.pyd
+Size = 216064
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 9538428
+
+Path = backend\_internal\MSVCP140_1.dll
+Size = 35768
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 9754496
+
+Path = backend\_internal\PIL\_avif.cp311-win_amd64.pyd
+Size = 7888896
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 9790268
+
+Path = backend\_internal\PIL\_imaging.cp311-win_amd64.pyd
+Size = 2632704
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 17679168
+
+Path = backend\_internal\PIL\_imagingcms.cp311-win_amd64.pyd
+Size = 273408
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 20311876
+
+Path = backend\_internal\PIL\_imagingft.cp311-win_amd64.pyd
+Size = 2174464
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 20585288
+
+Path = backend\_internal\PIL\_imagingmath.cp311-win_amd64.pyd
+Size = 21504
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 22759756
+
+Path = backend\_internal\PIL\_imagingtk.cp311-win_amd64.pyd
+Size = 14848
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 22781264
+
+Path = backend\_internal\PIL\_webp.cp311-win_amd64.pyd
+Size = 416256
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 22796116
+
+Path = backend\_internal\_asyncio.pyd
+Size = 65304
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 23212376
+
+Path = backend\_internal\_bz2.pyd
+Size = 84760
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 23277684
+
+Path = backend\_internal\_cffi_backend.cp311-win_amd64.pyd
+Size = 178688
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 23362448
+
+Path = backend\_internal\_ctypes.pyd
+Size = 124696
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 23541140
+
+Path = backend\_internal\_decimal.pyd
+Size = 255768
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 23665840
+
+Path = backend\_internal\_elementtree.pyd
+Size = 128792
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 23921612
+
+Path = backend\_internal\_hashlib.pyd
+Size = 65304
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 24050408
+
+Path = backend\_internal\_lzma.pyd
+Size = 159512
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 24115716
+
+Path = backend\_internal\_multiprocessing.pyd
+Size = 34584
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 24275232
+
+Path = backend\_internal\_overlapped.pyd
+Size = 51480
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 24309820
+
+Path = backend\_internal\_queue.pyd
+Size = 32024
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 24361304
+
+Path = backend\_internal\_socket.pyd
+Size = 79640
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 24393332
+
+Path = backend\_internal\_ssl.pyd
+Size = 178456
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 24472976
+
+Path = backend\_internal\_uuid.pyd
+Size = 25368
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 24651436
+
+Path = backend\_internal\_zoneinfo.pyd
+Size = 45848
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 24676808
+
+Path = backend\_internal\base_library.zip
+Size = 1443565
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 24722660
+
+Path = backend\_internal\certifi\cacert.pem
+Size = 234354
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 26166229
+
+Path = backend\_internal\certifi\py.typed
+Size = 0
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 26400587
+
+Path = backend\_internal\flask-3.1.3.dist-info\REQUESTED
+Size = 0
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 26400587
+
+Path = backend\_internal\flask_cors-6.0.5.dist-info\REQUESTED
+Size = 0
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 26400587
+
+Path = backend\_internal\numpy-2.4.6.dist-info\REQUESTED
+Size = 0
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 26400587
+
+Path = backend\_internal\charset_normalizer\cd.cp311-win_amd64.pyd
+Size = 10752
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 26400591
+
+Path = backend\_internal\charset_normalizer\md.cp311-win_amd64.pyd
+Size = 10752
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 26411347
+
+Path = backend\_internal\click-8.4.2.dist-info\INSTALLER
+Size = 4
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 26422103
+
+Path = backend\_internal\cryptography-48.0.0.dist-info\INSTALLER
+Size = 4
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 26422103
+
+Path = backend\_internal\flask-3.1.3.dist-info\INSTALLER
+Size = 4
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 26422103
+
+Path = backend\_internal\flask_cors-6.0.5.dist-info\INSTALLER
+Size = 4
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 26422103
+
+Path = backend\_internal\httpcore2-2.12.0.dist-info\INSTALLER
+Size = 4
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 26422103
+
+Path = backend\_internal\httpx2-2.12.0.dist-info\INSTALLER
+Size = 4
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 26422103
+
+Path = backend\_internal\itsdangerous-2.2.0.dist-info\INSTALLER
+Size = 4
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 26422103
+
+Path = backend\_internal\markupsafe-3.0.3.dist-info\INSTALLER
+Size = 4
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 26422103
+
+Path = backend\_internal\numpy-2.4.6.dist-info\INSTALLER
+Size = 4
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 26422103
+
+Path = backend\_internal\pydantic-2.13.4.dist-info\INSTALLER
+Size = 4
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 26422103
+
+Path = backend\_internal\tqdm-4.68.4.dist-info\INSTALLER
+Size = 4
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 26422103
+
+Path = backend\_internal\websockets-13.1.dist-info\INSTALLER
+Size = 4
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 26422103
+
+Path = backend\_internal\werkzeug-3.1.8.dist-info\INSTALLER
+Size = 4
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 26422103
+
+Path = backend\_internal\click-8.4.2.dist-info\METADATA
+Size = 2621
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 26422111
+
+Path = backend\_internal\click-8.4.2.dist-info\RECORD
+Size = 2533
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 26424736
+
+Path = backend\_internal\click-8.4.2.dist-info\WHEEL
+Size = 82
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 26427273
+
+Path = backend\_internal\flask-3.1.3.dist-info\WHEEL
+Size = 82
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 26427273
+
+Path = backend\_internal\werkzeug-3.1.8.dist-info\WHEEL
+Size = 82
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 26427273
+
+Path = backend\_internal\click-8.4.2.dist-info\licenses\LICENSE.txt
+Size = 1475
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 26427359
+
+Path = backend\_internal\config.ini.example
+Size = 1420
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 26428838
+
+Path = backend\_internal\cryptography\hazmat\bindings\_rust.pyd
+Size = 9903104
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 26430262
+
+Path = backend\_internal\cryptography-48.0.0.dist-info\METADATA
+Size = 4343
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 36333370
+
+Path = backend\_internal\cryptography-48.0.0.dist-info\RECORD
+Size = 17507
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 36337717
+
+Path = backend\_internal\cryptography-48.0.0.dist-info\WHEEL
+Size = 96
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 36355228
+
+Path = backend\_internal\cryptography-48.0.0.dist-info\licenses\LICENSE
+Size = 197
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 36355328
+
+Path = backend\_internal\cryptography-48.0.0.dist-info\licenses\LICENSE.APACHE
+Size = 11360
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 36355529
+
+Path = backend\_internal\cryptography-48.0.0.dist-info\licenses\LICENSE.BSD
+Size = 1532
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 36366893
+
+Path = backend\_internal\cryptography-48.0.0.dist-info\sboms\cryptography-rust.cyclonedx.json
+Size = 45557
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 36368429
+
+Path = backend\_internal\cryptography-48.0.0.dist-info\sboms\sbom.json
+Size = 1223
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 36413990
+
+Path = backend\_internal\cv2\__init__.py
+Size = 6811
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 36415217
+
+Path = backend\_internal\cv2\config-3.py
+Size = 748
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 36422032
+
+Path = backend\_internal\cv2\config.py
+Size = 123
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 36422784
+
+Path = backend\_internal\cv2\cv2.pyd
+Size = 86293504
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 36422911
+
+Path = backend\_internal\cv2\data\__init__.py
+Size = 73
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 122716419
+
+Path = backend\_internal\cv2\load_config_py3.py
+Size = 253
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 122716496
+
+Path = backend\_internal\cv2\mat_wrapper\__init__.py
+Size = 1164
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 122716753
+
+Path = backend\_internal\cv2\misc\__init__.py
+Size = 38
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 122717921
+
+Path = backend\_internal\cv2\misc\version.py
+Size = 95
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 122717963
+
+Path = backend\_internal\cv2\opencv_videoio_ffmpeg500_64.dll
+Size = 30876160
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 122718062
+
+Path = backend\_internal\cv2\typing\__init__.py
+Size = 4465
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 153594226
+
+Path = backend\_internal\cv2\utils\__init__.py
+Size = 344
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 153598695
+
+Path = backend\_internal\cv2\version.py
+Size = 96
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 153599043
+
+Path = backend\_internal\ddddocr\README.md
+Size = 34388
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 153599143
+
+Path = backend\_internal\ddddocr\common.onnx
+Size = 54088400
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 153633535
+
+Path = backend\_internal\ddddocr\common_det.onnx
+Size = 20127694
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 207721939
+
+Path = backend\_internal\ddddocr\common_old.onnx
+Size = 13606051
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 227849637
+
+Path = backend\_internal\ddddocr\logo.png
+Size = 36727
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 241455692
+
+Path = backend\_internal\fav.jpg
+Size = 151079
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 241492423
+
+Path = backend\_internal\web\dist\fav.jpg
+Size = 151079
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 241492423
+
+Path = backend\_internal\flask-3.1.3.dist-info\METADATA
+Size = 3167
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 241643506
+
+Path = backend\_internal\flask-3.1.3.dist-info\RECORD
+Size = 3729
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 241646677
+
+Path = backend\_internal\flask-3.1.3.dist-info\entry_points.txt
+Size = 40
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 241650410
+
+Path = backend\_internal\flask-3.1.3.dist-info\licenses\LICENSE.txt
+Size = 1475
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 241650454
+
+Path = backend\_internal\flask_cors-6.0.5.dist-info\METADATA
+Size = 5392
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 241651933
+
+Path = backend\_internal\flask_cors-6.0.5.dist-info\RECORD
+Size = 1090
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 241657329
+
+Path = backend\_internal\flask_cors-6.0.5.dist-info\WHEEL
+Size = 91
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 241658423
+
+Path = backend\_internal\flask_cors-6.0.5.dist-info\top_level.txt
+Size = 11
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 241658518
+
+Path = backend\_internal\fontTools\misc\bezierTools.cp311-win_amd64.pyd
+Size = 348160
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 241658533
+
+Path = backend\_internal\fontTools\varLib\iup.cp311-win_amd64.pyd
+Size = 142848
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 242006697
+
+Path = backend\_internal\httpcore2-2.12.0.dist-info\METADATA
+Size = 25815
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 242149549
+
+Path = backend\_internal\httpcore2-2.12.0.dist-info\RECORD
+Size = 4835
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 242175368
+
+Path = backend\_internal\httpcore2-2.12.0.dist-info\WHEEL
+Size = 87
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 242180207
+
+Path = backend\_internal\httpx2-2.12.0.dist-info\WHEEL
+Size = 87
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 242180207
+
+Path = backend\_internal\httpcore2-2.12.0.dist-info\licenses\LICENSE.md
+Size = 1599
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 242180298
+
+Path = backend\_internal\httpx2-2.12.0.dist-info\METADATA
+Size = 9466
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 242181901
+
+Path = backend\_internal\httpx2-2.12.0.dist-info\RECORD
+Size = 4542
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 242191371
+
+Path = backend\_internal\httpx2-2.12.0.dist-info\entry_points.txt
+Size = 45
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 242195917
+
+Path = backend\_internal\httpx2-2.12.0.dist-info\licenses\LICENSE.md
+Size = 1589
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 242195966
+
+Path = backend\_internal\itsdangerous-2.2.0.dist-info\LICENSE.txt
+Size = 1475
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 242197559
+
+Path = backend\_internal\itsdangerous-2.2.0.dist-info\METADATA
+Size = 1924
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 242199038
+
+Path = backend\_internal\itsdangerous-2.2.0.dist-info\RECORD
+Size = 1549
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 242200966
+
+Path = backend\_internal\itsdangerous-2.2.0.dist-info\WHEEL
+Size = 81
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 242202519
+
+Path = backend\_internal\jiter\jiter.cp311-win_amd64.pyd
+Size = 452608
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 242202604
+
+Path = backend\_internal\libcrypto-3.dll
+Size = 5191960
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 242655216
+
+Path = backend\_internal\libffi-8.dll
+Size = 39696
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 247847180
+
+Path = backend\_internal\libssl-3.dll
+Size = 787224
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 247886880
+
+Path = backend\_internal\lxml\_elementpath.cp311-win_amd64.pyd
+Size = 140800
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 248674108
+
+Path = backend\_internal\lxml\builder.cp311-win_amd64.pyd
+Size = 86528
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 248814912
+
+Path = backend\_internal\lxml\etree.cp311-win_amd64.pyd
+Size = 4046336
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 248901444
+
+Path = backend\_internal\lxml\html\_difflib.cp311-win_amd64.pyd
+Size = 344576
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 252947784
+
+Path = backend\_internal\lxml\html\diff.cp311-win_amd64.pyd
+Size = 227328
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 253292364
+
+Path = backend\_internal\lxml\isoschematron\resources\rng\iso-schematron.rng
+Size = 19046
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 253519696
+
+Path = backend\_internal\lxml\isoschematron\resources\xsl\RNG2Schtrn.xsl
+Size = 3247
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 253538746
+
+Path = backend\_internal\lxml\isoschematron\resources\xsl\XSD2Schtrn.xsl
+Size = 4563
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 253541997
+
+Path = backend\_internal\lxml\isoschematron\resources\xsl\iso-schematron-xslt1\iso_abstract_expand.xsl
+Size = 12015
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 253546564
+
+Path = backend\_internal\lxml\isoschematron\resources\xsl\iso-schematron-xslt1\iso_dsdl_include.xsl
+Size = 41116
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 253558583
+
+Path = backend\_internal\lxml\isoschematron\resources\xsl\iso-schematron-xslt1\iso_schematron_message.xsl
+Size = 2069
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 253599703
+
+Path = backend\_internal\lxml\isoschematron\resources\xsl\iso-schematron-xslt1\iso_schematron_skeleton_for_xslt1.xsl
+Size = 73560
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 253601776
+
+Path = backend\_internal\lxml\isoschematron\resources\xsl\iso-schematron-xslt1\iso_svrl_for_xslt1.xsl
+Size = 20970
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 253675340
+
+Path = backend\_internal\lxml\isoschematron\resources\xsl\iso-schematron-xslt1\readme.txt
+Size = 3310
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 253696314
+
+Path = backend\_internal\lxml\objectify.cp311-win_amd64.pyd
+Size = 1743360
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 253699628
+
+Path = backend\_internal\lxml\sax.cp311-win_amd64.pyd
+Size = 115712
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 255442992
+
+Path = backend\_internal\markupsafe\_speedups.cp311-win_amd64.pyd
+Size = 13312
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 255558708
+
+Path = backend\_internal\markupsafe-3.0.3.dist-info\METADATA
+Size = 2764
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 255572024
+
+Path = backend\_internal\markupsafe-3.0.3.dist-info\RECORD
+Size = 1104
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 255574792
+
+Path = backend\_internal\markupsafe-3.0.3.dist-info\WHEEL
+Size = 101
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 255575900
+
+Path = backend\_internal\markupsafe-3.0.3.dist-info\licenses\LICENSE.txt
+Size = 1503
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 255576005
+
+Path = backend\_internal\markupsafe-3.0.3.dist-info\top_level.txt
+Size = 11
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 255577512
+
+Path = backend\_internal\msvcp140.dll
+Size = 643512
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 255577527
+
+Path = backend\_internal\numpy\_core\_multiarray_tests.cp311-win_amd64.pyd
+Size = 64512
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 256221043
+
+Path = backend\_internal\numpy\_core\_multiarray_umath.cp311-win_amd64.pyd
+Size = 3703296
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 256285559
+
+Path = backend\_internal\numpy\fft\_pocketfft_umath.cp311-win_amd64.pyd
+Size = 276480
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 259988859
+
+Path = backend\_internal\numpy\linalg\_umath_linalg.cp311-win_amd64.pyd
+Size = 112128
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 260265343
+
+Path = backend\_internal\numpy\random\_bounded_integers.cp311-win_amd64.pyd
+Size = 220160
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 260377475
+
+Path = backend\_internal\numpy\random\_common.cp311-win_amd64.pyd
+Size = 169984
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 260597639
+
+Path = backend\_internal\numpy\random\_generator.cp311-win_amd64.pyd
+Size = 608768
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 260767627
+
+Path = backend\_internal\numpy\random\_mt19937.cp311-win_amd64.pyd
+Size = 84992
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 261376399
+
+Path = backend\_internal\numpy\random\_pcg64.cp311-win_amd64.pyd
+Size = 96768
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 261461395
+
+Path = backend\_internal\numpy\random\_philox.cp311-win_amd64.pyd
+Size = 79872
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 261558167
+
+Path = backend\_internal\numpy\random\_sfc64.cp311-win_amd64.pyd
+Size = 59392
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 261638043
+
+Path = backend\_internal\numpy\random\bit_generator.cp311-win_amd64.pyd
+Size = 165888
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 261697439
+
+Path = backend\_internal\numpy\random\mtrand.cp311-win_amd64.pyd
+Size = 512512
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 261863331
+
+Path = backend\_internal\numpy-2.4.6.dist-info\DELVEWHEEL
+Size = 462
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 262375847
+
+Path = backend\_internal\numpy-2.4.6.dist-info\METADATA
+Size = 6608
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 262376313
+
+Path = backend\_internal\numpy-2.4.6.dist-info\RECORD
+Size = 129345
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 262382925
+
+Path = backend\_internal\numpy-2.4.6.dist-info\WHEEL
+Size = 85
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 262512274
+
+Path = backend\_internal\numpy-2.4.6.dist-info\entry_points.txt
+Size = 220
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 262512363
+
+Path = backend\_internal\numpy-2.4.6.dist-info\licenses\LICENSE.txt
+Size = 45831
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 262512587
+
+Path = backend\_internal\numpy-2.4.6.dist-info\licenses\numpy\_core\include\numpy\libdivide\LICENSE.txt
+Size = 1039
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 262558422
+
+Path = backend\_internal\numpy-2.4.6.dist-info\licenses\numpy\_core\src\common\pythoncapi-compat\COPYING
+Size = 704
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 262559465
+
+Path = backend\_internal\numpy-2.4.6.dist-info\licenses\numpy\_core\src\highway\LICENSE
+Size = 21155
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 262560173
+
+Path = backend\_internal\numpy-2.4.6.dist-info\licenses\numpy\_core\src\multiarray\dragon4_LICENSE.txt
+Size = 1441
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 262581332
+
+Path = backend\_internal\numpy-2.4.6.dist-info\licenses\numpy\_core\src\npysort\x86-simd-sort\LICENSE.md
+Size = 1542
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 262582777
+
+Path = backend\_internal\numpy-2.4.6.dist-info\licenses\numpy\_core\src\umath\svml\LICENSE
+Size = 1573
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 262584323
+
+Path = backend\_internal\numpy-2.4.6.dist-info\licenses\numpy\fft\pocketfft\LICENSE.md
+Size = 1523
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 262585900
+
+Path = backend\_internal\numpy-2.4.6.dist-info\licenses\numpy\linalg\lapack_lite\LICENSE.txt
+Size = 2314
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 262587427
+
+Path = backend\_internal\numpy-2.4.6.dist-info\licenses\numpy\ma\LICENSE
+Size = 1616
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 262589745
+
+Path = backend\_internal\numpy-2.4.6.dist-info\licenses\numpy\random\LICENSE.md
+Size = 3582
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 262591365
+
+Path = backend\_internal\numpy-2.4.6.dist-info\licenses\numpy\random\src\distributions\LICENSE.md
+Size = 2805
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 262594951
+
+Path = backend\_internal\numpy-2.4.6.dist-info\licenses\numpy\random\src\mt19937\LICENSE.md
+Size = 2986
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 262597760
+
+Path = backend\_internal\numpy-2.4.6.dist-info\licenses\numpy\random\src\pcg64\LICENSE.md
+Size = 1176
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 262600750
+
+Path = backend\_internal\numpy-2.4.6.dist-info\licenses\numpy\random\src\philox\LICENSE.md
+Size = 1540
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 262601930
+
+Path = backend\_internal\numpy-2.4.6.dist-info\licenses\numpy\random\src\sfc64\LICENSE.md
+Size = 1253
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 262603474
+
+Path = backend\_internal\numpy-2.4.6.dist-info\licenses\numpy\random\src\splitmix64\LICENSE.md
+Size = 340
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 262604731
+
+Path = backend\_internal\numpy.libs\libscipy_openblas64_-63c857e738469261263c764a36be9436.dll
+Size = 20415488
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 262605075
+
+Path = backend\_internal\numpy.libs\msvcp140-a4c2229bdc2a2a630acdc095b4d86008.dll
+Size = 575056
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 283020567
+
+Path = backend\_internal\onnxruntime\capi\onnxruntime.dll
+Size = 17320760
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 283595627
+
+Path = backend\_internal\onnxruntime\capi\onnxruntime_providers_shared.dll
+Size = 21856
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 300916391
+
+Path = backend\_internal\onnxruntime\capi\onnxruntime_pybind11_state.pyd
+Size = 17943904
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 300938251
+
+Path = backend\_internal\pydantic-2.13.4.dist-info\METADATA
+Size = 109397
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 318882159
+
+Path = backend\_internal\pydantic-2.13.4.dist-info\RECORD
+Size = 15456
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 318991560
+
+Path = backend\_internal\pydantic-2.13.4.dist-info\WHEEL
+Size = 87
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 319007020
+
+Path = backend\_internal\pydantic-2.13.4.dist-info\licenses\LICENSE
+Size = 1129
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 319007111
+
+Path = backend\_internal\pydantic_core\_pydantic_core.cp311-win_amd64.pyd
+Size = 5240320
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 319008244
+
+Path = backend\_internal\pyexpat.pyd
+Size = 199448
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 324248568
+
+Path = backend\_internal\python3.dll
+Size = 67352
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 324448020
+
+Path = backend\_internal\python311.dll
+Size = 5800216
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 324515376
+
+Path = backend\_internal\pywin32_system32\pywintypes311.dll
+Size = 135168
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 330315596
+
+Path = backend\_internal\resource\README.md
+Size = 324
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 330450768
+
+Path = backend\_internal\resource\font_map_table.json
+Size = 1606884
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 330451096
+
+Path = backend\_internal\select.pyd
+Size = 30488
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332057984
+
+Path = backend\_internal\tqdm-4.68.4.dist-info\METADATA
+Size = 57356
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332088476
+
+Path = backend\_internal\tqdm-4.68.4.dist-info\RECORD
+Size = 4894
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332145836
+
+Path = backend\_internal\tqdm-4.68.4.dist-info\WHEEL
+Size = 91
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332150734
+
+Path = backend\_internal\tqdm-4.68.4.dist-info\entry_points.txt
+Size = 39
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332150829
+
+Path = backend\_internal\tqdm-4.68.4.dist-info\licenses\LICENCE
+Size = 1985
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332150872
+
+Path = backend\_internal\tqdm-4.68.4.dist-info\scm_file_list.json
+Size = 2946
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332152861
+
+Path = backend\_internal\tqdm-4.68.4.dist-info\scm_version.json
+Size = 161
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332155811
+
+Path = backend\_internal\tqdm-4.68.4.dist-info\top_level.txt
+Size = 12
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332155976
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Abidjan
+Size = 130
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332155992
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Accra
+Size = 130
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332155992
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Bamako
+Size = 130
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332155992
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Banjul
+Size = 130
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332155992
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Conakry
+Size = 130
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332155992
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Dakar
+Size = 130
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332155992
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Freetown
+Size = 130
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332155992
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Lome
+Size = 130
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332155992
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Nouakchott
+Size = 130
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332155992
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Ouagadougou
+Size = 130
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332155992
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Timbuktu
+Size = 130
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332155992
+
+Path = backend\_internal\tzdata\zoneinfo\Atlantic\Reykjavik
+Size = 130
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332155992
+
+Path = backend\_internal\tzdata\zoneinfo\Atlantic\St_Helena
+Size = 130
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332155992
+
+Path = backend\_internal\tzdata\zoneinfo\Iceland
+Size = 130
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332155992
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Addis_Ababa
+Size = 191
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332156126
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Asmara
+Size = 191
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332156126
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Asmera
+Size = 191
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332156126
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Dar_es_Salaam
+Size = 191
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332156126
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Djibouti
+Size = 191
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332156126
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Kampala
+Size = 191
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332156126
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Mogadishu
+Size = 191
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332156126
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Nairobi
+Size = 191
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332156126
+
+Path = backend\_internal\tzdata\zoneinfo\Indian\Antananarivo
+Size = 191
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332156126
+
+Path = backend\_internal\tzdata\zoneinfo\Indian\Comoro
+Size = 191
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332156126
+
+Path = backend\_internal\tzdata\zoneinfo\Indian\Mayotte
+Size = 191
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332156126
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Algiers
+Size = 470
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332156321
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Bangui
+Size = 180
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332156795
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Brazzaville
+Size = 180
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332156795
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Douala
+Size = 180
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332156795
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Kinshasa
+Size = 180
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332156795
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Lagos
+Size = 180
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332156795
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Libreville
+Size = 180
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332156795
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Luanda
+Size = 180
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332156795
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Malabo
+Size = 180
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332156795
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Niamey
+Size = 180
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332156795
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Porto-Novo
+Size = 180
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332156795
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Bissau
+Size = 149
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332156979
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Blantyre
+Size = 131
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332157132
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Bujumbura
+Size = 131
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332157132
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Gaborone
+Size = 131
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332157132
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Harare
+Size = 131
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332157132
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Kigali
+Size = 131
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332157132
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Lubumbashi
+Size = 131
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332157132
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Lusaka
+Size = 131
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332157132
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Maputo
+Size = 131
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332157132
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Cairo
+Size = 1309
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332157267
+
+Path = backend\_internal\tzdata\zoneinfo\Egypt
+Size = 1309
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332157267
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Casablanca
+Size = 793
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332158580
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Ceuta
+Size = 562
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332159377
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\El_Aaiun
+Size = 704
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332159943
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Johannesburg
+Size = 190
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332160651
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Maseru
+Size = 190
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332160651
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Mbabane
+Size = 190
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332160651
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Juba
+Size = 458
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332160845
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Khartoum
+Size = 458
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332161307
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Monrovia
+Size = 164
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332161769
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Ndjamena
+Size = 160
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332161937
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Sao_Tome
+Size = 173
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332162101
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Tripoli
+Size = 431
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332162278
+
+Path = backend\_internal\tzdata\zoneinfo\Libya
+Size = 431
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332162278
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Tunis
+Size = 449
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332162713
+
+Path = backend\_internal\tzdata\zoneinfo\Africa\Windhoek
+Size = 638
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332163166
+
+Path = backend\_internal\tzdata\zoneinfo\America\Adak
+Size = 969
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332163808
+
+Path = backend\_internal\tzdata\zoneinfo\America\Atka
+Size = 969
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332163808
+
+Path = backend\_internal\tzdata\zoneinfo\US\Aleutian
+Size = 969
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332163808
+
+Path = backend\_internal\tzdata\zoneinfo\America\Anchorage
+Size = 977
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332164781
+
+Path = backend\_internal\tzdata\zoneinfo\US\Alaska
+Size = 977
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332164781
+
+Path = backend\_internal\tzdata\zoneinfo\America\Anguilla
+Size = 177
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332165762
+
+Path = backend\_internal\tzdata\zoneinfo\America\Antigua
+Size = 177
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332165762
+
+Path = backend\_internal\tzdata\zoneinfo\America\Aruba
+Size = 177
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332165762
+
+Path = backend\_internal\tzdata\zoneinfo\America\Blanc-Sablon
+Size = 177
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332165762
+
+Path = backend\_internal\tzdata\zoneinfo\America\Curacao
+Size = 177
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332165762
+
+Path = backend\_internal\tzdata\zoneinfo\America\Dominica
+Size = 177
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332165762
+
+Path = backend\_internal\tzdata\zoneinfo\America\Grenada
+Size = 177
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332165762
+
+Path = backend\_internal\tzdata\zoneinfo\America\Guadeloupe
+Size = 177
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332165762
+
+Path = backend\_internal\tzdata\zoneinfo\America\Kralendijk
+Size = 177
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332165762
+
+Path = backend\_internal\tzdata\zoneinfo\America\Lower_Princes
+Size = 177
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332165762
+
+Path = backend\_internal\tzdata\zoneinfo\America\Marigot
+Size = 177
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332165762
+
+Path = backend\_internal\tzdata\zoneinfo\America\Montserrat
+Size = 177
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332165762
+
+Path = backend\_internal\tzdata\zoneinfo\America\Port_of_Spain
+Size = 177
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332165762
+
+Path = backend\_internal\tzdata\zoneinfo\America\Puerto_Rico
+Size = 177
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332165762
+
+Path = backend\_internal\tzdata\zoneinfo\America\St_Barthelemy
+Size = 177
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332165762
+
+Path = backend\_internal\tzdata\zoneinfo\America\St_Kitts
+Size = 177
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332165762
+
+Path = backend\_internal\tzdata\zoneinfo\America\St_Lucia
+Size = 177
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332165762
+
+Path = backend\_internal\tzdata\zoneinfo\America\St_Thomas
+Size = 177
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332165762
+
+Path = backend\_internal\tzdata\zoneinfo\America\St_Vincent
+Size = 177
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332165762
+
+Path = backend\_internal\tzdata\zoneinfo\America\Tortola
+Size = 177
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332165762
+
+Path = backend\_internal\tzdata\zoneinfo\America\Virgin
+Size = 177
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332165762
+
+Path = backend\_internal\tzdata\zoneinfo\America\Araguaina
+Size = 592
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332165943
+
+Path = backend\_internal\tzdata\zoneinfo\America\Argentina\Buenos_Aires
+Size = 708
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332166539
+
+Path = backend\_internal\tzdata\zoneinfo\America\Buenos_Aires
+Size = 708
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332166539
+
+Path = backend\_internal\tzdata\zoneinfo\America\Argentina\Catamarca
+Size = 708
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332167251
+
+Path = backend\_internal\tzdata\zoneinfo\America\Argentina\ComodRivadavia
+Size = 708
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332167251
+
+Path = backend\_internal\tzdata\zoneinfo\America\Catamarca
+Size = 708
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332167251
+
+Path = backend\_internal\tzdata\zoneinfo\America\Argentina\Cordoba
+Size = 708
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332167963
+
+Path = backend\_internal\tzdata\zoneinfo\America\Cordoba
+Size = 708
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332167963
+
+Path = backend\_internal\tzdata\zoneinfo\America\Rosario
+Size = 708
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332167963
+
+Path = backend\_internal\tzdata\zoneinfo\America\Argentina\Jujuy
+Size = 690
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332168675
+
+Path = backend\_internal\tzdata\zoneinfo\America\Jujuy
+Size = 690
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332168675
+
+Path = backend\_internal\tzdata\zoneinfo\America\Argentina\La_Rioja
+Size = 717
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332169369
+
+Path = backend\_internal\tzdata\zoneinfo\America\Argentina\Mendoza
+Size = 708
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332170090
+
+Path = backend\_internal\tzdata\zoneinfo\America\Mendoza
+Size = 708
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332170090
+
+Path = backend\_internal\tzdata\zoneinfo\America\Argentina\Rio_Gallegos
+Size = 708
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332170802
+
+Path = backend\_internal\tzdata\zoneinfo\America\Argentina\Salta
+Size = 690
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332171514
+
+Path = backend\_internal\tzdata\zoneinfo\America\Argentina\San_Juan
+Size = 717
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332172208
+
+Path = backend\_internal\tzdata\zoneinfo\America\Argentina\San_Luis
+Size = 717
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332172929
+
+Path = backend\_internal\tzdata\zoneinfo\America\Argentina\Tucuman
+Size = 726
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332173650
+
+Path = backend\_internal\tzdata\zoneinfo\America\Argentina\Ushuaia
+Size = 708
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332174380
+
+Path = backend\_internal\tzdata\zoneinfo\America\Asuncion
+Size = 1085
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332175092
+
+Path = backend\_internal\tzdata\zoneinfo\America\Atikokan
+Size = 149
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332176181
+
+Path = backend\_internal\tzdata\zoneinfo\America\Cayman
+Size = 149
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332176181
+
+Path = backend\_internal\tzdata\zoneinfo\America\Coral_Harbour
+Size = 149
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332176181
+
+Path = backend\_internal\tzdata\zoneinfo\America\Panama
+Size = 149
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332176181
+
+Path = backend\_internal\tzdata\zoneinfo\EST
+Size = 149
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332176181
+
+Path = backend\_internal\tzdata\zoneinfo\America\Bahia
+Size = 682
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332176334
+
+Path = backend\_internal\tzdata\zoneinfo\America\Bahia_Banderas
+Size = 700
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332177020
+
+Path = backend\_internal\tzdata\zoneinfo\America\Barbados
+Size = 278
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332177724
+
+Path = backend\_internal\tzdata\zoneinfo\America\Belem
+Size = 394
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332178006
+
+Path = backend\_internal\tzdata\zoneinfo\America\Belize
+Size = 1045
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332178404
+
+Path = backend\_internal\tzdata\zoneinfo\America\Boa_Vista
+Size = 430
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332179453
+
+Path = backend\_internal\tzdata\zoneinfo\America\Bogota
+Size = 179
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332179887
+
+Path = backend\_internal\tzdata\zoneinfo\America\Boise
+Size = 999
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332180070
+
+Path = backend\_internal\tzdata\zoneinfo\America\Cambridge_Bay
+Size = 883
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332181073
+
+Path = backend\_internal\tzdata\zoneinfo\America\Campo_Grande
+Size = 952
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332181960
+
+Path = backend\_internal\tzdata\zoneinfo\America\Cancun
+Size = 538
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332182916
+
+Path = backend\_internal\tzdata\zoneinfo\America\Caracas
+Size = 190
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332183458
+
+Path = backend\_internal\tzdata\zoneinfo\America\Cayenne
+Size = 151
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332183652
+
+Path = backend\_internal\tzdata\zoneinfo\America\Chicago
+Size = 1754
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332183807
+
+Path = backend\_internal\tzdata\zoneinfo\CST6CDT
+Size = 1754
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332183807
+
+Path = backend\_internal\tzdata\zoneinfo\US\Central
+Size = 1754
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332183807
+
+Path = backend\_internal\tzdata\zoneinfo\America\Chihuahua
+Size = 691
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332185565
+
+Path = backend\_internal\tzdata\zoneinfo\America\Ciudad_Juarez
+Size = 718
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332186260
+
+Path = backend\_internal\tzdata\zoneinfo\America\Costa_Rica
+Size = 232
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332186982
+
+Path = backend\_internal\tzdata\zoneinfo\America\Coyhaique
+Size = 1362
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332187218
+
+Path = backend\_internal\tzdata\zoneinfo\America\Creston
+Size = 240
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332188584
+
+Path = backend\_internal\tzdata\zoneinfo\America\Phoenix
+Size = 240
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332188584
+
+Path = backend\_internal\tzdata\zoneinfo\MST
+Size = 240
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332188584
+
+Path = backend\_internal\tzdata\zoneinfo\US\Arizona
+Size = 240
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332188584
+
+Path = backend\_internal\tzdata\zoneinfo\America\Cuiaba
+Size = 934
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332188828
+
+Path = backend\_internal\tzdata\zoneinfo\America\Danmarkshavn
+Size = 447
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332189766
+
+Path = backend\_internal\tzdata\zoneinfo\America\Dawson
+Size = 1029
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332190217
+
+Path = backend\_internal\tzdata\zoneinfo\America\Dawson_Creek
+Size = 683
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332191250
+
+Path = backend\_internal\tzdata\zoneinfo\America\Denver
+Size = 1042
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332191937
+
+Path = backend\_internal\tzdata\zoneinfo\America\Shiprock
+Size = 1042
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332191937
+
+Path = backend\_internal\tzdata\zoneinfo\MST7MDT
+Size = 1042
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332191937
+
+Path = backend\_internal\tzdata\zoneinfo\Navajo
+Size = 1042
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332191937
+
+Path = backend\_internal\tzdata\zoneinfo\US\Mountain
+Size = 1042
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332191937
+
+Path = backend\_internal\tzdata\zoneinfo\America\Detroit
+Size = 899
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332192983
+
+Path = backend\_internal\tzdata\zoneinfo\US\Michigan
+Size = 899
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332192983
+
+Path = backend\_internal\tzdata\zoneinfo\America\Edmonton
+Size = 1313
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332193886
+
+Path = backend\_internal\tzdata\zoneinfo\America\Yellowknife
+Size = 1313
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332193886
+
+Path = backend\_internal\tzdata\zoneinfo\Canada\Mountain
+Size = 1313
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332193886
+
+Path = backend\_internal\tzdata\zoneinfo\America\Eirunepe
+Size = 436
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332195203
+
+Path = backend\_internal\tzdata\zoneinfo\America\El_Salvador
+Size = 176
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332195643
+
+Path = backend\_internal\tzdata\zoneinfo\America\Ensenada
+Size = 1367
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332195823
+
+Path = backend\_internal\tzdata\zoneinfo\America\Santa_Isabel
+Size = 1367
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332195823
+
+Path = backend\_internal\tzdata\zoneinfo\America\Tijuana
+Size = 1367
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332195823
+
+Path = backend\_internal\tzdata\zoneinfo\Mexico\BajaNorte
+Size = 1367
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332195823
+
+Path = backend\_internal\tzdata\zoneinfo\America\Fort_Nelson
+Size = 1448
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332197194
+
+Path = backend\_internal\tzdata\zoneinfo\America\Fort_Wayne
+Size = 531
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332198646
+
+Path = backend\_internal\tzdata\zoneinfo\America\Indiana\Indianapolis
+Size = 531
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332198646
+
+Path = backend\_internal\tzdata\zoneinfo\America\Indianapolis
+Size = 531
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332198646
+
+Path = backend\_internal\tzdata\zoneinfo\US\East-Indiana
+Size = 531
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332198646
+
+Path = backend\_internal\tzdata\zoneinfo\America\Fortaleza
+Size = 484
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332199181
+
+Path = backend\_internal\tzdata\zoneinfo\America\Glace_Bay
+Size = 880
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332199669
+
+Path = backend\_internal\tzdata\zoneinfo\America\Godthab
+Size = 965
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332200553
+
+Path = backend\_internal\tzdata\zoneinfo\America\Nuuk
+Size = 965
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332200553
+
+Path = backend\_internal\tzdata\zoneinfo\America\Goose_Bay
+Size = 1580
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332201522
+
+Path = backend\_internal\tzdata\zoneinfo\America\Grand_Turk
+Size = 853
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332203106
+
+Path = backend\_internal\tzdata\zoneinfo\America\Guatemala
+Size = 212
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332203963
+
+Path = backend\_internal\tzdata\zoneinfo\America\Guayaquil
+Size = 179
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332204179
+
+Path = backend\_internal\tzdata\zoneinfo\America\Guyana
+Size = 181
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332204362
+
+Path = backend\_internal\tzdata\zoneinfo\America\Halifax
+Size = 1672
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332204547
+
+Path = backend\_internal\tzdata\zoneinfo\Canada\Atlantic
+Size = 1672
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332204547
+
+Path = backend\_internal\tzdata\zoneinfo\America\Havana
+Size = 1117
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332206223
+
+Path = backend\_internal\tzdata\zoneinfo\Cuba
+Size = 1117
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332206223
+
+Path = backend\_internal\tzdata\zoneinfo\America\Hermosillo
+Size = 258
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332207344
+
+Path = backend\_internal\tzdata\zoneinfo\America\Indiana\Knox
+Size = 1016
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332207606
+
+Path = backend\_internal\tzdata\zoneinfo\America\Knox_IN
+Size = 1016
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332207606
+
+Path = backend\_internal\tzdata\zoneinfo\US\Indiana-Starke
+Size = 1016
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332207606
+
+Path = backend\_internal\tzdata\zoneinfo\America\Indiana\Marengo
+Size = 567
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332208626
+
+Path = backend\_internal\tzdata\zoneinfo\America\Indiana\Petersburg
+Size = 683
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332209197
+
+Path = backend\_internal\tzdata\zoneinfo\America\Indiana\Tell_City
+Size = 522
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332209884
+
+Path = backend\_internal\tzdata\zoneinfo\America\Indiana\Vevay
+Size = 369
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332210410
+
+Path = backend\_internal\tzdata\zoneinfo\America\Indiana\Vincennes
+Size = 558
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332210783
+
+Path = backend\_internal\tzdata\zoneinfo\America\Indiana\Winamac
+Size = 603
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332211345
+
+Path = backend\_internal\tzdata\zoneinfo\America\Inuvik
+Size = 817
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332211952
+
+Path = backend\_internal\tzdata\zoneinfo\America\Iqaluit
+Size = 855
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332212773
+
+Path = backend\_internal\tzdata\zoneinfo\America\Pangnirtung
+Size = 855
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332212773
+
+Path = backend\_internal\tzdata\zoneinfo\America\Jamaica
+Size = 339
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332213632
+
+Path = backend\_internal\tzdata\zoneinfo\Jamaica
+Size = 339
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332213632
+
+Path = backend\_internal\tzdata\zoneinfo\America\Juneau
+Size = 966
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332213975
+
+Path = backend\_internal\tzdata\zoneinfo\America\Kentucky\Louisville
+Size = 1242
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332214945
+
+Path = backend\_internal\tzdata\zoneinfo\America\Louisville
+Size = 1242
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332214945
+
+Path = backend\_internal\tzdata\zoneinfo\America\Kentucky\Monticello
+Size = 972
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332216191
+
+Path = backend\_internal\tzdata\zoneinfo\America\La_Paz
+Size = 170
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332217167
+
+Path = backend\_internal\tzdata\zoneinfo\America\Lima
+Size = 283
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332217341
+
+Path = backend\_internal\tzdata\zoneinfo\America\Los_Angeles
+Size = 1294
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332217628
+
+Path = backend\_internal\tzdata\zoneinfo\PST8PDT
+Size = 1294
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332217628
+
+Path = backend\_internal\tzdata\zoneinfo\US\Pacific
+Size = 1294
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332217628
+
+Path = backend\_internal\tzdata\zoneinfo\America\Maceio
+Size = 502
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332218926
+
+Path = backend\_internal\tzdata\zoneinfo\America\Managua
+Size = 295
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332219432
+
+Path = backend\_internal\tzdata\zoneinfo\America\Manaus
+Size = 412
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332219731
+
+Path = backend\_internal\tzdata\zoneinfo\Brazil\West
+Size = 412
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332219731
+
+Path = backend\_internal\tzdata\zoneinfo\America\Martinique
+Size = 178
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332220147
+
+Path = backend\_internal\tzdata\zoneinfo\America\Matamoros
+Size = 437
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332220329
+
+Path = backend\_internal\tzdata\zoneinfo\America\Mazatlan
+Size = 690
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332220770
+
+Path = backend\_internal\tzdata\zoneinfo\Mexico\BajaSur
+Size = 690
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332220770
+
+Path = backend\_internal\tzdata\zoneinfo\America\Menominee
+Size = 917
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332221464
+
+Path = backend\_internal\tzdata\zoneinfo\America\Merida
+Size = 654
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332222385
+
+Path = backend\_internal\tzdata\zoneinfo\America\Metlakatla
+Size = 586
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332223043
+
+Path = backend\_internal\tzdata\zoneinfo\America\Mexico_City
+Size = 773
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332223633
+
+Path = backend\_internal\tzdata\zoneinfo\Mexico\General
+Size = 773
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332223633
+
+Path = backend\_internal\tzdata\zoneinfo\America\Miquelon
+Size = 550
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332224410
+
+Path = backend\_internal\tzdata\zoneinfo\America\Moncton
+Size = 1493
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332224964
+
+Path = backend\_internal\tzdata\zoneinfo\America\Monterrey
+Size = 709
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332226461
+
+Path = backend\_internal\tzdata\zoneinfo\America\Montevideo
+Size = 969
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332227174
+
+Path = backend\_internal\tzdata\zoneinfo\America\Montreal
+Size = 1717
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332228147
+
+Path = backend\_internal\tzdata\zoneinfo\America\Nassau
+Size = 1717
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332228147
+
+Path = backend\_internal\tzdata\zoneinfo\America\Nipigon
+Size = 1717
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332228147
+
+Path = backend\_internal\tzdata\zoneinfo\America\Thunder_Bay
+Size = 1717
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332228147
+
+Path = backend\_internal\tzdata\zoneinfo\America\Toronto
+Size = 1717
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332228147
+
+Path = backend\_internal\tzdata\zoneinfo\Canada\Eastern
+Size = 1717
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332228147
+
+Path = backend\_internal\tzdata\zoneinfo\America\New_York
+Size = 1744
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332229868
+
+Path = backend\_internal\tzdata\zoneinfo\EST5EDT
+Size = 1744
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332229868
+
+Path = backend\_internal\tzdata\zoneinfo\US\Eastern
+Size = 1744
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332229868
+
+Path = backend\_internal\tzdata\zoneinfo\America\Nome
+Size = 975
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332231616
+
+Path = backend\_internal\tzdata\zoneinfo\America\Noronha
+Size = 484
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332232595
+
+Path = backend\_internal\tzdata\zoneinfo\Brazil\DeNoronha
+Size = 484
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332232595
+
+Path = backend\_internal\tzdata\zoneinfo\America\North_Dakota\Beulah
+Size = 1043
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332233083
+
+Path = backend\_internal\tzdata\zoneinfo\America\North_Dakota\Center
+Size = 990
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332234130
+
+Path = backend\_internal\tzdata\zoneinfo\America\North_Dakota\New_Salem
+Size = 990
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332235124
+
+Path = backend\_internal\tzdata\zoneinfo\America\Ojinaga
+Size = 718
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332236118
+
+Path = backend\_internal\tzdata\zoneinfo\America\Paramaribo
+Size = 187
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332236840
+
+Path = backend\_internal\tzdata\zoneinfo\America\Port-au-Prince
+Size = 565
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332237031
+
+Path = backend\_internal\tzdata\zoneinfo\America\Porto_Acre
+Size = 418
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332237600
+
+Path = backend\_internal\tzdata\zoneinfo\America\Rio_Branco
+Size = 418
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332237600
+
+Path = backend\_internal\tzdata\zoneinfo\Brazil\Acre
+Size = 418
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332237600
+
+Path = backend\_internal\tzdata\zoneinfo\America\Porto_Velho
+Size = 394
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332238022
+
+Path = backend\_internal\tzdata\zoneinfo\America\Punta_Arenas
+Size = 1218
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332238420
+
+Path = backend\_internal\tzdata\zoneinfo\America\Rainy_River
+Size = 1294
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332239642
+
+Path = backend\_internal\tzdata\zoneinfo\America\Winnipeg
+Size = 1294
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332239642
+
+Path = backend\_internal\tzdata\zoneinfo\Canada\Central
+Size = 1294
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332239642
+
+Path = backend\_internal\tzdata\zoneinfo\America\Rankin_Inlet
+Size = 807
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332240940
+
+Path = backend\_internal\tzdata\zoneinfo\America\Recife
+Size = 484
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332241751
+
+Path = backend\_internal\tzdata\zoneinfo\America\Regina
+Size = 638
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332242239
+
+Path = backend\_internal\tzdata\zoneinfo\Canada\Saskatchewan
+Size = 638
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332242239
+
+Path = backend\_internal\tzdata\zoneinfo\America\Resolute
+Size = 807
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332242881
+
+Path = backend\_internal\tzdata\zoneinfo\America\Santarem
+Size = 409
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332243692
+
+Path = backend\_internal\tzdata\zoneinfo\America\Santiago
+Size = 1354
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332244105
+
+Path = backend\_internal\tzdata\zoneinfo\Chile\Continental
+Size = 1354
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332244105
+
+Path = backend\_internal\tzdata\zoneinfo\America\Santo_Domingo
+Size = 317
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332245463
+
+Path = backend\_internal\tzdata\zoneinfo\America\Sao_Paulo
+Size = 952
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332245784
+
+Path = backend\_internal\tzdata\zoneinfo\Brazil\East
+Size = 952
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332245784
+
+Path = backend\_internal\tzdata\zoneinfo\America\Scoresbysund
+Size = 984
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332246740
+
+Path = backend\_internal\tzdata\zoneinfo\America\Sitka
+Size = 956
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332247728
+
+Path = backend\_internal\tzdata\zoneinfo\America\St_Johns
+Size = 1878
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332248688
+
+Path = backend\_internal\tzdata\zoneinfo\Canada\Newfoundland
+Size = 1878
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332248688
+
+Path = backend\_internal\tzdata\zoneinfo\America\Swift_Current
+Size = 368
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332250570
+
+Path = backend\_internal\tzdata\zoneinfo\America\Tegucigalpa
+Size = 194
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332250942
+
+Path = backend\_internal\tzdata\zoneinfo\America\Thule
+Size = 455
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332251140
+
+Path = backend\_internal\tzdata\zoneinfo\America\Vancouver
+Size = 1673
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332251599
+
+Path = backend\_internal\tzdata\zoneinfo\Canada\Pacific
+Size = 1673
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332251599
+
+Path = backend\_internal\tzdata\zoneinfo\America\Whitehorse
+Size = 1029
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332253276
+
+Path = backend\_internal\tzdata\zoneinfo\Canada\Yukon
+Size = 1029
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332253276
+
+Path = backend\_internal\tzdata\zoneinfo\America\Yakutat
+Size = 946
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332254309
+
+Path = backend\_internal\tzdata\zoneinfo\Antarctica\Casey
+Size = 287
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332255259
+
+Path = backend\_internal\tzdata\zoneinfo\Antarctica\Davis
+Size = 197
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332255550
+
+Path = backend\_internal\tzdata\zoneinfo\Antarctica\DumontDUrville
+Size = 154
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332255751
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Chuuk
+Size = 154
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332255751
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Port_Moresby
+Size = 154
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332255751
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Truk
+Size = 154
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332255751
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Yap
+Size = 154
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332255751
+
+Path = backend\_internal\tzdata\zoneinfo\Antarctica\Macquarie
+Size = 976
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332255909
+
+Path = backend\_internal\tzdata\zoneinfo\Antarctica\Mawson
+Size = 152
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332256889
+
+Path = backend\_internal\tzdata\zoneinfo\Antarctica\McMurdo
+Size = 1043
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332257045
+
+Path = backend\_internal\tzdata\zoneinfo\Antarctica\South_Pole
+Size = 1043
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332257045
+
+Path = backend\_internal\tzdata\zoneinfo\NZ
+Size = 1043
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332257045
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Auckland
+Size = 1043
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332257045
+
+Path = backend\_internal\tzdata\zoneinfo\Antarctica\Palmer
+Size = 887
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332258092
+
+Path = backend\_internal\tzdata\zoneinfo\Antarctica\Rothera
+Size = 132
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332258983
+
+Path = backend\_internal\tzdata\zoneinfo\Antarctica\Syowa
+Size = 133
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332259119
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Aden
+Size = 133
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332259119
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Kuwait
+Size = 133
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332259119
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Riyadh
+Size = 133
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332259119
+
+Path = backend\_internal\tzdata\zoneinfo\Antarctica\Troll
+Size = 158
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332259256
+
+Path = backend\_internal\tzdata\zoneinfo\Antarctica\Vostok
+Size = 170
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332259418
+
+Path = backend\_internal\tzdata\zoneinfo\Arctic\Longyearbyen
+Size = 705
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332259592
+
+Path = backend\_internal\tzdata\zoneinfo\Atlantic\Jan_Mayen
+Size = 705
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332259592
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Berlin
+Size = 705
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332259592
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Copenhagen
+Size = 705
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332259592
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Oslo
+Size = 705
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332259592
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Stockholm
+Size = 705
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332259592
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Almaty
+Size = 618
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332260301
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Amman
+Size = 928
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332260923
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Anadyr
+Size = 743
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332261855
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Aqtau
+Size = 606
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332262602
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Aqtobe
+Size = 615
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332263212
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Ashgabat
+Size = 375
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332263831
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Ashkhabad
+Size = 375
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332263831
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Atyrau
+Size = 616
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332264210
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Baghdad
+Size = 630
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332264830
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Bahrain
+Size = 152
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332265464
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Qatar
+Size = 152
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332265464
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Baku
+Size = 744
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332265620
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Bangkok
+Size = 152
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332266368
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Phnom_Penh
+Size = 152
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332266368
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Vientiane
+Size = 152
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332266368
+
+Path = backend\_internal\tzdata\zoneinfo\Indian\Christmas
+Size = 152
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332266368
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Barnaul
+Size = 753
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332266524
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Beirut
+Size = 732
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332267281
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Bishkek
+Size = 618
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332268017
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Brunei
+Size = 320
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332268639
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Kuching
+Size = 320
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332268639
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Calcutta
+Size = 220
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332268963
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Kolkata
+Size = 220
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332268963
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Chita
+Size = 750
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332269187
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Choibalsan
+Size = 594
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332269941
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Ulaanbaatar
+Size = 594
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332269941
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Ulan_Bator
+Size = 594
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332269941
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Chongqing
+Size = 393
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332270539
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Chungking
+Size = 393
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332270539
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Harbin
+Size = 393
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332270539
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Shanghai
+Size = 393
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332270539
+
+Path = backend\_internal\tzdata\zoneinfo\PRC
+Size = 393
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332270539
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Colombo
+Size = 247
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332270936
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Dacca
+Size = 231
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332271187
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Dhaka
+Size = 231
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332271187
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Damascus
+Size = 1234
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332271422
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Dili
+Size = 170
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332272660
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Dubai
+Size = 133
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332272834
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Muscat
+Size = 133
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332272834
+
+Path = backend\_internal\tzdata\zoneinfo\Indian\Mahe
+Size = 133
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332272834
+
+Path = backend\_internal\tzdata\zoneinfo\Indian\Reunion
+Size = 133
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332272834
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Dushanbe
+Size = 366
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332272971
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Famagusta
+Size = 940
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332273341
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Gaza
+Size = 2950
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332274285
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Hebron
+Size = 2968
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332277239
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Ho_Chi_Minh
+Size = 232
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332280211
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Saigon
+Size = 232
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332280211
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Hong_Kong
+Size = 775
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332280447
+
+Path = backend\_internal\tzdata\zoneinfo\Hongkong
+Size = 775
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332280447
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Hovd
+Size = 594
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332281226
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Irkutsk
+Size = 760
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332281824
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Istanbul
+Size = 1200
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332282588
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Istanbul
+Size = 1200
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332282588
+
+Path = backend\_internal\tzdata\zoneinfo\Turkey
+Size = 1200
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332282588
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Jakarta
+Size = 248
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332283792
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Jayapura
+Size = 171
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332284044
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Jerusalem
+Size = 1074
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332284219
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Tel_Aviv
+Size = 1074
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332284219
+
+Path = backend\_internal\tzdata\zoneinfo\Israel
+Size = 1074
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332284219
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Kabul
+Size = 159
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332285297
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Kamchatka
+Size = 727
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332285460
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Karachi
+Size = 266
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332286191
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Kashgar
+Size = 133
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332286461
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Urumqi
+Size = 133
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332286461
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Kathmandu
+Size = 161
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332286598
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Katmandu
+Size = 161
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332286598
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Khandyga
+Size = 775
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332286763
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Krasnoyarsk
+Size = 741
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332287542
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Kuala_Lumpur
+Size = 256
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332288287
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Singapore
+Size = 256
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332288287
+
+Path = backend\_internal\tzdata\zoneinfo\Singapore
+Size = 256
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332288287
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Macao
+Size = 791
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332288547
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Macau
+Size = 791
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332288547
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Magadan
+Size = 751
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332289342
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Makassar
+Size = 190
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332290097
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Ujung_Pandang
+Size = 190
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332290097
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Manila
+Size = 274
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332290291
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Nicosia
+Size = 597
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332290569
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Nicosia
+Size = 597
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332290569
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Novokuznetsk
+Size = 726
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332291170
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Novosibirsk
+Size = 753
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332291900
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Omsk
+Size = 741
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332292657
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Oral
+Size = 625
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332293402
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Pontianak
+Size = 247
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332294031
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Pyongyang
+Size = 183
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332294282
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Qostanay
+Size = 624
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332294469
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Qyzylorda
+Size = 624
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332295097
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Rangoon
+Size = 187
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332295725
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Yangon
+Size = 187
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332295725
+
+Path = backend\_internal\tzdata\zoneinfo\Indian\Cocos
+Size = 187
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332295725
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Sakhalin
+Size = 755
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332295916
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Samarkand
+Size = 366
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332296675
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Seoul
+Size = 415
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332297045
+
+Path = backend\_internal\tzdata\zoneinfo\ROK
+Size = 415
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332297045
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Srednekolymsk
+Size = 742
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332297464
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Taipei
+Size = 511
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332298210
+
+Path = backend\_internal\tzdata\zoneinfo\ROC
+Size = 511
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332298210
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Tashkent
+Size = 366
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332298725
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Tbilisi
+Size = 620
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332299095
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Tehran
+Size = 812
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332299719
+
+Path = backend\_internal\tzdata\zoneinfo\Iran
+Size = 812
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332299719
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Thimbu
+Size = 154
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332300535
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Thimphu
+Size = 154
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332300535
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Tokyo
+Size = 213
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332300693
+
+Path = backend\_internal\tzdata\zoneinfo\Japan
+Size = 213
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332300693
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Tomsk
+Size = 753
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332300910
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Ust-Nera
+Size = 771
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332301667
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Vladivostok
+Size = 742
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332302442
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Yakutsk
+Size = 741
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332303188
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Yekaterinburg
+Size = 760
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332303933
+
+Path = backend\_internal\tzdata\zoneinfo\Asia\Yerevan
+Size = 708
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332304697
+
+Path = backend\_internal\tzdata\zoneinfo\Atlantic\Azores
+Size = 1401
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332305409
+
+Path = backend\_internal\tzdata\zoneinfo\Atlantic\Bermuda
+Size = 1024
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332306814
+
+Path = backend\_internal\tzdata\zoneinfo\Atlantic\Canary
+Size = 478
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332307842
+
+Path = backend\_internal\tzdata\zoneinfo\Atlantic\Cape_Verde
+Size = 175
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332308324
+
+Path = backend\_internal\tzdata\zoneinfo\Atlantic\Faeroe
+Size = 441
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332308503
+
+Path = backend\_internal\tzdata\zoneinfo\Atlantic\Faroe
+Size = 441
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332308503
+
+Path = backend\_internal\tzdata\zoneinfo\Atlantic\Madeira
+Size = 1372
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332308948
+
+Path = backend\_internal\tzdata\zoneinfo\Atlantic\South_Georgia
+Size = 132
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332310324
+
+Path = backend\_internal\tzdata\zoneinfo\Atlantic\Stanley
+Size = 789
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332310460
+
+Path = backend\_internal\tzdata\zoneinfo\Australia\ACT
+Size = 904
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332311253
+
+Path = backend\_internal\tzdata\zoneinfo\Australia\Canberra
+Size = 904
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332311253
+
+Path = backend\_internal\tzdata\zoneinfo\Australia\NSW
+Size = 904
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332311253
+
+Path = backend\_internal\tzdata\zoneinfo\Australia\Sydney
+Size = 904
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332311253
+
+Path = backend\_internal\tzdata\zoneinfo\Australia\Adelaide
+Size = 921
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332312161
+
+Path = backend\_internal\tzdata\zoneinfo\Australia\South
+Size = 921
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332312161
+
+Path = backend\_internal\tzdata\zoneinfo\Australia\Brisbane
+Size = 289
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332313086
+
+Path = backend\_internal\tzdata\zoneinfo\Australia\Queensland
+Size = 289
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332313086
+
+Path = backend\_internal\tzdata\zoneinfo\Australia\Broken_Hill
+Size = 941
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332313379
+
+Path = backend\_internal\tzdata\zoneinfo\Australia\Yancowinna
+Size = 941
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332313379
+
+Path = backend\_internal\tzdata\zoneinfo\Australia\Currie
+Size = 1003
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332314324
+
+Path = backend\_internal\tzdata\zoneinfo\Australia\Hobart
+Size = 1003
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332314324
+
+Path = backend\_internal\tzdata\zoneinfo\Australia\Tasmania
+Size = 1003
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332314324
+
+Path = backend\_internal\tzdata\zoneinfo\Australia\Darwin
+Size = 234
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332315331
+
+Path = backend\_internal\tzdata\zoneinfo\Australia\North
+Size = 234
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332315331
+
+Path = backend\_internal\tzdata\zoneinfo\Australia\Eucla
+Size = 314
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332315569
+
+Path = backend\_internal\tzdata\zoneinfo\Australia\LHI
+Size = 692
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332315887
+
+Path = backend\_internal\tzdata\zoneinfo\Australia\Lord_Howe
+Size = 692
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332315887
+
+Path = backend\_internal\tzdata\zoneinfo\Australia\Lindeman
+Size = 325
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332316583
+
+Path = backend\_internal\tzdata\zoneinfo\Australia\Melbourne
+Size = 904
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332316912
+
+Path = backend\_internal\tzdata\zoneinfo\Australia\Victoria
+Size = 904
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332316912
+
+Path = backend\_internal\tzdata\zoneinfo\Australia\Perth
+Size = 306
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332317820
+
+Path = backend\_internal\tzdata\zoneinfo\Australia\West
+Size = 306
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332317820
+
+Path = backend\_internal\tzdata\zoneinfo\CET
+Size = 1103
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332318130
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Amsterdam
+Size = 1103
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332318130
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Brussels
+Size = 1103
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332318130
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Luxembourg
+Size = 1103
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332318130
+
+Path = backend\_internal\tzdata\zoneinfo\MET
+Size = 1103
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332318130
+
+Path = backend\_internal\tzdata\zoneinfo\Chile\EasterIsland
+Size = 1174
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332319237
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Easter
+Size = 1174
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332319237
+
+Path = backend\_internal\tzdata\zoneinfo\EET
+Size = 682
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332320415
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Athens
+Size = 682
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332320415
+
+Path = backend\_internal\tzdata\zoneinfo\Eire
+Size = 1496
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332321101
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Dublin
+Size = 1496
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332321101
+
+Path = backend\_internal\tzdata\zoneinfo\Etc\GMT
+Size = 111
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332322601
+
+Path = backend\_internal\tzdata\zoneinfo\Etc\GMT+0
+Size = 111
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332322601
+
+Path = backend\_internal\tzdata\zoneinfo\Etc\GMT-0
+Size = 111
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332322601
+
+Path = backend\_internal\tzdata\zoneinfo\Etc\GMT0
+Size = 111
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332322601
+
+Path = backend\_internal\tzdata\zoneinfo\Etc\Greenwich
+Size = 111
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332322601
+
+Path = backend\_internal\tzdata\zoneinfo\GMT
+Size = 111
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332322601
+
+Path = backend\_internal\tzdata\zoneinfo\GMT+0
+Size = 111
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332322601
+
+Path = backend\_internal\tzdata\zoneinfo\GMT-0
+Size = 111
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332322601
+
+Path = backend\_internal\tzdata\zoneinfo\GMT0
+Size = 111
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332322601
+
+Path = backend\_internal\tzdata\zoneinfo\Greenwich
+Size = 111
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332322601
+
+Path = backend\_internal\tzdata\zoneinfo\Etc\GMT+1
+Size = 113
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332322716
+
+Path = backend\_internal\tzdata\zoneinfo\Etc\GMT+10
+Size = 114
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332322833
+
+Path = backend\_internal\tzdata\zoneinfo\Etc\GMT+11
+Size = 114
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332322951
+
+Path = backend\_internal\tzdata\zoneinfo\Etc\GMT+12
+Size = 114
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332323069
+
+Path = backend\_internal\tzdata\zoneinfo\Etc\GMT+2
+Size = 113
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332323187
+
+Path = backend\_internal\tzdata\zoneinfo\Etc\GMT+3
+Size = 113
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332323304
+
+Path = backend\_internal\tzdata\zoneinfo\Etc\GMT+4
+Size = 113
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332323421
+
+Path = backend\_internal\tzdata\zoneinfo\Etc\GMT+5
+Size = 113
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332323538
+
+Path = backend\_internal\tzdata\zoneinfo\Etc\GMT+6
+Size = 113
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332323655
+
+Path = backend\_internal\tzdata\zoneinfo\Etc\GMT+7
+Size = 113
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332323772
+
+Path = backend\_internal\tzdata\zoneinfo\Etc\GMT+8
+Size = 113
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332323889
+
+Path = backend\_internal\tzdata\zoneinfo\Etc\GMT+9
+Size = 113
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332324006
+
+Path = backend\_internal\tzdata\zoneinfo\Etc\GMT-1
+Size = 114
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332324123
+
+Path = backend\_internal\tzdata\zoneinfo\Etc\GMT-10
+Size = 115
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332324241
+
+Path = backend\_internal\tzdata\zoneinfo\Etc\GMT-11
+Size = 115
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332324360
+
+Path = backend\_internal\tzdata\zoneinfo\Etc\GMT-12
+Size = 115
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332324479
+
+Path = backend\_internal\tzdata\zoneinfo\Etc\GMT-13
+Size = 115
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332324598
+
+Path = backend\_internal\tzdata\zoneinfo\Etc\GMT-14
+Size = 115
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332324717
+
+Path = backend\_internal\tzdata\zoneinfo\Etc\GMT-2
+Size = 114
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332324836
+
+Path = backend\_internal\tzdata\zoneinfo\Etc\GMT-3
+Size = 114
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332324954
+
+Path = backend\_internal\tzdata\zoneinfo\Etc\GMT-4
+Size = 114
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332325072
+
+Path = backend\_internal\tzdata\zoneinfo\Etc\GMT-5
+Size = 114
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332325190
+
+Path = backend\_internal\tzdata\zoneinfo\Etc\GMT-6
+Size = 114
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332325308
+
+Path = backend\_internal\tzdata\zoneinfo\Etc\GMT-7
+Size = 114
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332325426
+
+Path = backend\_internal\tzdata\zoneinfo\Etc\GMT-8
+Size = 114
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332325544
+
+Path = backend\_internal\tzdata\zoneinfo\Etc\GMT-9
+Size = 114
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332325662
+
+Path = backend\_internal\tzdata\zoneinfo\Etc\UCT
+Size = 111
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332325780
+
+Path = backend\_internal\tzdata\zoneinfo\Etc\UTC
+Size = 111
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332325780
+
+Path = backend\_internal\tzdata\zoneinfo\Etc\Universal
+Size = 111
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332325780
+
+Path = backend\_internal\tzdata\zoneinfo\Etc\Zulu
+Size = 111
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332325780
+
+Path = backend\_internal\tzdata\zoneinfo\UCT
+Size = 111
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332325780
+
+Path = backend\_internal\tzdata\zoneinfo\UTC
+Size = 111
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332325780
+
+Path = backend\_internal\tzdata\zoneinfo\Universal
+Size = 111
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332325780
+
+Path = backend\_internal\tzdata\zoneinfo\Zulu
+Size = 111
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332325780
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Andorra
+Size = 389
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332325895
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Astrakhan
+Size = 726
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332326288
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Belfast
+Size = 1599
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332327018
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Guernsey
+Size = 1599
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332327018
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Isle_of_Man
+Size = 1599
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332327018
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Jersey
+Size = 1599
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332327018
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\London
+Size = 1599
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332327018
+
+Path = backend\_internal\tzdata\zoneinfo\GB
+Size = 1599
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332327018
+
+Path = backend\_internal\tzdata\zoneinfo\GB-Eire
+Size = 1599
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332327018
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Belgrade
+Size = 478
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332328621
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Ljubljana
+Size = 478
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332328621
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Podgorica
+Size = 478
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332328621
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Sarajevo
+Size = 478
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332328621
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Skopje
+Size = 478
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332328621
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Zagreb
+Size = 478
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332328621
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Bratislava
+Size = 723
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332329103
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Prague
+Size = 723
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332329103
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Bucharest
+Size = 661
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332329830
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Budapest
+Size = 766
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332330495
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Busingen
+Size = 497
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332331265
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Vaduz
+Size = 497
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332331265
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Zurich
+Size = 497
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332331265
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Chisinau
+Size = 1207
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332331766
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Tiraspol
+Size = 1207
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332331766
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Gibraltar
+Size = 1220
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332332977
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Helsinki
+Size = 481
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332334201
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Mariehamn
+Size = 481
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332334201
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Kaliningrad
+Size = 904
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332334686
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Kiev
+Size = 558
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332335594
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Kyiv
+Size = 558
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332335594
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Uzhgorod
+Size = 558
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332335594
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Zaporozhye
+Size = 558
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332335594
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Kirov
+Size = 735
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332336156
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Lisbon
+Size = 1463
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332336895
+
+Path = backend\_internal\tzdata\zoneinfo\Portugal
+Size = 1463
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332336895
+
+Path = backend\_internal\tzdata\zoneinfo\WET
+Size = 1463
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332336895
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Madrid
+Size = 897
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332338362
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Malta
+Size = 928
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332339263
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Minsk
+Size = 808
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332340195
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Monaco
+Size = 1105
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332341007
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Paris
+Size = 1105
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332341007
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Moscow
+Size = 908
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332342116
+
+Path = backend\_internal\tzdata\zoneinfo\W-SU
+Size = 908
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332342116
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Riga
+Size = 694
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332343028
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Rome
+Size = 947
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332343726
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\San_Marino
+Size = 947
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332343726
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Vatican
+Size = 947
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332343726
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Samara
+Size = 732
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332344677
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Saratov
+Size = 726
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332345413
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Simferopol
+Size = 865
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332346143
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Sofia
+Size = 592
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332347012
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Tallinn
+Size = 675
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332347608
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Tirane
+Size = 604
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332348287
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Ulyanovsk
+Size = 760
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332348895
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Vienna
+Size = 658
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332349659
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Vilnius
+Size = 676
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332350321
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Volgograd
+Size = 753
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332351001
+
+Path = backend\_internal\tzdata\zoneinfo\Europe\Warsaw
+Size = 923
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332351758
+
+Path = backend\_internal\tzdata\zoneinfo\Poland
+Size = 923
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332351758
+
+Path = backend\_internal\tzdata\zoneinfo\Factory
+Size = 113
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332352685
+
+Path = backend\_internal\tzdata\zoneinfo\HST
+Size = 221
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332352802
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Honolulu
+Size = 221
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332352802
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Johnston
+Size = 221
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332352802
+
+Path = backend\_internal\tzdata\zoneinfo\US\Hawaii
+Size = 221
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332352802
+
+Path = backend\_internal\tzdata\zoneinfo\Indian\Chagos
+Size = 152
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332353027
+
+Path = backend\_internal\tzdata\zoneinfo\Indian\Kerguelen
+Size = 152
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332353183
+
+Path = backend\_internal\tzdata\zoneinfo\Indian\Maldives
+Size = 152
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332353183
+
+Path = backend\_internal\tzdata\zoneinfo\Indian\Mauritius
+Size = 179
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332353339
+
+Path = backend\_internal\tzdata\zoneinfo\Kwajalein
+Size = 219
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332353522
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Kwajalein
+Size = 219
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332353522
+
+Path = backend\_internal\tzdata\zoneinfo\NZ-CHAT
+Size = 808
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332353745
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Chatham
+Size = 808
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332353745
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Apia
+Size = 407
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332354557
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Bougainville
+Size = 201
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332354968
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Efate
+Size = 342
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332355173
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Enderbury
+Size = 172
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332355519
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Kanton
+Size = 172
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332355519
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Fakaofo
+Size = 153
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332355695
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Fiji
+Size = 396
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332355852
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Funafuti
+Size = 134
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332356252
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Majuro
+Size = 134
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332356252
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Tarawa
+Size = 134
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332356252
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Wake
+Size = 134
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332356252
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Wallis
+Size = 134
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332356252
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Galapagos
+Size = 175
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332356390
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Gambier
+Size = 132
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332356569
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Guadalcanal
+Size = 134
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332356705
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Pohnpei
+Size = 134
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332356705
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Ponape
+Size = 134
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332356705
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Guam
+Size = 350
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332356843
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Saipan
+Size = 350
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332356843
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Kiritimati
+Size = 174
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332357197
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Kosrae
+Size = 242
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332357375
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Marquesas
+Size = 139
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332357621
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Midway
+Size = 146
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332357764
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Pago_Pago
+Size = 146
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332357764
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Samoa
+Size = 146
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332357764
+
+Path = backend\_internal\tzdata\zoneinfo\US\Samoa
+Size = 146
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332357764
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Nauru
+Size = 183
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332357914
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Niue
+Size = 154
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332358101
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Norfolk
+Size = 237
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332358259
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Noumea
+Size = 198
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332358500
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Palau
+Size = 148
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332358702
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Pitcairn
+Size = 153
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332358854
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Rarotonga
+Size = 406
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332359011
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Tahiti
+Size = 133
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332359421
+
+Path = backend\_internal\tzdata\zoneinfo\Pacific\Tongatapu
+Size = 237
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332359558
+
+Path = backend\_internal\tzdata\zoneinfo\iso3166.tab
+Size = 4841
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332359799
+
+Path = backend\_internal\tzdata\zoneinfo\leapseconds
+Size = 3694
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332364644
+
+Path = backend\_internal\tzdata\zoneinfo\tzdata.zi
+Size = 104431
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332368342
+
+Path = backend\_internal\tzdata\zoneinfo\zone.tab
+Size = 18813
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332472777
+
+Path = backend\_internal\tzdata\zoneinfo\zone1970.tab
+Size = 17596
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332491594
+
+Path = backend\_internal\tzdata\zoneinfo\zonenow.tab
+Size = 8248
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332509194
+
+Path = backend\_internal\tzdata\zones
+Size = 9102
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332517446
+
+Path = backend\_internal\unicodedata.pyd
+Size = 1140504
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 332526552
+
+Path = backend\_internal\vcruntime140.dll
+Size = 178616
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 333667060
+
+Path = backend\_internal\vcruntime140_1.dll
+Size = 50112
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 333845680
+
+Path = backend\_internal\web\dist\assets\index-DNknFYpJ.js
+Size = 270146
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 333895796
+
+Path = backend\_internal\web\dist\assets\index-Y9pHXJoT.css
+Size = 22450
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 334165946
+
+Path = backend\_internal\web\dist\index.html
+Size = 1001
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 334188400
+
+Path = backend\_internal\web\dist\vite.svg
+Size = 1499
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 334189405
+
+Path = backend\_internal\websockets\speedups.cp311-win_amd64.pyd
+Size = 11776
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 334190908
+
+Path = backend\_internal\websockets-13.1.dist-info\LICENSE
+Size = 1538
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 334202688
+
+Path = backend\_internal\websockets-13.1.dist-info\METADATA
+Size = 6954
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 334204230
+
+Path = backend\_internal\websockets-13.1.dist-info\RECORD
+Size = 6913
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 334211188
+
+Path = backend\_internal\websockets-13.1.dist-info\WHEEL
+Size = 101
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 334218105
+
+Path = backend\_internal\websockets-13.1.dist-info\top_level.txt
+Size = 11
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 334218210
+
+Path = backend\_internal\werkzeug-3.1.8.dist-info\METADATA
+Size = 4029
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 334218225
+
+Path = backend\_internal\werkzeug-3.1.8.dist-info\RECORD
+Size = 8318
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 334222258
+
+Path = backend\_internal\werkzeug-3.1.8.dist-info\licenses\LICENSE.txt
+Size = 1475
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 334230580
+
+Path = backend\_internal\win32\win32pdh.pyd
+Size = 33792
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 334232059
+
+Path = backend\_internal\yaml\_yaml.cp311-win_amd64.pyd
+Size = 258560
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 334265855
+
+Path = backend\chaoxing-backend.exe
+Size = 15662650
+Packed Size = 
+Modified = 2026-09-07 21:43:24.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 334524419
+
+Path = backend-manifest.json
+Size = 153736
+Packed Size = 
+Modified = 2026-09-08 01:37:46.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 350187073
+
+Path = TAURI-LICENSE.txt
+Size = 1090
+Packed Size = 
+Modified = 2026-09-07 23:40:38.0000000
+Attributes = A
+Method = LZMA:23
+Solid = +
+Offset = 350340813
+
+Path = uninstall.exe
+Size = 
+Packed Size = 
+Modified = 
+Attributes = 
+Method = LZMA:23
+Solid = +
+Offset = 350341907
+
+Path = [NSIS].nsi
+Size = 317385
+Packed Size = 317385
+Modified = 
+Attributes = 
+Method = 
+Solid = -
+Offset = 
+
+Path = [LICENSE].txt
+Size = 71646
+Packed Size = 71646
+Modified = 
+Attributes = 
+Method = 
+Solid = -
+Offset = 
+

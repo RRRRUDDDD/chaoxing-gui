@@ -1,0 +1,123 @@
+{
+  "yamlParsed": true,
+  "runSteps": [
+    {
+      "job": "test-backend",
+      "name": "Install offline test dependencies",
+      "runFile": ".ccg/tasks/electron-to-tauri-p3/verification/workflow-steps/test-backend-02.ps1"
+    },
+    {
+      "job": "test-backend",
+      "name": "Run first-party regression tests",
+      "runFile": ".ccg/tasks/electron-to-tauri-p3/verification/workflow-steps/test-backend-03.ps1"
+    },
+    {
+      "job": "test-web",
+      "name": "Install frontend and desktop test dependencies",
+      "runFile": ".ccg/tasks/electron-to-tauri-p3/verification/workflow-steps/test-web-02.ps1"
+    },
+    {
+      "job": "test-web",
+      "name": "Test frontend behavior",
+      "runFile": ".ccg/tasks/electron-to-tauri-p3/verification/workflow-steps/test-web-03.ps1"
+    },
+    {
+      "job": "test-web",
+      "name": "Test Electron sessions and Tauri packaging/smoke contracts",
+      "runFile": ".ccg/tasks/electron-to-tauri-p3/verification/workflow-steps/test-web-04.ps1"
+    },
+    {
+      "job": "test-web",
+      "name": "Check desktop JavaScript",
+      "runFile": ".ccg/tasks/electron-to-tauri-p3/verification/workflow-steps/test-web-05.ps1"
+    },
+    {
+      "job": "test-web",
+      "name": "Build frontend",
+      "runFile": ".ccg/tasks/electron-to-tauri-p3/verification/workflow-steps/test-web-06.ps1"
+    },
+    {
+      "job": "build-windows",
+      "name": "Validate source, lock and release versions",
+      "runFile": ".ccg/tasks/electron-to-tauri-p3/verification/workflow-steps/build-windows-06.ps1"
+    },
+    {
+      "job": "build-windows",
+      "name": "Build frontend and install desktop tooling",
+      "runFile": ".ccg/tasks/electron-to-tauri-p3/verification/workflow-steps/build-windows-07.ps1"
+    },
+    {
+      "job": "build-windows",
+      "name": "Install packaging dependencies",
+      "runFile": ".ccg/tasks/electron-to-tauri-p3/verification/workflow-steps/build-windows-08.ps1"
+    },
+    {
+      "job": "build-windows",
+      "name": "Build single-file executable",
+      "runFile": ".ccg/tasks/electron-to-tauri-p3/verification/workflow-steps/build-windows-09.ps1"
+    },
+    {
+      "job": "build-windows",
+      "name": "Smoke test independent executable with owned stdin and process tree",
+      "runFile": ".ccg/tasks/electron-to-tauri-p3/verification/workflow-steps/build-windows-10.ps1"
+    },
+    {
+      "job": "build-windows",
+      "name": "Assemble independent Python release archive",
+      "runFile": ".ccg/tasks/electron-to-tauri-p3/verification/workflow-steps/build-windows-11.ps1"
+    },
+    {
+      "job": "build-windows",
+      "name": "Build desktop backend executable",
+      "runFile": ".ccg/tasks/electron-to-tauri-p3/verification/workflow-steps/build-windows-12.ps1"
+    },
+    {
+      "job": "build-windows",
+      "name": "Smoke test frozen desktop backend",
+      "runFile": ".ccg/tasks/electron-to-tauri-p3/verification/workflow-steps/build-windows-13.ps1"
+    },
+    {
+      "job": "build-windows",
+      "name": "Build Electron desktop app (coexistence and rollback)",
+      "runFile": ".ccg/tasks/electron-to-tauri-p3/verification/workflow-steps/build-windows-14.ps1"
+    },
+    {
+      "job": "build-windows",
+      "name": "Import optional signing certificate",
+      "runFile": ".ccg/tasks/electron-to-tauri-p3/verification/workflow-steps/build-windows-15.ps1"
+    },
+    {
+      "job": "build-windows",
+      "name": "Rust fmt/check/clippy/test and Tauri release build/package",
+      "runFile": ".ccg/tasks/electron-to-tauri-p3/verification/workflow-steps/build-windows-16.ps1"
+    },
+    {
+      "job": "build-windows",
+      "name": "Validate NSIS and portable payloads",
+      "runFile": ".ccg/tasks/electron-to-tauri-p3/verification/workflow-steps/build-windows-17.ps1"
+    },
+    {
+      "job": "build-windows",
+      "name": "Build frozen synthetic backend and embedded debug host",
+      "runFile": ".ccg/tasks/electron-to-tauri-p3/verification/workflow-steps/build-windows-18.ps1"
+    },
+    {
+      "job": "build-windows",
+      "name": "Debug fake faults and frozen backend smoke in nested Jobs",
+      "runFile": ".ccg/tasks/electron-to-tauri-p3/verification/workflow-steps/build-windows-19.ps1"
+    },
+    {
+      "job": "build-windows",
+      "name": "Release synthetic business and failure smoke in nested Jobs",
+      "runFile": ".ccg/tasks/electron-to-tauri-p3/verification/workflow-steps/build-windows-20.ps1"
+    },
+    {
+      "job": "build-windows",
+      "name": "Install/uninstall and portable release host acceptance on disposable runner",
+      "runFile": ".ccg/tasks/electron-to-tauri-p3/verification/workflow-steps/build-windows-21.ps1"
+    }
+  ],
+  "remoteExecution": false,
+  "powershellSyntaxParsed": true,
+  "nativeExitCodeChecks": "Reviewed all python/npm/cargo/pwsh invocations; each checks nonzero and exits or uses the checked build helper"
+}

@@ -1,0 +1,5 @@
+feat(desktop): add Tauri Windows packaging and CI acceptance gates
+
+Stage complete backend resources, build independent NSIS/portable artifacts,
+verify per-artifact host and resource hashes, and gate CI on real host smoke.
+Keep release acceptance and external reviews pending where not executed.

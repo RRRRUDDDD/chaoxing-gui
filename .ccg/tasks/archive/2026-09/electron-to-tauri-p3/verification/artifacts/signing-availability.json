@@ -1,0 +1,9 @@
+{
+  "checkedAt": "2026-09-07T17:37:43.4180187Z",
+  "mode": "Inspect",
+  "signingAvailable": false,
+  "selectedThumbprint": "",
+  "candidateCount": 0,
+  "conclusion": "No usable code-signing certificate supplied or found; this build cannot create new signatures",
+  "files": []
+}

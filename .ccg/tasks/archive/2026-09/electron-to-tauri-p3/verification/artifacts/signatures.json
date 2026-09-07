@@ -1,0 +1,28 @@
+{
+  "checkedAt": "2026-09-07T17:44:24.6114973Z",
+  "mode": "Verify",
+  "signingAvailable": false,
+  "selectedThumbprint": "",
+  "candidateCount": 0,
+  "conclusion": "One or more inspected files are unsigned; no local signing private key is available (see per-file status)",
+  "files": [
+    {
+      "path": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\x86_64-pc-windows-msvc\\release\\chaoxing-gui-tauri.exe",
+      "status": "NotSigned",
+      "signerThumbprint": null,
+      "sha256": "f75e63e7bb16a0be922e41830c4417b8e03b919dc0972a707cef64c6f9581a2d"
+    },
+    {
+      "path": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\resources\\backend\\chaoxing-backend.exe",
+      "status": "NotSigned",
+      "signerThumbprint": null,
+      "sha256": "e576cf8f52d83cffa1de920ea26f0b196f7128f280cd6aafc79cb28f7997298f"
+    },
+    {
+      "path": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\release\\tauri\\chaoxing-gui-tauri-setup-1.1.1-windows-x64.exe",
+      "status": "NotSigned",
+      "signerThumbprint": null,
+      "sha256": "70c18ac432d6e05dff8eea4680b1a3f3c9c1b840370c4460202865d8446ddc09"
+    }
+  ]
+}

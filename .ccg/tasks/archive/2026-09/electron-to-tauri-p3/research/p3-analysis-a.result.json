@@ -1,0 +1,17 @@
+{
+  "stage": "p3-analysis",
+  "lane": "a",
+  "repoRoot": "E:\\Downloads\\45\\chaoxing-gui",
+  "pid": 20536,
+  "command": "codeagent-wrapper.exe --progress --backend claude - <repoRoot>",
+  "startedAt": "2026-09-07T15:16:01.9867018Z",
+  "endedAt": "2026-09-07T15:19:10.7530318Z",
+  "timeoutSeconds": 300,
+  "timedOut": false,
+  "exitCode": 1,
+  "stdoutPresent": false,
+  "invocationSucceeded": false,
+  "reviewPassed": false,
+  "conclusion": "No passing review: invocation failed or empty report",
+  "processTreeCleanup": "KILL_ON_JOB_CLOSE disposed; output streams drained"
+}

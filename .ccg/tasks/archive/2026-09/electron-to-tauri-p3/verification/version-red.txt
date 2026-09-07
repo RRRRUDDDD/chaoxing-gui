@@ -1,0 +1,118 @@
+test_artifact_versions_must_match_the_source (tests.test_release_version.ReleaseVersionTests.test_artifact_versions_must_match_the_source) ... FAIL
+test_drift_in_each_metadata_file_is_rejected (tests.test_release_version.ReleaseVersionTests.test_drift_in_each_metadata_file_is_rejected) ... 
+  test_drift_in_each_metadata_file_is_rejected (tests.test_release_version.ReleaseVersionTests.test_drift_in_each_metadata_file_is_rejected) (path='desktop/src-tauri/Cargo.toml') ... FAIL
+  test_drift_in_each_metadata_file_is_rejected (tests.test_release_version.ReleaseVersionTests.test_drift_in_each_metadata_file_is_rejected) (path='desktop/src-tauri/Cargo.lock') ... FAIL
+  test_drift_in_each_metadata_file_is_rejected (tests.test_release_version.ReleaseVersionTests.test_drift_in_each_metadata_file_is_rejected) (path='desktop/src-tauri/tauri.conf.json') ... FAIL
+  test_drift_in_each_metadata_file_is_rejected (tests.test_release_version.ReleaseVersionTests.test_drift_in_each_metadata_file_is_rejected) (path='web/package.json') ... FAIL
+  test_drift_in_each_metadata_file_is_rejected (tests.test_release_version.ReleaseVersionTests.test_drift_in_each_metadata_file_is_rejected) (path='web/package-lock.json') ... FAIL
+  test_drift_in_each_metadata_file_is_rejected (tests.test_release_version.ReleaseVersionTests.test_drift_in_each_metadata_file_is_rejected) (path='desktop/package.json') ... FAIL
+  test_drift_in_each_metadata_file_is_rejected (tests.test_release_version.ReleaseVersionTests.test_drift_in_each_metadata_file_is_rejected) (path='desktop/package-lock.json') ... FAIL
+test_invalid_source_version_is_rejected_before_writes (tests.test_release_version.ReleaseVersionTests.test_invalid_source_version_is_rejected_before_writes) ... ok
+test_matching_metadata_and_tag_are_accepted_without_mutation (tests.test_release_version.ReleaseVersionTests.test_matching_metadata_and_tag_are_accepted_without_mutation) ... FAIL
+test_missing_cargo_package_is_not_fabricated_by_sync (tests.test_release_version.ReleaseVersionTests.test_missing_cargo_package_is_not_fabricated_by_sync) ... ok
+test_npm_lock_root_package_version_is_checked (tests.test_release_version.ReleaseVersionTests.test_npm_lock_root_package_version_is_checked) ... ok
+test_sync_uses_pyproject_and_preserves_dependency_versions (tests.test_release_version.ReleaseVersionTests.test_sync_uses_pyproject_and_preserves_dependency_versions) ... FAIL
+test_tag_mismatch_blocks_release (tests.test_release_version.ReleaseVersionTests.test_tag_mismatch_blocks_release) ... FAIL
+
+======================================================================
+FAIL: test_artifact_versions_must_match_the_source (tests.test_release_version.ReleaseVersionTests.test_artifact_versions_must_match_the_source)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\Downloads\45\chaoxing-gui\tests\test_release_version.py", line 97, in test_artifact_versions_must_match_the_source
+    self.run_check("--check", "--artifacts", str(self.root / "artifacts"))
+  File "E:\Downloads\45\chaoxing-gui\tests\test_release_version.py", line 44, in run_check
+    self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+AssertionError: 2 != 0 : C:\Users\RUD\AppData\Local\Programs\Python\Python311\python.exe: can't open file 'E:\\Downloads\\45\\chaoxing-gui\\desktop\\scripts\\version.py': [Errno 2] No such file or directory
+
+
+======================================================================
+FAIL: test_drift_in_each_metadata_file_is_rejected (tests.test_release_version.ReleaseVersionTests.test_drift_in_each_metadata_file_is_rejected) (path='desktop/src-tauri/Cargo.toml')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\Downloads\45\chaoxing-gui\tests\test_release_version.py", line 65, in test_drift_in_each_metadata_file_is_rejected
+    self.assertIn(name, result.stdout + result.stderr)
+AssertionError: 'desktop/src-tauri/Cargo.toml' not found in "C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\python.exe: can't open file 'E:\\\\Downloads\\\\45\\\\chaoxing-gui\\\\desktop\\\\scripts\\\\version.py': [Errno 2] No such file or directory\n"
+
+======================================================================
+FAIL: test_drift_in_each_metadata_file_is_rejected (tests.test_release_version.ReleaseVersionTests.test_drift_in_each_metadata_file_is_rejected) (path='desktop/src-tauri/Cargo.lock')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\Downloads\45\chaoxing-gui\tests\test_release_version.py", line 65, in test_drift_in_each_metadata_file_is_rejected
+    self.assertIn(name, result.stdout + result.stderr)
+AssertionError: 'desktop/src-tauri/Cargo.lock' not found in "C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\python.exe: can't open file 'E:\\\\Downloads\\\\45\\\\chaoxing-gui\\\\desktop\\\\scripts\\\\version.py': [Errno 2] No such file or directory\n"
+
+======================================================================
+FAIL: test_drift_in_each_metadata_file_is_rejected (tests.test_release_version.ReleaseVersionTests.test_drift_in_each_metadata_file_is_rejected) (path='desktop/src-tauri/tauri.conf.json')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\Downloads\45\chaoxing-gui\tests\test_release_version.py", line 65, in test_drift_in_each_metadata_file_is_rejected
+    self.assertIn(name, result.stdout + result.stderr)
+AssertionError: 'desktop/src-tauri/tauri.conf.json' not found in "C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\python.exe: can't open file 'E:\\\\Downloads\\\\45\\\\chaoxing-gui\\\\desktop\\\\scripts\\\\version.py': [Errno 2] No such file or directory\n"
+
+======================================================================
+FAIL: test_drift_in_each_metadata_file_is_rejected (tests.test_release_version.ReleaseVersionTests.test_drift_in_each_metadata_file_is_rejected) (path='web/package.json')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\Downloads\45\chaoxing-gui\tests\test_release_version.py", line 65, in test_drift_in_each_metadata_file_is_rejected
+    self.assertIn(name, result.stdout + result.stderr)
+AssertionError: 'web/package.json' not found in "C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\python.exe: can't open file 'E:\\\\Downloads\\\\45\\\\chaoxing-gui\\\\desktop\\\\scripts\\\\version.py': [Errno 2] No such file or directory\n"
+
+======================================================================
+FAIL: test_drift_in_each_metadata_file_is_rejected (tests.test_release_version.ReleaseVersionTests.test_drift_in_each_metadata_file_is_rejected) (path='web/package-lock.json')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\Downloads\45\chaoxing-gui\tests\test_release_version.py", line 65, in test_drift_in_each_metadata_file_is_rejected
+    self.assertIn(name, result.stdout + result.stderr)
+AssertionError: 'web/package-lock.json' not found in "C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\python.exe: can't open file 'E:\\\\Downloads\\\\45\\\\chaoxing-gui\\\\desktop\\\\scripts\\\\version.py': [Errno 2] No such file or directory\n"
+
+======================================================================
+FAIL: test_drift_in_each_metadata_file_is_rejected (tests.test_release_version.ReleaseVersionTests.test_drift_in_each_metadata_file_is_rejected) (path='desktop/package.json')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\Downloads\45\chaoxing-gui\tests\test_release_version.py", line 65, in test_drift_in_each_metadata_file_is_rejected
+    self.assertIn(name, result.stdout + result.stderr)
+AssertionError: 'desktop/package.json' not found in "C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\python.exe: can't open file 'E:\\\\Downloads\\\\45\\\\chaoxing-gui\\\\desktop\\\\scripts\\\\version.py': [Errno 2] No such file or directory\n"
+
+======================================================================
+FAIL: test_drift_in_each_metadata_file_is_rejected (tests.test_release_version.ReleaseVersionTests.test_drift_in_each_metadata_file_is_rejected) (path='desktop/package-lock.json')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\Downloads\45\chaoxing-gui\tests\test_release_version.py", line 65, in test_drift_in_each_metadata_file_is_rejected
+    self.assertIn(name, result.stdout + result.stderr)
+AssertionError: 'desktop/package-lock.json' not found in "C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\python.exe: can't open file 'E:\\\\Downloads\\\\45\\\\chaoxing-gui\\\\desktop\\\\scripts\\\\version.py': [Errno 2] No such file or directory\n"
+
+======================================================================
+FAIL: test_matching_metadata_and_tag_are_accepted_without_mutation (tests.test_release_version.ReleaseVersionTests.test_matching_metadata_and_tag_are_accepted_without_mutation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\Downloads\45\chaoxing-gui\tests\test_release_version.py", line 51, in test_matching_metadata_and_tag_are_accepted_without_mutation
+    output = json.loads(self.run_check("--check", "--tag", "v1.1.1").stdout)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\Downloads\45\chaoxing-gui\tests\test_release_version.py", line 44, in run_check
+    self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+AssertionError: 2 != 0 : C:\Users\RUD\AppData\Local\Programs\Python\Python311\python.exe: can't open file 'E:\\Downloads\\45\\chaoxing-gui\\desktop\\scripts\\version.py': [Errno 2] No such file or directory
+
+
+======================================================================
+FAIL: test_sync_uses_pyproject_and_preserves_dependency_versions (tests.test_release_version.ReleaseVersionTests.test_sync_uses_pyproject_and_preserves_dependency_versions)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\Downloads\45\chaoxing-gui\tests\test_release_version.py", line 71, in test_sync_uses_pyproject_and_preserves_dependency_versions
+    self.run_check("--sync")
+  File "E:\Downloads\45\chaoxing-gui\tests\test_release_version.py", line 44, in run_check
+    self.assertEqual(result.returncode, 0, result.stderr + result.stdout)
+AssertionError: 2 != 0 : C:\Users\RUD\AppData\Local\Programs\Python\Python311\python.exe: can't open file 'E:\\Downloads\\45\\chaoxing-gui\\desktop\\scripts\\version.py': [Errno 2] No such file or directory
+
+
+======================================================================
+FAIL: test_tag_mismatch_blocks_release (tests.test_release_version.ReleaseVersionTests.test_tag_mismatch_blocks_release)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\Downloads\45\chaoxing-gui\tests\test_release_version.py", line 81, in test_tag_mismatch_blocks_release
+    self.assertIn("tag", result.stdout.lower() + result.stderr.lower())
+AssertionError: 'tag' not found in "c:\\users\\rud\\appdata\\local\\programs\\python\\python311\\python.exe: can't open file 'e:\\\\downloads\\\\45\\\\chaoxing-gui\\\\desktop\\\\scripts\\\\version.py': [errno 2] no such file or directory\n"
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.333s
+
+FAILED (failures=11)

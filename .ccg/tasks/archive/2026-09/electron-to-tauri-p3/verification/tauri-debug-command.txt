@@ -1,0 +1,25 @@
+PASS compiled-host-profile-verified
+PASS fake-business-ready
+PASS synthetic-login-config-start409-after-once-refresh404
+Error: Process supervisor exited 1: System.ArgumentException: Conversion from JSON failed with error: Unterminated string. Expected delimiter: ". Path 'title', line 1, position 67.
+ ---> Newtonsoft.Json.JsonReaderException: Unterminated string. Expected delimiter: ". Path 'title', line 1, position 67.
+   at Newtonsoft.Json.JsonTextReader.ReadStringIntoBuffer(Char quote)
+   at Newtonsoft.Json.JsonTextReader.ParseString(Char quote, ReadType readType)
+   at Newtonsoft.Json.JsonTextReader.ParseValue()
+   at Newtonsoft.Json.Serialization.JsonSerializerInternalReader.CreateJObject(JsonReader reader)
+   at Newtonsoft.Json.Serialization.JsonSerializerInternalReader.CreateObject(JsonReader reader, Type objectType, JsonContract contract, JsonProperty member, JsonContainerContract containerContract, JsonProperty containerMember, Object existingValue)
+   at Newtonsoft.Json.Serialization.JsonSerializerInternalReader.CreateValueInternal(JsonReader reader, Type objectType, JsonContract contract, JsonProperty member, JsonContainerContract containerContract, JsonProperty containerMember, Object existingValue)
+   at Newtonsoft.Json.Serialization.JsonSerializerInternalReader.Deserialize(JsonReader reader, Type objectType, Boolean checkAdditionalContent)
+   at Newtonsoft.Json.JsonSerializer.DeserializeInternal(JsonReader reader, Type objectType)
+   at Newtonsoft.Json.JsonConvert.DeserializeObject(String value, Type type, JsonSerializerSettings settings)
+   at Microsoft.PowerShell.Commands.JsonObject.ConvertFromJson(String input, Boolean returnHashtable, Nullable`1 maxDepth, JsonDateKind jsonDateKind, ErrorRecord& error)
+   --- End of inner exception stack trace ---
+   at Microsoft.PowerShell.Commands.JsonObject.ConvertFromJson(String input, Boolean returnHashtable, Nullable`1 maxDepth, JsonDateKind jsonDateKind, ErrorRecord& error)
+   at Microsoft.PowerShell.Commands.ConvertFromJsonCommand.ConvertFromJsonHelper(String input)
+   at Microsoft.PowerShell.Commands.ConvertFromJsonCommand.EndProcessing()
+   at System.Management.Automation.CommandProcessorBase.Complete()
+
+    at ChildProcess.<anonymous> (file:///E:/Downloads/45/chaoxing-gui/desktop/scripts/p3-smoke.mjs:276:52)
+    at ChildProcess.emit (node:events:508:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:294:12)
+Evidence: E:\Downloads\45\chaoxing-gui\.ccg\tasks\electron-to-tauri-p3\verification\tauri-debug\smoke-IUhmSU\result.json

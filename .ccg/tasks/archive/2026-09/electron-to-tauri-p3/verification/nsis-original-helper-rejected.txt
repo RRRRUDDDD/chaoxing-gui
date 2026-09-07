@@ -1,0 +1,6 @@
+Verified portable 1.1.1 (826 files): E:\Downloads\45\chaoxing-gui\desktop\release\tauri\chaoxing-gui-tauri-portable-1.1.1-windows-x64.zip
+Exception: E:\Downloads\45\chaoxing-gui\desktop\scripts\nsis-content.ps1:65:54
+Line |
+  65 |  … nsKey($relative)) { throw "Unexpected NSIS payload file: $relative" }
+     |                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     | Unexpected NSIS payload file: fake-backend.exe

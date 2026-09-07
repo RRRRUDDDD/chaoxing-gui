@@ -1,0 +1,431 @@
+{
+  "runId": "af9f0127-7257-4580-9ee1-69c7743c027b",
+  "startedAt": "2026-09-07T16:20:10.526Z",
+  "success": false,
+  "checks": [
+    {
+      "name": "compiled-host-profile-verified",
+      "result": "PASS",
+      "configuration": "Debug",
+      "exitCode": 0
+    },
+    {
+      "name": "fake-business-ready",
+      "result": "PASS",
+      "backendIdentities": [
+        {
+          "pid": 37072,
+          "createdAtFileTime": "134332716145922760",
+          "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\electron-to-tauri-p3\\verification\\tauri-debug\\smoke-IUhmSU\\fixtures\\1-fake-business\\package\\backend\\chaoxing-backend.exe",
+          "inOuterJob": true,
+          "alive": true,
+          "exitCode": null
+        }
+      ],
+      "nestedJobRequested": true,
+      "outerJobActive": true
+    },
+    {
+      "name": "synthetic-login-config-start409-after-once-refresh404",
+      "result": "PASS",
+      "counters": {
+        "start": 1,
+        "status": 3,
+        "logs": 3,
+        "after": [
+          0,
+          1,
+          1
+        ],
+        "configWrites": 1
+      },
+      "upstreamAccountsUsed": false,
+      "input": "visible/enabled DOM click over CDP"
+    }
+  ],
+  "processes": [
+    {
+      "scenario": "build-profile-probe",
+      "requested": "Debug",
+      "hostIdentity": {
+        "pid": 30468,
+        "createdAtFileTime": "134332716122725199",
+        "executable": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\debug\\chaoxing-desktop.exe",
+        "inOuterJob": true,
+        "alive": true,
+        "exitCode": null
+      },
+      "shutdown": {
+        "host": {
+          "pid": 30468,
+          "createdAtFileTime": "134332716122725199",
+          "executable": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\debug\\chaoxing-desktop.exe",
+          "inOuterJob": true,
+          "alive": false,
+          "exitCode": 0
+        },
+        "active": [],
+        "observed": [
+          {
+            "pid": 30468,
+            "createdAtFileTime": "134332716122725199",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\debug\\chaoxing-desktop.exe",
+            "inOuterJob": true,
+            "alive": false,
+            "exitCode": 0
+          },
+          {
+            "pid": 30852,
+            "createdAtFileTime": "134332716123042366",
+            "executable": "C:\\Windows\\System32\\conhost.exe",
+            "inOuterJob": true,
+            "alive": false,
+            "exitCode": 0
+          }
+        ],
+        "outerJobHandleRetained": true
+      },
+      "cleanup": {
+        "fallbackUsed": false,
+        "before": [],
+        "remaining": [],
+        "observed": [
+          {
+            "pid": 30468,
+            "createdAtFileTime": "134332716122725199",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\debug\\chaoxing-desktop.exe",
+            "inOuterJob": true,
+            "alive": false,
+            "exitCode": 0
+          },
+          {
+            "pid": 30852,
+            "createdAtFileTime": "134332716123042366",
+            "executable": "C:\\Windows\\System32\\conhost.exe",
+            "inOuterJob": true,
+            "alive": false,
+            "exitCode": 0
+          }
+        ]
+      }
+    },
+    {
+      "scenario": "fake-business",
+      "host": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\electron-to-tauri-p3\\verification\\tauri-debug\\smoke-IUhmSU\\fixtures\\1-fake-business\\package\\chaoxing-desktop.exe",
+      "expectedBackend": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\electron-to-tauri-p3\\verification\\tauri-debug\\smoke-IUhmSU\\fixtures\\1-fake-business\\package\\backend\\chaoxing-backend.exe",
+      "configuration": "Debug",
+      "packagedResourceLookup": false,
+      "layout": "owned fixture package copy",
+      "sanitizedPath": "C:\\WINDOWS\\System32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem",
+      "stdin": "real pipe held by supervisor",
+      "outerJobAssignedBeforeResume": true,
+      "processes": [
+        {
+          "pid": 19360,
+          "createdAtFileTime": "134332716138038635",
+          "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\electron-to-tauri-p3\\verification\\tauri-debug\\smoke-IUhmSU\\fixtures\\1-fake-business\\package\\chaoxing-desktop.exe",
+          "inOuterJob": true,
+          "alive": true,
+          "exitCode": null
+        },
+        {
+          "pid": 12676,
+          "createdAtFileTime": "134332716138146214",
+          "executable": "C:\\Windows\\System32\\conhost.exe",
+          "inOuterJob": true,
+          "alive": true,
+          "exitCode": null
+        },
+        {
+          "pid": 39816,
+          "createdAtFileTime": "134332716139345627",
+          "executable": "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\152.0.4191.66\\msedgewebview2.exe",
+          "inOuterJob": true,
+          "alive": true,
+          "exitCode": null
+        },
+        {
+          "pid": 26724,
+          "createdAtFileTime": "134332716140372447",
+          "executable": "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\152.0.4191.66\\msedgewebview2.exe",
+          "inOuterJob": true,
+          "alive": true,
+          "exitCode": null
+        },
+        {
+          "pid": 36464,
+          "createdAtFileTime": "134332716143398892",
+          "executable": "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\152.0.4191.66\\msedgewebview2.exe",
+          "inOuterJob": true,
+          "alive": true,
+          "exitCode": null
+        },
+        {
+          "pid": 17180,
+          "createdAtFileTime": "134332716143415854",
+          "executable": "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\152.0.4191.66\\msedgewebview2.exe",
+          "inOuterJob": true,
+          "alive": true,
+          "exitCode": null
+        },
+        {
+          "pid": 13080,
+          "createdAtFileTime": "134332716143734243",
+          "executable": "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\152.0.4191.66\\msedgewebview2.exe",
+          "inOuterJob": true,
+          "alive": true,
+          "exitCode": null
+        },
+        {
+          "pid": 39328,
+          "createdAtFileTime": "134332716144398518",
+          "executable": "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\152.0.4191.66\\msedgewebview2.exe",
+          "inOuterJob": true,
+          "alive": true,
+          "exitCode": null
+        },
+        {
+          "pid": 37072,
+          "createdAtFileTime": "134332716145922760",
+          "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\electron-to-tauri-p3\\verification\\tauri-debug\\smoke-IUhmSU\\fixtures\\1-fake-business\\package\\backend\\chaoxing-backend.exe",
+          "inOuterJob": true,
+          "alive": true,
+          "exitCode": null
+        },
+        {
+          "pid": 13396,
+          "createdAtFileTime": "134332716146015714",
+          "executable": "C:\\Windows\\System32\\conhost.exe",
+          "inOuterJob": true,
+          "alive": true,
+          "exitCode": null
+        }
+      ],
+      "cleanup": {
+        "fallbackUsed": false,
+        "remaining": [],
+        "observed": []
+      },
+      "hostIdentity": {
+        "pid": 19360,
+        "createdAtFileTime": "134332716138038635",
+        "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\electron-to-tauri-p3\\verification\\tauri-debug\\smoke-IUhmSU\\fixtures\\1-fake-business\\package\\chaoxing-desktop.exe",
+        "inOuterJob": true,
+        "alive": true,
+        "exitCode": null
+      },
+      "cdpListeners": [
+        {
+          "pid": 39816,
+          "port": 15528,
+          "address": "127.0.0.1"
+        }
+      ],
+      "ready": {
+        "status": {
+          "phase": "ready"
+        },
+        "snapshot": {
+          "host": {
+            "pid": 19360,
+            "createdAtFileTime": "134332716138038635",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\electron-to-tauri-p3\\verification\\tauri-debug\\smoke-IUhmSU\\fixtures\\1-fake-business\\package\\chaoxing-desktop.exe",
+            "inOuterJob": true,
+            "alive": true,
+            "exitCode": null
+          },
+          "active": [
+            {
+              "pid": 19360,
+              "createdAtFileTime": "134332716138038635",
+              "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\electron-to-tauri-p3\\verification\\tauri-debug\\smoke-IUhmSU\\fixtures\\1-fake-business\\package\\chaoxing-desktop.exe",
+              "inOuterJob": true,
+              "alive": true,
+              "exitCode": null
+            },
+            {
+              "pid": 12676,
+              "createdAtFileTime": "134332716138146214",
+              "executable": "C:\\Windows\\System32\\conhost.exe",
+              "inOuterJob": true,
+              "alive": true,
+              "exitCode": null
+            },
+            {
+              "pid": 39816,
+              "createdAtFileTime": "134332716139345627",
+              "executable": "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\152.0.4191.66\\msedgewebview2.exe",
+              "inOuterJob": true,
+              "alive": true,
+              "exitCode": null
+            },
+            {
+              "pid": 26724,
+              "createdAtFileTime": "134332716140372447",
+              "executable": "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\152.0.4191.66\\msedgewebview2.exe",
+              "inOuterJob": true,
+              "alive": true,
+              "exitCode": null
+            },
+            {
+              "pid": 36464,
+              "createdAtFileTime": "134332716143398892",
+              "executable": "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\152.0.4191.66\\msedgewebview2.exe",
+              "inOuterJob": true,
+              "alive": true,
+              "exitCode": null
+            },
+            {
+              "pid": 17180,
+              "createdAtFileTime": "134332716143415854",
+              "executable": "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\152.0.4191.66\\msedgewebview2.exe",
+              "inOuterJob": true,
+              "alive": true,
+              "exitCode": null
+            },
+            {
+              "pid": 13080,
+              "createdAtFileTime": "134332716143734243",
+              "executable": "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\152.0.4191.66\\msedgewebview2.exe",
+              "inOuterJob": true,
+              "alive": true,
+              "exitCode": null
+            },
+            {
+              "pid": 39328,
+              "createdAtFileTime": "134332716144398518",
+              "executable": "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\152.0.4191.66\\msedgewebview2.exe",
+              "inOuterJob": true,
+              "alive": true,
+              "exitCode": null
+            },
+            {
+              "pid": 37072,
+              "createdAtFileTime": "134332716145922760",
+              "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\electron-to-tauri-p3\\verification\\tauri-debug\\smoke-IUhmSU\\fixtures\\1-fake-business\\package\\backend\\chaoxing-backend.exe",
+              "inOuterJob": true,
+              "alive": true,
+              "exitCode": null
+            },
+            {
+              "pid": 13396,
+              "createdAtFileTime": "134332716146015714",
+              "executable": "C:\\Windows\\System32\\conhost.exe",
+              "inOuterJob": true,
+              "alive": true,
+              "exitCode": null
+            }
+          ],
+          "observed": [
+            {
+              "pid": 19360,
+              "createdAtFileTime": "134332716138038635",
+              "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\electron-to-tauri-p3\\verification\\tauri-debug\\smoke-IUhmSU\\fixtures\\1-fake-business\\package\\chaoxing-desktop.exe",
+              "inOuterJob": true,
+              "alive": true,
+              "exitCode": null
+            },
+            {
+              "pid": 12676,
+              "createdAtFileTime": "134332716138146214",
+              "executable": "C:\\Windows\\System32\\conhost.exe",
+              "inOuterJob": true,
+              "alive": true,
+              "exitCode": null
+            },
+            {
+              "pid": 39816,
+              "createdAtFileTime": "134332716139345627",
+              "executable": "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\152.0.4191.66\\msedgewebview2.exe",
+              "inOuterJob": true,
+              "alive": true,
+              "exitCode": null
+            },
+            {
+              "pid": 26724,
+              "createdAtFileTime": "134332716140372447",
+              "executable": "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\152.0.4191.66\\msedgewebview2.exe",
+              "inOuterJob": true,
+              "alive": true,
+              "exitCode": null
+            },
+            {
+              "pid": 36464,
+              "createdAtFileTime": "134332716143398892",
+              "executable": "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\152.0.4191.66\\msedgewebview2.exe",
+              "inOuterJob": true,
+              "alive": true,
+              "exitCode": null
+            },
+            {
+              "pid": 17180,
+              "createdAtFileTime": "134332716143415854",
+              "executable": "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\152.0.4191.66\\msedgewebview2.exe",
+              "inOuterJob": true,
+              "alive": true,
+              "exitCode": null
+            },
+            {
+              "pid": 13080,
+              "createdAtFileTime": "134332716143734243",
+              "executable": "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\152.0.4191.66\\msedgewebview2.exe",
+              "inOuterJob": true,
+              "alive": true,
+              "exitCode": null
+            },
+            {
+              "pid": 39328,
+              "createdAtFileTime": "134332716144398518",
+              "executable": "C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\152.0.4191.66\\msedgewebview2.exe",
+              "inOuterJob": true,
+              "alive": true,
+              "exitCode": null
+            },
+            {
+              "pid": 37072,
+              "createdAtFileTime": "134332716145922760",
+              "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\electron-to-tauri-p3\\verification\\tauri-debug\\smoke-IUhmSU\\fixtures\\1-fake-business\\package\\backend\\chaoxing-backend.exe",
+              "inOuterJob": true,
+              "alive": true,
+              "exitCode": null
+            },
+            {
+              "pid": 13396,
+              "createdAtFileTime": "134332716146015714",
+              "executable": "C:\\Windows\\System32\\conhost.exe",
+              "inOuterJob": true,
+              "alive": true,
+              "exitCode": null
+            }
+          ],
+          "outerJobHandleRetained": true
+        },
+        "innerJobEvidence": "backend Ready follows the host mandatory backend Job assignment; outer membership queried through Win32"
+      }
+    }
+  ],
+  "limitations": [
+    "DOM clicks over CDP do not represent physical mouse input",
+    "Debug execution does not qualify as release or clean-system validation"
+  ],
+  "selection": {
+    "kind": "tauri",
+    "configuration": "Debug",
+    "scenario": "All",
+    "mode": "Backend",
+    "nestedJob": true,
+    "usePackagedLayout": false
+  },
+  "releasePermission": {
+    "required": false,
+    "allowed": true
+  },
+  "profilePolicy": {
+    "windowsKnownFolders": true,
+    "sid": "S-1-5-21-4061332638-99479599-1902004140-1002",
+    "roots": [],
+    "productionPathsOverridden": false
+  },
+  "error": "Error: Process supervisor exited 1: System.ArgumentException: Conversion from JSON failed with error: Unterminated string. Expected delimiter: \". Path 'title', line 1, position 67.\r\n ---> Newtonsoft.Json.JsonReaderException: Unterminated string. Expected delimiter: \". Path 'title', line 1, position 67.\r\n   at Newtonsoft.Json.JsonTextReader.ReadStringIntoBuffer(Char quote)\r\n   at Newtonsoft.Json.JsonTextReader.ParseString(Char quote, ReadType readType)\r\n   at Newtonsoft.Json.JsonTextReader.ParseValue()\r\n   at Newtonsoft.Json.Serialization.JsonSerializerInternalReader.CreateJObject(JsonReader reader)\r\n   at Newtonsoft.Json.Serialization.JsonSerializerInternalReader.CreateObject(JsonReader reader, Type objectType, JsonContract contract, JsonProperty member, JsonContainerContract containerContract, JsonProperty containerMember, Object existingValue)\r\n   at Newtonsoft.Json.Serialization.JsonSerializerInternalReader.CreateValueInternal(JsonReader reader, Type objectType, JsonContract contract, JsonProperty member, JsonContainerContract containerContract, JsonProperty containerMember, Object existingValue)\r\n   at Newtonsoft.Json.Serialization.JsonSerializerInternalReader.Deserialize(JsonReader reader, Type objectType, Boolean checkAdditionalContent)\r\n   at Newtonsoft.Json.JsonSerializer.DeserializeInternal(JsonReader reader, Type objectType)\r\n   at Newtonsoft.Json.JsonConvert.DeserializeObject(String value, Type type, JsonSerializerSettings settings)\r\n   at Microsoft.PowerShell.Commands.JsonObject.ConvertFromJson(String input, Boolean returnHashtable, Nullable`1 maxDepth, JsonDateKind jsonDateKind, ErrorRecord& error)\r\n   --- End of inner exception stack trace ---\r\n   at Microsoft.PowerShell.Commands.JsonObject.ConvertFromJson(String input, Boolean returnHashtable, Nullable`1 maxDepth, JsonDateKind jsonDateKind, ErrorRecord& error)\r\n   at Microsoft.PowerShell.Commands.ConvertFromJsonCommand.ConvertFromJsonHelper(String input)\r\n   at Microsoft.PowerShell.Commands.ConvertFromJsonCommand.EndProcessing()\r\n   at System.Management.Automation.CommandProcessorBase.Complete()\r\n\n    at ChildProcess.<anonymous> (file:///E:/Downloads/45/chaoxing-gui/desktop/scripts/p3-smoke.mjs:276:52)\n    at ChildProcess.emit (node:events:508:28)\n    at ChildProcess._handle.onexit (node:internal/child_process:294:12)",
+  "endedAt": "2026-09-07T16:20:21.115Z"
+}

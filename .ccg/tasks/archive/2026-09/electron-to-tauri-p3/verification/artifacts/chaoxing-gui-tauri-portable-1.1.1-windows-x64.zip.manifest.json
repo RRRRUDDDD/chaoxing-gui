@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "kind": "chaoxing-gui-tauri-artifact",
+  "version": "1.1.1",
+  "artifact": {
+    "path": "chaoxing-gui-tauri-portable-1.1.1-windows-x64.zip",
+    "length": 186516281,
+    "sha256": "3318ca14cf4c20818f69fedded0f52b479ab542003cc12625e19398f7b993e76"
+  },
+  "payloadManifest": {
+    "path": "package-manifest.json",
+    "sha256": "38c7a6a0cd6f35853aa7f26e0a47758fa8a8a324cc5873cc1c318feed7cef57b"
+  }
+}

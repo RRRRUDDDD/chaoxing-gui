@@ -1,0 +1,73 @@
+   Compiling chaoxing-desktop v1.1.1 (E:\Downloads\45\chaoxing-gui\desktop\src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.23s
+     Running unittests src\main.rs (desktop\src-tauri\target\debug\deps\chaoxing_desktop-d6d24a0e1daeb87c.exe)
+
+running 8 tests
+test webview_runtime::tests::available_runtime_is_detected_before_the_app_runs_once ... FAILED
+test webview_runtime::tests::check_available_exits_zero_without_ui_backend_or_data_setup ... FAILED
+test webview_runtime::tests::check_flag_is_exact_and_can_follow_other_arguments ... FAILED
+test webview_runtime::tests::check_missing_exits_three_without_ui_backend_or_data_setup ... FAILED
+test webview_runtime::tests::detection_errors_fail_closed_and_keep_actionable_guidance ... FAILED
+test webview_runtime::tests::empty_version_is_unavailable_in_normal_and_check_modes ... FAILED
+test webview_runtime::tests::missing_runtime_has_native_chinese_online_and_offline_guidance ... FAILED
+test webview_runtime::tests::missing_runtime_never_enters_the_app_or_creates_a_webview ... FAILED
+
+failures:
+
+---- webview_runtime::tests::available_runtime_is_detected_before_the_app_runs_once stdout ----
+
+thread 'webview_runtime::tests::available_runtime_is_detected_before_the_app_runs_once' (16760) panicked at src\webview_runtime.rs:113:9:
+assertion `left == right` failed
+  left: ["app"]
+ right: ["detect", "app"]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- webview_runtime::tests::check_available_exits_zero_without_ui_backend_or_data_setup stdout ----
+
+thread 'webview_runtime::tests::check_available_exits_zero_without_ui_backend_or_data_setup' (27088) panicked at src\webview_runtime.rs:123:16:
+check mode must not enter UI/backend/data setup
+
+---- webview_runtime::tests::check_flag_is_exact_and_can_follow_other_arguments stdout ----
+
+thread 'webview_runtime::tests::check_flag_is_exact_and_can_follow_other_arguments' (33504) panicked at src\webview_runtime.rs:176:16:
+check mode must not start the app
+
+---- webview_runtime::tests::check_missing_exits_three_without_ui_backend_or_data_setup stdout ----
+
+thread 'webview_runtime::tests::check_missing_exits_three_without_ui_backend_or_data_setup' (29792) panicked at src\webview_runtime.rs:134:16:
+check mode must not enter UI/backend/data setup
+
+---- webview_runtime::tests::detection_errors_fail_closed_and_keep_actionable_guidance stdout ----
+
+thread 'webview_runtime::tests::detection_errors_fail_closed_and_keep_actionable_guidance' (33764) panicked at src\webview_runtime.rs:146:16:
+detection errors must not enter the application
+
+---- webview_runtime::tests::empty_version_is_unavailable_in_normal_and_check_modes stdout ----
+
+thread 'webview_runtime::tests::empty_version_is_unavailable_in_normal_and_check_modes' (38300) panicked at src\webview_runtime.rs:162:24:
+an empty version cannot establish availability
+
+---- webview_runtime::tests::missing_runtime_has_native_chinese_online_and_offline_guidance stdout ----
+
+thread 'webview_runtime::tests::missing_runtime_has_native_chinese_online_and_offline_guidance' (19868) panicked at src\webview_runtime.rs:96:13:
+missing guidance: 运行时
+
+---- webview_runtime::tests::missing_runtime_never_enters_the_app_or_creates_a_webview stdout ----
+
+thread 'webview_runtime::tests::missing_runtime_never_enters_the_app_or_creates_a_webview' (7116) panicked at src\webview_runtime.rs:74:9:
+lib::run must remain behind the gate
+
+
+failures:
+    webview_runtime::tests::available_runtime_is_detected_before_the_app_runs_once
+    webview_runtime::tests::check_available_exits_zero_without_ui_backend_or_data_setup
+    webview_runtime::tests::check_flag_is_exact_and_can_follow_other_arguments
+    webview_runtime::tests::check_missing_exits_three_without_ui_backend_or_data_setup
+    webview_runtime::tests::detection_errors_fail_closed_and_keep_actionable_guidance
+    webview_runtime::tests::empty_version_is_unavailable_in_normal_and_check_modes
+    webview_runtime::tests::missing_runtime_has_native_chinese_online_and_offline_guidance
+    webview_runtime::tests::missing_runtime_never_enters_the_app_or_creates_a_webview
+
+test result: FAILED. 0 passed; 8 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--bin chaoxing-desktop`

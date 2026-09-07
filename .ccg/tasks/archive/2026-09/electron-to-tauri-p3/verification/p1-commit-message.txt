@@ -1,0 +1,10 @@
+feat(desktop): record retained P1 Tauri host foundation
+
+Adopt the verified historical P1 snapshots without changing the current
+working tree, plus original toolchain, icons and tests. Synchronize the
+missing Tauri CLI npm lock so the retained dependency is reproducible.
+
+The following P2 integration commit completes this review base. The original
+api/desktop_runtime.py bytes were not retained, so its verified final-only
+snapshot is deliberately recorded there rather than fabricated as P1.
+This historical boundary is not a standalone release acceptance checkpoint.

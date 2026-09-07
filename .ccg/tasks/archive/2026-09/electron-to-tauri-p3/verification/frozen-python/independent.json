@@ -1,0 +1,231 @@
+{
+  "runId": "bc1f3f70-a40a-4e08-906a-55e85f999f74",
+  "startedAt": "2026-09-07T15:59:01.034Z",
+  "success": true,
+  "checks": [
+    {
+      "name": "python-independent-health-static-config-validation-eof",
+      "result": "PASS",
+      "upstreamAccountsUsed": false,
+      "learningTaskCreated": false,
+      "before": {
+        "host": {
+          "pid": 38528,
+          "createdAtFileTime": "134332703431509877",
+          "executable": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\p3-python-smoke-evidence\\smoke-hVSfUu\\fixture\\package\\chaoxing-gui.exe",
+          "inOuterJob": true,
+          "alive": true,
+          "exitCode": null
+        },
+        "active": [
+          {
+            "pid": 38528,
+            "createdAtFileTime": "134332703431509877",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\p3-python-smoke-evidence\\smoke-hVSfUu\\fixture\\package\\chaoxing-gui.exe",
+            "inOuterJob": true,
+            "alive": true,
+            "exitCode": null
+          },
+          {
+            "pid": 14400,
+            "createdAtFileTime": "134332703453597408",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\p3-python-smoke-evidence\\smoke-hVSfUu\\fixture\\package\\chaoxing-gui.exe",
+            "inOuterJob": true,
+            "alive": true,
+            "exitCode": null
+          }
+        ],
+        "observed": [
+          {
+            "pid": 38528,
+            "createdAtFileTime": "134332703431509877",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\p3-python-smoke-evidence\\smoke-hVSfUu\\fixture\\package\\chaoxing-gui.exe",
+            "inOuterJob": true,
+            "alive": true,
+            "exitCode": null
+          },
+          {
+            "pid": 14400,
+            "createdAtFileTime": "134332703453597408",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\p3-python-smoke-evidence\\smoke-hVSfUu\\fixture\\package\\chaoxing-gui.exe",
+            "inOuterJob": true,
+            "alive": true,
+            "exitCode": null
+          }
+        ],
+        "outerJobHandleRetained": true
+      },
+      "after": {
+        "host": {
+          "pid": 38528,
+          "createdAtFileTime": "134332703431509877",
+          "executable": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\p3-python-smoke-evidence\\smoke-hVSfUu\\fixture\\package\\chaoxing-gui.exe",
+          "inOuterJob": true,
+          "alive": false,
+          "exitCode": 0
+        },
+        "active": [],
+        "observed": [
+          {
+            "pid": 38528,
+            "createdAtFileTime": "134332703431509877",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\p3-python-smoke-evidence\\smoke-hVSfUu\\fixture\\package\\chaoxing-gui.exe",
+            "inOuterJob": true,
+            "alive": false,
+            "exitCode": 0
+          },
+          {
+            "pid": 14400,
+            "createdAtFileTime": "134332703453597408",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\p3-python-smoke-evidence\\smoke-hVSfUu\\fixture\\package\\chaoxing-gui.exe",
+            "inOuterJob": true,
+            "alive": false,
+            "exitCode": 0
+          }
+        ],
+        "outerJobHandleRetained": true
+      }
+    }
+  ],
+  "processes": [
+    {
+      "executable": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\p3-python-smoke-evidence\\smoke-hVSfUu\\fixture\\package\\chaoxing-gui.exe",
+      "mode": "Independent",
+      "data": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\p3-python-smoke-evidence\\smoke-hVSfUu\\fixture\\data",
+      "sanitizedPath": "C:\\WINDOWS\\System32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem",
+      "headless": true,
+      "stdin": "real pipe",
+      "process": {
+        "pid": 38528,
+        "createdAtFileTime": "134332703431509877",
+        "executable": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\p3-python-smoke-evidence\\smoke-hVSfUu\\fixture\\package\\chaoxing-gui.exe",
+        "inOuterJob": true,
+        "alive": true,
+        "exitCode": null
+      },
+      "listeners": [
+        {
+          "address": "127.0.0.1",
+          "port": 30791,
+          "pid": 14400
+        }
+      ],
+      "ready": {
+        "host": {
+          "pid": 38528,
+          "createdAtFileTime": "134332703431509877",
+          "executable": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\p3-python-smoke-evidence\\smoke-hVSfUu\\fixture\\package\\chaoxing-gui.exe",
+          "inOuterJob": true,
+          "alive": true,
+          "exitCode": null
+        },
+        "active": [
+          {
+            "pid": 38528,
+            "createdAtFileTime": "134332703431509877",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\p3-python-smoke-evidence\\smoke-hVSfUu\\fixture\\package\\chaoxing-gui.exe",
+            "inOuterJob": true,
+            "alive": true,
+            "exitCode": null
+          },
+          {
+            "pid": 14400,
+            "createdAtFileTime": "134332703453597408",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\p3-python-smoke-evidence\\smoke-hVSfUu\\fixture\\package\\chaoxing-gui.exe",
+            "inOuterJob": true,
+            "alive": true,
+            "exitCode": null
+          }
+        ],
+        "observed": [
+          {
+            "pid": 38528,
+            "createdAtFileTime": "134332703431509877",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\p3-python-smoke-evidence\\smoke-hVSfUu\\fixture\\package\\chaoxing-gui.exe",
+            "inOuterJob": true,
+            "alive": true,
+            "exitCode": null
+          },
+          {
+            "pid": 14400,
+            "createdAtFileTime": "134332703453597408",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\p3-python-smoke-evidence\\smoke-hVSfUu\\fixture\\package\\chaoxing-gui.exe",
+            "inOuterJob": true,
+            "alive": true,
+            "exitCode": null
+          }
+        ],
+        "outerJobHandleRetained": true
+      },
+      "shutdown": {
+        "host": {
+          "pid": 38528,
+          "createdAtFileTime": "134332703431509877",
+          "executable": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\p3-python-smoke-evidence\\smoke-hVSfUu\\fixture\\package\\chaoxing-gui.exe",
+          "inOuterJob": true,
+          "alive": false,
+          "exitCode": 0
+        },
+        "active": [],
+        "observed": [
+          {
+            "pid": 38528,
+            "createdAtFileTime": "134332703431509877",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\p3-python-smoke-evidence\\smoke-hVSfUu\\fixture\\package\\chaoxing-gui.exe",
+            "inOuterJob": true,
+            "alive": false,
+            "exitCode": 0
+          },
+          {
+            "pid": 14400,
+            "createdAtFileTime": "134332703453597408",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\p3-python-smoke-evidence\\smoke-hVSfUu\\fixture\\package\\chaoxing-gui.exe",
+            "inOuterJob": true,
+            "alive": false,
+            "exitCode": 0
+          }
+        ],
+        "outerJobHandleRetained": true
+      },
+      "cleanup": {
+        "fallbackUsed": false,
+        "before": [],
+        "remaining": [],
+        "observed": [
+          {
+            "pid": 38528,
+            "createdAtFileTime": "134332703431509877",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\p3-python-smoke-evidence\\smoke-hVSfUu\\fixture\\package\\chaoxing-gui.exe",
+            "inOuterJob": true,
+            "alive": false,
+            "exitCode": 0
+          },
+          {
+            "pid": 14400,
+            "createdAtFileTime": "134332703453597408",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\p3-python-smoke-evidence\\smoke-hVSfUu\\fixture\\package\\chaoxing-gui.exe",
+            "inOuterJob": true,
+            "alive": false,
+            "exitCode": 0
+          }
+        ]
+      }
+    }
+  ],
+  "limitations": [
+    "DOM clicks over CDP do not represent physical mouse input",
+    "Debug execution does not qualify as release or clean-system validation"
+  ],
+  "selection": {
+    "kind": "python",
+    "configuration": "Release",
+    "scenario": "All",
+    "mode": "Independent",
+    "nestedJob": false
+  },
+  "releasePermission": {
+    "required": false,
+    "allowed": true
+  },
+  "endedAt": "2026-09-07T15:59:08.379Z"
+}

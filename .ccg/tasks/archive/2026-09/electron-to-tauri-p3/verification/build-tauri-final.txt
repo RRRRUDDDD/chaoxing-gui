@@ -1,0 +1,210 @@
+Prepared backend 1.1.1 (815 files): E:\Downloads\45\chaoxing-gui\desktop\src-tauri\resources\backend
+   Compiling chaoxing-desktop v1.1.1 (E:\Downloads\45\chaoxing-gui\desktop\src-tauri)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 8.95s
+   Compiling chaoxing-desktop v1.1.1 (E:\Downloads\45\chaoxing-gui\desktop\src-tauri)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 8.90s
+   Compiling chaoxing-desktop v1.1.1 (E:\Downloads\45\chaoxing-gui\desktop\src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 53.84s
+     Running unittests src\lib.rs (desktop\src-tauri\target\debug\deps\chaoxing_desktop_lib-abd450775ab3c285.exe)
+
+running 71 tests
+test api_proxy::tests::log_cursor_bounds ... ok
+test api_proxy::tests::task_id_whitelist ... ok
+test api_proxy::tests::path_building ... ok
+test api_proxy::tests::p2_object_boundary_rejects_positional_api_request_deserialization ... ok
+test api_proxy::tests::dto_rejects_unknown_operation ... ok
+test command_tests::exact_envelope_rejects_credentials_and_extra_arguments ... ok
+test api_proxy::tests::dto_accepts_all_eight_camel_case_operations ... ok
+test command_tests::p2_object_boundary_rejects_nested_api_array ... ok
+test api_proxy::tests::dto_requires_exact_fields_and_operation_options ... ok
+test api_proxy::tests::dto_rejects_non_string_operation ... ok
+test command_tests::p2_object_boundary_rejects_nested_task_array_and_preserves_null ... ok
+test command_tests::p2_object_boundary_rejects_positional_ipc_envelopes ... ok
+test backend::tests::timeout_io_error_is_distinct_from_network_error ... ok
+test command_tests::navigation_rejects_foreign_origins_and_credentials ... ok
+test migration::p2_tests::destination_junction_is_refused_without_writing_through_it ... ok
+test migration::p2_tests::config_only_new_data_is_never_overwritten ... ok
+test migration::p2_tests::cookie_only_new_data_is_never_overwritten ... ok
+test backend::tests::early_cancel_ledger_is_bounded_and_expires ... ok
+test backend::tests::inflight_capacity_and_cancellation_ownership_are_bounded ... ok
+test migration::p2_tests::junction_inside_staging_or_destination_parent_is_refused ... ok
+test migration::p2_tests::busy_legacy_is_deferred_until_legacy_exits ... ok
+test migration::p2_tests::cookie_directory_or_unknown_new_data_prevents_import ... ok
+test migration::p2_tests::copy_error_never_publishes_a_partial_session_and_can_retry ... ok
+test migration::p2_tests::imports_whitelist_once_and_retains_every_source_byte ... ok
+test migration::p2_tests::interrupted_sibling_staging_is_rebuilt_before_publish ... ok
+test migration::p2_tests::corrupt_session_skips_only_session_and_keeps_originals ... ok
+test migration::p2_tests::source_and_destination_overlap_is_refused_without_writing_old_data ... ok
+test migration::p2_tests::published_marker_makes_exit_after_publish_retry_safe ... ok
+test migration::p2_tests::source_root_junction_is_refused_without_modifying_target ... ok
+test migration::p2_tests::staging_junction_is_refused_without_touching_its_target ... ok
+test migration::p2_tests::recursive_cookie_junction_is_refused_without_copying_outside_data ... ok
+test migration::p2_tests::verbatim_legacy_path_still_matches_electron_user_data_title ... ok
+test migration::p2_tests::oversized_but_well_formed_session_is_skipped_with_notice ... ok
+test migration::p2_tests::top_level_whitelisted_path_reparse_is_refused ... ok
+test migration::p2_tests::top_level_cookie_directory_link_is_refused ... ok
+test session_store::tests::corrupt_json_returns_none ... ok
+test migration::p2_tests::legacy_starting_before_publish_defers_without_marker ... ok
+test migration::p2_tests::old_p1_staging_is_cleaned_without_publishing_its_partial_data ... ok
+test session_store::tests::oversized_file_returns_none ... ok
+test session_store::tests::p2_object_boundary_rejects_positional_session_deserialization ... ok
+test session_store::tests::p2_object_boundary_session_maps_and_explicit_nulls_round_trip ... ok
+test migration::p2_tests::electron_message_window_defers_import_until_legacy_exit ... ok
+test session_store::tests::clear_removes_session_and_tmp ... ok
+test session_store::tests::p2_missing_nullable_keys_are_invalid_like_node ... ok
+test session_store::tests::p2_read_io_failure_is_visible ... ok
+test session_store::tests::p2_object_boundary_disk_read_rejects_arrays_at_every_schema_level ... ok
+test migration::p2_tests::new_business_data_appearing_before_publish_is_preserved ... ok
+test session_store::tests::p2_empty_task_id_cannot_replace_saved_task ... ok
+test session_store::tests::login_switch_clears_active_task ... ok
+test session_store::tests::p2_write_creates_private_profile_parent ... ok
+test session_store::tests::rejects_active_task_account_mismatch ... ok
+test session_store::tests::rejects_bad_task_id ... ok
+test session_store::tests::p2_written_session_has_all_node_schema_keys ... ok
+test session_store::tests::rejects_control_chars_in_username ... ok
+test session_store::tests::rejects_oversized_username ... ok
+test session_store::tests::p2_failed_windows_replace_preserves_previous_file ... ok
+test session_store::tests::rejects_unknown_extra_field ... ok
+test session_store::tests::rejects_use_cookies_false ... ok
+test session_store::tests::remember_task_without_login_errors ... ok
+test session_store::tests::persists_login_and_task_across_reads ... ok
+test migration::p2_tests::unrelated_electron_message_window_does_not_defer_import ... ok
+test session_store::tests::p2_username_length_and_whitespace_match_javascript ... ok
+test session_store::tests::remember_task_account_mismatch_errors ... ok
+test migration::p2_tests::session_io_error_aborts_without_marker_and_retries_after_unlock ... ok
+test migration::p2_tests::missing_or_empty_legacy_publishes_only_completion_marker ... ok
+test migration::p2_tests::public_entry_point_honors_legacy_override_in_an_isolated_process ... ok
+test migration::p2_tests::cancellation_at_each_checkpoint_can_be_retried_without_partial_publish ... ok
+test migration::p2_tests::publish_io_error_preserves_staging_and_retries_after_unlock ... ok
+test migration::p2_tests::actual_process_exit_at_copy_and_publish_boundaries_is_retry_safe ... ok
+test windows_job::tests::terminate_is_idempotent_and_reaps ... ok
+test windows_job::tests::drop_job_reaps_process_tree ... ok
+
+test result: ok. 71 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.66s
+
+     Running unittests src\main.rs (desktop\src-tauri\target\debug\deps\chaoxing_desktop-2eb0d051128025fb.exe)
+
+running 11 tests
+test webview_runtime::tests::available_runtime_is_detected_before_the_app_runs_once ... ok
+test webview_runtime::tests::check_debug_build_exits_before_detection_or_application_side_effects ... ok
+test webview_runtime::tests::check_debug_build_takes_priority_over_webview_checks_in_either_order ... ok
+test webview_runtime::tests::check_debug_build_flag_is_exact ... ok
+test webview_runtime::tests::check_available_exits_zero_without_ui_backend_or_data_setup ... ok
+test webview_runtime::tests::check_flag_is_exact_and_can_follow_other_arguments ... ok
+test webview_runtime::tests::check_missing_exits_three_without_ui_backend_or_data_setup ... ok
+test webview_runtime::tests::empty_version_is_unavailable_in_normal_and_check_modes ... ok
+test webview_runtime::tests::detection_errors_fail_closed_and_keep_actionable_guidance ... ok
+test webview_runtime::tests::missing_runtime_has_native_chinese_online_and_offline_guidance ... ok
+test webview_runtime::tests::missing_runtime_never_enters_the_app_or_creates_a_webview ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\bin\fake-backend.rs (desktop\src-tauri\target\debug\deps\fake_backend-1925da6158d297af.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\api_lifecycle.rs (desktop\src-tauri\target\debug\deps\api_lifecycle-756898085be0331c.exe)
+
+running 14 tests
+test p2_non_ready_phases_reject_requests ... ok
+test p2_rejects_invalid_ids_and_options_before_http ... ok
+test p2_backend_status_does_not_serialize_connection_credentials ... ok
+test p2_early_cancel_sends_zero_requests_and_remains_cancelled ... ok
+test p2_truncated_error_body_is_not_successful_null ... ok
+test p2_invalid_json_response_is_not_successful_null ... ok
+test p2_completed_ids_remain_guarded_against_late_reuse ... ok
+test p2_redirect_is_not_followed ... ok
+test p2_active_and_cancelled_request_ids_cannot_be_reused ... ok
+test p2_success_and_http_error_statuses_are_preserved_without_start_retry ... ok
+test p2_stop_cancels_body_read_and_blocks_new_requests ... ok
+test p2_cancel_during_headers_or_body_discards_success_and_409 ... ok
+test p2_oversized_success_and_error_bodies_are_rejected ... ok
+test p2_stalled_error_body_obeys_whole_request_timeout ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 30.02s
+
+     Running tests\backend_lifecycle.rs (desktop\src-tauri\target\debug\deps\backend_lifecycle-79929f0e75ff4e5d.exe)
+
+running 16 tests
+test api_request_requires_ready ... ok
+test api_cancel_unknown_id_is_false ... ok
+test p2_data_directory_failure_transitions_to_failed ... ok
+test exit_before_ready_fails ... ok
+test api_request_forwards_and_passes_status ... ok
+test p2_stop_before_background_start_prevents_spawn ... ok
+test p2_stop_during_health_does_not_wait_for_start_deadline ... ok
+test p2_concurrent_stop_is_idempotent_and_bounded ... ok
+test p2_failed_state_with_live_child_still_stops ... ok
+test p2_post_ready_exit_is_observable_and_reaps_grandchild ... ok
+test host_kills_tree_on_stop_grandchild_reaped ... ok
+test p2_stop_during_handshake_registers_child_and_cannot_restore_ready ... ok
+test missing_exe_fails_without_panic ... ok
+test start_ok_ready_phase ... ok
+test wrong_instance_fails ... ok
+test stop_is_idempotent ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.21s
+
+     Running tests\nested_job.rs (desktop\src-tauri\target\debug\deps\nested_job-70b59bda9e53fb47.exe)
+
+running 3 tests
+test nested_job_helper ... ignored, disposable subprocess entry point; started by the two nested Job tests
+test nested_job_forced_helper_death_reaps_exact_backend_and_grandchild ... ok
+test nested_job_ready_then_stdin_eof_reaps_exact_backend_and_grandchild ... ok
+
+test result: ok. 2 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.11s
+
+   Doc-tests chaoxing_desktop_lib
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+
+> chaoxing-desktop@1.1.1 tauri
+> tauri build --ci --target x86_64-pc-windows-msvc --bundles nsis -- --locked -j 1 --no-default-features
+
+        Info Looking up installed tauri packages to check mismatched versions...
+   Compiling chaoxing-desktop v1.1.1 (E:\Downloads\45\chaoxing-gui\desktop\src-tauri)
+    Finished `release` profile [optimized] target(s) in 2m 01s
+       Built application at: E:\Downloads\45\chaoxing-gui\desktop\src-tauri\target\x86_64-pc-windows-msvc\release\chaoxing-gui-tauri.exe
+        Info Patching E:\Downloads\45\chaoxing-gui\desktop\src-tauri\target\x86_64-pc-windows-msvc\release\chaoxing-gui-tauri.exe with bundle type information: nsis
+        Info Target: x64
+     Running makensis to produce E:\Downloads\45\chaoxing-gui\desktop\src-tauri\target\x86_64-pc-windows-msvc\release\bundle\nsis\Chaoxing GUI Tauri_1.1.1_x64-setup.exe
+    Finished 1 bundle at:
+        E:\Downloads\45\chaoxing-gui\desktop\src-tauri\target\x86_64-pc-windows-msvc\release\bundle\nsis\Chaoxing GUI Tauri_1.1.1_x64-setup.exe
+
+✔ NSIS production table checks every emitted payload kind before install and uninstall mutations (1.6981ms)
+✔ NSIS guards allow normal Chinese and space paths for install and uninstall while retaining data (303.9968ms)
+✔ NSIS install rejects installation directory junction before any payload mutation (156.7472ms)
+✔ NSIS install rejects backend junction before any payload mutation (151.0769ms)
+✔ NSIS install rejects backend/_internal junction before any payload mutation (152.3477ms)
+✔ NSIS uninstall rejects installation directory junction before any payload mutation (142.4419ms)
+✔ NSIS uninstall rejects backend junction before any payload mutation (146.6829ms)
+✔ NSIS uninstall rejects backend/_internal junction before any payload mutation (148.1319ms)
+✔ NSIS checks ancestors above INSTDIR and existing host/uninstaller leaf paths (1105.695ms)
+✔ NSIS guards reject relative roots, traversal, ADS, device paths and file/directory collisions (2897.1188ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5600.1287
+Verified portable 1.1.1 (826 files): E:\Downloads\45\chaoxing-gui\desktop\release\tauri\.portable-staging-2ec682e87ca7451fba228ca152b58ab1\chaoxing-gui-tauri-portable-1.1.1-windows-x64.zip
+Packaged portable 1.1.1: E:\Downloads\45\chaoxing-gui\desktop\release\tauri\chaoxing-gui-tauri-portable-1.1.1-windows-x64.zip
+Verified portable 1.1.1 (826 files): E:\Downloads\45\chaoxing-gui\desktop\release\tauri\chaoxing-gui-tauri-portable-1.1.1-windows-x64.zip
+Verified portable 1.1.1 (826 files): E:\Downloads\45\chaoxing-gui\desktop\release\tauri\chaoxing-gui-tauri-portable-1.1.1-windows-x64.zip
+Exception: E:\Downloads\45\chaoxing-gui\desktop\scripts\nsis-content.ps1:73:17
+Line |
+  73 |                  throw "NSIS payload hash/length mismatch: $relative"
+     |                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     | NSIS payload hash/length mismatch: chaoxing-gui-tauri.exe
+Exception: E:\Downloads\45\chaoxing-gui\desktop\scripts\build-tauri.ps1:17:32
+Line |
+  17 |  … TCODE -ne 0) { throw "$Program failed with exit code $LASTEXITCODE" }
+     |                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     | pwsh failed with exit code 1

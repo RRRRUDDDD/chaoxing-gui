@@ -1,0 +1,30 @@
+   Compiling chaoxing-desktop v1.1.1 (E:\Downloads\45\chaoxing-gui\desktop\src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.82s
+     Running unittests src\main.rs (desktop\src-tauri\target\debug\deps\chaoxing_desktop-759a9025093d2085.exe)
+
+running 3 tests
+test webview_runtime::tests::check_debug_build_exits_before_detection_or_application_side_effects ... FAILED
+test webview_runtime::tests::check_debug_build_flag_is_exact ... ok
+test webview_runtime::tests::check_debug_build_takes_priority_over_webview_checks_in_either_order ... FAILED
+
+failures:
+
+---- webview_runtime::tests::check_debug_build_exits_before_detection_or_application_side_effects stdout ----
+
+thread 'webview_runtime::tests::check_debug_build_exits_before_detection_or_application_side_effects' (9240) panicked at src\webview_runtime.rs:208:16:
+build-profile checks must not detect WebView2
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- webview_runtime::tests::check_debug_build_takes_priority_over_webview_checks_in_either_order stdout ----
+
+thread 'webview_runtime::tests::check_debug_build_takes_priority_over_webview_checks_in_either_order' (38924) panicked at src\webview_runtime.rs:224:20:
+build-profile checks must precede runtime detection
+
+
+failures:
+    webview_runtime::tests::check_debug_build_exits_before_detection_or_application_side_effects
+    webview_runtime::tests::check_debug_build_takes_priority_over_webview_checks_in_either_order
+
+test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 8 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--bin chaoxing-desktop`

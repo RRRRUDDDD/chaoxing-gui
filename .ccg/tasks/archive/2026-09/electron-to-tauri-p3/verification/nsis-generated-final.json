@@ -1,0 +1,9 @@
+{
+  "generatedInstallerSha256": "49d730fa368b79077f3d533732632f974b45a779bfc646266580b79c4d448743",
+  "templateSha256": "4d7cda22a499521d3c06145981e5e1d92ad48b8e8fafc8e171eca2753f50da1b",
+  "hooksSha256": "58074b58ef4299c3a1417c6b2fa738e640fc17540cd302d32e0563668a8724ea",
+  "emptyOrDotPayloadPaths": [],
+  "oldTreeCheckIncluded": true,
+  "automaticMsiMigrationRefused": true,
+  "productInstallerExecuted": false
+}

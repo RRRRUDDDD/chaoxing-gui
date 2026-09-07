@@ -1,0 +1,196 @@
+v20.20.0
+TAP version 13
+# Subtest: Installation selection rejects unknown switches, missing inputs, and invalid deadlines
+ok 1 - Installation selection rejects unknown switches, missing inputs, and invalid deadlines
+  ---
+  duration_ms: 2.1547
+  ...
+# Subtest: Installation CLI refuses the real user before any installer or host and saves JSON
+ok 2 - Installation CLI refuses the real user before any installer or host and saves JSON
+  ---
+  duration_ms: 103.6253
+  ...
+# Subtest: Preexisting application, legacy, default install, or registry state blocks installation
+ok 3 - Preexisting application, legacy, default install, or registry state blocks installation
+  ---
+  duration_ms: 7.2511
+  ...
+# Subtest: Missing or incorrectly typed installation artifacts are rejected without execution
+ok 4 - Missing or incorrectly typed installation artifacts are rejected without execution
+  ---
+  duration_ms: 6.7695
+  ...
+# Subtest: NSIS directory tails preserve Unicode/spaces and are never general raw arguments
+ok 5 - NSIS directory tails preserve Unicode/spaces and are never general raw arguments
+  ---
+  duration_ms: 1.802
+  ...
+# Subtest: Registry acceptance requires the owned install path and exact expected uninstaller
+ok 6 - Registry acceptance requires the owned install path and exact expected uninstaller
+  ---
+  duration_ms: 1.9433
+  ...
+# Subtest: Scratch cleanup requires its current ownership marker and refuses junctions
+ok 7 - Scratch cleanup requires its current ownership marker and refuses junctions
+  ---
+  duration_ms: 15.6682
+  ...
+# Subtest: Installation install-directory junction fixture checks rejection and unlinks without deleting its target
+ok 8 - Installation install-directory junction fixture checks rejection and unlinks without deleting its target
+  ---
+  duration_ms: 66.6092
+  ...
+# Subtest: Installation backend junction fixture checks rejection and unlinks without deleting its target
+ok 9 - Installation backend junction fixture checks rejection and unlinks without deleting its target
+  ---
+  duration_ms: 63.4162
+  ...
+# Subtest: Installation nested-backend junction fixture checks rejection and unlinks without deleting its target
+ok 10 - Installation nested-backend junction fixture checks rejection and unlinks without deleting its target
+  ---
+  duration_ms: 61.3881
+  ...
+# Subtest: Installation junction acceptance rejects payload writes and changed target bytes
+ok 11 - Installation junction acceptance rejects payload writes and changed target bytes
+  ---
+  duration_ms: 45.9906
+  ...
+# Subtest: Installation junction cleanup refuses an unowned scratch or a substituted target
+ok 12 - Installation junction cleanup refuses an unowned scratch or a substituted target
+  ---
+  duration_ms: 19.6349
+  ...
+# Subtest: Portable files are verified against both manifests without executing payloads
+ok 13 - Portable files are verified against both manifests without executing payloads
+  ---
+  duration_ms: 1446.5225
+  ...
+# Subtest: Installed files are verified against both manifests without executing payloads
+ok 14 - Installed files are verified against both manifests without executing payloads
+  ---
+  duration_ms: 1395.7823
+  ...
+# Subtest: Installed manifest verification catches missing licenses, changed metadata, and extra files
+ok 15 - Installed manifest verification catches missing licenses, changed metadata, and extra files
+  ---
+  duration_ms: 2994.5038
+  ...
+# Subtest: Uninstall retention includes actual Tauri files and detects deleted LocalAppData WebView data
+ok 16 - Uninstall retention includes actual Tauri files and detects deleted LocalAppData WebView data
+  ---
+  duration_ms: 12.8919
+  ...
+# Subtest: Cancelled nested smoke profiles are reclaimed from its pre-claim handoff after verified Job cleanup
+ok 17 - Cancelled nested smoke profiles are reclaimed from its pre-claim handoff after verified Job cleanup
+  ---
+  duration_ms: 29.5272
+  ...
+# Subtest: Nested profile cleanup refuses unverified/live processes, changed handoffs, and another run ownership
+ok 18 - Nested profile cleanup refuses unverified/live processes, changed handoffs, and another run ownership
+  ---
+  duration_ms: 21.4217
+  ...
+# Subtest: Native formatter emits NSIS special paths last and unquoted without executing an installer
+ok 19 - Native formatter emits NSIS special paths last and unquoted without executing an installer
+  ---
+  duration_ms: 1818.5577
+  ...
+# Subtest: Embedded installation PowerShell scripts parse without running installers or registry mutations
+ok 20 - Embedded installation PowerShell scripts parse without running installers or registry mutations
+  ---
+  duration_ms: 1204.5804
+  ...
+# Subtest: P3 rejects unknown, missing, and mismatched smoke selections
+ok 21 - P3 rejects unknown, missing, and mismatched smoke selections
+  ---
+  duration_ms: 3.633
+  ...
+# Subtest: Release requires an explicit disposable user or a hosted runner, never GITHUB_ACTIONS alone
+ok 22 - Release requires an explicit disposable user or a hosted runner, never GITHUB_ACTIONS alone
+  ---
+  duration_ms: 0.5741
+  ...
+# Subtest: Compiled profile mismatches and unsupported native probe exits fail closed
+ok 23 - Compiled profile mismatches and unsupported native probe exits fail closed
+  ---
+  duration_ms: 0.5844
+  ...
+# Subtest: Production paths come from Windows known folders and include Electron legacy data
+ok 24 - Production paths come from Windows known folders and include Electron legacy data
+  ---
+  duration_ms: 0.9416
+  ...
+# Subtest: Release profile ownership refuses existing data and previous smoke runs without modifying them
+ok 25 - Release profile ownership refuses existing data and previous smoke runs without modifying them
+  ---
+  duration_ms: 26.6735
+  ...
+# Subtest: Only current smoke ownership permits profile reuse; legacy roots are never created
+ok 26 - Only current smoke ownership permits profile reuse; legacy roots are never created
+  ---
+  duration_ms: 17.4702
+  ...
+# Subtest: A profile created after the absent preflight cannot be adopted by this smoke run
+ok 27 - A profile created after the absent preflight cannot be adopted by this smoke run
+  ---
+  duration_ms: 8.6503
+  ...
+# Subtest: Profile guard refuses junctions before following them
+ok 28 - Profile guard refuses junctions before following them
+  ---
+  duration_ms: 3.9023
+  ...
+# Subtest: Host environment cannot resolve system Python or use inherited development overrides
+ok 29 - Host environment cannot resolve system Python or use inherited development overrides
+  ---
+  duration_ms: 0.858
+  ...
+# Subtest: Missing host and incomplete frozen resources fail validation before launch
+ok 30 - Missing host and incomplete frozen resources fail validation before launch
+  ---
+  duration_ms: 6.5123
+  ...
+# Subtest: Installed layout requires the host adjacent backend and never rewrites its source files
+ok 31 - Installed layout requires the host adjacent backend and never rewrites its source files
+  ---
+  duration_ms: 7.7897
+  ...
+# Subtest: Timeout always runs cleanup and cleanup failure cannot turn into a pass
+ok 32 - Timeout always runs cleanup and cleanup failure cannot turn into a pass
+  ---
+  duration_ms: 88.6632
+  ...
+# Subtest: Release CLI fails closed and writes failure evidence without launching a host
+ok 33 - Release CLI fails closed and writes failure evidence without launching a host
+  ---
+  duration_ms: 90.4446
+  ...
+# Subtest: Windows supervisor reports start failure without leaving a captured process
+ok 34 - Windows supervisor reports start failure without leaving a captured process
+  ---
+  duration_ms: 1992.5844
+  ...
+# Subtest: Windows supervisor supplies live stdin and observes a clean EOF shutdown
+ok 35 - Windows supervisor supplies live stdin and observes a clean EOF shutdown
+  ---
+  duration_ms: 2244.2577
+  ...
+# Subtest: Timed-out Windows tree is cleaned while an unrelated process survives
+ok 36 - Timed-out Windows tree is cleaned while an unrelated process survives
+  ---
+  duration_ms: 2124.1585
+  ...
+# Subtest: Chinese title crosses the supervisor pipe and WM_CLOSE reaches only the captured real window
+ok 37 - Chinese title crosses the supervisor pipe and WM_CLOSE reaches only the captured real window
+  ---
+  duration_ms: 3901.8345
+  ...
+1..37
+# tests 37
+# suites 0
+# pass 37
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 10640.7118

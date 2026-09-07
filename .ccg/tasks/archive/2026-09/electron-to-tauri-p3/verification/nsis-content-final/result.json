@@ -1,0 +1,37 @@
+{
+  "success": true,
+  "version": "1.1.1",
+  "installer": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\release\\tauri\\chaoxing-gui-tauri-setup-1.1.1-windows-x64.exe",
+  "portable": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\release\\tauri\\chaoxing-gui-tauri-portable-1.1.1-windows-x64.zip",
+  "archiveTool": "C:\\Users\\RUD\\AppData\\Local\\Microsoft\\WindowsApps\\7z.exe",
+  "installerExecuted": false,
+  "signatures": [
+    {
+      "file": "chaoxing-gui-tauri-setup-1.1.1-windows-x64.exe",
+      "status": "NotSigned",
+      "signerThumbprint": null
+    },
+    {
+      "file": "chaoxing-gui-tauri.exe",
+      "status": "NotSigned",
+      "signerThumbprint": null
+    }
+  ],
+  "payloadFileCount": 825,
+  "installerSha256": "70c18ac432d6e05dff8eea4680b1a3f3c9c1b840370c4460202865d8446ddc09",
+  "portableSha256": "3318ca14cf4c20818f69fedded0f52b479ab542003cc12625e19398f7b993e76",
+  "hostExpectation": {
+    "path": "chaoxing-gui-tauri.exe",
+    "length": 9379328,
+    "sha256": "c7d226335f554c21e63810e8193461231954d8e68c05e5e296a246a3ff9489e6",
+    "sourceSha256": "f75e63e7bb16a0be922e41830c4417b8e03b919dc0972a707cef64c6f9581a2d",
+    "preSignLength": 9379328,
+    "preSignSha256": "c7d226335f554c21e63810e8193461231954d8e68c05e5e296a246a3ff9489e6",
+    "markerOffset": 7042768,
+    "signed": false,
+    "signerThumbprint": null,
+    "derivation": "tauri-cli-2.11.4-bundle-marker"
+  },
+  "manifestSha256": "ce4baff78b90c029064ff234849912ed41b2fc871916c6ba0d46f2b145f835ac",
+  "conclusion": "Every NSIS application byte matches its build expectation: the independent NSIS host record and the verified portable resources; installation execution is a separate gate."
+}

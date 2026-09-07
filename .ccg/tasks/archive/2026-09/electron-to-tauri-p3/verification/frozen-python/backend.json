@@ -1,0 +1,238 @@
+{
+  "runId": "0a401b5c-28d5-457e-ae91-998b7f6206f1",
+  "startedAt": "2026-09-07T15:56:02.994Z",
+  "success": true,
+  "checks": [
+    {
+      "name": "python-backend-validated-ready-handshake",
+      "result": "PASS",
+      "version": 1,
+      "instanceMatched": true,
+      "dynamicPort": true
+    },
+    {
+      "name": "python-backend-health-static-config-validation-eof",
+      "result": "PASS",
+      "upstreamAccountsUsed": false,
+      "learningTaskCreated": false,
+      "before": {
+        "host": {
+          "pid": 31860,
+          "createdAtFileTime": "134332701670531842",
+          "executable": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\p3-python-smoke-evidence\\smoke-Rvkz8r\\fixture\\package\\chaoxing-backend.exe",
+          "inOuterJob": true,
+          "alive": true,
+          "exitCode": null
+        },
+        "active": [
+          {
+            "pid": 31860,
+            "createdAtFileTime": "134332701670531842",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\p3-python-smoke-evidence\\smoke-Rvkz8r\\fixture\\package\\chaoxing-backend.exe",
+            "inOuterJob": true,
+            "alive": true,
+            "exitCode": null
+          },
+          {
+            "pid": 19268,
+            "createdAtFileTime": "134332701670633599",
+            "executable": "C:\\Windows\\System32\\conhost.exe",
+            "inOuterJob": true,
+            "alive": true,
+            "exitCode": null
+          }
+        ],
+        "observed": [
+          {
+            "pid": 31860,
+            "createdAtFileTime": "134332701670531842",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\p3-python-smoke-evidence\\smoke-Rvkz8r\\fixture\\package\\chaoxing-backend.exe",
+            "inOuterJob": true,
+            "alive": true,
+            "exitCode": null
+          },
+          {
+            "pid": 19268,
+            "createdAtFileTime": "134332701670633599",
+            "executable": "C:\\Windows\\System32\\conhost.exe",
+            "inOuterJob": true,
+            "alive": true,
+            "exitCode": null
+          }
+        ],
+        "outerJobHandleRetained": true
+      },
+      "after": {
+        "host": {
+          "pid": 31860,
+          "createdAtFileTime": "134332701670531842",
+          "executable": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\p3-python-smoke-evidence\\smoke-Rvkz8r\\fixture\\package\\chaoxing-backend.exe",
+          "inOuterJob": true,
+          "alive": false,
+          "exitCode": 0
+        },
+        "active": [],
+        "observed": [
+          {
+            "pid": 31860,
+            "createdAtFileTime": "134332701670531842",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\p3-python-smoke-evidence\\smoke-Rvkz8r\\fixture\\package\\chaoxing-backend.exe",
+            "inOuterJob": true,
+            "alive": false,
+            "exitCode": 0
+          },
+          {
+            "pid": 19268,
+            "createdAtFileTime": "134332701670633599",
+            "executable": "C:\\Windows\\System32\\conhost.exe",
+            "inOuterJob": true,
+            "alive": false,
+            "exitCode": 0
+          }
+        ],
+        "outerJobHandleRetained": true
+      }
+    }
+  ],
+  "processes": [
+    {
+      "executable": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\p3-python-smoke-evidence\\smoke-Rvkz8r\\fixture\\package\\chaoxing-backend.exe",
+      "mode": "Backend",
+      "data": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\p3-python-smoke-evidence\\smoke-Rvkz8r\\fixture\\data",
+      "sanitizedPath": "C:\\WINDOWS\\System32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem",
+      "headless": true,
+      "stdin": "real pipe",
+      "process": {
+        "pid": 31860,
+        "createdAtFileTime": "134332701670531842",
+        "executable": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\p3-python-smoke-evidence\\smoke-Rvkz8r\\fixture\\package\\chaoxing-backend.exe",
+        "inOuterJob": true,
+        "alive": true,
+        "exitCode": null
+      },
+      "listeners": [
+        {
+          "pid": 31860,
+          "port": 52130,
+          "address": "127.0.0.1"
+        }
+      ],
+      "ready": {
+        "host": {
+          "pid": 31860,
+          "createdAtFileTime": "134332701670531842",
+          "executable": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\p3-python-smoke-evidence\\smoke-Rvkz8r\\fixture\\package\\chaoxing-backend.exe",
+          "inOuterJob": true,
+          "alive": true,
+          "exitCode": null
+        },
+        "active": [
+          {
+            "pid": 31860,
+            "createdAtFileTime": "134332701670531842",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\p3-python-smoke-evidence\\smoke-Rvkz8r\\fixture\\package\\chaoxing-backend.exe",
+            "inOuterJob": true,
+            "alive": true,
+            "exitCode": null
+          },
+          {
+            "pid": 19268,
+            "createdAtFileTime": "134332701670633599",
+            "executable": "C:\\Windows\\System32\\conhost.exe",
+            "inOuterJob": true,
+            "alive": true,
+            "exitCode": null
+          }
+        ],
+        "observed": [
+          {
+            "pid": 31860,
+            "createdAtFileTime": "134332701670531842",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\p3-python-smoke-evidence\\smoke-Rvkz8r\\fixture\\package\\chaoxing-backend.exe",
+            "inOuterJob": true,
+            "alive": true,
+            "exitCode": null
+          },
+          {
+            "pid": 19268,
+            "createdAtFileTime": "134332701670633599",
+            "executable": "C:\\Windows\\System32\\conhost.exe",
+            "inOuterJob": true,
+            "alive": true,
+            "exitCode": null
+          }
+        ],
+        "outerJobHandleRetained": true
+      },
+      "shutdown": {
+        "host": {
+          "pid": 31860,
+          "createdAtFileTime": "134332701670531842",
+          "executable": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\p3-python-smoke-evidence\\smoke-Rvkz8r\\fixture\\package\\chaoxing-backend.exe",
+          "inOuterJob": true,
+          "alive": false,
+          "exitCode": 0
+        },
+        "active": [],
+        "observed": [
+          {
+            "pid": 31860,
+            "createdAtFileTime": "134332701670531842",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\p3-python-smoke-evidence\\smoke-Rvkz8r\\fixture\\package\\chaoxing-backend.exe",
+            "inOuterJob": true,
+            "alive": false,
+            "exitCode": 0
+          },
+          {
+            "pid": 19268,
+            "createdAtFileTime": "134332701670633599",
+            "executable": "C:\\Windows\\System32\\conhost.exe",
+            "inOuterJob": true,
+            "alive": false,
+            "exitCode": 0
+          }
+        ],
+        "outerJobHandleRetained": true
+      },
+      "cleanup": {
+        "fallbackUsed": false,
+        "before": [],
+        "remaining": [],
+        "observed": [
+          {
+            "pid": 31860,
+            "createdAtFileTime": "134332701670531842",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\p3-python-smoke-evidence\\smoke-Rvkz8r\\fixture\\package\\chaoxing-backend.exe",
+            "inOuterJob": true,
+            "alive": false,
+            "exitCode": 0
+          },
+          {
+            "pid": 19268,
+            "createdAtFileTime": "134332701670633599",
+            "executable": "C:\\Windows\\System32\\conhost.exe",
+            "inOuterJob": true,
+            "alive": false,
+            "exitCode": 0
+          }
+        ]
+      }
+    }
+  ],
+  "limitations": [
+    "DOM clicks over CDP do not represent physical mouse input",
+    "Debug execution does not qualify as release or clean-system validation"
+  ],
+  "selection": {
+    "kind": "python",
+    "configuration": "Release",
+    "scenario": "All",
+    "mode": "Backend",
+    "nestedJob": false
+  },
+  "releasePermission": {
+    "required": false,
+    "allowed": true
+  },
+  "endedAt": "2026-09-07T15:56:10.125Z"
+}

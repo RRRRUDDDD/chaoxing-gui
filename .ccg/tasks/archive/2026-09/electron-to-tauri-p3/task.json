@@ -1,0 +1,35 @@
+{
+  "id": "electron-to-tauri-p3",
+  "title": "P3 Windows packaging and CI local delivery (external and release acceptance pending)",
+  "status": "completed",
+  "complexity": "L",
+  "risk": "high",
+  "domain": "desktop",
+  "currentPhase": "completed",
+  "nextAction": "Follow up through parent task: external reviews, clean runner release acceptance and real signing remain pending",
+  "createdAt": "2026-09-07T23:12:45.341378+08:00",
+  "branch": "main",
+  "baselineCommit": "aae12acc82c16a0ec5f5c8d8eb39c99c42ffbcc2",
+  "parentTask": ".ccg/tasks/electron-to-tauri-implementation",
+  "externalReviewPassed": false,
+  "acceptancePassed": false,
+  "overallMigrationComplete": false,
+  "foundationCommits": [
+    "9219fe24c25151af12c6c79a986b86018cd6a2ef",
+    "0d224f38f352f5822dfc31639df13b7b8d073675"
+  ],
+  "completedAt": "2026-09-07T18:13:00.173378+00:00",
+  "completionScope": "local implementation, build, verification evidence and delivery only",
+  "archivePath": ".ccg/tasks/archive/2026-09/electron-to-tauri-p3",
+  "sourceCommit": "6b2c5a2d93936cfeb9df0c44e9c7f4b1af5e24db",
+  "localDeliveryComplete": true,
+  "pendingGates": [
+    "P0/P1/P2 two-lane external review: service returned 429, no report",
+    "P3 two-lane external review: service returned 429, no report",
+    "GitHub Windows runner execution from these local source commits, including nested Job Objects",
+    "Actual release host/NSIS installation and uninstall/portable acceptance under a disposable Windows user or VM without system Python",
+    "Missing-WebView2 clean-machine online/offline runtime handling and release data-retention/rollback acceptance",
+    "Real code-signing certificate success path and signed artifact/install verification",
+    "P4 full clean Win10/Win11 matrix and P5 default-entry switch/Electron removal remain later phases"
+  ]
+}

@@ -1,0 +1,64 @@
+{
+  "installerExecuted": false,
+  "hostExecuted": false,
+  "binaries": {
+    "nsis": {
+      "length": 9379328,
+      "sha256": "b2f6fef2ca52eee34ab5ca20ee8d710f029546b18117b39ecc69f192887168dd",
+      "markers": [
+        {
+          "offset": 7042768,
+          "bytes": "__TAURI_BUNDLE_TYPE_VAR_N"
+        }
+      ]
+    },
+    "release": {
+      "length": 9379328,
+      "sha256": "69df9a2abfcbd51b0573be64b806665fd52217f16d904f0d13f2d9727853aa84",
+      "markers": [
+        {
+          "offset": 7042768,
+          "bytes": "__TAURI_BUNDLE_TYPE_VAR_U"
+        }
+      ]
+    },
+    "portable": {
+      "length": 9379328,
+      "sha256": "69df9a2abfcbd51b0573be64b806665fd52217f16d904f0d13f2d9727853aa84",
+      "markers": [
+        {
+          "offset": 7042768,
+          "bytes": "__TAURI_BUNDLE_TYPE_VAR_U"
+        }
+      ]
+    }
+  },
+  "nsis_vs_release": {
+    "diffCount": 3,
+    "firstOffsets": [
+      7042792,
+      7042793,
+      7042794
+    ],
+    "range": {
+      "start": 7042792,
+      "endExclusive": 7042795,
+      "nsis": "5f5f54415552495f42554e444c455f545950455f5641525f4e5353746578742f706c61696e0000005016004001000000180000",
+      "other": "5f5f54415552495f42554e444c455f545950455f5641525f554e4b746578742f706c61696e0000005016004001000000180000"
+    }
+  },
+  "nsis_vs_portable": {
+    "diffCount": 3,
+    "firstOffsets": [
+      7042792,
+      7042793,
+      7042794
+    ],
+    "range": {
+      "start": 7042792,
+      "endExclusive": 7042795,
+      "nsis": "5f5f54415552495f42554e444c455f545950455f5641525f4e5353746578742f706c61696e0000005016004001000000180000",
+      "other": "5f5f54415552495f42554e444c455f545950455f5641525f554e4b746578742f706c61696e0000005016004001000000180000"
+    }
+  }
+}

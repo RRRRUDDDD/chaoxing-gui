@@ -1,0 +1,35 @@
+✔ NSIS complete payload matches the portable manifest including nested Unicode dependencies (651.825ms)
+✔ NSIS missing, foreign, duplicate, traversal and wrong-format payloads are rejected before extraction (4695.3172ms)
+✔ NSIS equal-size content tampering and extracted junctions cannot pass hash verification (1444.7182ms)
+✖ NSIS generated uninstaller and decoder metadata are distinct from application payload (502.3299ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 3
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7372.1543
+
+✖ failing tests:
+
+test at desktop\tests\nsis.test.mjs:93:1
+✖ NSIS generated uninstaller and decoder metadata are distinct from application payload (502.3299ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  1 !== 0
+  
+      at TestContext.<anonymous> (file:///E:/Downloads/45/chaoxing-gui/desktop/tests/nsis.test.mjs:98:10)
+      at Test.runInAsyncScope (node:async_hooks:228:14)
+      at Test.run (node:internal/test_runner/test:1118:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:787:18)
+      at Test.postRun (node:internal/test_runner/test:1247:19)
+      at Test.run (node:internal/test_runner/test:1175:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:787:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

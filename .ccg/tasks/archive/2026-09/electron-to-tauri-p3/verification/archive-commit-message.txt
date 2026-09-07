@@ -1,0 +1,4 @@
+chore: archive ccg task electron-to-tauri-p3
+
+Archive the completed local delivery and exact verification evidence.
+Keep the parent migration in progress with external and clean-runner gates pending.

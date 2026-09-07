@@ -1,0 +1,34 @@
+   Compiling chaoxing-desktop v1.1.1 (E:\Downloads\45\chaoxing-gui\desktop\src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.02s
+     Running tests\nested_job.rs (desktop\src-tauri\target\debug\deps\nested_job-d9c9af6f1dc8bf7b.exe)
+
+running 3 tests
+test nested_job_forced_helper_death_reaps_exact_backend_and_grandchild ... FAILED
+test nested_job_helper ... ignored, disposable subprocess entry point; started by the two nested Job tests
+test nested_job_ready_then_stdin_eof_reaps_exact_backend_and_grandchild ... FAILED
+
+failures:
+
+---- nested_job_forced_helper_death_reaps_exact_backend_and_grandchild stdout ----
+
+thread 'nested_job_forced_helper_death_reaps_exact_backend_and_grandchild' (27260) panicked at tests\nested_job.rs:306:9:
+assertion `left == right` failed
+  left: [12184, 24744, 33716, 34472, 34808, 38736]
+ right: [24744, 33716, 34808]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- nested_job_ready_then_stdin_eof_reaps_exact_backend_and_grandchild stdout ----
+
+thread 'nested_job_ready_then_stdin_eof_reaps_exact_backend_and_grandchild' (18288) panicked at tests\nested_job.rs:306:9:
+assertion `left == right` failed
+  left: [16024, 26004, 28784, 32224, 35756, 36272]
+ right: [16024, 28784, 32224]
+
+
+failures:
+    nested_job_forced_helper_death_reaps_exact_backend_and_grandchild
+    nested_job_ready_then_stdin_eof_reaps_exact_backend_and_grandchild
+
+test result: FAILED. 0 passed; 2 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.13s
+
+error: test failed, to rerun pass `--test nested_job`

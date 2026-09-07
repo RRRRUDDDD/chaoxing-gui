@@ -1,0 +1,23 @@
+Prepared backend 1.1.1 (815 files): E:\Downloads\45\chaoxing-gui\desktop\backend\chaoxing-backend
+  • electron-builder  version=26.15.3 os=10.0.26100
+  • loaded configuration  file=E:\Downloads\45\chaoxing-gui\desktop\electron-builder.yml
+  • executing @electron/rebuild  electronVersion=33.4.11 arch=x64 buildFromSource=false workspaceRoot=E:\Downloads\45\chaoxing-gui\desktop projectDir=desktop appDir=desktop
+  • installing native dependencies  arch=x64
+  • completed installing native dependencies
+  • packaging       platform=win32 arch=x64 electron=33.4.11 appOutDir=desktop\release\win-unpacked
+  • downloaded      label=electron progress=100%
+  • downloaded electron zip extracted successfully  output=E:\Downloads\45\chaoxing-gui\desktop\release\win-unpacked
+  • searching for node modules  pm=npm searchDir=E:\Downloads\45\chaoxing-gui\desktop
+  • searching for node modules  pm=traversal searchDir=E:\Downloads\45\chaoxing-gui\desktop
+  • using manual traversal of node_modules to build dependency tree
+  • no node modules returned while searching directories  searchDirectories=["desktop"]
+  • updating asar integrity executable resource  executablePath=desktop\release\win-unpacked\chaoxing-gui.exe
+  • signing with signtool.exe  path=desktop\release\win-unpacked\resources\backend\chaoxing-backend.exe
+  • signing with signtool.exe  path=desktop\release\win-unpacked\chaoxing-gui.exe
+  • building        target=nsis file=desktop\release\chaoxing-gui-desktop-setup-1.1.1.exe archs=x64 oneClick=false perMachine=false
+  • signing with signtool.exe  path=desktop\release\win-unpacked\resources\elevate.exe
+  • signing with signtool.exe  path=desktop\release\chaoxing-gui-desktop-setup-1.1.1.__uninstaller.exe
+  • signing with signtool.exe  path=desktop\release\chaoxing-gui-desktop-setup-1.1.1.exe
+  • building block map  blockMapFile=desktop\release\chaoxing-gui-desktop-setup-1.1.1.exe.blockmap
+  • building        target=portable file=desktop\release\chaoxing-gui-desktop-portable-1.1.1.exe archs=x64
+  • signing with signtool.exe  path=desktop\release\chaoxing-gui-desktop-portable-1.1.1.exe

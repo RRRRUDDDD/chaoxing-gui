@@ -1,0 +1,3 @@
+v20.20.0
+smoke-tauri.ps1: The term 'C:\Users\RUD\AppData\Local\Temp\chaoxing-p3-node20\node_modules\node\bin\node.exe C:\Users\RUD\AppData\Local\Temp\chaoxing-p3-node20\node_modules\node\bin\node C:\nvm4w\nodejs\node.exe' is not recognized as a name of a cmdlet, function, script file, or executable program.
+Check the spelling of the name, or if a path was included, verify that the path is correct and try again.

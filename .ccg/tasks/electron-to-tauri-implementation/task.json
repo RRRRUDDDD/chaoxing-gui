@@ -1,0 +1,32 @@
+{
+  "id": "electron-to-tauri-implementation",
+  "title": "桌面版 Electron 迁移到 Tauri 2 的实施与验证",
+  "status": "in_progress",
+  "complexity": "L",
+  "risk": "high",
+  "domain": "desktop",
+  "currentPhase": "P3-local-delivery-archived-acceptance-pending",
+  "nextAction": "Retry P0/P1/P2 and P3 external reviews; run these source commits on a clean Windows runner and disposable release profile before P4/P5",
+  "createdAt": "2026-09-07T05:00:00Z",
+  "branch": "main",
+  "baselineCommit": "d4ae08f44772ef68cffb227feb450c05b84a9d9b",
+  "planningTaskArchive": ".ccg/tasks/archive/2026-09/electron-to-tauri-migration-plan",
+  "reviewStatus": "P3 analysis, P0/P1/P2 remedial review and final P3 two-lane reviews all failed 429 with no reports; independent local review has no new Critical/Warning",
+  "verificationStatus": "P3 local: Rust 114; Python 3.11/3.13 160 each; Web 125; Desktop 86; debug host 23; release build and NSIS/ZIP content checks passed. Remote CI, release installation and actual signing remain pending.",
+  "pocSandbox": "E:/Downloads/45/tauri-poc (outside repo)",
+  "pocEvidence": ".ccg/tasks/electron-to-tauri-implementation/verification/poc-results.json",
+  "p0Notes": "The historical PoC cwd/data-location issue was fixed in P1/P2. P3 local nested Job tests passed; execution beneath the GitHub runner Job remains unverified.",
+  "archivePath": null,
+  "p2TaskArchive": ".ccg/tasks/archive/2026-09/electron-to-tauri-p2",
+  "p2SourceCommit": "98c7ffe3f9ecb4cf24f2cbf2460ffabbb5d8725f",
+  "p2ArchiveCommit": "ed1a6e271823a17253b3d77f248515eba67fb807",
+  "p3Task": ".ccg/tasks/archive/2026-09/electron-to-tauri-p3",
+  "overallMigrationComplete": false,
+  "p3TaskArchive": ".ccg/tasks/archive/2026-09/electron-to-tauri-p3",
+  "p3SourceCommit": "6b2c5a2d93936cfeb9df0c44e9c7f4b1af5e24db",
+  "p3FoundationCommits": [
+    "9219fe24c25151af12c6c79a986b86018cd6a2ef",
+    "0d224f38f352f5822dfc31639df13b7b8d073675"
+  ],
+  "p3AcceptancePassed": false
+}

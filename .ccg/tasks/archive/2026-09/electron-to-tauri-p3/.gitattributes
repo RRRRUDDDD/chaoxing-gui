@@ -1,0 +1,2 @@
+# Preserve archived source snapshots, raw evidence and their recorded hashes.
+* -text whitespace=trailing-space,space-before-tab,cr-at-eol

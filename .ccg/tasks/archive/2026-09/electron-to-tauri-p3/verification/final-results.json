@@ -1,0 +1,250 @@
+{
+  "recordedAt": "2026-09-07T18:13:00.173378+00:00",
+  "sourceCommit": "6b2c5a2d93936cfeb9df0c44e9c7f4b1af5e24db",
+  "foundationCommits": [
+    "9219fe24c25151af12c6c79a986b86018cd6a2ef",
+    "0d224f38f352f5822dfc31639df13b7b8d073675"
+  ],
+  "localImplementationDeliveryComplete": true,
+  "p3AcceptancePassed": false,
+  "overallMigrationComplete": false,
+  "checks": {
+    "python311": {
+      "passed": 160,
+      "failed": 0
+    },
+    "python313": {
+      "passed": 160,
+      "failed": 0
+    },
+    "webNode20": {
+      "passed": 125,
+      "buildPassed": true
+    },
+    "desktopNode20": {
+      "passed": 86,
+      "failed": 0,
+      "skipped": 0
+    },
+    "rust": {
+      "passed": 114,
+      "intentionallyIgnoredSubprocessEntry": 1,
+      "fmt": true,
+      "check": true,
+      "clippy": true,
+      "test": true,
+      "releaseBuild": true
+    },
+    "realDebugHostNode20": {
+      "passed": 23,
+      "syntheticFaultsBeforeFrozenBackend": true,
+      "nestedJob": true,
+      "systemPythonExcludedFromChildPath": true
+    },
+    "frozenBackend": {
+      "passed": true
+    },
+    "independentFrozenPython": {
+      "passed": true
+    },
+    "electronPackage": {
+      "passed": true
+    },
+    "backendStaging": {
+      "files": 815,
+      "directories": 116,
+      "sourceBytesPreserved": true
+    },
+    "nsis": {
+      "applicationFiles": 825,
+      "allExpectedBytesVerified": true,
+      "installerExecuted": false
+    },
+    "portable": {
+      "filesIncludingManifest": 826,
+      "completeResourcesVerified": true
+    },
+    "workflow": {
+      "yamlParsed": true,
+      "runSteps": 23,
+      "powershellSourcesParsed": 40,
+      "executedRemotely": false
+    },
+    "localIndependentSourceReview": {
+      "critical": 0,
+      "warning": 0,
+      "externalReviewReplacement": false
+    }
+  },
+  "externalReviews": [
+    {
+      "stage": "p0p1p2-review",
+      "lane": "a",
+      "sessionId": "676f2a86-7b20-43ca-8a1b-373f069d8f96",
+      "exitCode": 1,
+      "errors": [
+        "API Error: Request rejected (429) · Service Unavailable"
+      ]
+    },
+    {
+      "stage": "p0p1p2-review",
+      "lane": "b",
+      "sessionId": "fa4c6550-c98e-4939-b0dd-5cfd5ecd9415",
+      "exitCode": 1,
+      "errors": [
+        "API Error: Request rejected (429) · Service Unavailable"
+      ]
+    },
+    {
+      "stage": "p3-analysis",
+      "lane": "a",
+      "sessionId": "db7659c7-74be-47f3-afb5-64ff6abdaef8",
+      "exitCode": 1,
+      "errors": [
+        "API Error: Request rejected (429) · Service Unavailable"
+      ]
+    },
+    {
+      "stage": "p3-analysis",
+      "lane": "b",
+      "sessionId": "0648e8d0-3cce-4800-a295-7dde573bd6f9",
+      "exitCode": 1,
+      "errors": [
+        "API Error: Request rejected (429) · Service Unavailable"
+      ]
+    },
+    {
+      "stage": "p3-final-review",
+      "lane": "a",
+      "sessionId": "48e1c868-6c84-4dc0-8541-936d0c0e886c",
+      "exitCode": 1,
+      "timedOut": false,
+      "stdoutPresent": false,
+      "errors": [
+        "API Error: Request rejected (429) · Service Unavailable"
+      ],
+      "reviewPassed": false
+    },
+    {
+      "stage": "p3-final-review",
+      "lane": "b",
+      "sessionId": "570513da-1108-4335-b8fe-a4e4cc220874",
+      "exitCode": 1,
+      "timedOut": false,
+      "stdoutPresent": false,
+      "errors": [
+        "API Error: Request rejected (429) · Service Unavailable"
+      ],
+      "reviewPassed": false
+    }
+  ],
+  "externalReviewPassed": false,
+  "artifacts": {
+    "version": "1.1.1",
+    "target": "x86_64-pc-windows-msvc",
+    "rust": "rustc 1.95.0 (59807616e 2026-04-14)",
+    "tauri": "2.11.5",
+    "signed": false,
+    "builtAt": "2026-09-07T17:44:24.6453146Z",
+    "artifacts": [
+      {
+        "name": "chaoxing-gui-tauri-setup-1.1.1-windows-x64.exe",
+        "bytes": 153754871,
+        "sha256": "70c18ac432d6e05dff8eea4680b1a3f3c9c1b840370c4460202865d8446ddc09"
+      },
+      {
+        "name": "chaoxing-gui-tauri-setup-1.1.1-windows-x64.exe.manifest.json",
+        "bytes": 1029,
+        "sha256": "ce4baff78b90c029064ff234849912ed41b2fc871916c6ba0d46f2b145f835ac"
+      },
+      {
+        "name": "chaoxing-gui-tauri-portable-1.1.1-windows-x64.zip",
+        "bytes": 186516281,
+        "sha256": "3318ca14cf4c20818f69fedded0f52b479ab542003cc12625e19398f7b993e76"
+      },
+      {
+        "name": "chaoxing-gui-tauri-portable-1.1.1-windows-x64.zip.manifest.json",
+        "bytes": 439,
+        "sha256": "c8225ff8a218ce0a5aed8554afadd0e52caccb0beefcaacac9dfb65936455d62"
+      },
+      {
+        "name": "chaoxing-gui-tauri-portable-1.1.1-windows-x64.zip.sha256",
+        "bytes": 116,
+        "sha256": "43f3f21e7d5624ffd9a1e53e7269873fe5f5676caede0adc862ce275ecb0d570"
+      }
+    ],
+    "acceptance": "Build and content checks only; release host acceptance requires disposable Windows profile smoke"
+  },
+  "toolchains": {
+    "capturedAt": "2026-09-07T17:54:02.4291728Z",
+    "powershell": "7.5.4",
+    "windows": "Microsoft Windows NT 10.0.26100.0",
+    "ciExecuted": false,
+    "python311": "Python 3.11.9",
+    "python313": "Python 3.13.14",
+    "node20": "v20.20.0",
+    "nodeDefault": "v24.14.0",
+    "rust": "rustc 1.95.0 (59807616e 2026-04-14)",
+    "cargo": "cargo 1.95.0 (f2d3ce0bd 2026-03-21)"
+  },
+  "signing": {
+    "usableCertificateFound": false,
+    "artifactsSigned": false,
+    "realSigningSuccessValidated": false
+  },
+  "notExecuted": {
+    "remoteCi": true,
+    "currentUserProductInstallerOrReleaseHost": true,
+    "realAccountOrLearningTask": true,
+    "pushOrTagOrReleasePublication": true
+  },
+  "pendingGates": [
+    "P0/P1/P2 two-lane external review: service returned 429, no report",
+    "P3 two-lane external review: service returned 429, no report",
+    "GitHub Windows runner execution from these local source commits, including nested Job Objects",
+    "Actual release host/NSIS installation and uninstall/portable acceptance under a disposable Windows user or VM without system Python",
+    "Missing-WebView2 clean-machine online/offline runtime handling and release data-retention/rollback acceptance",
+    "Real code-signing certificate success path and signed artifact/install verification",
+    "P4 full clean Win10/Win11 matrix and P5 default-entry switch/Electron removal remain later phases"
+  ],
+  "retainedChanges": [
+    {
+      "path": ".ccg/tasks/archive/2026-09/electron-to-tauri-migration-plan/plan.md",
+      "reason": "user /plan prefix; all bytes preserved; never staged or committed",
+      "sha256": "f7ec970826f014e9975a056b2e73ee9bee5dd7323f75b06db79fb7b78cdb5167"
+    },
+    {
+      "path": "poc-window.png",
+      "reason": "unrelated original untracked image, preserved",
+      "sha256": "282e312479ea72fc33b72211ec2404fd84a5dda7bc5803cdc44920c3465dce87"
+    },
+    {
+      "path": ".ccg/spec/frontend/index.md",
+      "reason": "ignored local guide with P3 feedback; scoped new guidance archived in spec-feedback.md",
+      "sha256": "b0752e7397ce5bb0baeec3ee828e8fd31c725acf6fea3434886ca7416691fc12"
+    }
+  ],
+  "cleanupRejection": {
+    "paths": [
+      {
+        "path": "C:\\Users\\RUD\\AppData\\Local\\Temp\\chaoxing-p3-test-uxNS2N",
+        "exists": true,
+        "attemptedCleanup": false
+      },
+      {
+        "path": "C:\\Users\\RUD\\AppData\\Local\\Temp\\chaoxing-p3-test-Ktr9xp",
+        "exists": true,
+        "attemptedCleanup": false
+      }
+    ],
+    "reason": "blocked by policy",
+    "cleanupExecuted": false,
+    "bypassAttempted": false
+  },
+  "limitations": [
+    "CDP with visible/enabled assertions and DOM click, not physical mouse acceptance",
+    "Local release build used Node 24; Web/Desktop/debug-host verification separately used Node 20",
+    "NSIS path preflight does not prevent subsequent concurrent path replacement",
+    "Large local binaries/fixture profiles stay ignored; committed source closure is not proof of a clean-runner build"
+  ]
+}

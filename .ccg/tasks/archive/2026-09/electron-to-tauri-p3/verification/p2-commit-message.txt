@@ -1,0 +1,10 @@
+fix(desktop): retain verified P2 native and Python integration
+
+Record the P2 changes previously retained on the P1 foundation: native
+request cancellation and lifecycle, strict IPC/session boundaries, atomic
+legacy import and Python entry/Origin handling with their integration tests.
+Frontend and GUI smoke source remains in 98c7ffe.
+
+api/desktop_runtime.py is the hash-verified final snapshot; no original
+before image is claimed. No P3 behavior is attributed to these changes.
+External review attempts still failed with no report and remain pending.

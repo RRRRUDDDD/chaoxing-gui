@@ -1,0 +1,51 @@
+{
+  "reportedBy": "p3_packaging; lead persisted the received tool-result summary",
+  "command": "prepare-backend.ps1 -Verbose; before/after Get-PackageInventory and Assert-PackageInventoryManifest comparisons",
+  "workingDirectory": "E:/Downloads/45/chaoxing-gui",
+  "exitCode": 0,
+  "files": 815,
+  "directories": 116,
+  "sourceIntegrity": {
+    "comparison": "Initial source inventory versus final source inventory: every relative file path, SHA256, size, and directory path; staged manifest also matched the initial source inventory and staged tree",
+    "allFileHashesMatch": true,
+    "allFileSizesMatch": true,
+    "allDirectoryPathsMatch": true,
+    "standaloneAggregateSourceHash": null
+  },
+  "manifest": "desktop/src-tauri/resources/backend-manifest.json",
+  "manifestSha256": "5BBFF9B69A252A3296995902BEA62BB11A0D7439BED892BB62F90FEEC9F75480",
+  "transientFailure": {
+    "win32Error": 5,
+    "retryCount": 16,
+    "retryElapsedMilliseconds": [
+      119,
+      457,
+      761,
+      1069,
+      1367,
+      1657,
+      1953,
+      2239,
+      2526,
+      2820,
+      3094,
+      3395,
+      3682,
+      3968,
+      4256,
+      4538
+    ],
+    "recoveredAfterApproximatelySeconds": 4.8,
+    "holdingProcessIdentified": false,
+    "temporaryPath": "E:/Downloads/45/chaoxing-gui/desktop/src-tauri/resources/.backend-staging-6feaef5dd3294d8d9e4b086d91aaabe9"
+  },
+  "stdoutEvidence": "Decoded tool output retained in implementation-agent conversation (initial exec chunk 319bef and completion chunk 5b43af); raw stdout bytes were not separately saved. Output included initial inventory, all 16 verbose retry lines, Prepared backend 1.1.1 (815 files), successful staged verification, manifest hash, and successful final source comparison.",
+  "originalFailureEvidence": ".ccg/tasks/electron-to-tauri-p3/verification/packaging-real-backend-staging.txt",
+  "hostLaunched": false,
+  "packagingTests": {
+    "command": "node --test --test-reporter=tap desktop/tests/packaging.test.mjs",
+    "exitCode": 0,
+    "passed": 11,
+    "durationMs": 52486.1837
+  }
+}

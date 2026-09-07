@@ -1,0 +1,17 @@
+   Compiling chaoxing-desktop v1.1.1 (E:\Downloads\45\chaoxing-gui\desktop\src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.26s
+     Running tests\nested_job.rs (desktop\src-tauri\target\debug\deps\nested_job-d9c9af6f1dc8bf7b.exe)
+
+running 3 tests
+captured auxiliary Job PID 28836: \\?\C:\Windows\System32\conhost.exe
+captured auxiliary Job PID 32964: \\?\C:\Windows\System32\conhost.exe
+captured auxiliary Job PID 35212: \\?\C:\Windows\System32\conhost.exe
+test nested_job_forced_helper_death_reaps_exact_backend_and_grandchild ... ok
+test nested_job_helper ... ignored, disposable subprocess entry point; started by the two nested Job tests
+captured auxiliary Job PID 13944: \\?\C:\Windows\System32\conhost.exe
+captured auxiliary Job PID 30480: \\?\C:\Windows\System32\conhost.exe
+captured auxiliary Job PID 38612: \\?\C:\Windows\System32\conhost.exe
+test nested_job_ready_then_stdin_eof_reaps_exact_backend_and_grandchild ... ok
+
+test result: ok. 2 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.15s
+

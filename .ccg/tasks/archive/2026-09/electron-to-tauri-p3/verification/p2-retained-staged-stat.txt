@@ -1,0 +1,14 @@
+ api/desktop_runtime.py                       |  124 ++
+ app.py                                       |   14 +-
+ desktop/src-tauri/Cargo.toml                 |    5 +-
+ desktop/src-tauri/src/api_proxy.rs           |  202 +++-
+ desktop/src-tauri/src/backend.rs             |  722 +++++++++---
+ desktop/src-tauri/src/bin/fake-backend.rs    |  115 +-
+ desktop/src-tauri/src/lib.rs                 |  508 ++++++--
+ desktop/src-tauri/src/migration.rs           | 1591 ++++++++++++++++++++------
+ desktop/src-tauri/src/session_store.rs       |  336 +++++-
+ desktop/src-tauri/tauri.conf.json            |    3 +-
+ desktop/src-tauri/tests/api_lifecycle.rs     |  479 ++++++++
+ desktop/src-tauri/tests/backend_lifecycle.rs |  209 +++-
+ tests/test_tauri_entry_contract.py           |   72 ++
+ 13 files changed, 3677 insertions(+), 703 deletions(-)

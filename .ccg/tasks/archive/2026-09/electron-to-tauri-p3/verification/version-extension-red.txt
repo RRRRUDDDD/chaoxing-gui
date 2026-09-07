@@ -1,0 +1,133 @@
+test_artifact_kind_requires_its_matching_extension (test_release_version.ReleaseVersionTests.test_artifact_kind_requires_its_matching_extension) ... 
+  test_artifact_kind_requires_its_matching_extension (test_release_version.ReleaseVersionTests.test_artifact_kind_requires_its_matching_extension) (name='chaoxing-gui-tauri-setup-1.1.1-windows-x64.zip') ... FAIL
+  test_artifact_kind_requires_its_matching_extension (test_release_version.ReleaseVersionTests.test_artifact_kind_requires_its_matching_extension) (name='chaoxing-gui-tauri-portable-1.1.1-windows-x64.exe') ... FAIL
+test_artifact_versions_must_match_the_source (test_release_version.ReleaseVersionTests.test_artifact_versions_must_match_the_source) ... ok
+test_drift_in_each_metadata_file_is_rejected (test_release_version.ReleaseVersionTests.test_drift_in_each_metadata_file_is_rejected) ... ok
+test_invalid_source_version_is_rejected_before_writes (test_release_version.ReleaseVersionTests.test_invalid_source_version_is_rejected_before_writes) ... ok
+test_matching_metadata_and_tag_are_accepted_without_mutation (test_release_version.ReleaseVersionTests.test_matching_metadata_and_tag_are_accepted_without_mutation) ... ok
+test_missing_cargo_package_is_not_fabricated_by_sync (test_release_version.ReleaseVersionTests.test_missing_cargo_package_is_not_fabricated_by_sync) ... ok
+test_npm_lock_root_package_version_is_checked (test_release_version.ReleaseVersionTests.test_npm_lock_root_package_version_is_checked) ... ok
+test_sync_uses_pyproject_and_preserves_dependency_versions (test_release_version.ReleaseVersionTests.test_sync_uses_pyproject_and_preserves_dependency_versions) ... ok
+test_tag_mismatch_blocks_release (test_release_version.ReleaseVersionTests.test_tag_mismatch_blocks_release) ... ok
+
+======================================================================
+FAIL: test_artifact_kind_requires_its_matching_extension (test_release_version.ReleaseVersionTests.test_artifact_kind_requires_its_matching_extension) (name='chaoxing-gui-tauri-setup-1.1.1-windows-x64.zip')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\Downloads\45\chaoxing-gui\tests\test_release_version.py", line 112, in test_artifact_kind_requires_its_matching_extension
+    self.run_check("--check", "--artifacts", str(self.root / "artifacts"), success=False)
+  File "E:\Downloads\45\chaoxing-gui\tests\test_release_version.py", line 46, in run_check
+    self.assertNotEqual(result.returncode, 0, result.stdout)
+AssertionError: 0 == 0 : {
+  "success": true,
+  "version": "1.1.1",
+  "errors": [],
+  "metadata": [
+    {
+      "path": "web/package.json",
+      "version": "1.1.1"
+    },
+    {
+      "path": "web/package-lock.json",
+      "version": "1.1.1"
+    },
+    {
+      "path": "web/package-lock.json packages['']",
+      "version": "1.1.1"
+    },
+    {
+      "path": "desktop/package.json",
+      "version": "1.1.1"
+    },
+    {
+      "path": "desktop/package-lock.json",
+      "version": "1.1.1"
+    },
+    {
+      "path": "desktop/package-lock.json packages['']",
+      "version": "1.1.1"
+    },
+    {
+      "path": "desktop/src-tauri/tauri.conf.json",
+      "version": "1.1.1"
+    },
+    {
+      "path": "desktop/src-tauri/Cargo.toml",
+      "version": "1.1.1"
+    },
+    {
+      "path": "desktop/src-tauri/Cargo.lock",
+      "version": "1.1.1"
+    }
+  ],
+  "tags": [],
+  "artifacts": [
+    "chaoxing-gui-tauri-setup-1.1.1-windows-x64.zip"
+  ],
+  "synchronized": false
+}
+
+
+======================================================================
+FAIL: test_artifact_kind_requires_its_matching_extension (test_release_version.ReleaseVersionTests.test_artifact_kind_requires_its_matching_extension) (name='chaoxing-gui-tauri-portable-1.1.1-windows-x64.exe')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "E:\Downloads\45\chaoxing-gui\tests\test_release_version.py", line 112, in test_artifact_kind_requires_its_matching_extension
+    self.run_check("--check", "--artifacts", str(self.root / "artifacts"), success=False)
+  File "E:\Downloads\45\chaoxing-gui\tests\test_release_version.py", line 46, in run_check
+    self.assertNotEqual(result.returncode, 0, result.stdout)
+AssertionError: 0 == 0 : {
+  "success": true,
+  "version": "1.1.1",
+  "errors": [],
+  "metadata": [
+    {
+      "path": "web/package.json",
+      "version": "1.1.1"
+    },
+    {
+      "path": "web/package-lock.json",
+      "version": "1.1.1"
+    },
+    {
+      "path": "web/package-lock.json packages['']",
+      "version": "1.1.1"
+    },
+    {
+      "path": "desktop/package.json",
+      "version": "1.1.1"
+    },
+    {
+      "path": "desktop/package-lock.json",
+      "version": "1.1.1"
+    },
+    {
+      "path": "desktop/package-lock.json packages['']",
+      "version": "1.1.1"
+    },
+    {
+      "path": "desktop/src-tauri/tauri.conf.json",
+      "version": "1.1.1"
+    },
+    {
+      "path": "desktop/src-tauri/Cargo.toml",
+      "version": "1.1.1"
+    },
+    {
+      "path": "desktop/src-tauri/Cargo.lock",
+      "version": "1.1.1"
+    }
+  ],
+  "tags": [],
+  "artifacts": [
+    "chaoxing-gui-tauri-portable-1.1.1-windows-x64.exe",
+    "chaoxing-gui-tauri-setup-1.1.1-windows-x64.zip"
+  ],
+  "synchronized": false
+}
+
+
+----------------------------------------------------------------------
+Ran 9 tests in 1.453s
+
+FAILED (failures=2)

@@ -1,0 +1,151 @@
+{
+  "recordedAt": "2026-09-07T15:24:00.553061+00:00",
+  "p1FoundationCommit": "9219fe24c25151af12c6c79a986b86018cd6a2ef",
+  "p2RetainedIntegrationCommit": "0d224f38f352f5822dfc31639df13b7b8d073675",
+  "p1Sources": [
+    {
+      "path": "app.py",
+      "origin": "P2 archived preexisting P1 snapshot",
+      "sha256": "df33c3550cde2a5e75fcd3bf236a44ac7d99a46b6ca2179344e843038d27b0bd"
+    },
+    {
+      "path": "desktop/src-tauri/Cargo.toml",
+      "origin": "P2 archived preexisting P1 snapshot",
+      "sha256": "6fb999c017236f5d02bc4ec5c96ce4982ed1947daff0f7e2fe965d0d2cbac9e9"
+    },
+    {
+      "path": "desktop/src-tauri/tauri.conf.json",
+      "origin": "P2 archived preexisting P1 snapshot",
+      "sha256": "139908551cfd1b2e1fea937482f37f1d69923b867f6ddc99bde6307d41537ba6"
+    },
+    {
+      "path": "desktop/src-tauri/src/lib.rs",
+      "origin": "P2 archived preexisting P1 snapshot",
+      "sha256": "6a6a6c6b96d1028d59adfce7c3a4260e2b293dfe4f4c3104e370d3a6f62d1426"
+    },
+    {
+      "path": "desktop/src-tauri/src/api_proxy.rs",
+      "origin": "P2 archived preexisting P1 snapshot",
+      "sha256": "f74587be0bdca568402b63e87a9f199d05306a789f1c7ee5954a189f01b8d6b9"
+    },
+    {
+      "path": "desktop/src-tauri/src/backend.rs",
+      "origin": "P2 archived preexisting P1 snapshot",
+      "sha256": "bb66a7e628337bdb50d68ad092d5a723408f556bbb644c6637b9b8649cce50f4"
+    },
+    {
+      "path": "desktop/src-tauri/src/session_store.rs",
+      "origin": "P2 archived preexisting P1 snapshot",
+      "sha256": "82948ae7d5715b604e1653739a6b63f55628b0b49913bfff028d4843af9d2af9"
+    },
+    {
+      "path": "desktop/src-tauri/src/migration.rs",
+      "origin": "P2 archived preexisting P1 snapshot",
+      "sha256": "c634409ebb62be3abaf0654a5d741c161cf89019436cd2bc7b4ad7241e91de6a"
+    },
+    {
+      "path": "desktop/src-tauri/src/bin/fake-backend.rs",
+      "origin": "P2 archived preexisting P1 snapshot",
+      "sha256": "82db46ff256be6677a71c8a815ba58bf0fab6613ff7964e69a83d9b78e8a3405"
+    },
+    {
+      "path": "desktop/src-tauri/tests/backend_lifecycle.rs",
+      "origin": "P2 archived preexisting P1 snapshot",
+      "sha256": "318076362bc7de994d619aceab964a1fd81edf442b21b0ba6291764f4b15b7f4"
+    }
+  ],
+  "p1Paths": [
+    ".gitignore",
+    "app.py",
+    "desktop/package-lock.json",
+    "desktop/package.json",
+    "desktop/rust-toolchain.toml",
+    "desktop/scripts/dev-env.ps1",
+    "desktop/src-tauri/Cargo.lock",
+    "desktop/src-tauri/Cargo.toml",
+    "desktop/src-tauri/build.rs",
+    "desktop/src-tauri/capabilities/main.json",
+    "desktop/src-tauri/icons/128x128.png",
+    "desktop/src-tauri/icons/128x128@2x.png",
+    "desktop/src-tauri/icons/32x32.png",
+    "desktop/src-tauri/icons/64x64.png",
+    "desktop/src-tauri/icons/Square107x107Logo.png",
+    "desktop/src-tauri/icons/Square142x142Logo.png",
+    "desktop/src-tauri/icons/Square150x150Logo.png",
+    "desktop/src-tauri/icons/Square284x284Logo.png",
+    "desktop/src-tauri/icons/Square30x30Logo.png",
+    "desktop/src-tauri/icons/Square310x310Logo.png",
+    "desktop/src-tauri/icons/Square44x44Logo.png",
+    "desktop/src-tauri/icons/Square71x71Logo.png",
+    "desktop/src-tauri/icons/Square89x89Logo.png",
+    "desktop/src-tauri/icons/StoreLogo.png",
+    "desktop/src-tauri/icons/android/mipmap-anydpi-v26/ic_launcher.xml",
+    "desktop/src-tauri/icons/android/mipmap-hdpi/ic_launcher.png",
+    "desktop/src-tauri/icons/android/mipmap-hdpi/ic_launcher_foreground.png",
+    "desktop/src-tauri/icons/android/mipmap-hdpi/ic_launcher_round.png",
+    "desktop/src-tauri/icons/android/mipmap-mdpi/ic_launcher.png",
+    "desktop/src-tauri/icons/android/mipmap-mdpi/ic_launcher_foreground.png",
+    "desktop/src-tauri/icons/android/mipmap-mdpi/ic_launcher_round.png",
+    "desktop/src-tauri/icons/android/mipmap-xhdpi/ic_launcher.png",
+    "desktop/src-tauri/icons/android/mipmap-xhdpi/ic_launcher_foreground.png",
+    "desktop/src-tauri/icons/android/mipmap-xhdpi/ic_launcher_round.png",
+    "desktop/src-tauri/icons/android/mipmap-xxhdpi/ic_launcher.png",
+    "desktop/src-tauri/icons/android/mipmap-xxhdpi/ic_launcher_foreground.png",
+    "desktop/src-tauri/icons/android/mipmap-xxhdpi/ic_launcher_round.png",
+    "desktop/src-tauri/icons/android/mipmap-xxxhdpi/ic_launcher.png",
+    "desktop/src-tauri/icons/android/mipmap-xxxhdpi/ic_launcher_foreground.png",
+    "desktop/src-tauri/icons/android/mipmap-xxxhdpi/ic_launcher_round.png",
+    "desktop/src-tauri/icons/android/values/ic_launcher_background.xml",
+    "desktop/src-tauri/icons/icon.icns",
+    "desktop/src-tauri/icons/icon.ico",
+    "desktop/src-tauri/icons/icon.png",
+    "desktop/src-tauri/icons/ios/AppIcon-20x20@1x.png",
+    "desktop/src-tauri/icons/ios/AppIcon-20x20@2x-1.png",
+    "desktop/src-tauri/icons/ios/AppIcon-20x20@2x.png",
+    "desktop/src-tauri/icons/ios/AppIcon-20x20@3x.png",
+    "desktop/src-tauri/icons/ios/AppIcon-29x29@1x.png",
+    "desktop/src-tauri/icons/ios/AppIcon-29x29@2x-1.png",
+    "desktop/src-tauri/icons/ios/AppIcon-29x29@2x.png",
+    "desktop/src-tauri/icons/ios/AppIcon-29x29@3x.png",
+    "desktop/src-tauri/icons/ios/AppIcon-40x40@1x.png",
+    "desktop/src-tauri/icons/ios/AppIcon-40x40@2x-1.png",
+    "desktop/src-tauri/icons/ios/AppIcon-40x40@2x.png",
+    "desktop/src-tauri/icons/ios/AppIcon-40x40@3x.png",
+    "desktop/src-tauri/icons/ios/AppIcon-512@2x.png",
+    "desktop/src-tauri/icons/ios/AppIcon-60x60@2x.png",
+    "desktop/src-tauri/icons/ios/AppIcon-60x60@3x.png",
+    "desktop/src-tauri/icons/ios/AppIcon-76x76@1x.png",
+    "desktop/src-tauri/icons/ios/AppIcon-76x76@2x.png",
+    "desktop/src-tauri/icons/ios/AppIcon-83.5x83.5@2x.png",
+    "desktop/src-tauri/src/api_proxy.rs",
+    "desktop/src-tauri/src/backend.rs",
+    "desktop/src-tauri/src/bin/fake-backend.rs",
+    "desktop/src-tauri/src/lib.rs",
+    "desktop/src-tauri/src/main.rs",
+    "desktop/src-tauri/src/migration.rs",
+    "desktop/src-tauri/src/session_store.rs",
+    "desktop/src-tauri/src/windows_job.rs",
+    "desktop/src-tauri/tauri.conf.json",
+    "desktop/src-tauri/tests/backend_lifecycle.rs",
+    "tests/test_desktop_runtime.py",
+    "web/vite.config.js"
+  ],
+  "p2Paths": [
+    "app.py",
+    "desktop/src-tauri/Cargo.toml",
+    "desktop/src-tauri/tauri.conf.json",
+    "desktop/src-tauri/src/lib.rs",
+    "desktop/src-tauri/src/api_proxy.rs",
+    "desktop/src-tauri/src/backend.rs",
+    "desktop/src-tauri/src/session_store.rs",
+    "desktop/src-tauri/src/migration.rs",
+    "desktop/src-tauri/src/bin/fake-backend.rs",
+    "desktop/src-tauri/tests/backend_lifecycle.rs",
+    "desktop/src-tauri/tests/api_lifecycle.rs",
+    "tests/test_tauri_entry_contract.py",
+    "api/desktop_runtime.py"
+  ],
+  "apiRuntimeProvenance": "P2 final-only snapshot, not reconstructed as P1",
+  "protectedPlanUnchanged": true,
+  "patchReappliedToWorktree": false
+}

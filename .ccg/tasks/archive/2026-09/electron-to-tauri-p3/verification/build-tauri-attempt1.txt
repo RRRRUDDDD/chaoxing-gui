@@ -1,0 +1,5 @@
+ParserError: E:\Downloads\45\chaoxing-gui\desktop\scripts\build-tauri.ps1:72:23
+Line |
+  72 |          $configuration | ConvertTo-Json -Depth 8 | Set-Content -Liter …
+     |                        ~
+     | Missing '=' operator after key in hash literal.

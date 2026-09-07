@@ -1,0 +1,16 @@
+{
+  "checkedAt": "2026-09-07T16:29:29.6020810Z",
+  "mode": "Verify",
+  "signingAvailable": false,
+  "selectedThumbprint": "",
+  "candidateCount": 0,
+  "conclusion": "All inspected signatures are valid; no local signing private key is available",
+  "files": [
+    {
+      "path": "C:\\Windows\\System32\\notepad.exe",
+      "status": "Valid",
+      "signerThumbprint": "3B77DB29AC72AA6B5880ECB2ED5EC1EC6601D847",
+      "sha256": "1552f6a579b77b61460df56cb4b2ce0a34fe96b6176829d7916275b806edc2bb"
+    }
+  ]
+}

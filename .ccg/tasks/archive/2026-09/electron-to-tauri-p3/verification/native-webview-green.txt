@@ -1,0 +1,16 @@
+   Compiling chaoxing-desktop v1.1.1 (E:\Downloads\45\chaoxing-gui\desktop\src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 9.19s
+     Running unittests src\main.rs (desktop\src-tauri\target\debug\deps\chaoxing_desktop-d6d24a0e1daeb87c.exe)
+
+running 8 tests
+test webview_runtime::tests::available_runtime_is_detected_before_the_app_runs_once ... ok
+test webview_runtime::tests::check_available_exits_zero_without_ui_backend_or_data_setup ... ok
+test webview_runtime::tests::check_flag_is_exact_and_can_follow_other_arguments ... ok
+test webview_runtime::tests::check_missing_exits_three_without_ui_backend_or_data_setup ... ok
+test webview_runtime::tests::detection_errors_fail_closed_and_keep_actionable_guidance ... ok
+test webview_runtime::tests::empty_version_is_unavailable_in_normal_and_check_modes ... ok
+test webview_runtime::tests::missing_runtime_has_native_chinese_online_and_offline_guidance ... ok
+test webview_runtime::tests::missing_runtime_never_enters_the_app_or_creates_a_webview ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

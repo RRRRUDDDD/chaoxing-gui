@@ -1,0 +1,38 @@
+[
+  {
+    "stage": "p0p1p2-review",
+    "lane": "a",
+    "sessionId": "676f2a86-7b20-43ca-8a1b-373f069d8f96",
+    "exitCode": 1,
+    "errors": [
+      "API Error: Request rejected (429) · Service Unavailable"
+    ]
+  },
+  {
+    "stage": "p0p1p2-review",
+    "lane": "b",
+    "sessionId": "fa4c6550-c98e-4939-b0dd-5cfd5ecd9415",
+    "exitCode": 1,
+    "errors": [
+      "API Error: Request rejected (429) · Service Unavailable"
+    ]
+  },
+  {
+    "stage": "p3-analysis",
+    "lane": "a",
+    "sessionId": "db7659c7-74be-47f3-afb5-64ff6abdaef8",
+    "exitCode": 1,
+    "errors": [
+      "API Error: Request rejected (429) · Service Unavailable"
+    ]
+  },
+  {
+    "stage": "p3-analysis",
+    "lane": "b",
+    "sessionId": "0648e8d0-3cce-4800-a295-7dde573bd6f9",
+    "exitCode": 1,
+    "errors": [
+      "API Error: Request rejected (429) · Service Unavailable"
+    ]
+  }
+]

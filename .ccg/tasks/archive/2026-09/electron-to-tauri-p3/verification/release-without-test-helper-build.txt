@@ -1,0 +1,8 @@
+
+> chaoxing-desktop@1.1.1 tauri
+> tauri build --ci --target x86_64-pc-windows-msvc --no-bundle -- --locked -j 1 --no-default-features
+
+        Info Looking up installed tauri packages to check mismatched versions...
+   Compiling chaoxing-desktop v1.1.1 (E:\Downloads\45\chaoxing-gui\desktop\src-tauri)
+    Finished `release` profile [optimized] target(s) in 2m 03s
+       Built application at: E:\Downloads\45\chaoxing-gui\desktop\src-tauri\target\x86_64-pc-windows-msvc\release\chaoxing-gui-tauri.exe

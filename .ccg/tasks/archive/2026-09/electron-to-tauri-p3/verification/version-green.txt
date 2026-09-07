@@ -1,0 +1,13 @@
+test_artifact_versions_must_match_the_source (tests.test_release_version.ReleaseVersionTests.test_artifact_versions_must_match_the_source) ... ok
+test_drift_in_each_metadata_file_is_rejected (tests.test_release_version.ReleaseVersionTests.test_drift_in_each_metadata_file_is_rejected) ... ok
+test_invalid_source_version_is_rejected_before_writes (tests.test_release_version.ReleaseVersionTests.test_invalid_source_version_is_rejected_before_writes) ... ok
+test_matching_metadata_and_tag_are_accepted_without_mutation (tests.test_release_version.ReleaseVersionTests.test_matching_metadata_and_tag_are_accepted_without_mutation) ... ok
+test_missing_cargo_package_is_not_fabricated_by_sync (tests.test_release_version.ReleaseVersionTests.test_missing_cargo_package_is_not_fabricated_by_sync) ... ok
+test_npm_lock_root_package_version_is_checked (tests.test_release_version.ReleaseVersionTests.test_npm_lock_root_package_version_is_checked) ... ok
+test_sync_uses_pyproject_and_preserves_dependency_versions (tests.test_release_version.ReleaseVersionTests.test_sync_uses_pyproject_and_preserves_dependency_versions) ... ok
+test_tag_mismatch_blocks_release (tests.test_release_version.ReleaseVersionTests.test_tag_mismatch_blocks_release) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 1.029s
+
+OK

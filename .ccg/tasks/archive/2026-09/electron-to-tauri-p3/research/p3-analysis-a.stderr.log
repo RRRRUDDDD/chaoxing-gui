@@ -1,0 +1,12 @@
+[codeagent-wrapper]
+  Backend: claude
+  Command: claude -p --dangerously-skip-permissions --setting-sources  --output-format stream-json --verbose -
+  PID: 20536
+  Log: C:\Users\RUD\AppData\Local\Temp\codeagent-wrapper-20536.log
+  Web UI: http://localhost:40242
+  Session-ID: db7659c7-74be-47f3-afb5-64ff6abdaef8
+
+=== Recent Errors ===
+Using stdin mode for task due to: piped input, explicit "-", newline, backslash, backtick, length>800
+claude exited with status 1
+Log file: C:\Users\RUD\AppData\Local\Temp\codeagent-wrapper-20536.log (deleted)

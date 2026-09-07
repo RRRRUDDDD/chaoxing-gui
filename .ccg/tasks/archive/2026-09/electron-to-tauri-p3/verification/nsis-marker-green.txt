@@ -1,0 +1,45 @@
+TAP version 13
+# Subtest: NSIS complete payload matches the portable manifest including nested Unicode dependencies
+ok 1 - NSIS complete payload matches the portable manifest including nested Unicode dependencies
+  ---
+  duration_ms: 664.6305
+  ...
+# Subtest: NSIS missing, foreign, duplicate, traversal and wrong-format payloads are rejected before extraction
+ok 2 - NSIS missing, foreign, duplicate, traversal and wrong-format payloads are rejected before extraction
+  ---
+  duration_ms: 4643.6334
+  ...
+# Subtest: NSIS equal-size content tampering and extracted junctions cannot pass hash verification
+ok 3 - NSIS equal-size content tampering and extracted junctions cannot pass hash verification
+  ---
+  duration_ms: 1457.5213
+  ...
+# Subtest: NSIS generated uninstaller and decoder metadata are distinct from application payload
+ok 4 - NSIS generated uninstaller and decoder metadata are distinct from application payload
+  ---
+  duration_ms: 1889.5955
+  ...
+# Subtest: NSIS host expectation accounts for exactly the Tauri bundle marker without modifying the source
+ok 5 - NSIS host expectation accounts for exactly the Tauri bundle marker without modifying the source
+  ---
+  duration_ms: 2459.2122
+  ...
+# Subtest: NSIS artifact record binds both artifacts and validates every byte with a distinct host hash
+ok 6 - NSIS artifact record binds both artifacts and validates every byte with a distinct host hash
+  ---
+  duration_ms: 4200.9042
+  ...
+# Subtest: NSIS signed-host capture must originate from the exact unsigned compiler output
+ok 7 - NSIS signed-host capture must originate from the exact unsigned compiler output
+  ---
+  duration_ms: 705.3243
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 16106.9271

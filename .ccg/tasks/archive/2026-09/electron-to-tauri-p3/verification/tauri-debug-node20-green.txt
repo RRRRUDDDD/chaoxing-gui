@@ -1,0 +1,25 @@
+v20.20.0
+PASS compiled-host-profile-verified
+PASS fake-business-ready
+PASS synthetic-login-config-start409-after-once-refresh404
+PASS fake-business-normal-no-residue
+PASS fake-cancel-ready
+PASS synthetic-cancellation-before-and-during-request
+PASS fake-cancel-normal-no-residue
+PASS fake-missing-failed-without-restart
+PASS fake-missing-normal-no-residue
+PASS fake-bad-executable-failed-without-restart
+PASS fake-bad-executable-normal-no-residue
+PASS close-before-backend-ready
+PASS fake-close-starting-normal-no-residue
+PASS fake-backend-death-ready
+PASS ready-backend-death-does-not-restart
+PASS fake-backend-death-normal-no-residue
+PASS fake-force-host-ready
+PASS fake-force-host-forced-no-residue
+PASS frozen-contracts-ready
+PASS frozen-config-read-write-empty400-missing404
+PASS frozen-contracts-normal-no-residue
+PASS frozen-force-host-ready
+PASS frozen-force-host-forced-no-residue
+Evidence: E:\Downloads\45\chaoxing-gui\.ccg\tasks\electron-to-tauri-p3\verification\tauri-debug-node20\smoke-MwdgKi\result.json

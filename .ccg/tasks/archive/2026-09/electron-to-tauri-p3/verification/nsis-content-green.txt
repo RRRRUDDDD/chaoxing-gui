@@ -1,0 +1,11 @@
+✔ NSIS complete payload matches the portable manifest including nested Unicode dependencies (688.0143ms)
+✔ NSIS missing, foreign, duplicate, traversal and wrong-format payloads are rejected before extraction (4693.02ms)
+✔ NSIS equal-size content tampering and extracted junctions cannot pass hash verification (1530.2402ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6992.1255

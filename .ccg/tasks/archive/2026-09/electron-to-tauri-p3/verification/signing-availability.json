@@ -1,0 +1,6 @@
+{
+  "checkedAt": "2026-09-07T15:34:19.1392258Z",
+  "validCodeSigningPrivateKeyCertificates": 0,
+  "signingEnvironmentVariableNames": [],
+  "conclusion": "No usable code signing certificate supplied or found; builds must report unsigned"
+}

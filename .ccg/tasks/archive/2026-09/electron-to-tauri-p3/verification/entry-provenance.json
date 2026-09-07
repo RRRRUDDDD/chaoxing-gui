@@ -1,0 +1,204 @@
+{
+  "recordedAt": "2026-09-07T15:12:45.341378+00:00",
+  "head": "aae12acc82c16a0ec5f5c8d8eb39c99c42ffbcc2",
+  "checks": [
+    {
+      "path": "web/package.json",
+      "expected": "d04c43c4ca8df865356593761f2df84db0f9ce16a129c69c2a1f13d17478c99f",
+      "actual": "d04c43c4ca8df865356593761f2df84db0f9ce16a129c69c2a1f13d17478c99f",
+      "matches": true
+    },
+    {
+      "path": "web/package-lock.json",
+      "expected": "dd8da04ebacb11c500149e3eb1ebd25df4fcf4652abf43b1e6e8830dd630e6c8",
+      "actual": "dd8da04ebacb11c500149e3eb1ebd25df4fcf4652abf43b1e6e8830dd630e6c8",
+      "matches": true
+    },
+    {
+      "path": "web/src/main.jsx",
+      "expected": "3d9ffc94b24ba1237d38c65588a8361c8fbe825a8e01d37fee3a3a7fc10ca417",
+      "actual": "3d9ffc94b24ba1237d38c65588a8361c8fbe825a8e01d37fee3a3a7fc10ca417",
+      "matches": true
+    },
+    {
+      "path": "web/src/api/axios.js",
+      "expected": "1758d82ad2e3f789a851bf104cc1c302a7d66b2e9e19dff4207933198fec0df1",
+      "actual": "1758d82ad2e3f789a851bf104cc1c302a7d66b2e9e19dff4207933198fec0df1",
+      "matches": true
+    },
+    {
+      "path": "web/src/api/tauriAdapter.js",
+      "expected": "f1e87f85a874f16df34553c6b4b8760702f4e2013941887bf4558443b3758825",
+      "actual": "f1e87f85a874f16df34553c6b4b8760702f4e2013941887bf4558443b3758825",
+      "matches": true
+    },
+    {
+      "path": "web/src/api/tauriAdapter.test.js",
+      "expected": "c8eb7a34ac923418662050f24e2981cada879e945e65d47cdbe5d439ee4f9070",
+      "actual": "c8eb7a34ac923418662050f24e2981cada879e945e65d47cdbe5d439ee4f9070",
+      "matches": true
+    },
+    {
+      "path": "web/src/api/transportFlow.test.jsx",
+      "expected": "ba56e0592c9efea586963e2c21b32097c6cb7010f20f8b87355f271482b9b57c",
+      "actual": "ba56e0592c9efea586963e2c21b32097c6cb7010f20f8b87355f271482b9b57c",
+      "matches": true
+    },
+    {
+      "path": "web/src/lib/desktopBridge.js",
+      "expected": "7cae27d085e6f2b27639ab67b143cc353823cd995952fe840973a81d4210f2ea",
+      "actual": "7cae27d085e6f2b27639ab67b143cc353823cd995952fe840973a81d4210f2ea",
+      "matches": true
+    },
+    {
+      "path": "web/src/lib/desktopBridge.test.js",
+      "expected": "8a82783b276569dcf608d9b4b3299e7d629521fef80b69568784e342478249fa",
+      "actual": "8a82783b276569dcf608d9b4b3299e7d629521fef80b69568784e342478249fa",
+      "matches": true
+    },
+    {
+      "path": "web/src/lib/sessionStore.js",
+      "expected": "594c1af7c5bd357b32b5c95a5e94d8bf8ecb551fc058799434dbc1e3a114f2ee",
+      "actual": "594c1af7c5bd357b32b5c95a5e94d8bf8ecb551fc058799434dbc1e3a114f2ee",
+      "matches": true
+    },
+    {
+      "path": "web/src/lib/sessionStore.test.js",
+      "expected": "5d274726e1427099e423df5e507bad15274ed2ae95f69301697f0f20ab3c6808",
+      "actual": "5d274726e1427099e423df5e507bad15274ed2ae95f69301697f0f20ab3c6808",
+      "matches": true
+    },
+    {
+      "path": "web/src/components/DesktopStartup.jsx",
+      "expected": "c3c228785cf70e23f0459ea692f5f4ddd6d00c272dbe9653e49449009959d45d",
+      "actual": "c3c228785cf70e23f0459ea692f5f4ddd6d00c272dbe9653e49449009959d45d",
+      "matches": true
+    },
+    {
+      "path": "web/src/components/DesktopStartup.test.jsx",
+      "expected": "82fdbb07f43037fd0ff67f6840cdb3b5ff8322300d4992652b8beb1db3c5e5b3",
+      "actual": "82fdbb07f43037fd0ff67f6840cdb3b5ff8322300d4992652b8beb1db3c5e5b3",
+      "matches": true
+    },
+    {
+      "path": "desktop/scripts/p2-smoke.mjs",
+      "expected": "89340a141fbd90aa328ee9d914a928af5f2bd16e80daed6545349005416fe76b",
+      "actual": "89340a141fbd90aa328ee9d914a928af5f2bd16e80daed6545349005416fe76b",
+      "matches": true
+    },
+    {
+      "path": "desktop/scripts/p2-close-window.ps1",
+      "expected": "dcee5c7f4cdc32d8281b837d2a1f83703c0784ff70475677509bed6440a3d5be",
+      "actual": "dcee5c7f4cdc32d8281b837d2a1f83703c0784ff70475677509bed6440a3d5be",
+      "matches": true
+    },
+    {
+      "path": "desktop/tests/fixtures/p2_backend.py",
+      "expected": "be500b4138be63a0041a9816f8f05353cce6d388ab3c557dc90a9836394b622d",
+      "actual": "be500b4138be63a0041a9816f8f05353cce6d388ab3c557dc90a9836394b622d",
+      "matches": true
+    },
+    {
+      "path": "desktop/tests/fixtures/p2-electron.cjs",
+      "expected": "1a02be34be1f1884a784bc4dbec6c418305d94fe321a8b2aaaa5e8baefcd338a",
+      "actual": "1a02be34be1f1884a784bc4dbec6c418305d94fe321a8b2aaaa5e8baefcd338a",
+      "matches": true
+    },
+    {
+      "path": "app.py",
+      "expected": "6755397ca429ed85cfc3b76be8ce038d09626c3f18a0a10c37eff87c90aa8551",
+      "actual": "6755397ca429ed85cfc3b76be8ce038d09626c3f18a0a10c37eff87c90aa8551",
+      "matches": true
+    },
+    {
+      "path": "desktop/src-tauri/Cargo.toml",
+      "expected": "1d16b123de16ec213e6c56c752601a68638082b8aaa0292fb2e7ab463d27d7fa",
+      "actual": "1d16b123de16ec213e6c56c752601a68638082b8aaa0292fb2e7ab463d27d7fa",
+      "matches": true
+    },
+    {
+      "path": "desktop/src-tauri/tauri.conf.json",
+      "expected": "5131a66b0f9f4fe0989da24410143bb5a2f01a580b7a26be07a97c5fe405f4a0",
+      "actual": "5131a66b0f9f4fe0989da24410143bb5a2f01a580b7a26be07a97c5fe405f4a0",
+      "matches": true
+    },
+    {
+      "path": "desktop/src-tauri/src/lib.rs",
+      "expected": "3fad803dd1a266518b7d0d475436e7fd5fb1654af4ba088e57756c7e3a145666",
+      "actual": "3fad803dd1a266518b7d0d475436e7fd5fb1654af4ba088e57756c7e3a145666",
+      "matches": true
+    },
+    {
+      "path": "desktop/src-tauri/src/api_proxy.rs",
+      "expected": "48bf2a91985cdcabf9d51bf33eecb5b105459bc58aa0dca6dbc7476fbc423687",
+      "actual": "48bf2a91985cdcabf9d51bf33eecb5b105459bc58aa0dca6dbc7476fbc423687",
+      "matches": true
+    },
+    {
+      "path": "desktop/src-tauri/src/backend.rs",
+      "expected": "3681c7618f30bcf5dd47400aabf608e999831a9a62006348f7e1f32b6c2ba217",
+      "actual": "3681c7618f30bcf5dd47400aabf608e999831a9a62006348f7e1f32b6c2ba217",
+      "matches": true
+    },
+    {
+      "path": "desktop/src-tauri/src/session_store.rs",
+      "expected": "09a1ba5eb4909d3ca764d5495ba2c7da763d42aa58b1f91084cd4dd036c2e3d1",
+      "actual": "09a1ba5eb4909d3ca764d5495ba2c7da763d42aa58b1f91084cd4dd036c2e3d1",
+      "matches": true
+    },
+    {
+      "path": "desktop/src-tauri/src/migration.rs",
+      "expected": "6bd9f2d125788b17d63603754f05c8f282c1da7b294bebeeb4c7888bcf915bb5",
+      "actual": "6bd9f2d125788b17d63603754f05c8f282c1da7b294bebeeb4c7888bcf915bb5",
+      "matches": true
+    },
+    {
+      "path": "desktop/src-tauri/src/bin/fake-backend.rs",
+      "expected": "c5b684ab66f1821f5e676e08112e1592b428c57c8a1648edccab31e86789bc70",
+      "actual": "c5b684ab66f1821f5e676e08112e1592b428c57c8a1648edccab31e86789bc70",
+      "matches": true
+    },
+    {
+      "path": "desktop/src-tauri/tests/backend_lifecycle.rs",
+      "expected": "6ca31c3a4d0bf40c61a8dc4ae618c3b032ba5e5b77f3ee5c7a3c1761a7497260",
+      "actual": "6ca31c3a4d0bf40c61a8dc4ae618c3b032ba5e5b77f3ee5c7a3c1761a7497260",
+      "matches": true
+    },
+    {
+      "path": "desktop/src-tauri/tests/api_lifecycle.rs",
+      "expected": "96f0945ee2cf182985cf4f166dcfec6c59455f99d089a9269f857e139a614ceb",
+      "actual": "96f0945ee2cf182985cf4f166dcfec6c59455f99d089a9269f857e139a614ceb",
+      "matches": true
+    },
+    {
+      "path": "tests/test_tauri_entry_contract.py",
+      "expected": "4d1c5747f7af9591f971c5c0a8313c7a3299b6b49af16fbd5f1b7c8be6c71beb",
+      "actual": "4d1c5747f7af9591f971c5c0a8313c7a3299b6b49af16fbd5f1b7c8be6c71beb",
+      "matches": true
+    },
+    {
+      "path": "api/desktop_runtime.py",
+      "expected": "682d766d2989203d65169729194c319f784bc17414359160c21edbb095b34da4",
+      "actual": "682d766d2989203d65169729194c319f784bc17414359160c21edbb095b34da4",
+      "matches": true
+    },
+    {
+      "path": ".ccg/spec/frontend/index.md",
+      "expected": "bb04d5f5486ff919eb9f5312c8d5608204289da09377d3543169c6aff32aadcc",
+      "actual": "bb04d5f5486ff919eb9f5312c8d5608204289da09377d3543169c6aff32aadcc",
+      "matches": true
+    },
+    {
+      "path": ".ccg/spec/backend/index.md",
+      "expected": "8e887476a54cb07f7396f401e4069729bc0378870ba27bd31c9de90191f2ce2c",
+      "actual": "8e887476a54cb07f7396f401e4069729bc0378870ba27bd31c9de90191f2ce2c",
+      "matches": true
+    },
+    {
+      "path": ".ccg/tasks/archive/2026-09/electron-to-tauri-migration-plan/plan.md",
+      "expected": "f7ec970826f014e9975a056b2e73ee9bee5dd7323f75b06db79fb7b78cdb5167",
+      "actual": "f7ec970826f014e9975a056b2e73ee9bee5dd7323f75b06db79fb7b78cdb5167",
+      "matches": true
+    }
+  ]
+}

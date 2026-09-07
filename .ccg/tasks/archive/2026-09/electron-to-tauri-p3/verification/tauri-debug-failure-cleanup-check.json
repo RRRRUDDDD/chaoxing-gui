@@ -1,0 +1,62 @@
+{
+  "checkedAt": "2026-09-07T16:30:41.0196175Z",
+  "originalFailure": "tauri-debug/smoke-IUhmSU/result.json",
+  "allCapturedProcessesExited": true,
+  "processes": [
+    {
+      "pid": 12676,
+      "originallyCreated": "134332716138146214",
+      "stillAliveWithSameIdentity": false
+    },
+    {
+      "pid": 13080,
+      "originallyCreated": "134332716143734243",
+      "stillAliveWithSameIdentity": false
+    },
+    {
+      "pid": 13396,
+      "originallyCreated": "134332716146015714",
+      "stillAliveWithSameIdentity": false
+    },
+    {
+      "pid": 17180,
+      "originallyCreated": "134332716143415854",
+      "stillAliveWithSameIdentity": false
+    },
+    {
+      "pid": 19360,
+      "originallyCreated": "134332716138038635",
+      "stillAliveWithSameIdentity": false
+    },
+    {
+      "pid": 26724,
+      "originallyCreated": "134332716140372447",
+      "stillAliveWithSameIdentity": false
+    },
+    {
+      "pid": 30468,
+      "originallyCreated": "134332716122725199",
+      "stillAliveWithSameIdentity": false
+    },
+    {
+      "pid": 36464,
+      "originallyCreated": "134332716143398892",
+      "stillAliveWithSameIdentity": false
+    },
+    {
+      "pid": 37072,
+      "originallyCreated": "134332716145922760",
+      "stillAliveWithSameIdentity": false
+    },
+    {
+      "pid": 39328,
+      "originallyCreated": "134332716144398518",
+      "stillAliveWithSameIdentity": false
+    },
+    {
+      "pid": 39816,
+      "originallyCreated": "134332716139345627",
+      "stillAliveWithSameIdentity": false
+    }
+  ]
+}
