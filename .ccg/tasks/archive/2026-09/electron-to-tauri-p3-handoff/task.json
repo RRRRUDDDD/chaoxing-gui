@@ -1,0 +1,20 @@
+{
+  "id": "electron-to-tauri-p3-handoff",
+  "title": "准备下一对话的Tauri P3实施交接prompt",
+  "status": "completed",
+  "complexity": "S",
+  "risk": "low",
+  "domain": "documentation",
+  "currentPhase": "completed",
+  "nextAction": "在新对话使用 next-conversation.md 接手 P3；父迁移任务与外部审查待办保持未完成",
+  "createdAt": "2026-09-07T14:56:46.2570149Z",
+  "branch": "main",
+  "baselineCommit": "ed1a6e271823a17253b3d77f248515eba67fb807",
+  "parentTask": ".ccg/tasks/electron-to-tauri-implementation",
+  "scope": "handoff prompt only; no P3 implementation or application changes",
+  "completedAt": "2026-09-07T15:05:28.3299705Z",
+  "archivePath": ".ccg/tasks/archive/2026-09/electron-to-tauri-p3-handoff",
+  "deliverable": "next-conversation.md",
+  "verification": "verification/doc-check.json",
+  "wholeMigrationComplete": false
+}
