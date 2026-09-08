@@ -211,22 +211,38 @@ export function assertBuildProfile(exitCode, configuration) {
 }
 
 async function probeBuildProfile(options, context, evidence, result, record) {
-  // Older hosts ignore unknown flags. Detect support without executing them,
-  // then trust only the native early-exit probe's compiled profile result.
-  const bytes = await readFile(options.hostPath);
-  assert.ok(bytes.includes(Buffer.from('--check-debug-build')), 'Host lacks the P3 side-effect-free --check-debug-build probe; rebuild the current P3 host before smoke');
+  // Keep Debug fail-closed before running an unknown host on a developer profile.
+  // Optimized Release builds can split the flag into overlapping SIMD constants;
+  // only a disposable profile may classify those builds by their native exit.
+  if (options.configuration === 'Debug') {
+    const bytes = await readFile(options.hostPath);
+    assert.ok(bytes.includes(Buffer.from('--check-debug-build')), 'Host lacks the P3 side-effect-free --check-debug-build probe; rebuild the current P3 host before smoke');
+  } else { assertReleasePermission(options); }
+  const roots = options.configuration === 'Release' ? releaseProfileRoots(context) : [];
   const directory = path.join(evidence, 'build-profile-probe');
   await mkdir(directory);
   const owner = new NativeSupervisor(context.powerShell, directory);
   const item = { scenario: 'build-profile-probe', requested: options.configuration };
   result.processes.push(item);
-  try {
+  let profilesClaimed = false;
+  await withCleanup(item, async () => {
+    if (roots.length) {
+      await claimProfileRoots(roots, result.runId, context.sid);
+      profilesClaimed = true;
+    }
     item.hostIdentity = await owner.start({ executable: options.hostPath, args: ['--check-debug-build'], cwd: directory,
       env: sanitizedEnvironment(process.env, context, { configuration: 'Release' }) });
     item.shutdown = await waitForEmptyJob(owner, 'side-effect-free native build profile probe', 10000);
     assertBuildProfile(item.shutdown.host.exitCode, options.configuration);
     record('compiled-host-profile-verified', { configuration: options.configuration, exitCode: item.shutdown.host.exitCode });
-  } finally { item.cleanup = await owner.dispose(); }
+  }, async () => {
+    item.cleanup = await owner.dispose();
+    if (profilesClaimed) {
+      assert.equal(item.cleanup.verified, true, 'Probe profile cleanup requires a verified captured process tree');
+      await removeOwnedProfiles(roots, result.runId, context.sid);
+      item.profileCleanup = { ownedRootsRemoved: true };
+    }
+  });
   assert.equal(item.cleanup.fallbackUsed, false, 'Build probe must exit without forced cleanup');
 }
 
