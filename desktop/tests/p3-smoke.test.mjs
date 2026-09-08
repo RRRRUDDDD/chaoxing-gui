@@ -9,7 +9,7 @@ import { promisify } from 'node:util';
 import test from 'node:test';
 import {
   parseArguments, assertReleasePermission, assertOwnedOrAbsent, claimProfileRoots,
-  releaseProfileRoots, sanitizedEnvironment, validateInputs, until, withCleanup,
+  releaseProfileRoots, removeProfilesAfterVerifiedCleanup, sanitizedEnvironment, validateInputs, until, withCleanup,
   NativeSupervisor, windowsContext, assertBuildProfile,
 } from '../scripts/p3-smoke.mjs';
 
@@ -87,6 +87,80 @@ test('Only current smoke ownership permits profile reuse; legacy roots are never
   await assertOwnedOrAbsent(roots, 'same-run', 'fixture-sid');
   await assert.rejects(readFile(path.join(root, 'legacy', '.p3-smoke-owner.json')), { code: 'ENOENT' });
   await assert.rejects(assertOwnedOrAbsent(roots, 'other-run', 'fixture-sid'), /preexisting|owned/i);
+});
+
+test('Owned profiles survive missing or unverified supervisor cleanup reports', async (t) => {
+  const root = await temporary(t);
+  const data = path.join(root, 'profile');
+  const roots = [{ path: data, claim: true }];
+  await claimProfileRoots(roots, 'run', 'sid');
+  const sentinel = path.join(data, 'web_config.json');
+  await writeFile(sentinel, 'retain until captured cleanup is verified');
+  const neverStarted = new NativeSupervisor('never-run-powershell.exe', root);
+  const defaultReport = await neverStarted.dispose();
+  for (const report of [undefined, defaultReport, { verified: false, remaining: [], observed: [] },
+    { verified: 'true', remaining: [], observed: [] }]) {
+    await assert.rejects(removeProfilesAfterVerifiedCleanup(roots, 'run', 'sid', report), /verified captured process tree/i);
+    assert.equal(await readFile(sentinel, 'utf8'), 'retain until captured cleanup is verified');
+    await assertOwnedOrAbsent(roots, 'run', 'sid');
+  }
+});
+
+test('Owned profile cleanup rejects live processes and incomplete captured Job reports', async (t) => {
+  const root = await temporary(t);
+  const data = path.join(root, 'profile');
+  const roots = [{ path: data, claim: true }];
+  await claimProfileRoots(roots, 'run', 'sid');
+  const sentinel = path.join(data, 'renderer-session.json');
+  await writeFile(sentinel, 'retain incomplete cleanup evidence');
+  for (const report of [
+    { verified: true, observed: [{ alive: false }] },
+    { verified: true, remaining: [{ alive: true }], observed: [{ alive: false }] },
+    { verified: true, remaining: [] },
+    { verified: true, remaining: [], observed: [] },
+    { verified: true, remaining: [], observed: [{ alive: true }] },
+    { verified: true, remaining: [], observed: [{}] },
+  ]) {
+    await assert.rejects(removeProfilesAfterVerifiedCleanup(roots, 'run', 'sid', report), /empty captured Job|observed dead/i);
+    assert.equal(await readFile(sentinel, 'utf8'), 'retain incomplete cleanup evidence');
+  }
+});
+
+test('Verified empty Job cleanup still enforces run and SID ownership before removing a profile', async (t) => {
+  const root = await temporary(t);
+  const data = path.join(root, 'profile');
+  const roots = [{ path: data, claim: true }];
+  await claimProfileRoots(roots, 'run', 'sid');
+  const sentinel = path.join(data, 'web_config.json');
+  await writeFile(sentinel, 'current run data');
+  const report = { verified: true, fallbackUsed: false, remaining: [], observed: [{ pid: 123, alive: false }] };
+  await assert.rejects(removeProfilesAfterVerifiedCleanup(roots, 'another-run', 'sid', report), /preexisting|owned/i);
+  await assert.rejects(removeProfilesAfterVerifiedCleanup(roots, 'run', 'another-sid', report), /preexisting|owned/i);
+  assert.equal(await readFile(sentinel, 'utf8'), 'current run data');
+  await removeProfilesAfterVerifiedCleanup(roots, 'run', 'sid', report);
+  await assert.rejects(readFile(sentinel), { code: 'ENOENT' });
+  await assert.rejects(readdir(data), { code: 'ENOENT' });
+});
+
+test('Primary GUI failure and supervisor failure remain observable while owned profiles are retained', async (t) => {
+  const root = await temporary(t);
+  const data = path.join(root, 'profile');
+  const roots = [{ path: data, claim: true }];
+  await claimProfileRoots(roots, 'run', 'sid');
+  const sentinel = path.join(data, 'chaoxing.log');
+  await writeFile(sentinel, 'retain failed GUI evidence');
+  const primary = new Error('fixture CDP startup failure');
+  const cleanupFailure = new Error('fixture supervisor exited before verification');
+  const owner = { dispose: async () => { throw cleanupFailure; } };
+  await assert.rejects(withCleanup({}, async () => { throw primary; }, async () => {
+    const cleanup = await owner.dispose();
+    await removeProfilesAfterVerifiedCleanup(roots, 'run', 'sid', cleanup);
+  }), (error) => error instanceof AggregateError && error.errors[0] === primary && error.errors[1] === cleanupFailure);
+  assert.equal(await readFile(sentinel, 'utf8'), 'retain failed GUI evidence');
+  await assert.rejects(withCleanup({}, async () => { throw primary; },
+    () => removeProfilesAfterVerifiedCleanup(roots, 'run', 'sid', { remaining: [], observed: [] })),
+  (error) => error instanceof AggregateError && error.errors[0] === primary && /verified captured process tree/i.test(error.errors[1].message));
+  assert.equal(await readFile(sentinel, 'utf8'), 'retain failed GUI evidence');
 });
 
 test('A profile created after the absent preflight cannot be adopted by this smoke run', async (t) => {

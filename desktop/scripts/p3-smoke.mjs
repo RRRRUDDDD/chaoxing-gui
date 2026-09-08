@@ -144,6 +144,14 @@ export async function removeOwnedProfiles(roots, runId, sid) {
   }
 }
 
+export async function removeProfilesAfterVerifiedCleanup(roots, runId, sid, cleanup) {
+  assert.equal(cleanup?.verified, true, 'Profile cleanup requires a verified captured process tree');
+  assert.deepEqual(cleanup.remaining, [], 'Profile cleanup requires an empty captured Job');
+  assert.ok(Array.isArray(cleanup.observed) && cleanup.observed.length > 0
+    && cleanup.observed.every((identity) => identity?.alive === false), 'Profile cleanup requires all captured processes to be observed dead');
+  await removeOwnedProfiles(roots, runId, sid);
+}
+
 export function sanitizedEnvironment(source, context, options = {}) {
   const allowed = new Set(['COMSPEC', 'PROGRAMDATA', 'PROGRAMFILES', 'PROGRAMFILES(X86)', 'PROGRAMW6432',
     'PUBLIC', 'HOMEDRIVE', 'HOMEPATH', 'OS', 'PROCESSOR_ARCHITECTURE', 'NUMBER_OF_PROCESSORS', 'USERNAME', 'USERDOMAIN']);
@@ -238,8 +246,7 @@ async function probeBuildProfile(options, context, evidence, result, record) {
   }, async () => {
     item.cleanup = await owner.dispose();
     if (profilesClaimed) {
-      assert.equal(item.cleanup.verified, true, 'Probe profile cleanup requires a verified captured process tree');
-      await removeOwnedProfiles(roots, result.runId, context.sid);
+      await removeProfilesAfterVerifiedCleanup(roots, result.runId, context.sid, item.cleanup);
       item.profileCleanup = { ownedRootsRemoved: true };
     }
   });
@@ -472,9 +479,10 @@ async function runTauri(options, context, evidence, result, record) {
     } catch (error) {
       if (browser) item.webviewPagesAtFailure = browser.contexts().flatMap((entry) => entry.pages()).map((page) => page.url());
       await browser?.close().catch(() => {});
-      item.cleanup = await owner.dispose().catch((cleanup) => ({ error: cleanup.message }));
-      if (roots.length) await removeOwnedProfiles(roots, runId, context.sid);
-      throw error;
+      await withCleanup(item, async () => { throw error; }, async () => {
+        item.cleanup = await owner.dispose();
+        if (roots.length) await removeProfilesAfterVerifiedCleanup(roots, runId, context.sid, item.cleanup);
+      });
     }
   }
 
@@ -499,8 +507,7 @@ async function runTauri(options, context, evidence, result, record) {
   }
 
   async function close(app, force = false) {
-    let primary;
-    try {
+    await withCleanup(app, async () => {
       const before = await app.owner.snapshot();
       app.item.processes = before.observed;
       await app.browser?.close();
@@ -513,17 +520,14 @@ async function runTauri(options, context, evidence, result, record) {
       app.item.shutdown = { mode: force ? 'terminate captured host handle' : 'WM_CLOSE exact captured PID and configured title', before, after,
         outerJobStillOpenAtObservation: true, noResidueBeforeFallback: true };
       record(`${app.item.scenario}-${force ? 'forced' : 'normal'}-no-residue`, { hostPid: before.host.pid, observed: after.observed });
-    } catch (error) { primary = error; }
-    finally {
+    }, async () => {
       await app.browser?.close().catch(() => {});
-      try { app.item.cleanup = await app.owner.dispose(); }
-      catch (error) { primary = primary ? new Error(`${primary.message}; cleanup: ${error.message}`) : error; }
+      app.item.cleanup = await app.owner.dispose();
       for (const filename of ['web_config.json', 'renderer-session.json', 'chaoxing.log']) {
         await copyFile(path.join(app.data, filename), path.join(app.scenarioEvidence, filename)).catch((error) => { if (error.code !== 'ENOENT') throw error; });
       }
-      if (roots.length) await removeOwnedProfiles(roots, runId, context.sid);
-    }
-    if (primary) throw primary;
+      if (roots.length) await removeProfilesAfterVerifiedCleanup(roots, runId, context.sid, app.item.cleanup);
+    });
     assert.equal(app.item.cleanup.fallbackUsed, false, 'Fallback tree kill cannot satisfy the normal/forced lifecycle assertion');
   }
 
