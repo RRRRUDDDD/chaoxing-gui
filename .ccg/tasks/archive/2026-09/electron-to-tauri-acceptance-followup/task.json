@@ -1,0 +1,29 @@
+{
+  "id": "electron-to-tauri-acceptance-followup",
+  "title": "续接 P0–P3 双路外审与隔离 Windows release、安装包及 CI 验收",
+  "status": "completed",
+  "complexity": "L",
+  "risk": "high",
+  "domain": "desktop",
+  "currentPhase": "completed",
+  "nextAction": "已交付并记录阻塞；等待可用外部服务、远端 Windows runner 与签名条件",
+  "createdAt": "2026-09-08 05:26:29 UTC",
+  "branch": "main",
+  "baselineCommit": "37fde9160229e99d2fa837d2f1a850203c260d81",
+  "parentTask": ".ccg/tasks/electron-to-tauri-implementation",
+  "previousArchive": ".ccg/tasks/archive/2026-09/electron-to-tauri-p3",
+  "externalReviewPassed": false,
+  "p3AcceptancePassed": false,
+  "overallMigrationComplete": false,
+  "constraints": [
+    "不修改或暂存用户归档 plan.md（含 /plan）",
+    "保留 poc-window.png",
+    "不 push、不发布、不使用真实业务账号",
+    "不在 RUD 用户下执行 release 验收",
+    "不重复实施或应用旧补丁",
+    "父迁移任务保持未完成，本轮不进入 P4/P5"
+  ],
+  "updatedAt": "2026-09-11T09:10:00+00:00",
+  "sourceCommit": "12bae2286bec71bf184f19c8be67e6431199e134",
+  "completedExternalInvocations": 10
+}

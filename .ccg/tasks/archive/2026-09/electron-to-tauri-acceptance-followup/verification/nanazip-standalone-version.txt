@@ -1,0 +1,160 @@
+
+NanaZip 6.5 Update (x64) : (c) M2-Team and Contributors. All rights reserved.
+
+
+Libs:
+ 0 : 0.00 : E:\Downloads\45\chaoxing-gui\desktop\src-tauri\target\acceptance-followup-tools\nanazip-6.5.1767.0\NanaZip.Codecs.dll
+ 1 : 26.02 : E:\Downloads\45\chaoxing-gui\desktop\src-tauri\target\acceptance-followup-tools\nanazip-6.5.1767.0\NanaZip.Core.dll
+
+Formats:
+ 0  ........B.............  .Electron Archive (asar) asar          
+ 0  ........B.............  .NET Single File Application coreclrapphost 
+ 1 C...F..........c.a.m+.. w...0  7z       7z            7 z BC AF ' 1C
+ 1  ......................  APFS     apfs img      offset=32 N X S B 00
+ 1  ......................  APM      apm           E R
+ 1  ........B.............  AVB      avb img       
+ 1  ......................  Ar       ar a deb udeb lib ! < a r c h > 0A
+ 1  ......................  Arj      arj           ` EA
+ 1  K.....O.....X.........  Base64   b64           
+ 1  ......O...............  COFF     obj           
+ 1  ...F..................  Cab      cab           M S C F 00 00 00 00
+ 1  ......................  Chm      chm chi chq chw I T S F 03 00 00 00 ` 00 00 00
+ 1  ......................  Compound msi msp msm doc xls ppt aaf D0 CF 11 E0 A1 B1 1A E1
+ 1  ....M.................  Cpio     cpio          0 7 0 7 0  ||  C7 q  ||  q C7
+ 1  ......................  CramFS   cramfs        offset=16 C o m p r e s s e d 20 R O M F S
+ 1  .....G..B.............  Dmg      dmg           k o l y 00 00 00 04 00 00 02 00
+ 1  .........E............  ELF      elf            E L F
+ 1  ......................  Ext      ext ext2 ext3 ext4 img offset=1080 S EF
+ 1  ......................  FAT      fat img       offset=510 U AA
+ 1  ......................  FLV      flv           F L V 01
+ 1  ......................  GPT      gpt mbr       offset=512 E F I 20 P A R T 00 00 01 00
+ 1  ....M.................  HFS      hfs hfsx      offset=1024 B D  ||  H + 00 04  ||  H X 00 05
+ 1  ...F..................  Hxs      hxs hxi hxr hxq hxw lit I T O L I T L S 01 00 00 00 ( 00 00 00
+ 1  ......O...............  IHex     ihex          
+ 1  ......................  Iso      iso img       offset=32769 C D 0 0 1
+ 1  ......................  LP       lpimg img     offset=4096 g D l a 4 00 00 00
+ 1  ......................  LVM      lvm           offset=512 L A B E L O N E
+ 1  ......................  Lzh      lzh lha       offset=2 - l h
+ 1  .......P..............  MBR      mbr           
+ 1  ....M....E............  MachO    macho         CE FA ED FE  ||  CF FA ED FE  ||  FE ED FA CE  ||  FE ED FA CF
+ 1  ......................  MsLZ     mslz          S Z D D 88 F0 ' 3 A
+ 1  ....M.................  Mub      mub           CA FE BA BE 00 00 00  ||  B9 FA F1 0E
+ 1  ......................  NTFS     ntfs img      offset=3 N T F S 20 20 20 20 00
+ 1  ...F.G................  Nsis     nsis          offset=4 EF BE AD DE N u l l s o f t I n s t
+ 1  .........E............  PE       exe dll sys   M Z
+ 1  ......................  Ppmd     pmd           8F AF AC 84
+ 1  ......................  QCOW     qcow qcow2 qcow2c Q F I FB 00 00 00
+ 0  ...F..................  ROMFS    romfs         - r o m 1 f s -
+ 1  ...F..................  Rar      rar r00       R a r ! 1A 07 00
+ 1  ...F..................  Rar5     rar r00       R a r ! 1A 07 01 00
+ 1  ......................  Rpm      rpm           ED AB EE DB
+ 1  K.....................  SWF      swf           F W S
+ 1  ....M.................  SWFc     swf (~.swf)   C W S  ||  Z W S
+ 1  ......................  Sparse   simg img      : FF & ED 01 00
+ 1  ......................  Split    001           
+ 1  ....M.................  SquashFS sfs squashfs  h s q s  ||  s q s h  ||  s h s q  ||  q s h s
+ 1  .........E............  TE       te            V Z
+ 1  ...FM.................  UEFIc    scap          BD 86 f ; v 0D 0 @ B7 0E B5 Q 9E / C5 A0  ||  8B A6 < J # w FB H 80 = W 8C C1 FE C4 M  ||  B9 82 91 S B5 AB 91 C B6 9A E3 A9 C F7 / CC
+ 1  ...FM.................  UEFIf    uefif         offset=16 D9 T 93 z h 04 J D 81 CE 0B F6 17 D8 90 DF  ||  x E5 8C 8C = 8A 1C O 99 5 89 a 85 C3 - D3
+ 0  ........B.............  UFS      ufs ufs2 img  
+ 1  ....M.O...............  Udf      udf iso img   offset=32768 00 B E A 0 1 01 00  ||  01 C D 0 0 1
+ 1  ......................  VDI      vdi           offset=64  10 DA BE
+ 1  .....G................  VHD      vhd           c o n e c t i x 00 00
+ 1  ......................  VHDX     vhdx avhdx    v h d x f i l e
+ 1  ......................  VMDK     vmdk          K D M V
+ 0  ...F..................  WebAssembly (WASM) wasm          00 a s m
+ 1  ......................  Xar      xar pkg xip   x a r ! 00
+ 1  ......................  Z        z taz (.tar)  1F 9D
+ 0  ...F..................  ZealFS   zealfs        Z
+ 1 CK......P....X.........  brotli   br brotli tbr 
+ 1 CK.....................  bzip2    bz2 bzip2 tbz2 (.tar) tbz (.tar) B Z h
+ 1 CK.................m+.. .u..1  gzip     gz gzip tgz (.tar) tpz (.tar) apk (.tar) 1F 8B 08
+ 0  ........B.............  littlefs littlefs      
+ 1 CK.....................  lizard   liz tliz (.tar) 0 x 1 8 4 D 2 2 0 6 00
+ 1 CK.....................  lz4      lz4 tlz4 (.tar) 0 x 1 8 4 D 2 2 0 4 00
+ 1 CK.....................  lz5      lz5 tlz5 (.tar) 0 x 1 8 4 D 2 2 0 5 00
+ 1  K.....................  lzip     lz tlz (.tar) L Z I P 01
+ 1  K.....O...............  lzma     lzma          
+ 1  K.....................  lzma86   lzma86        
+ 1 C......O...LH......m+.. wu.n1  tar      tar ova       offset=257 u s t a r
+ 1 C.SN.......LH..c.a.m+.. w...0  wim      wim swm esd ppkg M S W I M 00 00 00
+ 1 CK.....................  xz       xz txz (.tar) FD 7 z X Z 00
+ 1 C...FMG........c.a.m+.. wud.0  zip      zip z01 zipx jar xpi odt ods docx xlsx epub ipa apk appx P K 03 04  ||  P K 05 06  ||  P K 06 06  ||  P K 07 08 P K  ||  P K 0 0 P K
+ 1 CK.....................  zstd     zst zstd tzst (.tar) tzstd (.tar) 0 x F D 2 F B 5 2 2 . . 2 8 00
+   CK.....O.....XC........  Hash     sha256 sha512 sha384 sha224 sha512-224 sha512-256 sha3-224 sha3-256 sha3-384 sha3-512 sha1 sha2 sha3 sha md5 blake2s blake2b blake2sp xxh64 crc32 crc64 cksum asc 
+
+Codecs:
+ 1  ED   4F71102 BROTLI
+ 1  ED        21 FLZMA2
+ 1  ED   4F71106 LIZARD
+ 1  ED   4F71104 LZ4
+ 1  ED   4F71105 LZ5
+ 1  ED   4F71101 ZSTD
+ 1 4ED   303011B BCJ2
+ 1  EDF  3030103 BCJ
+ 1  EDF  3030205 PPC
+ 1  EDF  3030401 IA64
+ 1  EDF  3030501 ARM
+ 1  EDF  3030701 ARMT
+ 1  EDF  3030805 SPARC
+ 1  EDF        A ARM64
+ 1  EDF        B RISCV
+ 1  EDF    20302 Swap2
+ 1  EDF    20304 Swap4
+ 1  ED     40202 BZip2
+ 1  ED         0 Copy
+ 1  ED     40109 Deflate64
+ 1  ED     40108 Deflate
+ 1  EDF        3 Delta
+ 1  ED        21 LZMA2
+ 1  ED     30101 LZMA
+ 1  ED     30401 PPMD
+ 1   D     40301 Rar1
+ 1   D     40302 Rar2
+ 1   D     40303 Rar3
+ 1   D     40305 Rar5
+ 1  EDF  6F10701 7zAES
+ 1  EDF  6F00181 AES256CBC
+
+Hashers:
+ 0   16 4823374B00000000 MD2
+ 0   16 4823374B00000001 MD4
+ 0   16 4823374B00000002 MD5
+ 0   20 4823374B00000003 SHA1
+ 0   32 4823374B00000004 SHA256
+ 0   48 4823374B00000005 SHA384
+ 0   64 4823374B00000006 SHA512
+ 0   32 4823374B00000007 SHA3-256
+ 0   48 4823374B00000008 SHA3-384
+ 0   64 4823374B00000009 SHA3-512
+ 0   32 4823374B0000000A BLAKE3
+ 0   32 4823374B0000000B SM3
+ 0   20 4823374B0000000C AICH
+ 0   64 4823374B0000000D BLAKE2b
+ 0   16 4823374B0000000E ED2K
+ 0   28 4823374B0000000F EDON-R-224
+ 0   32 4823374B00000010 EDON-R-256
+ 0   48 4823374B00000011 EDON-R-384
+ 0   64 4823374B00000012 EDON-R-512
+ 0   32 4823374B00000013 GOST94
+ 0   32 4823374B00000014 GOST94CryptoPro
+ 0   32 4823374B00000015 GOST12-256
+ 0   64 4823374B00000016 GOST12-512
+ 0   20 4823374B00000017 HAS-160
+ 0   20 4823374B00000018 RIPEMD-160
+ 0   28 4823374B00000019 SHA224
+ 0   28 4823374B0000001A SHA3-224
+ 0   16 4823374B0000001B SNEFRU-128
+ 0   32 4823374B0000001C SNEFRU-256
+ 0   24 4823374B0000001D TIGER
+ 0   24 4823374B0000001E TIGER2
+ 0   20 4823374B0000001F BTIH
+ 0   24 4823374B00000020 TTH
+ 0   64 4823374B00000021 WHIRLPOOL
+ 0    4 4823374B00000022 XXH32
+ 0    8 4823374B00000023 XXH64
+ 0    8 4823374B00000024 XXH3_64bits
+ 0   16 4823374B00000025 XXH3_128bits
+ 1   32      202 BLAKE2sp
+ 1    4        1 CRC32
+ 1    8        4 CRC64

@@ -1,0 +1,9 @@
+{
+  "capturedAt": "2026-09-08T21:59:53.214Z",
+  "readOnly": true,
+  "chunk_id": "18df8c",
+  "wall_time_seconds": 1.2859959,
+  "exit_code": 0,
+  "original_token_count": 142,
+  "output": "{\"total_count\":2,\"workflow_runs\":[{\"conclusion\":\"success\",\"event\":\"push\",\"head_branch\":\"v1.1.1\",\"head_sha\":\"5899b5fe0f7d507aa65102b3a80b7e69d8aa4565\",\"html_url\":\"https://github.com/RRRRUDDDD/chaoxing-gui/actions/runs/34033944089\",\"id\":34033944089,\"name\":\"Build Windows Package\",\"status\":\"completed\"},{\"conclusion\":\"success\",\"event\":\"push\",\"head_branch\":\"v1.1\",\"head_sha\":\"a4a60fa95a2ad006dc3e645f997b96b3e87cb8f5\",\"html_url\":\"https://github.com/RRRRUDDDD/chaoxing-gui/actions/runs/33751565829\",\"id\":33751565829,\"name\":\"Build Windows Package\",\"status\":\"completed\"}]}\n"
+}

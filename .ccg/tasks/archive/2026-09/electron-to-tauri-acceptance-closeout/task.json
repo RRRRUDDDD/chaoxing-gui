@@ -1,0 +1,20 @@
+{
+  "id": "electron-to-tauri-acceptance-closeout",
+  "title": "续接验收最终证据核对与归档",
+  "status": "completed",
+  "complexity": "M",
+  "risk": "medium",
+  "domain": "desktop",
+  "currentPhase": "completed",
+  "nextAction": "已交付并记录阻塞；等待可用外部服务、远端 Windows runner 与签名条件",
+  "createdAt": "2026-09-11T08:56:53.749358+00:00",
+  "branch": "main",
+  "sourceCommit": "bbdbbc218416a4f458f9b03bb1a3da5f02451f45",
+  "parentTask": ".ccg/tasks/electron-to-tauri-implementation",
+  "deliveryTask": ".ccg/tasks/archive/2026-09/electron-to-tauri-acceptance-followup",
+  "scope": "收尾记录；复用已完成双路分析和各阶段外审调用，不重复实施或执行失败验收",
+  "externalReviewPassed": false,
+  "p3AcceptancePassed": false,
+  "overallMigrationComplete": false,
+  "updatedAt": "2026-09-11T09:10:00+00:00"
+}

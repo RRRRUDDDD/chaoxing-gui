@@ -1,0 +1,49 @@
+{
+  "recordedAt": "2026-09-11T09:05:00+00:00",
+  "sourceCommit": "bbdbbc218416a4f458f9b03bb1a3da5f02451f45",
+  "baselineCommit": "37fde9160229e99d2fa837d2f1a850203c260d81",
+  "changes": [
+    "12bae228: release optimized native probe uses disposable profile and exit-code classification",
+    "bbdbbc2: verified process-tree cleanup required before profile deletion"
+  ],
+  "node20Desktop": { "passed": 90, "failed": 0, "skipped": 0, "log": "verification/node20-desktop-cleanup-final.log" },
+  "sandbox": {
+    "runId": "run-509f5e36e42744d6813cc023ef166ba0",
+    "identity": "679402FC-7175-4\\WDAGUtilityAccount",
+    "model": "Virtual Machine",
+    "sourceCommit": "bbdbbc218416a4f458f9b03bb1a3da5f02451f45",
+    "scope": "native-installation-partial",
+    "success": true,
+    "checks": 16,
+    "fullAcceptancePassed": false,
+    "formalReleaseSmokePassed": false,
+    "evidence": "verification/native-installation-result-summary.json"
+  },
+  "standardReleaseGuiSmoke": {
+    "runId": "run-504ac0d14d084dc19e44a7c97924cff7",
+    "passed": false,
+    "failure": "CDP connection timed out after 300 seconds; fetch failed",
+    "evidence": "verification/sandbox-runs/run-504ac0d14d084dc19e44a7c97924cff7/"
+  },
+  "externalReviews": {
+    "passed": false,
+    "historicalCalls": "429 Service Unavailable, exit 1, blank stdout",
+    "latestCalls": "403 authentication_failed, exit 1, blank stdout",
+    "evidence": [
+      "verification/external-errors.json",
+      "verification/external-errors-final-review.json",
+      "verification/external-errors-native-review.json",
+      "verification/external-errors-cleanup-review.json",
+      "verification/external-errors-closeout-review.json"
+    ]
+  },
+  "remoteCI": { "executed": false, "remoteMain": "5899b5fe0f7d507aa65102b3a80b7e69d8aa4565", "currentCommitPresent": false },
+  "signing": { "certificateAvailable": false, "successPathVerified": false, "artifactsSigned": false },
+  "p3AcceptancePassed": false,
+  "overallMigrationComplete": false,
+  "parentTaskStatus": "in_progress",
+  "protectedPlanSha256": "7c926423ae0a4e3643fbf54f2dd68d2e1899ebae0817ac23ea99d641151a2bab",
+  "pocWindowSha256": "282e312479ea72fc33b72211ec2404fd84a5dda7bc5803cdc44920c3465dce87",
+  "pushPerformed": false,
+  "publishPerformed": false
+}

@@ -1,0 +1,66 @@
+174 INFO: PyInstaller: 6.21.0, contrib hooks: 2026.6
+174 INFO: Python: 3.11.9
+182 INFO: Platform: Windows-10-10.0.26100-SP0
+182 INFO: Python environment: C:\Users\RUD\AppData\Local\Programs\Python\Python311
+184 INFO: wrote desktop/src-tauri/target/acceptance-followup-fixture\p2-backend.spec
+189 INFO: Module search paths (PYTHONPATH):
+['E:\\Downloads\\45\\chaoxing-gui',
+ 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\python311.zip',
+ 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\DLLs',
+ 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib',
+ 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311',
+ 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages',
+ 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\win32',
+ 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\win32\\lib',
+ 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\pythonwin',
+ 'E:\\Downloads\\45\\chaoxing-gui\\desktop\\tests\\fixtures']
+575 INFO: checking Analysis
+576 INFO: Building Analysis because Analysis-00.toc is non existent
+576 INFO: Looking for Python shared library...
+576 INFO: Using Python shared library: C:\Users\RUD\AppData\Local\Programs\Python\Python311\python311.dll
+576 INFO: Running Analysis Analysis-00.toc
+576 INFO: Target bytecode optimization level: 0
+576 INFO: Initializing module dependency graph...
+577 INFO: Initializing module graph hook caches...
+638 INFO: Analyzing modules for base_library.zip ...
+1243 INFO: Processing standard module hook 'hook-heapq.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\PyInstaller\\hooks'
+1296 INFO: Processing standard module hook 'hook-encodings.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\PyInstaller\\hooks'
+2366 INFO: Processing standard module hook 'hook-math.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\PyInstaller\\hooks'
+2439 INFO: Processing standard module hook 'hook-pickle.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\PyInstaller\\hooks'
+3568 INFO: Caching module dependency graph...
+3599 INFO: Analyzing E:\Downloads\45\chaoxing-gui\desktop\tests\fixtures\p2_backend.py
+3757 INFO: Processing module hooks (post-graph stage)...
+3760 INFO: Performing binary vs. data reclassification (1 entries)
+3762 INFO: Looking for ctypes DLLs
+3767 INFO: Analyzing run-time hooks ...
+3769 INFO: Including run-time hook 'pyi_rth_inspect.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+3773 INFO: Creating base_library.zip...
+3785 INFO: Looking for dynamic libraries
+3869 INFO: Extra DLL search directories (AddDllDirectory): []
+3869 INFO: Extra DLL search directories (PATH): []
+4049 INFO: Warnings written to E:\Downloads\45\chaoxing-gui\desktop\src-tauri\target\acceptance-followup-fixture\build\p2-backend\warn-p2-backend.txt
+4061 INFO: Graph cross-reference written to E:\Downloads\45\chaoxing-gui\desktop\src-tauri\target\acceptance-followup-fixture\build\p2-backend\xref-p2-backend.html
+4074 INFO: checking PYZ
+4074 INFO: Building PYZ because PYZ-00.toc is non existent
+4074 INFO: Building PYZ (ZlibArchive) E:\Downloads\45\chaoxing-gui\desktop\src-tauri\target\acceptance-followup-fixture\build\p2-backend\PYZ-00.pyz
+4194 INFO: Building PYZ (ZlibArchive) E:\Downloads\45\chaoxing-gui\desktop\src-tauri\target\acceptance-followup-fixture\build\p2-backend\PYZ-00.pyz completed successfully.
+4199 INFO: checking PKG
+4199 INFO: Building PKG because PKG-00.toc is non existent
+4199 INFO: Building PKG (CArchive) p2-backend.pkg
+4211 INFO: Building PKG (CArchive) p2-backend.pkg completed successfully.
+4211 INFO: Bootloader C:\Users\RUD\AppData\Local\Programs\Python\Python311\Lib\site-packages\PyInstaller\bootloader\Windows-64bit-intel\run.exe
+4211 INFO: checking EXE
+4211 INFO: Building EXE because EXE-00.toc is non existent
+4211 INFO: Building EXE from EXE-00.toc
+4213 INFO: Copying bootloader EXE to E:\Downloads\45\chaoxing-gui\desktop\src-tauri\target\acceptance-followup-fixture\build\p2-backend\p2-backend.exe
+4215 INFO: Copying icon to EXE
+4217 INFO: Copying 0 resources to EXE
+4217 INFO: Embedding manifest in EXE
+4220 INFO: Appending PKG archive to EXE
+4221 INFO: Fixing EXE headers
+4262 INFO: Building EXE from EXE-00.toc completed successfully.
+4263 INFO: checking COLLECT
+4263 INFO: Building COLLECT because COLLECT-00.toc is non existent
+4264 INFO: Building COLLECT COLLECT-00.toc
+4295 INFO: Building COLLECT COLLECT-00.toc completed successfully.
+4295 INFO: Build complete! The results are available in: E:\Downloads\45\chaoxing-gui\desktop\src-tauri\target\acceptance-followup-fixture\dist

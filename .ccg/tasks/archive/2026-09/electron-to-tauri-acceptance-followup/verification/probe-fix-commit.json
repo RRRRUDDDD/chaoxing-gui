@@ -1,0 +1,12 @@
+{
+  "recordedAt": "2026-09-08T15:49:36.5647554Z",
+  "before": "37fde9160229e99d2fa837d2f1a850203c260d81",
+  "commit": "12bae2286bec71bf184f19c8be67e6431199e134",
+  "paths": [
+    "desktop/scripts/p3-smoke.mjs"
+  ],
+  "node20SmokeTestsPassed": 18,
+  "externalReviewPassed": false,
+  "releaseAcceptancePending": true,
+  "pushPerformed": false
+}

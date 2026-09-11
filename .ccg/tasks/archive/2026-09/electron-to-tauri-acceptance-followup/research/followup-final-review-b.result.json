@@ -1,0 +1,17 @@
+{
+  "stage": "followup-final-review",
+  "lane": "b",
+  "repoRoot": "E:\\Downloads\\45\\chaoxing-gui",
+  "pid": 11976,
+  "command": "codeagent-wrapper.exe --progress --backend claude - <repoRoot>",
+  "startedAt": "2026-09-08T16:10:37.7144873Z",
+  "endedAt": "2026-09-08T16:14:04.0429159Z",
+  "timeoutSeconds": 300,
+  "timedOut": false,
+  "exitCode": 1,
+  "stdoutPresent": false,
+  "invocationSucceeded": false,
+  "reviewPassed": false,
+  "conclusion": "No passing review: invocation failed or empty report",
+  "processTreeCleanup": "KILL_ON_JOB_CLOSE disposed; output streams drained"
+}

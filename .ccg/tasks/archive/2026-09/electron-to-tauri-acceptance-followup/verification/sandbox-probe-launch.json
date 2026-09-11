@@ -1,0 +1,51 @@
+{
+  "startedAt": "2026-09-08T09:26:48.1814875Z",
+  "configPath": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\acceptance-followup-probe-27cca585b83d45f5aca60daa0d7fea98\\probe.wsb",
+  "inputDirectory": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\acceptance-followup-probe-27cca585b83d45f5aca60daa0d7fea98\\input",
+  "outputDirectory": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\acceptance-followup-probe-27cca585b83d45f5aca60daa0d7fea98\\output",
+  "productExecuted": false,
+  "success": true,
+  "launcherPid": 38516,
+  "guest": {
+    "startedAt": "2026-09-08T09:26:55.8040889Z",
+    "identity": "679402FC-7175-4\\WDAGUtilityAccount",
+    "computerName": "679402FC-7175-4",
+    "operatingSystem": "Microsoft Windows NT 10.0.26100.0",
+    "powershell": "5.1.26100.6584",
+    "computer": {
+      "Manufacturer": "Microsoft Corporation",
+      "Model": "Virtual Machine",
+      "HypervisorPresent": true
+    },
+    "profiles": {
+      "roaming": "C:\\Users\\WDAGUtilityAccount\\AppData\\Roaming",
+      "local": "C:\\Users\\WDAGUtilityAccount\\AppData\\Local",
+      "temp": "C:\\Users\\WDAGUtilityAccount\\AppData\\Local\\Temp\\"
+    },
+    "webview2": [],
+    "pythonCommands": [],
+    "productExecuted": false,
+    "networkUse": false,
+    "productProfilesExist": [
+      {
+        "path": "C:\\Users\\WDAGUtilityAccount\\AppData\\Roaming\\com.chaoxing.gui",
+        "exists": false
+      },
+      {
+        "path": "C:\\Users\\WDAGUtilityAccount\\AppData\\Roaming\\chaoxing-desktop",
+        "exists": false
+      },
+      {
+        "path": "C:\\Users\\WDAGUtilityAccount\\AppData\\Local\\com.chaoxing.gui",
+        "exists": false
+      },
+      {
+        "path": "C:\\Users\\WDAGUtilityAccount\\AppData\\Local\\chaoxing-desktop",
+        "exists": false
+      }
+    ],
+    "completedAt": "2026-09-08T09:26:59.8368813Z",
+    "success": true
+  },
+  "endedAt": "2026-09-08T09:27:00.5358844Z"
+}

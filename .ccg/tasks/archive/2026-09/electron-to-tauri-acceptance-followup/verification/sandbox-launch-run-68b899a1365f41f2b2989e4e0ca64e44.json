@@ -1,0 +1,18 @@
+{
+  "startedAt": "2026-09-08T21:57:44.4820425Z",
+  "configPath": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\acceptance-followup-kit-ecce09eec1594d8880a34a666619bb67\\run-68b899a1365f41f2b2989e4e0ca64e44\\acceptance.wsb",
+  "outputDirectory": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\acceptance-followup-kit-ecce09eec1594d8880a34a666619bb67\\run-68b899a1365f41f2b2989e4e0ca64e44\\output",
+  "sourceCommit": "12bae2286bec71bf184f19c8be67e6431199e134",
+  "productExecutedOnHost": false,
+  "success": false,
+  "fullAcceptancePassed": false,
+  "acceptanceMode": "NativeInstallationPartial",
+  "networking": "enabled for Microsoft certificate/runtime setup; no real accounts",
+  "launcherPid": 13744,
+  "guestResultPath": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\acceptance-followup-kit-ecce09eec1594d8880a34a666619bb67\\run-68b899a1365f41f2b2989e4e0ca64e44\\output\\result.json",
+  "guestIdentity": "679402FC-7175-4\\WDAGUtilityAccount",
+  "scope": "native-installation-partial",
+  "guestPhase": "native-release-build-profile",
+  "guestError": "Exception: C:\\TauriAcceptance\\Input\\sandbox-guest.ps1:167\r\nLine |\r\n 167 |  … assed -ne $false) { throw 'Native preparation provenance mismatch.' }\r\n     |                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n     | Native preparation provenance mismatch.\r\n\r\n",
+  "endedAt": "2026-09-08T21:59:28.5943504Z"
+}

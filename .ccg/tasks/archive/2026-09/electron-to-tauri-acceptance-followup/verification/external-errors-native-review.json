@@ -1,0 +1,147 @@
+{
+  "schemaVersion": 1,
+  "collectedAt": "2026-09-08T22:18:50.496073+00:00",
+  "sessionRoot": "C:/Users/RUD/.claude/projects/E--Downloads-45-chaoxing-gui",
+  "collector": "verification/collect-external-errors.py",
+  "passingReviewEstablished": false,
+  "lanes": [
+    {
+      "name": "native-supplement-review-a",
+      "stage": "native-supplement-review",
+      "lane": "a",
+      "availability": "complete",
+      "passed": false,
+      "reportBodyPresent": false,
+      "sources": {
+        "result": {
+          "file": "research/native-supplement-review-a.result.json",
+          "bytes": 606,
+          "sha256": "449a7a64b93058d9b7519f3c53c8a55d3c5c87ba62e9b900767a16e6d6da07bf"
+        },
+        "stdout": {
+          "file": "research/native-supplement-review-a.stdout.md",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stderr": {
+          "file": "research/native-supplement-review-a.stderr.log",
+          "bytes": 535,
+          "sha256": "d534c3ad43c0260e3214ccf827f035bbe1630af9d862f4df61b39c7bd2bd2333"
+        }
+      },
+      "sessions": [
+        {
+          "sessionId": "fc00c15d-af9f-4ead-874e-bb66dbc60925",
+          "file": "C:/Users/RUD/.claude/projects/E--Downloads-45-chaoxing-gui/fc00c15d-af9f-4ead-874e-bb66dbc60925.jsonl",
+          "errors": [
+            {
+              "line": 7,
+              "timestamp": "2026-09-08T22:00:37.130Z",
+              "isApiErrorMessage": true,
+              "apiErrorStatus": 429,
+              "apiErrorIsTransient": false,
+              "errorType": "rate_limit",
+              "message": "API Error: Request rejected (429) · Service Unavailable",
+              "redactionApplied": false
+            }
+          ],
+          "issues": [],
+          "sha256": "37430e918280fb27b0aba14452e2f1c6c673d3afc4594a271bf774f096ecc6b0",
+          "bytes": 19069,
+          "sourceStable": true
+        }
+      ],
+      "issues": [],
+      "startedAt": "2026-09-08T21:57:20.5900835Z",
+      "endedAt": "2026-09-08T22:00:37.8457358Z",
+      "timeoutSeconds": 300,
+      "timedOut": false,
+      "exitCode": 1,
+      "durationSeconds": 197.256,
+      "stdoutNonWhitespace": false,
+      "wrapperInvocationSucceeded": false,
+      "wrapperReviewPassed": false,
+      "sessionIdsFromStderr": [
+        "fc00c15d-af9f-4ead-874e-bb66dbc60925"
+      ],
+      "apiStatuses": [
+        429
+      ],
+      "assessment": "No passing report: invocation failed, API error, timeout, or blank stdout"
+    },
+    {
+      "name": "native-supplement-review-b",
+      "stage": "native-supplement-review",
+      "lane": "b",
+      "availability": "complete",
+      "passed": false,
+      "reportBodyPresent": false,
+      "sources": {
+        "result": {
+          "file": "research/native-supplement-review-b.result.json",
+          "bytes": 606,
+          "sha256": "960cd67ca73db07366db373913dbecee1366709ce7b7311f4d44ee8fa3de1d5a"
+        },
+        "stdout": {
+          "file": "research/native-supplement-review-b.stdout.md",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "stderr": {
+          "file": "research/native-supplement-review-b.stderr.log",
+          "bytes": 535,
+          "sha256": "7b4a5e38d26b1a515096c3a31f1ea44182b4aeb7f6a54722ef1087cf50302f76"
+        }
+      },
+      "sessions": [
+        {
+          "sessionId": "06be634c-65d9-4c82-97d2-b2dbd6c78c4a",
+          "file": "C:/Users/RUD/.claude/projects/E--Downloads-45-chaoxing-gui/06be634c-65d9-4c82-97d2-b2dbd6c78c4a.jsonl",
+          "errors": [
+            {
+              "line": 7,
+              "timestamp": "2026-09-08T22:00:35.984Z",
+              "isApiErrorMessage": true,
+              "apiErrorStatus": 429,
+              "apiErrorIsTransient": false,
+              "errorType": "rate_limit",
+              "message": "API Error: Request rejected (429) · Service Unavailable",
+              "redactionApplied": false
+            }
+          ],
+          "issues": [],
+          "sha256": "9acd978afeec3152740fa3da91eceef508a2ee47617bf0e00fe434d8b4bc6d4d",
+          "bytes": 19071,
+          "sourceStable": true
+        }
+      ],
+      "issues": [],
+      "startedAt": "2026-09-08T21:57:20.6219833Z",
+      "endedAt": "2026-09-08T22:00:36.7899095Z",
+      "timeoutSeconds": 300,
+      "timedOut": false,
+      "exitCode": 1,
+      "durationSeconds": 196.168,
+      "stdoutNonWhitespace": false,
+      "wrapperInvocationSucceeded": false,
+      "wrapperReviewPassed": false,
+      "sessionIdsFromStderr": [
+        "06be634c-65d9-4c82-97d2-b2dbd6c78c4a"
+      ],
+      "apiStatuses": [
+        429
+      ],
+      "assessment": "No passing report: invocation failed, API error, timeout, or blank stdout"
+    }
+  ],
+  "accessedSessionFiles": [
+    {
+      "sessionId": "fc00c15d-af9f-4ead-874e-bb66dbc60925",
+      "file": "C:/Users/RUD/.claude/projects/E--Downloads-45-chaoxing-gui/fc00c15d-af9f-4ead-874e-bb66dbc60925.jsonl"
+    },
+    {
+      "sessionId": "06be634c-65d9-4c82-97d2-b2dbd6c78c4a",
+      "file": "C:/Users/RUD/.claude/projects/E--Downloads-45-chaoxing-gui/06be634c-65d9-4c82-97d2-b2dbd6c78c4a.jsonl"
+    }
+  ]
+}

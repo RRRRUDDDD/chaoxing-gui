@@ -1,0 +1,229 @@
+{
+  "guest": {
+    "sourceCommit": "bbdbbc218416a4f458f9b03bb1a3da5f02451f45",
+    "success": true,
+    "identity": "679402FC-7175-4\\WDAGUtilityAccount",
+    "sid": "S-1-5-21-2047949552-857980807-821054962-504",
+    "computerModel": "Virtual Machine",
+    "os": "Microsoft Windows NT 10.0.26100.0",
+    "initialPythonCommands": [],
+    "pythonRegistryPresent": false,
+    "scope": "native-installation-partial",
+    "fullAcceptancePassed": false,
+    "nativeInstallationPartial": {
+      "success": true,
+      "checks": 16,
+      "runId": "94faeac7-54fa-42bb-acee-ca6c7e739083",
+      "fullAcceptancePassed": false
+    },
+    "initialProductProfiles": [
+      {
+        "path": "C:\\Users\\WDAGUtilityAccount\\AppData\\Roaming\\com.chaoxing.gui",
+        "exists": false
+      },
+      {
+        "path": "C:\\Users\\WDAGUtilityAccount\\AppData\\Roaming\\chaoxing-desktop",
+        "exists": false
+      },
+      {
+        "path": "C:\\Users\\WDAGUtilityAccount\\AppData\\Local\\com.chaoxing.gui",
+        "exists": false
+      },
+      {
+        "path": "C:\\Users\\WDAGUtilityAccount\\AppData\\Local\\chaoxing-desktop",
+        "exists": false
+      }
+    ],
+    "finalProductProfiles": [
+      {
+        "path": "C:\\Users\\WDAGUtilityAccount\\AppData\\Roaming\\com.chaoxing.gui",
+        "exists": false
+      },
+      {
+        "path": "C:\\Users\\WDAGUtilityAccount\\AppData\\Roaming\\chaoxing-desktop",
+        "exists": false
+      },
+      {
+        "path": "C:\\Users\\WDAGUtilityAccount\\AppData\\Local\\com.chaoxing.gui",
+        "exists": false
+      },
+      {
+        "path": "C:\\Users\\WDAGUtilityAccount\\AppData\\Local\\chaoxing-desktop",
+        "exists": false
+      }
+    ]
+  },
+  "nativeResultPath": ".ccg/tasks/electron-to-tauri-acceptance-followup/verification/sandbox-runs/run-509f5e36e42744d6813cc023ef166ba0/output/evidence/native-installation-partial/installation-r61Ket/result.json",
+  "native": {
+    "success": true,
+    "scope": "native-installation-partial",
+    "fullAcceptancePassed": false,
+    "formalReleaseSmokePassed": false,
+    "installedRegistry": [
+      {
+        "installLocation": "C:\\Users\\WDAGUtilityAccount\\AppData\\Local\\Temp\\chaoxing-p3 安装 空格-bmsiEZ\\安装 目录",
+        "key": "Software\\chaoxing-gui\\Chaoxing GUI Tauri",
+        "kind": "preferences",
+        "hive": "CurrentUser",
+        "view": "Registry64"
+      },
+      {
+        "view": "Registry64",
+        "uninstallString": "\"C:\\Users\\WDAGUtilityAccount\\AppData\\Local\\Temp\\chaoxing-p3 安装 空格-bmsiEZ\\安装 目录\\uninstall.exe\"",
+        "displayName": "Chaoxing GUI Tauri",
+        "installLocation": "\"C:\\Users\\WDAGUtilityAccount\\AppData\\Local\\Temp\\chaoxing-p3 安装 空格-bmsiEZ\\安装 目录\"",
+        "kind": "uninstall",
+        "key": "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Chaoxing GUI Tauri",
+        "hive": "CurrentUser"
+      },
+      {
+        "installLocation": "C:\\Users\\WDAGUtilityAccount\\AppData\\Local\\Temp\\chaoxing-p3 安装 空格-bmsiEZ\\安装 目录",
+        "key": "Software\\chaoxing-gui\\Chaoxing GUI Tauri",
+        "kind": "preferences",
+        "hive": "CurrentUser",
+        "view": "Registry32"
+      },
+      {
+        "view": "Registry32",
+        "uninstallString": "\"C:\\Users\\WDAGUtilityAccount\\AppData\\Local\\Temp\\chaoxing-p3 安装 空格-bmsiEZ\\安装 目录\\uninstall.exe\"",
+        "displayName": "Chaoxing GUI Tauri",
+        "installLocation": "\"C:\\Users\\WDAGUtilityAccount\\AppData\\Local\\Temp\\chaoxing-p3 安装 空格-bmsiEZ\\安装 目录\"",
+        "kind": "uninstall",
+        "key": "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Chaoxing GUI Tauri",
+        "hive": "CurrentUser"
+      }
+    ],
+    "afterUninstallRegistry": [],
+    "registryCleanup": {
+      "removedOwnedRecords": [],
+      "remainingRecords": []
+    },
+    "retentionFixtureCleanup": true,
+    "scratchCleanup": true,
+    "error": null
+  },
+  "checks": [
+    "installer-rejects-preexisting-install-directory-junction",
+    "installer-rejects-preexisting-backend-junction",
+    "installer-rejects-preexisting-nested-backend-junction",
+    "portable-manifest-before-host",
+    "portable-native-compiled-release-profile",
+    "portable-native-normal-close-no-residue",
+    "portable-native-force-host-no-residue",
+    "portable-native-release-layout",
+    "portable-manifest-after-host",
+    "installed-manifest-before-host",
+    "installed-native-compiled-release-profile",
+    "installed-native-normal-close-no-residue",
+    "installed-native-force-host-no-residue",
+    "installed-native-release-layout",
+    "installed-manifest-after-host",
+    "uninstall-retains-tauri-data-and-old-electron"
+  ],
+  "retainedFiles": 7,
+  "retentionHashesMatch": true,
+  "nativeProcessChecks": [
+    {
+      "name": "portable-native-build-profile",
+      "completed": true,
+      "host": {
+        "pid": 6472,
+        "createdAtFileTime": "134333827689665942",
+        "executable": "C:\\Users\\WDAGUtilityAccount\\AppData\\Local\\Temp\\chaoxing-p3 安装 空格-bmsiEZ\\便携 解压\\chaoxing-gui-tauri.exe",
+        "inOuterJob": true,
+        "alive": true,
+        "exitCode": null
+      },
+      "cleanupVerified": true,
+      "fallbackUsed": false,
+      "remaining": [],
+      "diagnosticsCollected": null,
+      "outerJobRetained": null
+    },
+    {
+      "name": "portable-native-normal-close",
+      "completed": true,
+      "host": {
+        "pid": 3372,
+        "createdAtFileTime": "134333827699823983",
+        "executable": "C:\\Users\\WDAGUtilityAccount\\AppData\\Local\\Temp\\chaoxing-p3 安装 空格-bmsiEZ\\便携 解压\\chaoxing-gui-tauri.exe",
+        "inOuterJob": true,
+        "alive": true,
+        "exitCode": null
+      },
+      "cleanupVerified": true,
+      "fallbackUsed": false,
+      "remaining": [],
+      "diagnosticsCollected": true,
+      "outerJobRetained": true
+    },
+    {
+      "name": "portable-native-force-host",
+      "completed": true,
+      "host": {
+        "pid": 3524,
+        "createdAtFileTime": "134333827753061741",
+        "executable": "C:\\Users\\WDAGUtilityAccount\\AppData\\Local\\Temp\\chaoxing-p3 安装 空格-bmsiEZ\\便携 解压\\chaoxing-gui-tauri.exe",
+        "inOuterJob": true,
+        "alive": true,
+        "exitCode": null
+      },
+      "cleanupVerified": true,
+      "fallbackUsed": false,
+      "remaining": [],
+      "diagnosticsCollected": true,
+      "outerJobRetained": true
+    },
+    {
+      "name": "installed-native-build-profile",
+      "completed": true,
+      "host": {
+        "pid": 7696,
+        "createdAtFileTime": "134333828026170943",
+        "executable": "C:\\Users\\WDAGUtilityAccount\\AppData\\Local\\Temp\\chaoxing-p3 安装 空格-bmsiEZ\\安装 目录\\chaoxing-gui-tauri.exe",
+        "inOuterJob": true,
+        "alive": true,
+        "exitCode": null
+      },
+      "cleanupVerified": true,
+      "fallbackUsed": false,
+      "remaining": [],
+      "diagnosticsCollected": null,
+      "outerJobRetained": null
+    },
+    {
+      "name": "installed-native-normal-close",
+      "completed": true,
+      "host": {
+        "pid": 4848,
+        "createdAtFileTime": "134333828035037682",
+        "executable": "C:\\Users\\WDAGUtilityAccount\\AppData\\Local\\Temp\\chaoxing-p3 安装 空格-bmsiEZ\\安装 目录\\chaoxing-gui-tauri.exe",
+        "inOuterJob": true,
+        "alive": true,
+        "exitCode": null
+      },
+      "cleanupVerified": true,
+      "fallbackUsed": false,
+      "remaining": [],
+      "diagnosticsCollected": true,
+      "outerJobRetained": true
+    },
+    {
+      "name": "installed-native-force-host",
+      "completed": true,
+      "host": {
+        "pid": 2520,
+        "createdAtFileTime": "134333828078226390",
+        "executable": "C:\\Users\\WDAGUtilityAccount\\AppData\\Local\\Temp\\chaoxing-p3 安装 空格-bmsiEZ\\安装 目录\\chaoxing-gui-tauri.exe",
+        "inOuterJob": true,
+        "alive": true,
+        "exitCode": null
+      },
+      "cleanupVerified": true,
+      "fallbackUsed": false,
+      "remaining": [],
+      "diagnosticsCollected": true,
+      "outerJobRetained": true
+    }
+  ]
+}

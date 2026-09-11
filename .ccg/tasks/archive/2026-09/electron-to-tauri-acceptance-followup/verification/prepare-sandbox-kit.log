@@ -1,0 +1,43 @@
+
+NanaZip 6.5 Update (x64) : (c) M2-Team and Contributors. All rights reserved.
+
+Scanning the drive for archives:
+1 file, 1643509 bytes (1605 KiB)
+
+Extracting archive: E:\Downloads\45\chaoxing-gui\desktop\src-tauri\target\acceptance-followup-tools\7z2501-x64.exe
+--
+Path = E:\Downloads\45\chaoxing-gui\desktop\src-tauri\target\acceptance-followup-tools\7z2501-x64.exe
+Type = 7z
+Offset = 36864
+Physical Size = 1606645
+Headers Size = 1359
+Method = LZMA:5m BCJ2
+Solid = +
+Blocks = 2
+
+Everything is Ok
+
+Files: 4
+Size:       2651136
+Compressed: 1643509
+{
+  "createdAt": "2026-09-08T12:22:39.9403781Z",
+  "kitDirectory": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\acceptance-followup-kit-136b9ababf464b0ea9eb9c0625f2af26",
+  "inputDirectory": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\acceptance-followup-kit-136b9ababf464b0ea9eb9c0625f2af26\\input",
+  "sourceCommit": "37fde9160229e99d2fa837d2f1a850203c260d81",
+  "files": 1076,
+  "inputManifestSha256": "88c0cf156b0aa74d9a4887d73f05e34519cbdde7c5187dd88170825123a8a1d8",
+  "runtime": {
+    "downloadUrl": "https://go.microsoft.com/fwlink/?LinkId=2124701",
+    "sha256": "e7fa35755196ad9223596ef021a1ce6799509142eaa40ba35f634026be50b831",
+    "signer": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+    "signature": "Valid"
+  },
+  "sevenZip": {
+    "downloadUrl": "https://www.7-zip.org/a/7z2501-x64.exe",
+    "sha256": "78afa2a1c773caf3cf7edf62f857d2a8a5da55fb0fff5da416074c0d28b2b55f"
+  },
+  "productExecutedOnHost": false,
+  "node": "v20.20.0",
+  "powershell": "7.5.4"
+}

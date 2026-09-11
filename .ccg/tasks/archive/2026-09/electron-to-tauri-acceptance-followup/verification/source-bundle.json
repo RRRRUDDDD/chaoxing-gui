@@ -1,0 +1,16 @@
+{
+  "createdAt": "2026-09-08T23:13:30.6072783Z",
+  "sourceCommit": "bbdbbc218416a4f458f9b03bb1a3da5f02451f45",
+  "requiredBaseline": "5899b5fe0f7d507aa65102b3a80b7e69d8aa4565",
+  "bundle": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\acceptance-followup-transfer-9c817c9c670a4e88b4e2769df2b99492\\tauri-p0-p3-source.bundle",
+  "length": 2319957,
+  "sha256": "7652526fcc9ca0136231b9ec6e95d138a06eb522c6b791a5d193b82c375e3ce4",
+  "verified": true,
+  "bundleHeads": [
+    "bbdbbc218416a4f458f9b03bb1a3da5f02451f45 HEAD"
+  ],
+  "networkUpload": false,
+  "pushPerformed": false,
+  "includesCurrentWorkspaceChanges": false,
+  "remoteCI": false
+}

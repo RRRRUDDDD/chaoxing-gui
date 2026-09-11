@@ -1,0 +1,892 @@
+{
+  "capturedAt": "2026-09-08T21:57:09.229819+00:00",
+  "head": "12bae2286bec71bf184f19c8be67e6431199e134",
+  "stage": "native-supplement",
+  "repoRoot": "E:\\Downloads\\45\\chaoxing-gui",
+  "files": [
+    {
+      "path": ".ccg/spec/backend/index.md",
+      "bytes": 3218,
+      "sha256": "8e887476a54cb07f7396f401e4069729bc0378870ba27bd31c9de90191f2ce2c",
+      "trackedAtCapture": false,
+      "bodyIncluded": true
+    },
+    {
+      "path": ".ccg/spec/frontend/index.md",
+      "bytes": 3771,
+      "sha256": "b0752e7397ce5bb0baeec3ee828e8fd31c725acf6fea3434886ca7416691fc12",
+      "trackedAtCapture": false,
+      "bodyIncluded": true
+    },
+    {
+      "path": ".ccg/tasks/electron-to-tauri-acceptance-followup/verification/capture-review.py",
+      "bytes": 4387,
+      "sha256": "f920d9b625f2f6038c5f98a540e802142c972206214a5895f548b8c8ea4eb066",
+      "trackedAtCapture": false,
+      "bodyIncluded": true
+    },
+    {
+      "path": ".ccg/tasks/electron-to-tauri-acceptance-followup/verification/collect-external-errors.py",
+      "bytes": 12378,
+      "sha256": "586eaf0cfcfe52647ea1751a4dfc1bd47c29193c0012e79d572d5297dcbad405",
+      "trackedAtCapture": false,
+      "bodyIncluded": true
+    },
+    {
+      "path": ".ccg/tasks/electron-to-tauri-acceptance-followup/verification/collect-sandbox-evidence.py",
+      "bytes": 6692,
+      "sha256": "07b7f9a715ead8cd6cedc604f9b8c1d250bd66dd4e01e182231fcf72ab7d0d6e",
+      "trackedAtCapture": false,
+      "bodyIncluded": true
+    },
+    {
+      "path": ".ccg/tasks/electron-to-tauri-acceptance-followup/verification/launch-sandbox-acceptance.ps1",
+      "bytes": 4404,
+      "sha256": "7d57a6957aea599b5e77f147b83a1b0e7fdadda148f51e4c0259bd42e430a5ad",
+      "trackedAtCapture": false,
+      "bodyIncluded": true
+    },
+    {
+      "path": ".ccg/tasks/electron-to-tauri-acceptance-followup/verification/launch-sandbox-probe.ps1",
+      "bytes": 3533,
+      "sha256": "9643d96dd89b70d5f72e9b250ef5525293c8513cbf2c3cbd4f593f7bdc6c0af1",
+      "trackedAtCapture": false,
+      "bodyIncluded": true
+    },
+    {
+      "path": ".ccg/tasks/electron-to-tauri-acceptance-followup/verification/prepare-native-installation.py",
+      "bytes": 23480,
+      "sha256": "a4a835cf2b2c450ce07dcbabb0c8a24383767204bd84b4066d4cd87fcf8a330e",
+      "trackedAtCapture": false,
+      "bodyIncluded": true
+    },
+    {
+      "path": ".ccg/tasks/electron-to-tauri-acceptance-followup/verification/prepare-sandbox-kit.ps1",
+      "bytes": 7547,
+      "sha256": "4af8ded9b760d32fa9ab0f29b557a17f1317577bb2cc4a2429fbcd8b45dbee3c",
+      "trackedAtCapture": false,
+      "bodyIncluded": true
+    },
+    {
+      "path": ".ccg/tasks/electron-to-tauri-acceptance-followup/verification/run-claude-pair.ps1",
+      "bytes": 6988,
+      "sha256": "a5d5cff9ea99fce6c6e1ee3ca6ba763d257784dbc100a677fbc6194f4e32a997",
+      "trackedAtCapture": false,
+      "bodyIncluded": true
+    },
+    {
+      "path": ".ccg/tasks/electron-to-tauri-acceptance-followup/verification/sandbox-bootstrap.ps1",
+      "bytes": 902,
+      "sha256": "8a2ec64ec8a60eab8d6ce06b0316fd6a2c4655f9730a2d288bb8f321a43f7585",
+      "trackedAtCapture": false,
+      "bodyIncluded": true
+    },
+    {
+      "path": ".ccg/tasks/electron-to-tauri-acceptance-followup/verification/sandbox-guest.ps1",
+      "bytes": 16242,
+      "sha256": "55b2abba96a31d74cfdd6d2a6a82bde31f04d339eda0bccc35cccb1c3d19178c",
+      "trackedAtCapture": false,
+      "bodyIncluded": true
+    },
+    {
+      "path": ".ccg/tasks/electron-to-tauri-acceptance-followup/verification/sandbox-probe.ps1",
+      "bytes": 2314,
+      "sha256": "580d75fdd5533b1073f8c75fed504a3ac8dc951724e5843a0c07666aa65b2685",
+      "trackedAtCapture": false,
+      "bodyIncluded": true
+    },
+    {
+      "path": ".ccg/tasks/electron-to-tauri-acceptance-followup/verification/validate-workflow.ps1",
+      "bytes": 2869,
+      "sha256": "dc8a13d99909c85399f955f85e251d61fe830dec773b2854f0c587fea7673c26",
+      "trackedAtCapture": false,
+      "bodyIncluded": true
+    },
+    {
+      "path": ".github/workflows/main.yml",
+      "bytes": 14722,
+      "sha256": "bdde79c5f4a3b00d3469d3bc394eb7e72a0b27c18e04cedd397ca95b5ffe91be",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": ".gitignore",
+      "bytes": 2868,
+      "sha256": "8f87805b2f0a4f887ed212c554de559378cde525e26ba90a66d5f0de9c4dbb1c",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "README.md",
+      "bytes": 6682,
+      "sha256": "408fe30a9f7d35a812ba4b0fa8defde32a743656e8cb44e1a9017bfe92ea1e0e",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "api/desktop_runtime.py",
+      "bytes": 4572,
+      "sha256": "682d766d2989203d65169729194c319f784bc17414359160c21edbb095b34da4",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "api/logger.py",
+      "bytes": 318,
+      "sha256": "f2413b8eb973f0725a9bdf97a1b801bce5a3ce34d295f6d58f368bda9e66a27c",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "app.py",
+      "bytes": 36150,
+      "sha256": "6755397ca429ed85cfc3b76be8ce038d09626c3f18a0a10c37eff87c90aa8551",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "build_tauri.bat",
+      "bytes": 221,
+      "sha256": "9b5f506d90743326c4a201f751c8f5d7a4d06d6caaec15968f20a5f4dfa6c082",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "chaoxing-backend.spec",
+      "bytes": 1844,
+      "sha256": "5c56dfe3d648e2a3dbcd10f0f3a2ebe8d098310c78e56abcf54257f6f8651682",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "chaoxing.spec",
+      "bytes": 1342,
+      "sha256": "9441c474e0fad9e6aedce6c58afe1b2b1ea365172440689072b7ddead3fba86b",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/README.md",
+      "bytes": 12628,
+      "sha256": "129c6f65cd850cb153ae4564bccd80b441ba83ae750a6c0e23d2e88ab1dd1b23",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/electron-builder.yml",
+      "bytes": 616,
+      "sha256": "502004501a0e12b716e86fcf661b31f9cdddaad0b4b87e841d71ae1830856ce9",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/main.js",
+      "bytes": 8525,
+      "sha256": "72f7a8420486fb6476d6ebaa7622e03069769b7eafe0872f7699a3499edbc0e9",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/package-lock.json",
+      "bytes": 156581,
+      "sha256": "6b08a2f4701a014001b81caa6083ec65696b915a597d0089a58a7819f21d3a5d",
+      "trackedAtCapture": true,
+      "bodyIncluded": false
+    },
+    {
+      "path": "desktop/package.json",
+      "bytes": 738,
+      "sha256": "be6d89c31734b1c2ab9d98d75928c9b7c30603f804bd163a8c20d14e9a8b058e",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/portable/Install-WebView2.cmd",
+      "bytes": 224,
+      "sha256": "97438a9cc98ce8a8a0c7ac1648ddf83d8a3956b4113d4f81a44da203a106f10e",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/portable/Install-WebView2.ps1",
+      "bytes": 3524,
+      "sha256": "017c2ba33368af5a2c019056122095d795068704b1d475d8f0977b55cf745c19",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/portable/Portable-Common.ps1",
+      "bytes": 3978,
+      "sha256": "46c3faf4699113c8c68853a33cdc6c95c936e4381d59b361472af94a82be1ac4",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/portable/README.txt",
+      "bytes": 1847,
+      "sha256": "3b053cb40bf12c4db0e458294d288c99980bf3038f6cd990804948acbb61dcc2",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/portable/Start-Chaoxing.cmd",
+      "bytes": 252,
+      "sha256": "0c91d792a1cb99140fb58accc3dde9cf6a6dd51844fa84d620874645de832a2e",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/portable/Start-Chaoxing.ps1",
+      "bytes": 1906,
+      "sha256": "326fef168ed460c0454780a56b46479b99bc49974f213668c63138be6b1f60c9",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/preload.js",
+      "bytes": 399,
+      "sha256": "fd4a4e1b86957d03b60683e0db59f27f4ecbc68a0244a2778060349367f38b56",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/rust-toolchain.toml",
+      "bytes": 31,
+      "sha256": "696c2536031250a4fa61a1ec4daeba2e8ea2b1c5b725e659e19bf12be076c5f3",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/scripts/build-tauri.ps1",
+      "bytes": 9930,
+      "sha256": "98cd538f090e990e60a2cafaf838d2ab2dbb1bbfbbfd4722cd6ffe84f9fb54cb",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/scripts/bundle-sign.ps1",
+      "bytes": 8348,
+      "sha256": "bfd763b731726f138534c5eecd52796c508d4a4c15a3f99e4cea6ccccf35c4d0",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/scripts/dev-env.ps1",
+      "bytes": 2129,
+      "sha256": "4bec7a87fcff3a746d554b964f24add01ea6b34672d60b14aa9b435cf00ea79f",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/scripts/nsis-content.ps1",
+      "bytes": 12752,
+      "sha256": "8d05a040f6fd7f8cf87b6d2fd337dcfbdc60928744325d67d847042d83f0c550",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/scripts/p2-close-window.ps1",
+      "bytes": 1841,
+      "sha256": "dcee5c7f4cdc32d8281b837d2a1f83703c0784ff70475677509bed6440a3d5be",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/scripts/p2-smoke.mjs",
+      "bytes": 29987,
+      "sha256": "89340a141fbd90aa328ee9d914a928af5f2bd16e80daed6545349005416fe76b",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/scripts/p3-installation.mjs",
+      "bytes": 44234,
+      "sha256": "ecabd8c7330f390e208ea6c5c2aecf5eb7f14e68ba09d19e430170865b721b1c",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/scripts/p3-smoke.mjs",
+      "bytes": 47730,
+      "sha256": "6495a962a56246d6d8bab2140c2a0af37e248351d0c93f1a77719aaff98bcdf1",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/scripts/package-common.ps1",
+      "bytes": 16209,
+      "sha256": "83149db717c23e4cf103458b4f4a737e805e4724669311a9628c19d27882e55a",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/scripts/package-portable.ps1",
+      "bytes": 5647,
+      "sha256": "b59c69f8f093ee631e714ea2b082c2697b56a94a115890d73fe870e242d6805f",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/scripts/prepare-backend.ps1",
+      "bytes": 2401,
+      "sha256": "dfcf094f3c7453bce6cf01bb7746d51083222df02da1e20af53812c29b158fec",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/scripts/sign-windows.ps1",
+      "bytes": 4441,
+      "sha256": "d4c863e5d296afd851f1b1f0f9b6abe53525f133599953ef1496f6d2333a8670",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/scripts/smoke-installation.ps1",
+      "bytes": 955,
+      "sha256": "1de0a7dc4f49e4ad2ee5b3973e20e225dff12afcb57007297e2a986aa88cc924",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/scripts/smoke-python.ps1",
+      "bytes": 801,
+      "sha256": "59c06de1d78a05068ae87878e8baab922f3231e8c016cf78e46a3c28ae9ad11c",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/scripts/smoke-tauri.ps1",
+      "bytes": 1431,
+      "sha256": "a58e2518897c24a6a9e50e9aa076dc7ff0c72fadf2453f1b2121bdd9f867e603",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/scripts/verify-nsis.ps1",
+      "bytes": 6513,
+      "sha256": "69d7ebd153b43864a063db6bf136425273d5bda80bc4395f71c8a8782ab0de96",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/scripts/verify-package.ps1",
+      "bytes": 7312,
+      "sha256": "a839e38a84f57d8790f8341b3ae6dce867a38053f352cca637086f9d5d13e0dc",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/scripts/version.py",
+      "bytes": 7103,
+      "sha256": "d52a604e79e12fbf746399c2aa8e47baae374a50225aeedd1ff229e5b70e18f9",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/session-store.js",
+      "bytes": 4212,
+      "sha256": "9c0443bfb7e8a00e619835424c7d9904fde7544fa2d9e62f2661976d0cd8d24a",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/src-tauri/Cargo.lock",
+      "bytes": 125278,
+      "sha256": "089cd4eecefc5a22864ed699d13ac5a3f7b86a383564df7c3d1639d1f8b06020",
+      "trackedAtCapture": true,
+      "bodyIncluded": false
+    },
+    {
+      "path": "desktop/src-tauri/Cargo.toml",
+      "bytes": 1238,
+      "sha256": "9b2f416b96220afa83ffb0e4667f9b2ea69d9af1887f27be9369fb03e8a3fa1c",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/src-tauri/build.rs",
+      "bytes": 387,
+      "sha256": "43d55594221c4fd872115e739195efa46e4550a08d98aac8307a8ff6527a055e",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/src-tauri/capabilities/main.json",
+      "bytes": 336,
+      "sha256": "7ed4ec41aa6cdb4bee3038811221da499d1dab87155e1722260d9dd678a7bfdf",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/src-tauri/src/api_proxy.rs",
+      "bytes": 12737,
+      "sha256": "48bf2a91985cdcabf9d51bf33eecb5b105459bc58aa0dca6dbc7476fbc423687",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/src-tauri/src/backend.rs",
+      "bytes": 34447,
+      "sha256": "3681c7618f30bcf5dd47400aabf608e999831a9a62006348f7e1f32b6c2ba217",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/src-tauri/src/bin/fake-backend.rs",
+      "bytes": 6108,
+      "sha256": "c5b684ab66f1821f5e676e08112e1592b428c57c8a1648edccab31e86789bc70",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/src-tauri/src/lib.rs",
+      "bytes": 16427,
+      "sha256": "3fad803dd1a266518b7d0d475436e7fd5fb1654af4ba088e57756c7e3a145666",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/src-tauri/src/main.rs",
+      "bytes": 182,
+      "sha256": "e04679a9bc18c6e42f69100bb4eed73087af185b677b749bde7d0d4bc47b91d6",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/src-tauri/src/migration.rs",
+      "bytes": 52694,
+      "sha256": "6bd9f2d125788b17d63603754f05c8f282c1da7b294bebeeb4c7888bcf915bb5",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/src-tauri/src/session_store.rs",
+      "bytes": 23266,
+      "sha256": "09a1ba5eb4909d3ca764d5495ba2c7da763d42aa58b1f91084cd4dd036c2e3d1",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/src-tauri/src/webview_runtime.rs",
+      "bytes": 9636,
+      "sha256": "5bfa5b2b08ed82ade1b58170f9d247893dddec63804c769999ca4b65ea76f5fd",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/src-tauri/src/windows_job.rs",
+      "bytes": 4893,
+      "sha256": "6556c6eaaccba6c40ab98b77722e4bb8273f2c17de14814eb27c594749d2dab0",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/src-tauri/tauri.conf.json",
+      "bytes": 1778,
+      "sha256": "2b0208f7ec639e0f6ae1ba55b95c700a24f4b1913cd9cf19f1b0b2a2df6c8376",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/src-tauri/tests/api_lifecycle.rs",
+      "bytes": 16040,
+      "sha256": "96f0945ee2cf182985cf4f166dcfec6c59455f99d089a9269f857e139a614ceb",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/src-tauri/tests/backend_lifecycle.rs",
+      "bytes": 15083,
+      "sha256": "6ca31c3a4d0bf40c61a8dc4ae618c3b032ba5e5b77f3ee5c7a3c1761a7497260",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/src-tauri/tests/nested_job.rs",
+      "bytes": 17781,
+      "sha256": "b81c01ee77b759411b31abb8a1510e0b05a80b39dd5015efa4052ee700b3b4e4",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/src-tauri/windows/LICENSE_MIT",
+      "bytes": 1090,
+      "sha256": "9dd42ea92cff2ede5cd477cbfcce051b2d0115c0ac7f368ee88cb545055dff1d",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/src-tauri/windows/UPSTREAM.md",
+      "bytes": 3903,
+      "sha256": "f9ee4ae007cce82a7c4dee790306a9bdc155dbe842a4cba75236b91ad6fef809",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/src-tauri/windows/installer-hooks.nsh",
+      "bytes": 11223,
+      "sha256": "58074b58ef4299c3a1417c6b2fa738e640fc17540cd302d32e0563668a8724ea",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/src-tauri/windows/installer.nsi",
+      "bytes": 34150,
+      "sha256": "4d7cda22a499521d3c06145981e5e1d92ad48b8e8fafc8e171eca2753f50da1b",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/tests/fixtures/nsis-paths.nsi",
+      "bytes": 2651,
+      "sha256": "7a9f512c44b36ded8c9ca25e3317bed9a5f539b0a67d730e09e5036027ad616d",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/tests/fixtures/p2_backend.py",
+      "bytes": 6885,
+      "sha256": "be500b4138be63a0041a9816f8f05353cce6d388ab3c557dc90a9836394b622d",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/tests/fixtures/p3-process-child.mjs",
+      "bytes": 582,
+      "sha256": "13b0fb9be8099ac519233b604e91d810d366da6d5291c671e902b0977f7d891a",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/tests/fixtures/p3-title-window.ps1",
+      "bytes": 558,
+      "sha256": "c18548117942b739d8a588eb72e581ca3a7fc09358646ab26dfb6bbd4a8b74f5",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/tests/fixtures/p3-windows-process.cs",
+      "bytes": 20636,
+      "sha256": "e7aef09d636a7434fbb97f4e8191e2a48959185d96a03de94c9d52e161cd1e07",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/tests/fixtures/p3-windows-process.ps1",
+      "bytes": 3494,
+      "sha256": "eac1c0a054ddaa57c891e5291b038a63f3ce7bc89b869380b95fcdbfb9a0a331",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/tests/installation.test.mjs",
+      "bytes": 27779,
+      "sha256": "2049f69658e5ae5740d8113c571e8d421cee3dc16db9a3f5e19d728a79db3f3c",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/tests/nsis-paths.test.mjs",
+      "bytes": 16721,
+      "sha256": "730527b7c75a296fe4931723510ccc88c3773a60cfd82a026aa9ba3f97f2b09a",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/tests/nsis.test.mjs",
+      "bytes": 10016,
+      "sha256": "bd6c250ae8aa630a0d122a214be3f1c982afaf74ecf8ea541cb66b76697f21ce",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/tests/p3-smoke.test.mjs",
+      "bytes": 20642,
+      "sha256": "115d4d61b47653fd2c9650c8b4ffb72a917cf974e78cf80ce341bbeb9d3337cc",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/tests/packaging.test.mjs",
+      "bytes": 22061,
+      "sha256": "6b18f127736fb48290cf7f6945f94c5b0a96c951ab8ea0fd338a72661d28b0ab",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/tests/session-store.test.js",
+      "bytes": 5637,
+      "sha256": "6a57db943692a9650f51ed8f9642cef49eee34af23ca9524c24d8b253db8f8c1",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "desktop/tests/signing.test.mjs",
+      "bytes": 12039,
+      "sha256": "7314b00ea3358ad742c341b970d85dbfa98b0dc5f05591df2963f56dbaf7536f",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "pyproject.toml",
+      "bytes": 368,
+      "sha256": "ce25748d7b627d8b5a7119ccadff5f4bd7faf8ffae5cdb5667932483119601f4",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "requirements-test.txt",
+      "bytes": 342,
+      "sha256": "43c6278ba5e5349e056941d6e58cdb31564e5f4cd881ce64b2c1e0ea861f3074",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "requirements.txt",
+      "bytes": 467,
+      "sha256": "1ed05b84b7b6ad860bb24f9eb1a37c987fbbf247206110c8f6db04abf43f7153",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "tests/test_desktop_runtime.py",
+      "bytes": 8360,
+      "sha256": "7b051f1911a8688d0f3ef7eb9b6455690039ef24bccf9a814b59465288ee7b00",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "tests/test_release_version.py",
+      "bytes": 6264,
+      "sha256": "cd17c73e3a36d77ed3b50bcfc5ab9b992ae9e89b5e40003ed0ce3f13dae7772e",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "tests/test_tauri_entry_contract.py",
+      "bytes": 3331,
+      "sha256": "4d1c5747f7af9591f971c5c0a8313c7a3299b6b49af16fbd5f1b7c8be6c71beb",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "web/package-lock.json",
+      "bytes": 143151,
+      "sha256": "dd8da04ebacb11c500149e3eb1ebd25df4fcf4652abf43b1e6e8830dd630e6c8",
+      "trackedAtCapture": true,
+      "bodyIncluded": false
+    },
+    {
+      "path": "web/package.json",
+      "bytes": 812,
+      "sha256": "d04c43c4ca8df865356593761f2df84db0f9ce16a129c69c2a1f13d17478c99f",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "web/src/App.jsx",
+      "bytes": 7442,
+      "sha256": "a5d5b5cec0e5148467cbb44a7b755337277527d4873359be90318fe9b1e19b02",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "web/src/api/axios.js",
+      "bytes": 591,
+      "sha256": "1758d82ad2e3f789a851bf104cc1c302a7d66b2e9e19dff4207933198fec0df1",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "web/src/api/tauriAdapter.js",
+      "bytes": 7963,
+      "sha256": "f1e87f85a874f16df34553c6b4b8760702f4e2013941887bf4558443b3758825",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "web/src/api/tauriAdapter.test.js",
+      "bytes": 11582,
+      "sha256": "c8eb7a34ac923418662050f24e2981cada879e945e65d47cdbe5d439ee4f9070",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "web/src/api/transportFlow.test.jsx",
+      "bytes": 9056,
+      "sha256": "ba56e0592c9efea586963e2c21b32097c6cb7010f20f8b87355f271482b9b57c",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "web/src/components/AdvancedSettings.jsx",
+      "bytes": 19206,
+      "sha256": "90fdbf326e140b68ec9c2e1c5bc8e303246bd9466cd790fc851b792ac9133f9f",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "web/src/components/CountUp.jsx",
+      "bytes": 1498,
+      "sha256": "99e087583b85b56d3fd3ce2b414228e3ce8f00895fc27f145c82131eebb56095",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "web/src/components/CourseSelection.jsx",
+      "bytes": 19461,
+      "sha256": "bda97a1b90ea3773b83d7231b7c6285e96a5dd98146bae90e578dd553451de15",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "web/src/components/DesktopStartup.jsx",
+      "bytes": 4389,
+      "sha256": "c3c228785cf70e23f0459ea692f5f4ddd6d00c272dbe9653e49449009959d45d",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "web/src/components/DesktopStartup.test.jsx",
+      "bytes": 6841,
+      "sha256": "82fdbb07f43037fd0ff67f6840cdb3b5ff8322300d4992652b8beb1db3c5e5b3",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "web/src/components/Login.jsx",
+      "bytes": 6567,
+      "sha256": "d1854be6d17ea04e57d6eb7f18288998de7396d69917c2b3fd736b8205c694e9",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "web/src/components/StudyProgress.jsx",
+      "bytes": 26775,
+      "sha256": "8340305c9d6e51ce4e8802fa447458f7736d837e6d41698e05d06b12e1fc7570",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "web/src/components/flows.test.jsx",
+      "bytes": 21171,
+      "sha256": "ed6d73cb7b8b64353304da0f87c932fda0d326e11f42012d1fff96100076fbe8",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "web/src/components/ui/Button.jsx",
+      "bytes": 1343,
+      "sha256": "374834150e9a70b13d47e044e48ffc406cb32ddb630abb7e014c67fb99764a4d",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "web/src/components/ui/Card.jsx",
+      "bytes": 1519,
+      "sha256": "ffb00ae47fe68ab6eb8aa35e0817545ffa178afd4e8f190921efe296c4f48abc",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "web/src/components/ui/Input.jsx",
+      "bytes": 776,
+      "sha256": "157c38a143980d8f5c8a827efdc91bd18d9d5314739fa39cfede47a47b80ac3c",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "web/src/components/ui/Label.jsx",
+      "bytes": 366,
+      "sha256": "9e49800348178215d44a099ff10bc246cb7744bbe7103bc2bdadfa1a6b735ee4",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "web/src/index.css",
+      "bytes": 1807,
+      "sha256": "70f9a557aa9a181898beb9a43c971455e999822e20814f7db9085a1a1046e136",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "web/src/lib/courseSelection.js",
+      "bytes": 1302,
+      "sha256": "3740d6115303b172983136dfc8c6bdffb609445b3d2c16ff825843e5e8bb5e53",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "web/src/lib/courseSelection.test.js",
+      "bytes": 1184,
+      "sha256": "643883cf739c6eafc1d132c11389c9df991c1b18e4636bda5cb4384cf6137e51",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "web/src/lib/desktopBridge.js",
+      "bytes": 774,
+      "sha256": "7cae27d085e6f2b27639ab67b143cc353823cd995952fe840973a81d4210f2ea",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "web/src/lib/desktopBridge.test.js",
+      "bytes": 3195,
+      "sha256": "8a82783b276569dcf608d9b4b3299e7d629521fef80b69568784e342478249fa",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "web/src/lib/sessionStore.js",
+      "bytes": 5257,
+      "sha256": "594c1af7c5bd357b32b5c95a5e94d8bf8ecb551fc058799434dbc1e3a114f2ee",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "web/src/lib/sessionStore.test.js",
+      "bytes": 7057,
+      "sha256": "5d274726e1427099e423df5e507bad15274ed2ae95f69301697f0f20ab3c6808",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "web/src/lib/taskPolling.js",
+      "bytes": 3572,
+      "sha256": "780028bd7ae2c8bf14bfadcd7d037326157df2eaba7f87c6500bb880157b2510",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "web/src/lib/taskPolling.test.js",
+      "bytes": 5178,
+      "sha256": "8751e2dca46428110dcc4494020fa78fa6373d24d0410a1be6da1fd8267f3982",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "web/src/lib/utils.js",
+      "bytes": 172,
+      "sha256": "fc109d1195062eee66a6ca6ea7e0a16874da28d26433f9dbf02b36adaa54d98a",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "web/src/main.jsx",
+      "bytes": 343,
+      "sha256": "3d9ffc94b24ba1237d38c65588a8361c8fbe825a8e01d37fee3a3a7fc10ca417",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    },
+    {
+      "path": "web/vite.config.js",
+      "bytes": 314,
+      "sha256": "cdf6b1176b9b4c66dd01734892a5bdca58cb5d7b1d6e0793af6944660507bcc0",
+      "trackedAtCapture": true,
+      "bodyIncluded": true
+    }
+  ],
+  "protectedPlanSha256": "7c926423ae0a4e3643fbf54f2dd68d2e1899ebae0817ac23ea99d641151a2bab",
+  "snapshotSha256": "71919f477db8e43f74ea1747de1f93e7fbea4cfbefdbe6ac7fce965a2aa99c36"
+}

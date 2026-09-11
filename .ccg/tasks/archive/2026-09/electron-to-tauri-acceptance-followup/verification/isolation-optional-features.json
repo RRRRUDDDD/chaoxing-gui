@@ -1,0 +1,17 @@
+[
+  {
+    "Name": "VirtualMachinePlatform",
+    "InstallState": 1,
+    "Status": null
+  },
+  {
+    "Name": "Microsoft-Hyper-V-All",
+    "InstallState": 2,
+    "Status": null
+  },
+  {
+    "Name": "Containers-DisposableClientVM",
+    "InstallState": 1,
+    "Status": null
+  }
+]

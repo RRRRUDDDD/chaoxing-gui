@@ -1,0 +1,18 @@
+{
+  "startedAt": "2026-09-08T22:18:40.6259167Z",
+  "configPath": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\acceptance-followup-kit-2752e87ba67f457fa337183baaa15bf5\\run-3790c00e08e64722a40cb8d1837163e9\\acceptance.wsb",
+  "outputDirectory": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\acceptance-followup-kit-2752e87ba67f457fa337183baaa15bf5\\run-3790c00e08e64722a40cb8d1837163e9\\output",
+  "sourceCommit": "12bae2286bec71bf184f19c8be67e6431199e134",
+  "productExecutedOnHost": false,
+  "success": false,
+  "fullAcceptancePassed": false,
+  "acceptanceMode": "NativeInstallationPartial",
+  "networking": "enabled for Microsoft certificate/runtime setup; no real accounts",
+  "launcherPid": 36988,
+  "guestResultPath": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\acceptance-followup-kit-2752e87ba67f457fa337183baaa15bf5\\run-3790c00e08e64722a40cb8d1837163e9\\output\\result.json",
+  "guestIdentity": "679402FC-7175-4\\WDAGUtilityAccount",
+  "scope": "native-installation-partial",
+  "guestPhase": "native-installation-partial",
+  "guestError": "Exception: C:\\TauriAcceptance\\Input\\sandbox-guest.ps1:82\r\nLine |\r\n  82 |  … .success) { throw \"$Name returned $($process.ExitCode), expected $Exp …\r\n     |                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n     | native-installation-partial returned 1, expected 0.\r\n\r\n",
+  "endedAt": "2026-09-08T22:20:18.7295060Z"
+}

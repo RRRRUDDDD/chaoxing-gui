@@ -1,0 +1,15 @@
+{
+  "startedAt": "2026-09-08T15:49:44.1141081Z",
+  "configPath": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\acceptance-followup-kit-f01d1f34769c4a56b9e677fa812664fe\\run-504ac0d14d084dc19e44a7c97924cff7\\acceptance.wsb",
+  "outputDirectory": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\acceptance-followup-kit-f01d1f34769c4a56b9e677fa812664fe\\run-504ac0d14d084dc19e44a7c97924cff7\\output",
+  "sourceCommit": "12bae2286bec71bf184f19c8be67e6431199e134",
+  "productExecutedOnHost": false,
+  "success": false,
+  "networking": "enabled for Microsoft certificate/runtime setup; no real accounts",
+  "launcherPid": 17808,
+  "guestResultPath": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\acceptance-followup-kit-f01d1f34769c4a56b9e677fa812664fe\\run-504ac0d14d084dc19e44a7c97924cff7\\output\\result.json",
+  "guestIdentity": "679402FC-7175-4\\WDAGUtilityAccount",
+  "guestPhase": "release-fake",
+  "guestError": "Exception: C:\\TauriAcceptance\\Input\\sandbox-guest.ps1:80\r\nLine |\r\n  80 |  … .success) { throw \"$Name returned $($process.ExitCode), expected $Exp …\r\n     |                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n     | release-fake returned 1, expected 0.\r\n\r\n",
+  "endedAt": "2026-09-08T15:56:16.1653602Z"
+}

@@ -1,0 +1,59 @@
+{
+  "createdAt": "2026-09-08T23:10:19.3091460Z",
+  "kitDirectory": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\acceptance-followup-kit-b3f89606a234477ebf242b9e43f740ed",
+  "inputDirectory": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\acceptance-followup-kit-b3f89606a234477ebf242b9e43f740ed\\input",
+  "sourceCommit": "bbdbbc218416a4f458f9b03bb1a3da5f02451f45",
+  "files": 1082,
+  "acceptanceMode": "NativeInstallationPartial",
+  "inputManifestSha256": "e73a68be25be69e361879f23195f5cde486a053ae9d1655a5bdff572970ce88c",
+  "runtime": {
+    "downloadUrl": "https://go.microsoft.com/fwlink/?LinkId=2124701",
+    "sha256": "e7fa35755196ad9223596ef021a1ce6799509142eaa40ba35f634026be50b831",
+    "signer": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+    "signature": "Valid"
+  },
+  "archiveDecoder": {
+    "kind": "NanaZip",
+    "files": [
+      {
+        "destination": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\acceptance-followup-tools\\nanazip-6.5.1767.0\\7z.exe",
+        "source": "C:\\Program Files\\WindowsApps\\40174MouriNaruto.NanaZip_6.5.1767.0_x64__gnj4mf6z9tkrc\\NanaZip.Universal.Console.exe",
+        "sha256": "02fc0b957a418c20f57165e68351483c416c84c6d59ae043827178169df02cc6",
+        "bytes": 653312
+      },
+      {
+        "destination": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\acceptance-followup-tools\\nanazip-6.5.1767.0\\NanaZip.Codecs.dll",
+        "source": "C:\\Program Files\\WindowsApps\\40174MouriNaruto.NanaZip_6.5.1767.0_x64__gnj4mf6z9tkrc\\NanaZip.Codecs.dll",
+        "sha256": "4c76d676143ab12f0d3298ebb1a5447b1ce397c4688b68bcbb08ed47e5783988",
+        "bytes": 2225664
+      },
+      {
+        "destination": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\acceptance-followup-tools\\nanazip-6.5.1767.0\\NanaZip.Core.dll",
+        "source": "C:\\Program Files\\WindowsApps\\40174MouriNaruto.NanaZip_6.5.1767.0_x64__gnj4mf6z9tkrc\\NanaZip.Core.dll",
+        "sha256": "e8cba05abf47b3a81b5b3565c224888ffa8372a6ac1d7c47ac1b3355b2d5d7e4",
+        "bytes": 2081280
+      },
+      {
+        "destination": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\acceptance-followup-tools\\nanazip-6.5.1767.0\\K7Base.dll",
+        "source": "C:\\Program Files\\WindowsApps\\40174MouriNaruto.NanaZip_6.5.1767.0_x64__gnj4mf6z9tkrc\\K7Base.dll",
+        "sha256": "8479ae027ccce63c63c9657d7bdd5d761107ae5563ad9fd948f6a0a80e76fc48",
+        "bytes": 62976
+      },
+      {
+        "destination": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\acceptance-followup-tools\\nanazip-6.5.1767.0\\K7User.dll",
+        "source": "C:\\Program Files\\WindowsApps\\40174MouriNaruto.NanaZip_6.5.1767.0_x64__gnj4mf6z9tkrc\\K7User.dll",
+        "sha256": "ce39c462dec5aecea3d2f6f3d4e4ce3066a268e353e4370ce5d407ddd8180bc1",
+        "bytes": 40448
+      }
+    ],
+    "provenance": "verification/nanazip-tool-provenance.json",
+    "version": "6.5.1767.0"
+  },
+  "productExecutedOnHost": false,
+  "node": "v20.20.0",
+  "powershell": "7.5.4",
+  "gitArchiveConfig": {
+    "coreEol": "lf",
+    "coreAutoCrlf": false
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "skipped": 0,
+  "node20DesktopTestsPassed": 90,
+  "releaseAcceptancePending": true,
+  "externalReviewPassed": false,
+  "node20SmokeTestsPassed": 22,
+  "commit": "bbdbbc218416a4f458f9b03bb1a3da5f02451f45",
+  "before": "12bae2286bec71bf184f19c8be67e6431199e134",
+  "paths": [
+    "desktop/scripts/p3-smoke.mjs",
+    "desktop/tests/p3-smoke.test.mjs"
+  ],
+  "recordedAt": "2026-09-08T23:10:12.1661605Z",
+  "pushPerformed": false
+}

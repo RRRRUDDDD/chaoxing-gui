@@ -1,0 +1,100 @@
+TAP version 13
+# Subtest: P3 rejects unknown, missing, and mismatched smoke selections
+ok 1 - P3 rejects unknown, missing, and mismatched smoke selections
+  ---
+  duration_ms: 2.1982
+  ...
+# Subtest: Release requires an explicit disposable user or a hosted runner, never GITHUB_ACTIONS alone
+ok 2 - Release requires an explicit disposable user or a hosted runner, never GITHUB_ACTIONS alone
+  ---
+  duration_ms: 0.3343
+  ...
+# Subtest: Compiled profile mismatches and unsupported native probe exits fail closed
+ok 3 - Compiled profile mismatches and unsupported native probe exits fail closed
+  ---
+  duration_ms: 0.3021
+  ...
+# Subtest: Production paths come from Windows known folders and include Electron legacy data
+ok 4 - Production paths come from Windows known folders and include Electron legacy data
+  ---
+  duration_ms: 0.3669
+  ...
+# Subtest: Release profile ownership refuses existing data and previous smoke runs without modifying them
+ok 5 - Release profile ownership refuses existing data and previous smoke runs without modifying them
+  ---
+  duration_ms: 18.7688
+  ...
+# Subtest: Only current smoke ownership permits profile reuse; legacy roots are never created
+ok 6 - Only current smoke ownership permits profile reuse; legacy roots are never created
+  ---
+  duration_ms: 12.5524
+  ...
+# Subtest: A profile created after the absent preflight cannot be adopted by this smoke run
+ok 7 - A profile created after the absent preflight cannot be adopted by this smoke run
+  ---
+  duration_ms: 6.0448
+  ...
+# Subtest: Profile guard refuses junctions before following them
+ok 8 - Profile guard refuses junctions before following them
+  ---
+  duration_ms: 2.7629
+  ...
+# Subtest: Host environment cannot resolve system Python or use inherited development overrides
+ok 9 - Host environment cannot resolve system Python or use inherited development overrides
+  ---
+  duration_ms: 0.6028
+  ...
+# Subtest: Missing host and incomplete frozen resources fail validation before launch
+ok 10 - Missing host and incomplete frozen resources fail validation before launch
+  ---
+  duration_ms: 4.7921
+  ...
+# Subtest: Installed layout requires the host adjacent backend and never rewrites its source files
+ok 11 - Installed layout requires the host adjacent backend and never rewrites its source files
+  ---
+  duration_ms: 6.0362
+  ...
+# Subtest: Timeout always runs cleanup and cleanup failure cannot turn into a pass
+ok 12 - Timeout always runs cleanup and cleanup failure cannot turn into a pass
+  ---
+  duration_ms: 86.2298
+  ...
+# Subtest: Release CLI fails closed and writes failure evidence without launching a host
+ok 13 - Release CLI fails closed and writes failure evidence without launching a host
+  ---
+  duration_ms: 68.1142
+  ...
+# Subtest: PowerShell smoke wrappers choose the first real Node when PATH contains multiple matches
+ok 14 - PowerShell smoke wrappers choose the first real Node when PATH contains multiple matches
+  ---
+  duration_ms: 2671.9895
+  ...
+# Subtest: Windows supervisor reports start failure without leaving a captured process
+ok 15 - Windows supervisor reports start failure without leaving a captured process
+  ---
+  duration_ms: 1650.2493
+  ...
+# Subtest: Windows supervisor supplies live stdin and observes a clean EOF shutdown
+ok 16 - Windows supervisor supplies live stdin and observes a clean EOF shutdown
+  ---
+  duration_ms: 1713.457
+  ...
+# Subtest: Timed-out Windows tree is cleaned while an unrelated process survives
+ok 17 - Timed-out Windows tree is cleaned while an unrelated process survives
+  ---
+  duration_ms: 1624.0775
+  ...
+# Subtest: Chinese title crosses the supervisor pipe and WM_CLOSE reaches only the captured real window
+ok 18 - Chinese title crosses the supervisor pipe and WM_CLOSE reaches only the captured real window
+  ---
+  duration_ms: 3194.7342
+  ...
+1..18
+# tests 18
+# suites 0
+# pass 18
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 11147.7453

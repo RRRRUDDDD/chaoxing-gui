@@ -1,0 +1,17 @@
+{
+  "startedAt": "2026-09-08T23:10:41.3906035Z",
+  "configPath": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\acceptance-followup-kit-b3f89606a234477ebf242b9e43f740ed\\run-509f5e36e42744d6813cc023ef166ba0\\acceptance.wsb",
+  "outputDirectory": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\acceptance-followup-kit-b3f89606a234477ebf242b9e43f740ed\\run-509f5e36e42744d6813cc023ef166ba0\\output",
+  "sourceCommit": "bbdbbc218416a4f458f9b03bb1a3da5f02451f45",
+  "productExecutedOnHost": false,
+  "success": true,
+  "fullAcceptancePassed": false,
+  "acceptanceMode": "NativeInstallationPartial",
+  "networking": "enabled for Microsoft certificate/runtime setup; no real accounts",
+  "launcherPid": 26592,
+  "guestResultPath": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\acceptance-followup-kit-b3f89606a234477ebf242b9e43f740ed\\run-509f5e36e42744d6813cc023ef166ba0\\output\\result.json",
+  "guestIdentity": "679402FC-7175-4\\WDAGUtilityAccount",
+  "scope": "native-installation-partial",
+  "guestPhase": "completed",
+  "endedAt": "2026-09-08T23:13:42.3000456Z"
+}

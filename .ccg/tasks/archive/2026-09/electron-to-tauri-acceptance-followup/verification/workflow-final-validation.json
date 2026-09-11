@@ -1,0 +1,149 @@
+{
+  "yamlParsed": true,
+  "workflowSha256": "bdde79c5f4a3b00d3469d3bc394eb7e72a0b27c18e04cedd397ca95b5ffe91be",
+  "runSteps": [
+    {
+      "job": "test-backend",
+      "name": "Install offline test dependencies",
+      "runFile": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\electron-to-tauri-acceptance-followup\\verification\\workflow-steps-final\\test-backend-02.ps1",
+      "sha256": "5da8e1d89f15ba4a603094e151b1b193d1e8d47dc9545941623aceb502c3b6db"
+    },
+    {
+      "job": "test-backend",
+      "name": "Run first-party regression tests",
+      "runFile": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\electron-to-tauri-acceptance-followup\\verification\\workflow-steps-final\\test-backend-03.ps1",
+      "sha256": "1eaa52d470994809923c170a9829d5039c8f25efb579d5ddf72f9b301c7de917"
+    },
+    {
+      "job": "test-web",
+      "name": "Install frontend and desktop test dependencies",
+      "runFile": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\electron-to-tauri-acceptance-followup\\verification\\workflow-steps-final\\test-web-02.ps1",
+      "sha256": "5c6ffea34a1889c73a5e35dfe382ae9cf0b06c81d6865fb4e355c68baa41a7a4"
+    },
+    {
+      "job": "test-web",
+      "name": "Test frontend behavior",
+      "runFile": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\electron-to-tauri-acceptance-followup\\verification\\workflow-steps-final\\test-web-03.ps1",
+      "sha256": "228d68c618ef052e5c7db697ffd1ff31f807c5be62fce0ec7366ed8c683996d9"
+    },
+    {
+      "job": "test-web",
+      "name": "Test Electron sessions and Tauri packaging/smoke contracts",
+      "runFile": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\electron-to-tauri-acceptance-followup\\verification\\workflow-steps-final\\test-web-04.ps1",
+      "sha256": "4d28b2258a289d46487a27a2d89bdffc3dcd29fc6eca45585874d4cc694e37d2"
+    },
+    {
+      "job": "test-web",
+      "name": "Check desktop JavaScript",
+      "runFile": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\electron-to-tauri-acceptance-followup\\verification\\workflow-steps-final\\test-web-05.ps1",
+      "sha256": "332a7cb162699cb37e87ad931c683854a32dcd06806c879c8c82cb1a1c9fd10d"
+    },
+    {
+      "job": "test-web",
+      "name": "Build frontend",
+      "runFile": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\electron-to-tauri-acceptance-followup\\verification\\workflow-steps-final\\test-web-06.ps1",
+      "sha256": "012587f1f6dd4c10ccb314242bea3af0aada5188c4da26e3f6e6f8550a993555"
+    },
+    {
+      "job": "build-windows",
+      "name": "Validate source, lock and release versions",
+      "runFile": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\electron-to-tauri-acceptance-followup\\verification\\workflow-steps-final\\build-windows-06.ps1",
+      "sha256": "05db83f2b2f23c5490481aa73049dd058d4b90d16721f66495c8d5324db09264"
+    },
+    {
+      "job": "build-windows",
+      "name": "Build frontend and install desktop tooling",
+      "runFile": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\electron-to-tauri-acceptance-followup\\verification\\workflow-steps-final\\build-windows-07.ps1",
+      "sha256": "2f2f278434758b8f674deedeb55095fc03af66af82085244bde3aaf910276ed6"
+    },
+    {
+      "job": "build-windows",
+      "name": "Install packaging dependencies",
+      "runFile": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\electron-to-tauri-acceptance-followup\\verification\\workflow-steps-final\\build-windows-08.ps1",
+      "sha256": "1f0698f70d1409163698189bb41ae7067f0a8c6d5fb767da0090779d2a4b92c8"
+    },
+    {
+      "job": "build-windows",
+      "name": "Build single-file executable",
+      "runFile": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\electron-to-tauri-acceptance-followup\\verification\\workflow-steps-final\\build-windows-09.ps1",
+      "sha256": "5d5701f41e2be4ca408ea839d90b63ffe66e9990ba28f39dbadc34d964212b6d"
+    },
+    {
+      "job": "build-windows",
+      "name": "Smoke test independent executable with owned stdin and process tree",
+      "runFile": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\electron-to-tauri-acceptance-followup\\verification\\workflow-steps-final\\build-windows-10.ps1",
+      "sha256": "ca5869fd8dac41e030557c3d280d1ff62bf012523506446c1d121a50846ad234"
+    },
+    {
+      "job": "build-windows",
+      "name": "Assemble independent Python release archive",
+      "runFile": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\electron-to-tauri-acceptance-followup\\verification\\workflow-steps-final\\build-windows-11.ps1",
+      "sha256": "ec5cebc78cc14bdb871139d4b6e52e7a711449aa8d2f909814f203614f76c6ff"
+    },
+    {
+      "job": "build-windows",
+      "name": "Build desktop backend executable",
+      "runFile": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\electron-to-tauri-acceptance-followup\\verification\\workflow-steps-final\\build-windows-12.ps1",
+      "sha256": "14e1423b20b779062a8768a865abc8a43e5922939538d3116f73148f9d4a5460"
+    },
+    {
+      "job": "build-windows",
+      "name": "Smoke test frozen desktop backend",
+      "runFile": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\electron-to-tauri-acceptance-followup\\verification\\workflow-steps-final\\build-windows-13.ps1",
+      "sha256": "812a2daebf8645e9844decdcea4564aaba1f5cd861c5fec1dc2f4244d6f661f3"
+    },
+    {
+      "job": "build-windows",
+      "name": "Build Electron desktop app (coexistence and rollback)",
+      "runFile": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\electron-to-tauri-acceptance-followup\\verification\\workflow-steps-final\\build-windows-14.ps1",
+      "sha256": "ecb49e15a95a53f022224f1490fafd727b2ce596c270e53598fe97cb80c11293"
+    },
+    {
+      "job": "build-windows",
+      "name": "Import optional signing certificate",
+      "runFile": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\electron-to-tauri-acceptance-followup\\verification\\workflow-steps-final\\build-windows-15.ps1",
+      "sha256": "ccc1fa0a51f465eb5e92de83914c1d2c5b8ca6123e6c34ae729781d717147f12"
+    },
+    {
+      "job": "build-windows",
+      "name": "Rust fmt/check/clippy/test and Tauri release build/package",
+      "runFile": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\electron-to-tauri-acceptance-followup\\verification\\workflow-steps-final\\build-windows-16.ps1",
+      "sha256": "cf6be7c278a65b09540930727a03de86e259d277a2a20b0abeb6fd47ef4eaf41"
+    },
+    {
+      "job": "build-windows",
+      "name": "Validate NSIS and portable payloads",
+      "runFile": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\electron-to-tauri-acceptance-followup\\verification\\workflow-steps-final\\build-windows-17.ps1",
+      "sha256": "c4984b37126170b2fd861d761a01922c447c61179ea4c268b81fcf9fa052a665"
+    },
+    {
+      "job": "build-windows",
+      "name": "Build frozen synthetic backend and embedded debug host",
+      "runFile": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\electron-to-tauri-acceptance-followup\\verification\\workflow-steps-final\\build-windows-18.ps1",
+      "sha256": "97678d4ae55c70e9b328bac67ce0c9b9f405c9f2beeece2b56a679bacf89c13b"
+    },
+    {
+      "job": "build-windows",
+      "name": "Debug fake faults and frozen backend smoke in nested Jobs",
+      "runFile": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\electron-to-tauri-acceptance-followup\\verification\\workflow-steps-final\\build-windows-19.ps1",
+      "sha256": "2b73c6a3357b19ba1c711a835cdf244bc6ec1309e4f3093831e46e5f3791cf27"
+    },
+    {
+      "job": "build-windows",
+      "name": "Release synthetic business and failure smoke in nested Jobs",
+      "runFile": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\electron-to-tauri-acceptance-followup\\verification\\workflow-steps-final\\build-windows-20.ps1",
+      "sha256": "9dc1a7a0c1faf808fd6907b278c5b26ff1386f6f72050b76dfcb0dc679b3a631"
+    },
+    {
+      "job": "build-windows",
+      "name": "Install/uninstall and portable release host acceptance on disposable runner",
+      "runFile": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\electron-to-tauri-acceptance-followup\\verification\\workflow-steps-final\\build-windows-21.ps1",
+      "sha256": "6b179101378cc0088c4e9fcbca341db4d16dba361dc36c8ef2a30f0a469df721"
+    }
+  ],
+  "remoteExecution": false,
+  "powershellSyntaxParsed": true,
+  "powershellFilesParsed": 40,
+  "errors": [],
+  "nativeExitCodeChecks": "All workflow python/npm/cargo/pwsh commands have explicit nonzero propagation; build entry uses checked commands."
+}

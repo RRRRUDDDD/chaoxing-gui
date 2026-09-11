@@ -1,0 +1,9 @@
+{
+  "capturedAt": "2026-09-08T08:22:57.085Z",
+  "readOnly": true,
+  "chunk_id": "93e8a4",
+  "wall_time_seconds": 1.5836383,
+  "exit_code": 1,
+  "original_token_count": 64,
+  "output": "{\"message\":\"No commit found for SHA: 37fde9160229e99d2fa837d2f1a850203c260d81\",\"documentation_url\":\"https://docs.github.com/rest/commits/commits#get-a-commit\",\"status\":\"422\"}gh: No commit found for SHA: 37fde9160229e99d2fa837d2f1a850203c260d81 (HTTP 422)\n"
+}

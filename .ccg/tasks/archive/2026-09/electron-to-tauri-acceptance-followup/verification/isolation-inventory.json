@@ -1,0 +1,101 @@
+{
+  "recordedAt": "2026-09-08T08:21:46.6710844Z",
+  "identity": "DESKTOP-3DSSD2K\\RUD",
+  "admin": false,
+  "computer": {
+    "Manufacturer": "MECHREVO",
+    "Model": "Jiaolong Series MRID6-23",
+    "HypervisorPresent": true
+  },
+  "operatingSystem": {
+    "Caption": "Microsoft Windows 11 专业版",
+    "Version": "10.0.26100",
+    "OSArchitecture": "64 位"
+  },
+  "cpu": [
+    {
+      "VirtualizationFirmwareEnabled": true,
+      "VMMonitorModeExtensions": false,
+      "SecondLevelAddressTranslationExtensions": false
+    }
+  ],
+  "services": [
+    {
+      "Name": "hns",
+      "Status": 4
+    },
+    {
+      "Name": "vmcompute",
+      "Status": 4
+    }
+  ],
+  "localUsers": [
+    {
+      "Name": "Administrator",
+      "Enabled": false
+    },
+    {
+      "Name": "CodexSandboxOffline",
+      "Enabled": true
+    },
+    {
+      "Name": "CodexSandboxOnline",
+      "Enabled": true
+    },
+    {
+      "Name": "DefaultAccount",
+      "Enabled": false
+    },
+    {
+      "Name": "Guest",
+      "Enabled": false
+    },
+    {
+      "Name": "RUD",
+      "Enabled": true
+    },
+    {
+      "Name": "WDAGUtilityAccount",
+      "Enabled": false
+    }
+  ],
+  "profiles": [
+    {
+      "LocalPath": "C:\\Users\\Administrator",
+      "Loaded": false
+    },
+    {
+      "LocalPath": "C:\\Users\\CodexSandboxOffline",
+      "Loaded": false
+    },
+    {
+      "LocalPath": "C:\\Users\\RUD",
+      "Loaded": true
+    }
+  ],
+  "runner": {
+    "githubActions": null,
+    "environment": null,
+    "os": null
+  },
+  "optionalFeatures": [
+    {
+      "FeatureName": "Containers-DisposableClientVM",
+      "error": "请求的操作需要提升。\r\n"
+    },
+    {
+      "FeatureName": "Microsoft-Hyper-V-All",
+      "error": "请求的操作需要提升。\r\n"
+    },
+    {
+      "FeatureName": "VirtualMachinePlatform",
+      "error": "请求的操作需要提升。\r\n"
+    }
+  ],
+  "commands": [
+    {
+      "Name": "WindowsSandbox.exe",
+      "Source": "C:\\WINDOWS\\system32\\WindowsSandbox.exe"
+    }
+  ]
+}

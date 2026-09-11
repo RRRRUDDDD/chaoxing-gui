@@ -1,0 +1,22 @@
+
+NanaZip 6.5 Update (x64) : (c) M2-Team and Contributors. All rights reserved.
+
+Scanning the drive for archives:
+1 file, 153754871 bytes (147 MiB)
+
+Extracting archive: E:\Downloads\45\chaoxing-gui\desktop\release\tauri\chaoxing-gui-tauri-setup-1.1.1-windows-x64.exe
+--
+Path = E:\Downloads\45\chaoxing-gui\desktop\release\tauri\chaoxing-gui-tauri-setup-1.1.1-windows-x64.exe
+Type = Nsis
+Physical Size = 153754871
+Method = LZMA:23
+Solid = +
+Headers Size = 403968
+Embedded Stub Size = 79360
+SubType = NSIS-3 Unicode
+
+Everything is Ok
+
+Files: 835
+Size:       351145787
+Compressed: 153754871

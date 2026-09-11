@@ -1,0 +1,1 @@
+收尾范围：复用已有验收任务的双路分析与计划，复核最终源码/证据，完成delivery/review/final-results和父任务更新，按明确allowlist归档提交。不得重复实施P1/P2/P3，不push/发布/真实账号，不在RUD运行release。用户归档计划和poc-window.png字节、索引状态必须保留。外部及本地子代理调用失败不能记为通过。父任务in_progress，P3及整体迁移false。

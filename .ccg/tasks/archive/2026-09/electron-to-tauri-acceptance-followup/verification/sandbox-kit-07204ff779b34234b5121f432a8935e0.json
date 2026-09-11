@@ -1,0 +1,21 @@
+{
+  "createdAt": "2026-09-08T13:33:16.3587850Z",
+  "kitDirectory": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\acceptance-followup-kit-07204ff779b34234b5121f432a8935e0",
+  "inputDirectory": "E:\\Downloads\\45\\chaoxing-gui\\desktop\\src-tauri\\target\\acceptance-followup-kit-07204ff779b34234b5121f432a8935e0\\input",
+  "sourceCommit": "37fde9160229e99d2fa837d2f1a850203c260d81",
+  "files": 1076,
+  "inputManifestSha256": "55e49d6767133c7668670726d3239a6b66cb9c17361567c775da04bc41fa93b9",
+  "runtime": {
+    "downloadUrl": "https://go.microsoft.com/fwlink/?LinkId=2124701",
+    "sha256": "e7fa35755196ad9223596ef021a1ce6799509142eaa40ba35f634026be50b831",
+    "signer": "CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US",
+    "signature": "Valid"
+  },
+  "sevenZip": {
+    "downloadUrl": "https://www.7-zip.org/a/7z2501-x64.exe",
+    "sha256": "78afa2a1c773caf3cf7edf62f857d2a8a5da55fb0fff5da416074c0d28b2b55f"
+  },
+  "productExecutedOnHost": false,
+  "node": "v20.20.0",
+  "powershell": "7.5.4"
+}
