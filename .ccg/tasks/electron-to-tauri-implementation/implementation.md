@@ -172,3 +172,10 @@ P0 产出物在仓库外沙箱 `E:\Downloads\45\tauri-poc`，仓库内仅新增 
 - 用户归档plan.md的`/plan`前缀与全部字节保持不变（SHA256 f7ec970826f014e9975a056b2e73ee9bee5dd7323f75b06db79fb7b78cdb5167），永未暂存；poc-window.png保留。自动审批拒绝清理两个本轮临时硬链接目录，仅返回blocked by policy，路径列于P3交付记录；没有绕过重试。
 
 下一步：服务恢复后补做P0/P1/P2与P3双路外审；经用户另行安排将这些本地提交带入远程Windows runner，验证真实release安装/便携及nested Job。P4完整干净系统矩阵与P5默认入口切换继续后置。
+
+## 2026-09-11 acceptance follow-up closeout
+
+- 当前来源提交 `bbdbbc218416a4f458f9b03bb1a3da5f02451f45` 包含 `12bae228` Release probe 修复和 `bbdbbc2` W1 verified profile cleanup 修复；Node20 Desktop 90/90/0skip。
+- 真实 Windows Sandbox `run-509f5e36e42744d6813cc023ef166ba0` 的 `NativeInstallationPartial` 16 项通过；范围标签和最终结果仍 `fullAcceptancePassed=false`。
+- 标准 Release GUI smoke 因 CDP 300 秒 `fetch failed` 失败；双路外部审查历史为 429，最新 closeout 为 403 authentication_failed，均无报告。
+- 远端 main 仍 `5899b5f`，当前来源未运行远端 CI；签名成功路径、干净 runner 完整 release/安装、P3 acceptance 仍待完成。父任务保持 `in_progress`，`p3AcceptancePassed=false`、`overallMigrationComplete=false`，不进入 P4/P5。详见 `.ccg/tasks/archive/2026-09/electron-to-tauri-acceptance-followup/verification/final-results.json`。
