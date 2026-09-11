@@ -1,0 +1,15 @@
+{
+  "recordedAt": "2026-09-11T09:05:00+00:00",
+  "sourceCommit": "bbdbbc218416a4f458f9b03bb1a3da5f02451f45",
+  "followupTask": ".ccg/tasks/archive/2026-09/electron-to-tauri-acceptance-followup",
+  "cleanupFix": "bbdbbc2",
+  "node20Desktop": "90 PASS / 0 FAIL / 0 SKIP",
+  "nativeInstallationPartial": { "success": true, "checks": 16, "fullAcceptancePassed": false },
+  "standardReleaseGuiSmoke": "failed CDP fetch after 300 seconds",
+  "externalReview": "not passed: historical 429 and latest 403 with blank stdout",
+  "remoteCI": "not executed; current commit absent from remote",
+  "signingSuccessPath": "not verified",
+  "p3AcceptancePassed": false,
+  "overallMigrationComplete": false,
+  "nextAction": "Keep parent in_progress; obtain service availability and clean runner/signing conditions before retrying remaining gates; do not enter P4/P5"
+}

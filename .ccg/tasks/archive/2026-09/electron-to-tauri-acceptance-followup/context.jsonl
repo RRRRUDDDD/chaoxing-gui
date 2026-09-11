@@ -1,0 +1,5 @@
+{"path": ".ccg/tasks/electron-to-tauri-acceptance-followup/verification/final-results.json", "role": "final result index"}
+{"path": ".ccg/tasks/electron-to-tauri-acceptance-followup/verification/native-installation-result-summary.json", "role": "Sandbox partial result"}
+{"path": ".ccg/tasks/electron-to-tauri-acceptance-followup/research/closeout-final-source-manifest.json", "role": "current source manifest"}
+{"path": "desktop/scripts/p3-smoke.mjs", "role": "cleanup/probe source"}
+{"path": "desktop/tests/p3-smoke.test.mjs", "role": "cleanup regression tests"}
