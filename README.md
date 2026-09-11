@@ -45,6 +45,8 @@ desktop/release/chaoxing-gui-desktop-Setup-*.exe
 
 Windows 发布包可从 [GitHub Releases](https://github.com/RRRRUDDDD/chaoxing-fanya/releases/latest) 直接下载。
 
+Tauri 2 桌面版正在独立验收，可用 `build_tauri.bat` 构建 Windows x64 NSIS 和便携 ZIP，输出在 `desktop/release/tauri/`。它使用独立程序目录，保留 Electron 与原数据；当前默认桌面构建入口仍为 Electron。安装、WebView2 离线准备、版本校验和验收边界见 [桌面版指南](desktop/README.md)。
+
 ### 方式三：命令行模式
 
 ```bash

@@ -1,0 +1,42 @@
+[package]
+name = "chaoxing-desktop"
+version = "1.1.1"
+description = "超星学习通 · 自动化学习助手桌面版（Tauri 宿主）"
+edition = "2021"
+default-run = "chaoxing-desktop"
+
+[lib]
+name = "chaoxing_desktop_lib"
+path = "src/lib.rs"
+
+[[bin]]
+name = "chaoxing-desktop"
+path = "src/main.rs"
+
+# Enabled for ordinary development/tests; release packaging disables defaults.
+# Tauri also respects required-features when selecting bundle binaries.
+[[bin]]
+name = "fake-backend"
+path = "src/bin/fake-backend.rs"
+required-features = ["test-support"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "=2.11.5", features = [] }
+tauri-plugin-single-instance = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+ureq = { version = "2", default-features = false, features = ["json"] }
+windows = { version = "0.62", features = ["Win32_Foundation", "Win32_System_JobObjects", "Win32_System_Threading", "Win32_Security", "Win32_UI_WindowsAndMessaging", "Win32_Graphics_Gdi", "Win32_Storage_FileSystem"] }
+getrandom = "0.2"
+regex = "1"
+
+[features]
+default = ["test-support"]
+test-support = []
+custom-protocol = ["tauri/custom-protocol"]
+
+[profile.release]
+strip = true

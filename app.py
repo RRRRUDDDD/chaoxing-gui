@@ -45,11 +45,13 @@ else:
 
 # === 环境变量：支持 Electron 无头模式 ===
 HEADLESS = os.environ.get("CHAOXING_HEADLESS") == "1" or os.environ.get("CHAOXING_ELECTRON") == "1"
-PORT = int(os.environ.get("CHAOXING_PORT", "5000"))
+TAURI_MODE = os.environ.get("CHAOXING_TAURI") == "1"
+PORT = 0 if TAURI_MODE else int(os.environ.get("CHAOXING_PORT", "5000"))
 # 仅限本机访问时也绑定回环地址, 避免局域网内其他设备访问控制台/配置接口
 HOST = "127.0.0.1"
 # CORS 限定为本机来源, 防止用户浏览器中打开的任意网页跨域读取配置接口
-CORS(app, origins=[f"http://localhost:{PORT}", f"http://127.0.0.1:{PORT}"])
+if not TAURI_MODE:
+    CORS(app, origins=[f"http://localhost:{PORT}", f"http://127.0.0.1:{PORT}"])
 # 数据目录：Electron 传入 %APPDATA%/<app>；未设置时沿用脚本目录（独立 exe / 开发模式行为不变）
 DATA_DIR = os.environ.get("CHAOXING_DATA_DIR") or os.path.dirname(__file__)
 
@@ -744,6 +746,45 @@ def watch_parent_stdin():
 
 
 if __name__ == "__main__":
+    # === Tauri 宿主模式（CHAOXING_TAURI=1）===
+    # 置于 frozen/HEADLESS 分支之前：随机端口握手 + token 鉴权由
+    # api/desktop_runtime.py 承载；不读 CHAOXING_PORT。
+    if os.environ.get("CHAOXING_TAURI") == "1":
+        try:
+            from api.desktop_runtime import parse_ready_env, run_tauri_server
+        except ImportError as e:
+            logger.error(f"Tauri 运行时模块缺失: {e}")
+            sys.exit(1)
+        try:
+            token, instance_id = parse_ready_env()
+        except Exception as e:
+            logger.error(str(e))
+            sys.exit(1)
+
+        # cwd/CHAOXING_DATA_DIR 兜底：导入期路径由宿主 spawn 时设定，
+        # 这里保证 chaoxing.log 等运行时文件仍写数据目录而非安装目录
+        try:
+            os.makedirs(DATA_DIR, exist_ok=True)
+            os.chdir(DATA_DIR)
+        except Exception as e:
+            logger.error(f"Tauri 数据目录不可用: {e}")
+            sys.exit(1)
+
+        # Tauri 的原生代理无需 CORS；导入期已跳过注册。
+        threading.Thread(target=watch_parent_stdin, daemon=True).start()
+        try:
+            run_tauri_server(app, token, instance_id)
+        except Exception as e:
+            logger.error(f"Tauri 服务器启动失败: {e}")
+            sys.exit(1)
+
+        # serve_forever 在后台线程，主线程保持存活直至 stdin EOF 触发 os._exit
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            sys.exit(0)
+
     # === 打包态特殊处理 ===
     if getattr(sys, 'frozen', False) and not HEADLESS:
         # 独立 exe 模式（向后兼容）
@@ -816,4 +857,3 @@ if __name__ == "__main__":
         logger.info("接收到退出信号")
         if tray_icon:
             tray_icon.stop()
-

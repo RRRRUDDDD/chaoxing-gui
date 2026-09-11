@@ -1,0 +1,55 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Chaoxing GUI Tauri",
+  "mainBinaryName": "chaoxing-gui-tauri",
+  "version": "1.1.1",
+  "identifier": "com.chaoxing.gui",
+  "build": {
+    "frontendDist": "../../web/dist",
+    "devUrl": "http://localhost:3000"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "create": false,
+        "title": "超星学习通 · 自动化学习助手",
+        "width": 1200,
+        "height": 800,
+        "minWidth": 900,
+        "minHeight": 600,
+        "backgroundColor": "#0f172a"
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src ipc: http://ipc.localhost; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "publisher": "chaoxing-gui",
+    "licenseFile": "../../LICENSE",
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.ico"],
+    "resources": {
+      "resources/backend/": "backend/",
+      "resources/backend-manifest.json": "backend-manifest.json",
+      "../portable/": "./",
+      "../../LICENSE": "LICENSE",
+      "windows/LICENSE_MIT": "TAURI-LICENSE.txt"
+    },
+    "windows": {
+      "webviewInstallMode": {"type": "downloadBootstrapper", "silent": true},
+      "nsis": {
+        "installMode": "currentUser",
+        "languages": ["SimpChinese", "English"],
+        "displayLanguageSelector": true,
+        "installerIcon": "icons/icon.ico",
+        "uninstallerIcon": "icons/icon.ico",
+        "startMenuFolder": "Chaoxing GUI Tauri",
+        "template": "windows/installer.nsi",
+        "installerHooks": "windows/installer-hooks.nsh"
+      }
+    }
+  }
+}

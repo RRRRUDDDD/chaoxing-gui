@@ -4,14 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       publish_release:
-        description: Publish the build to GitHub Releases
+        description: Publish the verified build to GitHub Releases
         required: false
-        default: true
+        default: false
         type: boolean
       release_tag:
-        description: Release tag to create or update for a manual run
+        description: Optional tag (must match pyproject.toml); blank uses the source version
         required: false
-        default: v1.1.1
+        default: ""
         type: string
   push:
     branches:
@@ -21,6 +21,10 @@ on:
 
 permissions:
   contents: write
+
+defaults:
+  run:
+    shell: pwsh
 
 jobs:
   test-backend:
@@ -36,11 +40,15 @@ jobs:
           cache: pip
           cache-dependency-path: requirements-test.txt
       - name: Install offline test dependencies
-        run: python -m pip install -r requirements-test.txt
+        run: |
+          python -m pip install -r requirements-test.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Run first-party regression tests
         env:
           PYTHONUTF8: "1"
-        run: python -m unittest discover -s tests -v
+        run: |
+          python -m unittest discover -s tests -v
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
   test-web:
     runs-on: windows-latest
@@ -50,25 +58,41 @@ jobs:
         with:
           node-version: "20"
           cache: npm
-          cache-dependency-path: web/package-lock.json
-      - name: Install frontend dependencies
-        run: npm --prefix web ci
+          cache-dependency-path: |
+            web/package-lock.json
+            desktop/package-lock.json
+      - name: Install frontend and desktop test dependencies
+        run: |
+          npm --prefix web ci
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm --prefix desktop ci
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Test frontend behavior
-        run: npm --prefix web test
-      - name: Test desktop behavior
-        run: npm --prefix desktop test
+        run: |
+          npm --prefix web test
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Test Electron sessions and Tauri packaging/smoke contracts
+        run: |
+          npm --prefix desktop test
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Check desktop JavaScript
         run: |
-          foreach ($source in @('desktop/main.js', 'desktop/preload.js', 'desktop/session-store.js')) {
+          foreach ($source in @('desktop/main.js', 'desktop/preload.js', 'desktop/session-store.js', 'desktop/scripts/p3-smoke.mjs', 'desktop/scripts/p3-installation.mjs')) {
             node --check $source
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
       - name: Build frontend
-        run: npm --prefix web run build
+        run: |
+          npm --prefix web run build
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
   build-windows:
     needs: [test-backend, test-web]
     runs-on: windows-latest
+    timeout-minutes: 120
+    env:
+      PYTHONUTF8: "1"
+      CARGO_BUILD_JOBS: "1"
 
     steps:
       - name: Check out source
@@ -94,6 +118,19 @@ jobs:
             web/package-lock.json
             desktop/package-lock.json
 
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.95.0"
+          targets: x86_64-pc-windows-msvc
+          components: rustfmt, clippy
+
+      - name: Cache Rust
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/src-tauri -> target
+          shared-key: windows-x64-tauri-rust-1.95.0
+
       - name: Cache Electron binaries
         uses: actions/cache@v4
         with:
@@ -104,125 +141,176 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-electron-
 
-      - name: Build frontend
-        working-directory: web
+      - name: Validate source, lock and release versions
+        env:
+          REQUESTED_RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
-          npm ci
-          npm run build
+          $versionJson = python desktop/scripts/version.py --check --json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $version = ($versionJson | ConvertFrom-Json).version
+          $releaseTag = "v$version"
+          if ($env:GITHUB_REF_TYPE -eq 'tag') { $releaseTag = $env:GITHUB_REF_NAME }
+          elseif ($env:REQUESTED_RELEASE_TAG) { $releaseTag = $env:REQUESTED_RELEASE_TAG }
+          python desktop/scripts/version.py --check --tag $releaseTag
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "APP_VERSION=$version" >> $env:GITHUB_ENV
+          "RELEASE_TAG=$releaseTag" >> $env:GITHUB_ENV
+          New-Item -ItemType Directory -Force desktop/release/verification | Out-Null
+          $versionJson | Set-Content desktop/release/verification/version.json -Encoding utf8
+
+      - name: Build frontend and install desktop tooling
+        run: |
+          npm --prefix web ci
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm --prefix web run build
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm --prefix desktop ci
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Install packaging dependencies
-        shell: pwsh
         run: |
           python -m pip install --upgrade pip
-          $requirements = Get-Content requirements.txt | Where-Object {
-            $_ -notmatch '^\s*paddleocr\s*'
-          }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $requirements = Get-Content requirements.txt | Where-Object { $_ -notmatch '^\s*paddleocr\s*' }
           $requirements | Set-Content "$env:RUNNER_TEMP\requirements-packaging.txt"
           python -m pip install -r "$env:RUNNER_TEMP\requirements-packaging.txt"
-          python -m pip install pyinstaller
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m pip install pyinstaller==6.21.0
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Build single-file executable
-        run: pyinstaller --clean --noconfirm chaoxing.spec
-
-      - name: Smoke test executable
-        shell: pwsh
         run: |
-          $process = Start-Process -FilePath "dist\chaoxing-gui.exe" -PassThru
-          try {
-            $ready = $false
-            for ($attempt = 0; $attempt -lt 30; $attempt++) {
-              Start-Sleep -Seconds 1
-              try {
-                $response = Invoke-WebRequest -UseBasicParsing "http://127.0.0.1:5000/" -TimeoutSec 2
-                if ($response.StatusCode -eq 200) {
-                  $ready = $true
-                  break
-                }
-              } catch {
-                # The server may need a few seconds to unpack the one-file executable.
-              }
-            }
-            if (-not $ready) {
-              throw "Packaged executable did not serve http://127.0.0.1:5000/"
-            }
-          } finally {
-            if (-not $process.HasExited) {
-              Stop-Process -Id $process.Id -Force
-            }
-          }
+          python -m PyInstaller --clean --noconfirm chaoxing.spec
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Assemble release archive
-        shell: pwsh
+      - name: Smoke test independent executable with owned stdin and process tree
         run: |
-          New-Item -ItemType Directory -Force release | Out-Null
-          Copy-Item "dist\chaoxing-gui.exe" "release\chaoxing-gui.exe"
-          Copy-Item README.md release\README.md
-          Compress-Archive -Path "release\*" -DestinationPath "release\chaoxing-gui-no-electron-windows-x64.zip" -Force
+          pwsh -NoProfile -File desktop/scripts/smoke-python.ps1 -ExecutablePath dist/chaoxing-gui.exe -Mode Independent -EvidenceDirectory desktop/release/verification/python-independent
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Assemble independent Python release archive
+        run: |
+          New-Item -ItemType Directory -Force release/python | Out-Null
+          Copy-Item -LiteralPath dist/chaoxing-gui.exe -Destination release/python/chaoxing-gui.exe
+          Copy-Item -LiteralPath README.md -Destination release/python/README.md
+          @{ version=$env:APP_VERSION; platform='windows-x64'; kind='independent-python' } | ConvertTo-Json | Set-Content release/python/version.json -Encoding utf8
+          Compress-Archive -Path release/python/* -DestinationPath "release/chaoxing-gui-no-electron-$env:APP_VERSION-windows-x64.zip" -Force
 
       - name: Build desktop backend executable
-        run: pyinstaller --clean --noconfirm chaoxing-backend.spec
-
-      - name: Smoke test desktop backend (headless)
-        shell: pwsh
         run: |
-          $env:CHAOXING_HEADLESS = "1"
-          $env:CHAOXING_PORT = "5123"
-          $process = Start-Process -FilePath "dist\chaoxing-backend\chaoxing-backend.exe" -PassThru
-          try {
-            $ready = $false
-            for ($attempt = 0; $attempt -lt 60; $attempt++) {
-              Start-Sleep -Seconds 1
-              try {
-                $response = Invoke-WebRequest -UseBasicParsing "http://127.0.0.1:5123/api/health" -TimeoutSec 2
-                if ($response.StatusCode -eq 200) {
-                  $ready = $true
-                  break
-                }
-              } catch {
-                # The backend needs a few seconds to boot.
-              }
-            }
-            if (-not $ready) {
-              throw "Headless backend did not serve http://127.0.0.1:5123/api/health"
-            }
-          } finally {
-            if (-not $process.HasExited) {
-              Stop-Process -Id $process.Id -Force
+          python -m PyInstaller --clean --noconfirm chaoxing-backend.spec
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Smoke test frozen desktop backend
+        run: |
+          pwsh -NoProfile -File desktop/scripts/smoke-python.ps1 -ExecutablePath dist/chaoxing-backend/chaoxing-backend.exe -Mode Backend -EvidenceDirectory desktop/release/verification/python-backend
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Build Electron desktop app (coexistence and rollback)
+        run: |
+          pwsh -NoProfile -File desktop/scripts/prepare-backend.ps1 -DestinationDirectory desktop/backend/chaoxing-backend
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm --prefix desktop exec -- electron-builder --win --publish never --projectDir desktop
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Import optional signing certificate
+        env:
+          CHAOXING_PFX_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_PFX }}
+          CHAOXING_PFX_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          if ($env:CHAOXING_PFX_BASE64) {
+            $certificateFile = Join-Path $env:RUNNER_TEMP "chaoxing-sign-$([Guid]::NewGuid().ToString('N')).pfx"
+            try {
+              [IO.File]::WriteAllBytes($certificateFile, [Convert]::FromBase64String($env:CHAOXING_PFX_BASE64))
+              $password = ConvertTo-SecureString $env:CHAOXING_PFX_PASSWORD -AsPlainText -Force
+              $importedCertificates = @(Import-PfxCertificate -FilePath $certificateFile -CertStoreLocation Cert:\CurrentUser\My -Password $password)
+              $signingCertificates = @($importedCertificates | Where-Object HasPrivateKey)
+              if ($signingCertificates.Count -ne 1) { throw 'PFX must identify exactly one signing certificate with a private key' }
+              $env:CHAOXING_SIGN_CERT_THUMBPRINT = $signingCertificates[0].Thumbprint
+              "CHAOXING_SIGN_CERT_THUMBPRINT=$env:CHAOXING_SIGN_CERT_THUMBPRINT" >> $env:GITHUB_ENV
+            } finally {
+              if (Test-Path -LiteralPath $certificateFile) { Remove-Item -LiteralPath $certificateFile -Force }
             }
           }
+          pwsh -NoProfile -File desktop/scripts/sign-windows.ps1 -Mode Inspect -ReportPath desktop/release/verification/signing-availability.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Build Electron desktop app
-        working-directory: desktop
-        shell: pwsh
+      - name: Rust fmt/check/clippy/test and Tauri release build/package
         run: |
-          if (Test-Path backend) { Remove-Item -Recurse -Force backend }
-          New-Item -ItemType Directory -Force backend | Out-Null
-          Copy-Item -Recurse -Force "..\dist\chaoxing-backend" "backend\chaoxing-backend"
-          npm ci
-          npx electron-builder --win --publish never
+          pwsh -NoProfile -File desktop/scripts/build-tauri.ps1 -Prepared
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Upload build artifact
+      - name: Validate NSIS and portable payloads
+        run: |
+          pwsh -NoProfile -File desktop/scripts/verify-nsis.ps1 -InstallerPath "desktop/release/tauri/chaoxing-gui-tauri-setup-$env:APP_VERSION-windows-x64.exe" -PortablePath "desktop/release/tauri/chaoxing-gui-tauri-portable-$env:APP_VERSION-windows-x64.zip" -EvidenceDirectory desktop/release/verification/nsis-content
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Build frozen synthetic backend and embedded debug host
+        run: |
+          python -m PyInstaller --noconfirm --onedir --name p2-backend --specpath desktop/src-tauri/target/p3-fixture --workpath desktop/src-tauri/target/p3-fixture/build --distpath desktop/src-tauri/target/p3-fixture/dist desktop/tests/fixtures/p2_backend.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cargo build --manifest-path desktop/src-tauri/Cargo.toml --locked -j 1 --features custom-protocol --bin chaoxing-desktop
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Debug fake faults and frozen backend smoke in nested Jobs
+        run: |
+          pwsh -NoProfile -File desktop/scripts/smoke-tauri.ps1 -HostPath desktop/src-tauri/target/debug/chaoxing-desktop.exe -BackendDirectory desktop/src-tauri/resources/backend -FakeBackendDirectory desktop/src-tauri/target/p3-fixture/dist/p2-backend -EvidenceDirectory desktop/release/verification/tauri-debug -Configuration Debug -Scenario All -NestedJob
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Release synthetic business and failure smoke in nested Jobs
+        run: |
+          pwsh -NoProfile -File desktop/scripts/smoke-tauri.ps1 -HostPath desktop/src-tauri/target/x86_64-pc-windows-msvc/release/chaoxing-gui-tauri.exe -BackendDirectory desktop/src-tauri/resources/backend -FakeBackendDirectory desktop/src-tauri/target/p3-fixture/dist/p2-backend -EvidenceDirectory desktop/release/verification/tauri-release-fixture -Configuration Release -Scenario Fake -NestedJob
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Install/uninstall and portable release host acceptance on disposable runner
+        run: |
+          pwsh -NoProfile -File desktop/scripts/smoke-installation.ps1 -InstallerPath "desktop/release/tauri/chaoxing-gui-tauri-setup-$env:APP_VERSION-windows-x64.exe" -PortablePath "desktop/release/tauri/chaoxing-gui-tauri-portable-$env:APP_VERSION-windows-x64.zip" -EvidenceDirectory desktop/release/verification/tauri-installation
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload validation evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: chaoxing-gui-no-electron-windows-x64
-          path: release\chaoxing-gui-no-electron-windows-x64.zip
+          name: windows-packaging-verification
+          path: desktop/release/verification/
+          if-no-files-found: warn
+
+      - name: Upload independent Python artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: chaoxing-gui-no-electron-${{ env.APP_VERSION }}-windows-x64
+          path: release/chaoxing-gui-no-electron-${{ env.APP_VERSION }}-windows-x64.zip
           if-no-files-found: error
 
-      - name: Upload desktop artifact
+      - name: Upload Electron artifact
         uses: actions/upload-artifact@v4
         with:
-          name: chaoxing-gui-desktop
-          path: desktop\release\*.exe
+          name: chaoxing-gui-desktop-${{ env.APP_VERSION }}
+          path: desktop/release/*.exe
+          if-no-files-found: error
+
+      - name: Upload Tauri artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: chaoxing-gui-tauri-${{ env.APP_VERSION }}-windows-x64
+          path: desktop/release/tauri/
           if-no-files-found: error
 
       - name: Publish GitHub Release
-        if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs.publish_release)
+        if: success() && (startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs.publish_release))
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || inputs.release_tag }}
-          name: Release ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || inputs.release_tag }}
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: Release ${{ env.RELEASE_TAG }}
           target_commitish: ${{ github.sha }}
           generate_release_notes: true
           files: |
-            release/chaoxing-gui-no-electron-windows-x64.zip
+            release/chaoxing-gui-no-electron-${{ env.APP_VERSION }}-windows-x64.zip
             desktop/release/*.exe
+            desktop/release/tauri/chaoxing-gui-tauri-setup-${{ env.APP_VERSION }}-windows-x64.exe
+            desktop/release/tauri/chaoxing-gui-tauri-setup-${{ env.APP_VERSION }}-windows-x64.exe.manifest.json
+            desktop/release/tauri/chaoxing-gui-tauri-portable-${{ env.APP_VERSION }}-windows-x64.zip
+            desktop/release/tauri/chaoxing-gui-tauri-portable-${{ env.APP_VERSION }}-windows-x64.zip.manifest.json
+            desktop/release/tauri/chaoxing-gui-tauri-portable-${{ env.APP_VERSION }}-windows-x64.zip.sha256
+            desktop/release/tauri/chaoxing-gui-tauri-artifacts-${{ env.APP_VERSION }}-windows-x64.json
+            desktop/release/tauri/SHA256SUMS.txt
