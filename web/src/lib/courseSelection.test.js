@@ -14,7 +14,7 @@ it('preserves an empty or fully stale saved selection', () => {
   expect(restoreCourseSelection({ selectedCoursesByAccount: { alice: [] } }, 'alice', courses).ids).toEqual([]);
 });
 
-it('ignores old unscoped selections and explicitly checks every course for new accounts', () => {
-  expect(restoreCourseSelection({ selectedCourses: ['foreign'] }, 'new', courses)).toEqual({ ids: ['1', '2'], saved: false });
-  expect(restoreCourseSelection({ selectedCoursesByAccount: { alice: ['1'] } }, 'new', courses).ids).toEqual(['1', '2']);
+it('ignores old unscoped selections and leaves every course unchecked for new accounts', () => {
+  expect(restoreCourseSelection({ selectedCourses: ['foreign'] }, 'new', courses)).toEqual({ ids: [], saved: false });
+  expect(restoreCourseSelection({ selectedCoursesByAccount: { alice: ['1'] } }, 'new', courses).ids).toEqual([]);
 });

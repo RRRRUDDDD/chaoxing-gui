@@ -1,15 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Button from './ui/Button';
 import CountUp from './CountUp';
+import RepositoryLink from './RepositoryLink';
 import {
   Loader2, ArrowLeft, CheckCircle2, XCircle, AlertCircle,
   Play, Clock, ChevronDown, ChevronRight, BookOpen, MonitorPlay,
-  FileText, Home, Github,
+  FileText, Home,
 } from 'lucide-react';
 import api from '../api/axios';
 import { LOG_LIMIT, chapterState, isTerminalStatus, resultLabels, startTaskPolling } from '../lib/taskPolling';
 
-const StudyProgress = ({ taskId, notice = '', onBack, onStatus, onMissing, preview = false }) => {
+const StudyProgress = ({ taskId, notice = '', onBack, onStatus, onMissing, recovering = false, recoveryError = '', onRetryRecovery, preview = false }) => {
   const [taskStatus, setTaskStatus] = useState(preview ? {
     status: 'completed',
     progress: 3,
@@ -54,12 +55,13 @@ const StudyProgress = ({ taskId, notice = '', onBack, onStatus, onMissing, previ
   const [pollError, setPollError] = useState('');
   const [missing, setMissing] = useState(false);
   const [expandedCourses, setExpandedCourses] = useState(new Set());
-  const logsEndRef = useRef(null);
+  const logsContainerRef = useRef(null);
+  const followLogs = useRef(true);
   const callbacks = useRef({ onStatus, onMissing });
   callbacks.current = { onStatus, onMissing };
 
   useEffect(() => {
-    if (preview) return undefined;
+    if (preview || recovering || recoveryError) return undefined;
     setTaskStatus(null);
     setTaskDetails(null);
     setLogs([]);
@@ -67,6 +69,7 @@ const StudyProgress = ({ taskId, notice = '', onBack, onStatus, onMissing, previ
     setPollError('');
     setMissing(false);
     setExpandedCourses(new Set());
+    followLogs.current = true;
     return startTaskPolling({
       api, taskId,
       onStatus: (status) => { setTaskStatus(status); callbacks.current.onStatus?.(status); },
@@ -75,10 +78,11 @@ const StudyProgress = ({ taskId, notice = '', onBack, onStatus, onMissing, previ
       onError: setPollError,
       onMissing: () => { setMissing(true); setPollError(''); callbacks.current.onMissing?.(); },
     });
-  }, [taskId, preview]);
+  }, [taskId, preview, recovering, recoveryError]);
 
   useEffect(() => {
-    logsEndRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'end' });
+    const container = logsContainerRef.current;
+    if (container && followLogs.current) container.scrollTop = container.scrollHeight;
   }, [logs]);
 
   const toggleCourse = (courseId) => {
@@ -94,12 +98,16 @@ const StudyProgress = ({ taskId, notice = '', onBack, onStatus, onMissing, previ
   };
 
   const getStatusInfo = () => {
+    if (recovering) return { text: '恢复中', cls: 'text-brand', icon: Loader2 };
+    if (recoveryError) return { text: '等待恢复', cls: 'text-warning', icon: AlertCircle };
     if (missing) return { text: '已过期', cls: 'text-faint', icon: Clock };
     if (!taskStatus) return { text: '加载中', cls: 'text-faint', icon: Clock };
 
     switch (taskStatus.status) {
       case 'running':
         return { text: '学习中', cls: 'text-brand', icon: Play };
+      case 'interrupted':
+        return { text: '等待恢复', cls: 'text-warning', icon: Clock };
       case 'completed':
         return { text: '已完成', cls: 'text-success', icon: CheckCircle2 };
       case 'error':
@@ -216,16 +224,7 @@ const StudyProgress = ({ taskId, notice = '', onBack, onStatus, onMissing, previ
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <a
-              href="https://github.com/RRRRUDDDD/chaoxing-gui"
-              target="_blank"
-              rel="noreferrer"
-              aria-label="在 GitHub 上查看项目"
-              title="在 GitHub 上查看项目"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-faint transition-colors duration-150 hover:bg-soft hover:text-ink focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/20"
-            >
-              <Github className="h-4 w-4" aria-hidden="true" />
-            </a>
+            <RepositoryLink />
             {terminal && (
               <Button onClick={onBack} size="sm">
                 <Home className="h-3.5 w-3.5" aria-hidden="true" />
@@ -237,6 +236,18 @@ const StudyProgress = ({ taskId, notice = '', onBack, onStatus, onMissing, previ
       </header>
 
       <main className="page-shell py-[clamp(1.5rem,2.5vw,3rem)]">
+        {recovering && (
+          <p role="status" className="mb-5 rounded-xl bg-brand-soft px-5 py-4 text-sm text-body">正在恢复上次学习任务，并核对已完成的进度…</p>
+        )}
+        {recoveryError && (
+          <div role="alert" className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-warning/10 px-5 py-4 text-sm text-body">
+            <span>{recoveryError}</span>
+            <Button variant="outline" size="sm" onClick={onRetryRecovery}>重试恢复任务</Button>
+          </div>
+        )}
+        {taskStatus?.recovery_error && (
+          <div role="alert" className="mb-5 rounded-xl bg-warning/10 px-5 py-4 text-sm text-body">{taskStatus.recovery_error}</div>
+        )}
         {notice && (
           <div role="alert" className="mb-5 rounded-xl bg-warning/10 px-5 py-4 text-sm text-body">
             {notice}
@@ -444,7 +455,15 @@ const StudyProgress = ({ taskId, notice = '', onBack, onStatus, onMissing, previ
               </div>
               <div className="p-4">
                 {logsTruncated && <p className="mb-2 text-xs text-faint">较早的日志已省略，仅保留最近 {LOG_LIMIT} 条。</p>}
-                <div role="log" aria-label="执行日志" aria-live="off" className="h-[clamp(22.5rem,48vh,42rem)] overflow-y-auto rounded-lg bg-gray-900 p-4 font-mono text-xs leading-relaxed scroll-brutal">
+                <div
+                  ref={logsContainerRef}
+                  role="log" aria-label="执行日志" aria-live="off"
+                  onScroll={(event) => {
+                    const container = event.currentTarget;
+                    followLogs.current = container.scrollHeight - container.scrollTop - container.clientHeight <= 24;
+                  }}
+                  className="h-[clamp(22.5rem,48vh,42rem)] overflow-y-auto overscroll-contain rounded-lg bg-gray-900 p-4 font-mono text-xs leading-relaxed scroll-brutal"
+                >
                   {logs.length === 0 ? (
                     <p className="text-gray-500">等待日志输出...</p>
                   ) : (
@@ -457,7 +476,6 @@ const StudyProgress = ({ taskId, notice = '', onBack, onStatus, onMissing, previ
                       </div>
                     ))
                   )}
-                  <div ref={logsEndRef} />
                 </div>
               </div>
             </section>

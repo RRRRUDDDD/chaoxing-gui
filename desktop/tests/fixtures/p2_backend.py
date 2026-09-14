@@ -106,6 +106,10 @@ class Handler(SimpleHTTPRequestHandler):
             if state.get("missing") and (route.path.startswith("/api/task/")
                                          or route.path.startswith("/api/logs/")):
                 return self.respond(404, {"status": False, "msg": "fixture task expired"})
+            if route.path == "/api/task/p2-existing-task/resume" and self.command == "POST":
+                return self.respond(200, {"status": True, "data": {
+                    "task_id": "p2-existing-task", "status": "completed" if counts["status"] > 1 else "running",
+                }})
             if route.path == "/api/task/p2-existing-task":
                 counts["status"] += 1
                 snapshot()

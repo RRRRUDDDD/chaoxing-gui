@@ -27,13 +27,14 @@ describe('desktop bridge', () => {
     await desktopBridge.apiRequest(request);
     await desktopBridge.apiCancel(42);
     await desktopBridge.backendStatus();
+    await desktopBridge.openRepository();
     await desktopBridge.read();
     await desktopBridge.rememberLogin('alice');
     await desktopBridge.rememberTask(task);
     await desktopBridge.rememberTask(null);
     expect(await desktopBridge.clear()).toEqual(empty());
     expect(core.invoke.mock.calls).toEqual([
-      ['api_request', { request }], ['api_cancel', { requestId: 42 }], ['backend_status'],
+      ['api_request', { request }], ['api_cancel', { requestId: 42 }], ['backend_status'], ['open_repository'],
       ['session_read'], ['session_remember_login', { username: 'alice' }],
       ['session_remember_task', { task }], ['session_remember_task', { task: null }], ['session_clear'],
     ]);

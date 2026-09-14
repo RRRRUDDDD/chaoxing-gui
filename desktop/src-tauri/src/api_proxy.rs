@@ -1,6 +1,6 @@
 use serde::{Deserialize, Deserializer, Serialize};
 
-/// Strictly-allowed backend API operations (plan.md §3.2, 8 operations).
+/// Strictly-allowed backend API operations.
 /// Everything else is refused at the host boundary — the webview never gets
 /// a generic HTTP escape hatch.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -12,6 +12,7 @@ pub enum ApiOperation {
     ConfigWrite,
     Start,
     TaskStatus,
+    TaskResume,
     TaskDetails,
     TaskLogs,
 }
@@ -117,6 +118,7 @@ impl ApiOperation {
             ApiOperation::ConfigWrite => ("POST", "/api/config"),
             ApiOperation::Start => ("POST", "/api/start"),
             ApiOperation::TaskStatus => ("GET", "/api/task/{id}"),
+            ApiOperation::TaskResume => ("POST", "/api/task/{id}/resume"),
             ApiOperation::TaskDetails => ("GET", "/api/task/{id}/details"),
             ApiOperation::TaskLogs => ("GET", "/api/logs/{id}"),
         }
@@ -125,7 +127,10 @@ impl ApiOperation {
     pub fn needs_task_id(&self) -> bool {
         matches!(
             self,
-            ApiOperation::TaskStatus | ApiOperation::TaskDetails | ApiOperation::TaskLogs
+            ApiOperation::TaskStatus
+                | ApiOperation::TaskResume
+                | ApiOperation::TaskDetails
+                | ApiOperation::TaskLogs
         )
     }
 
@@ -285,7 +290,7 @@ mod tests {
     }
 
     #[test]
-    fn dto_accepts_all_eight_camel_case_operations() {
+    fn dto_accepts_all_camel_case_operations() {
         for operation in [
             "login",
             "courses",
@@ -293,14 +298,21 @@ mod tests {
             "configWrite",
             "start",
             "taskStatus",
+            "taskResume",
             "taskDetails",
             "taskLogs",
         ] {
             let mut raw = serde_json::json!({"operation":operation, "requestId":MAX_REQUEST_ID, "payload":null});
-            if matches!(operation, "login" | "courses" | "configWrite" | "start") {
+            if matches!(
+                operation,
+                "login" | "courses" | "configWrite" | "start" | "taskResume"
+            ) {
                 raw["payload"] = serde_json::json!({"username":"fixture"});
             }
-            if matches!(operation, "taskStatus" | "taskDetails" | "taskLogs") {
+            if matches!(
+                operation,
+                "taskStatus" | "taskResume" | "taskDetails" | "taskLogs"
+            ) {
                 raw["taskId"] = "t-1".into();
             }
             if operation == "taskLogs" {
@@ -334,6 +346,10 @@ mod tests {
             "/api/task/t-1_2"
         );
         assert_eq!(
+            build_path(ApiOperation::TaskResume, Some("t1"), None).unwrap(),
+            "/api/task/t1/resume"
+        );
+        assert_eq!(
             build_path(ApiOperation::TaskDetails, Some("t1"), None).unwrap(),
             "/api/task/t1/details"
         );
@@ -342,6 +358,9 @@ mod tests {
             "/api/logs/t1?after=42"
         );
         assert!(build_path(ApiOperation::TaskStatus, None, None).is_err());
+        assert!(build_path(ApiOperation::TaskResume, None, None).is_err());
+        assert!(build_path(ApiOperation::TaskResume, Some("../bad"), None).is_err());
+        assert!(build_path(ApiOperation::TaskResume, Some("t1"), Some(1)).is_err());
         assert!(build_path(ApiOperation::TaskStatus, Some("../bad"), None).is_err());
         assert!(build_path(ApiOperation::TaskLogs, Some("t1"), None).is_err());
     }

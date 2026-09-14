@@ -87,7 +87,7 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            backend_status, api_request, api_cancel, session_read,
+            backend_status, open_repository, api_request, api_cancel, session_read,
             session_remember_login, session_remember_task, session_clear
         ])
         .build(tauri::generate_context!())
@@ -257,6 +257,38 @@ fn backend_status(
         backend: state.status(),
         notice: notice.0.lock().unwrap_or_else(|e| e.into_inner()).clone(),
     })
+}
+
+#[tauri::command]
+fn open_repository(
+    window: tauri::WebviewWindow,
+    ipc: tauri::ipc::Request<'_>,
+) -> Result<(), String> {
+    let _: EmptyArgs = command_args(&window, &ipc)?;
+    // No renderer-supplied URL or shell arguments cross this boundary.
+    #[cfg(windows)]
+    {
+        use windows::core::w;
+        use windows::Win32::UI::Shell::ShellExecuteW;
+        use windows::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
+
+        let result = unsafe {
+            ShellExecuteW(
+                None,
+                w!("open"),
+                w!("https://github.com/RRRRUDDDD/chaoxing-gui"),
+                None,
+                None,
+                SW_SHOWNORMAL,
+            )
+        };
+        if result.0 as isize <= 32 {
+            return Err("无法打开系统默认浏览器".into());
+        }
+        Ok(())
+    }
+    #[cfg(not(windows))]
+    Err("当前平台暂不支持打开系统浏览器".into())
 }
 
 #[tauri::command]

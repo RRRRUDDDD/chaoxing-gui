@@ -3,8 +3,9 @@ const os = require('os');
 const path = require('path');
 const net = require('net');
 const { spawn, exec } = require('child_process');
-const { app, BrowserWindow, Menu, dialog, ipcMain } = require('electron');
+const { app, BrowserWindow, Menu, dialog, ipcMain, shell } = require('electron');
 const { SessionStore, registerSessionIpc } = require('./session-store');
+const { REPOSITORY_URL, repositoryWindowHandler } = require('./repository-link');
 
 let mainWindow = null;
 let backend = null;
@@ -194,8 +195,14 @@ function createWindow() {
 
   Menu.setApplicationMenu(null);
 
-  // 安全限制：外链一律不新开窗口，导航限制在本地后端
-  mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  // The fixed project link opens in the system browser; no new renderer windows.
+  mainWindow.webContents.setWindowOpenHandler(repositoryWindowHandler(
+    (url) => shell.openExternal(url),
+    (error) => {
+      trace(`打开仓库失败: ${error}`);
+      dialog.showErrorBox('打开仓库失败', `请在浏览器中手动访问：\n${REPOSITORY_URL}`);
+    },
+  ));
   const restrictNavigation = (e, url) => {
     try {
       if (!port || new URL(url).origin !== `http://127.0.0.1:${port}`) e.preventDefault();

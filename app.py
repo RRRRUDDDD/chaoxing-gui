@@ -24,7 +24,7 @@ from api.answer import Tiku
 from api.exceptions import InputFormatError, LoginError
 from api.logger import logger
 from api.notification import Notification
-from api.task_state import TaskAlreadyRunning, TaskStore
+from api.task_state import TaskAlreadyRunning, TaskNotFound, TaskStore
 import main as main_module
 
 # === 托盘图标相关导入 ===
@@ -52,15 +52,17 @@ HOST = "127.0.0.1"
 # CORS 限定为本机来源, 防止用户浏览器中打开的任意网页跨域读取配置接口
 if not TAURI_MODE:
     CORS(app, origins=[f"http://localhost:{PORT}", f"http://127.0.0.1:{PORT}"])
-# 数据目录：Electron 传入 %APPDATA%/<app>；未设置时沿用脚本目录（独立 exe / 开发模式行为不变）
-DATA_DIR = os.environ.get("CHAOXING_DATA_DIR") or os.path.dirname(__file__)
+# 桌面宿主指定数据目录；独立 exe 写到程序旁，开发模式写到脚本目录。
+DATA_DIR = os.environ.get("CHAOXING_DATA_DIR") or (
+    os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else SCRIPT_DIR
+)
 
 # Web 配置文件路径
 CONFIG_FILE = os.path.join(DATA_DIR, "web_config.json")
 
 
 config_lock = threading.RLock()
-task_store = TaskStore(cleanup_interval=60)
+task_store = TaskStore(cleanup_interval=60, state_file=os.path.join(DATA_DIR, "study_tasks.json"))
 atexit.register(task_store.close)
 
 
@@ -557,41 +559,53 @@ def _launch_study_task(*args):
     return thread
 
 
+def _study_config(data):
+    username, password, use_cookies = _credentials(data)
+    course_list = _course_ids(data.get("course_list"))
+    jobs = main_module.validate_jobs(data.get("jobs", 4))
+    speed = _finite_number(data.get("speed", 1.0), "speed")
+    retry_interval = _finite_number(data.get("retry_interval", 1.0), "retry_interval")
+    if speed <= 0:
+        raise ValueError("speed 必须大于 0")
+    if not 0 <= retry_interval <= 300:
+        raise ValueError("retry_interval 必须在 0 到 300 秒之间")
+    notopen_action = data.get("notopen_action", "retry")
+    if notopen_action not in ("retry", "continue"):
+        raise ValueError("Web 任务仅支持 retry 或 continue，不能交互询问")
+    configs = []
+    for key in ("tiku_config", "notification_config", "ocr_config"):
+        config = data.get(key, {})
+        if config is None and key == "ocr_config":
+            config = {}
+        if not isinstance(config, dict):
+            raise ValueError(f"{key} 必须为对象")
+        configs.append(config)
+    common_config = {
+        "username": username, "password": password, "use_cookies": use_cookies,
+        "course_list": course_list, "jobs": jobs, "speed": min(2.0, max(1.0, speed)),
+        "retry_interval": retry_interval, "notopen_action": notopen_action, "interactive": False,
+    }
+    return common_config, configs
+
+
 @app.route('/api/start', methods=['POST'])
 def start_study():
     try:
-        data = _json_body()
-        username, password, use_cookies = _credentials(data)
-        course_list = _course_ids(data.get("course_list"))
-        jobs = main_module.validate_jobs(data.get("jobs", 4))
-        speed = _finite_number(data.get("speed", 1.0), "speed")
-        retry_interval = _finite_number(data.get("retry_interval", 1.0), "retry_interval")
-        if speed <= 0:
-            raise ValueError("speed 必须大于 0")
-        if not 0 <= retry_interval <= 300:
-            raise ValueError("retry_interval 必须在 0 到 300 秒之间")
-        notopen_action = data.get("notopen_action", "retry")
-        if notopen_action not in ("retry", "continue"):
-            raise ValueError("Web 任务仅支持 retry 或 continue，不能交互询问")
-        configs = []
-        for key in ("tiku_config", "notification_config", "ocr_config"):
-            config = data.get(key, {})
-            if config is None and key == "ocr_config":
-                config = {}
-            if not isinstance(config, dict):
-                raise ValueError(f"{key} 必须为对象")
-            configs.append(config)
-        common_config = {
-            "username": username, "password": password, "use_cookies": use_cookies,
-            "course_list": course_list, "jobs": jobs, "speed": min(2.0, max(1.0, speed)),
-            "retry_interval": retry_interval, "notopen_action": notopen_action, "interactive": False,
-        }
+        common_config, configs = _study_config(_json_body())
     except (ValueError, InputFormatError) as exc:
         return jsonify({"status": False, "msg": str(exc)}), 400
 
     store = task_store
     try:
-        task_id = store.create(username, _initial_status(), {"courses": [], "active_jobs": {}})
+        resume_config = {
+            key: common_config[key]
+            for key in ("course_list", "jobs", "speed", "retry_interval", "notopen_action")
+        }
+        resume_config.update(zip(("tiku_config", "notification_config", "ocr_config"), configs))
+        task_id = store.create(
+            common_config["username"], _initial_status(), {"courses": [], "active_jobs": {}},
+            resume_config=resume_config,
+        )
     except TaskAlreadyRunning as exc:
         return jsonify({"status": False, "msg": str(exc), "data": {"task_id": exc.task_id}}), 409
     except Exception as exc:
@@ -604,6 +618,43 @@ def start_study():
         logger.error(f"启动任务错误: {exc}")
         return jsonify({"status": False, "msg": str(exc), "data": {"task_id": task_id}}), 500
     return jsonify({"status": True, "data": {"task_id": task_id}})
+
+
+@app.route('/api/task/<task_id>/resume', methods=['POST'])
+def resume_study(task_id):
+    store = task_store
+    try:
+        username, password, use_cookies = _credentials(_json_body())
+        with _login_client(username, password) as chaoxing:
+            result = chaoxing.login(login_with_cookies=use_cookies)
+            if not result["status"]:
+                return jsonify({"status": False, "msg": result.get("msg", "登录会话已失效，请重新登录")}), 401
+        saved = store.get_resume_config(task_id, username)
+        if saved is not None:
+            # Revalidate disk data and use the refreshed account cookies. Login
+            # passwords never enter the persisted execution recipe.
+            common_config, configs = _study_config({
+                **saved, "username": username, "password": "", "use_cookies": True,
+            })
+            claimed = store.resume(task_id, username, _initial_status(), {"courses": [], "active_jobs": {}})
+            if claimed is not None:
+                try:
+                    _launch_study_task(task_id, store, common_config, *configs)
+                except Exception as exc:
+                    store.interrupt(task_id, str(exc))
+                    raise
+        return jsonify({"status": True, "data": {
+            "task_id": task_id, "status": store.get_status(task_id)["status"],
+        }})
+    except TaskNotFound:
+        return jsonify({"status": False, "msg": "上次任务已过期或没有可恢复的记录"}), 404
+    except (ValueError, InputFormatError) as exc:
+        return jsonify({"status": False, "msg": str(exc)}), 400
+    except LoginError as exc:
+        return jsonify({"status": False, "msg": str(exc)}), 401
+    except Exception as exc:
+        logger.error(f"恢复任务失败: {exc}")
+        return jsonify({"status": False, "msg": str(exc)}), 500
 
 
 @app.route('/api/task/<task_id>', methods=['GET'])

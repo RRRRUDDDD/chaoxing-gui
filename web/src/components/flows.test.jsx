@@ -22,7 +22,7 @@ const deferred = () => {
   return { promise, resolve, reject };
 };
 
-function services({ config = {}, status = 'running', conflict = false } = {}) {
+function services({ config = { selectedCoursesByAccount: { alice: ['1', '2'], bob: ['1', '2'] } }, status = 'running', conflict = false } = {}) {
   api.get.mockImplementation(async (url) => {
     if (url === '/config') return ok(config);
     if (url.endsWith('/details')) return ok({ courses: [] });
@@ -34,6 +34,7 @@ function services({ config = {}, status = 'running', conflict = false } = {}) {
     if (url === '/login') return ok({ username: body.username });
     if (url === '/courses') return ok(courses);
     if (url === '/config') return ok({});
+    if (url.endsWith('/resume')) return ok({ task_id: url.split('/')[2], status });
     if (url === '/start') {
       if (conflict) throw { response: { status: 409, data: { status: false, data: { task_id: 'existing-task' } } } };
       return ok({ task_id: 'task-one' });
@@ -130,6 +131,68 @@ describe('course selection', () => {
 });
 
 describe('task navigation', () => {
+  it('resumes the saved task before polling and keeps its ID without starting a second task', async () => {
+    services();
+    await sessionStore.rememberLogin('alice');
+    await sessionStore.rememberTask({ username: 'alice', taskId: 'interrupted-task' });
+    const resuming = deferred();
+    const normalPost = api.post.getMockImplementation();
+    api.post.mockImplementation((url, body, options) => url.endsWith('/resume') ? resuming.promise : normalPost(url, body, options));
+    render(<React.StrictMode><App /></React.StrictMode>);
+    await screen.findByText('正在恢复上次学习任务，并核对已完成的进度…');
+    expect(api.post.mock.calls.filter(([url]) => url.endsWith('/resume'))).toHaveLength(1);
+    expect(api.get.mock.calls.some(([url]) => url.startsWith('/task/'))).toBe(false);
+    await act(async () => resuming.resolve(ok({ task_id: 'interrupted-task', status: 'running' })));
+    await waitFor(() => expect(api.get.mock.calls.some(([url]) => url === '/task/interrupted-task')).toBe(true));
+    expect(api.post.mock.calls.filter(([url]) => url === '/start')).toHaveLength(0);
+    expect((await sessionStore.read()).activeTask.taskId).toBe('interrupted-task');
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('keeps a failed recovery available for explicit retry without clearing its saved ID', async () => {
+    services();
+    await sessionStore.rememberLogin('alice');
+    await sessionStore.rememberTask({ username: 'alice', taskId: 'interrupted-task' });
+    const normalPost = api.post.getMockImplementation();
+    let resumes = 0;
+    api.post.mockImplementation((url, body, options) => url.endsWith('/resume') && resumes++ === 0
+      ? Promise.reject({ response: { status: 503, data: { msg: '暂时离线' } } }) : normalPost(url, body, options));
+    render(<App />);
+    expect((await screen.findByRole('alert')).textContent).toContain('暂时离线');
+    expect((await sessionStore.read()).activeTask.taskId).toBe('interrupted-task');
+    expect(api.get.mock.calls.some(([url]) => url.startsWith('/task/'))).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: '重试恢复任务' }));
+    await waitFor(() => expect(api.get.mock.calls.some(([url]) => url === '/task/interrupted-task')).toBe(true));
+    expect(api.post.mock.calls.filter(([url]) => url.endsWith('/resume'))).toHaveLength(2);
+    expect(api.post.mock.calls.filter(([url]) => url === '/start')).toHaveLength(0);
+  });
+
+  it.each(['success', 'missing', 'error'])('ignores a late %s recovery after logging out and starting under another account', async (outcome) => {
+    services();
+    await sessionStore.rememberLogin('alice');
+    await sessionStore.rememberTask({ username: 'alice', taskId: 'alice-interrupted' });
+    const resuming = deferred();
+    const normalPost = api.post.getMockImplementation();
+    api.post.mockImplementation((url, body, options) => url.endsWith('/resume') ? resuming.promise : normalPost(url, body, options));
+    render(<App />);
+    await screen.findByText('正在恢复上次学习任务，并核对已完成的进度…');
+    const oldSignal = api.post.mock.calls.find(([url]) => url.endsWith('/resume'))[2].signal;
+    fireEvent.click(screen.getByRole('button', { name: '返回课程选择' }));
+    fireEvent.click(await screen.findByRole('button', { name: '退出登录' }));
+    await loginManually('bob');
+    expect(oldSignal.aborted).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: '开始学习' }));
+    await screen.findByText('task-one');
+    await act(async () => {
+      if (outcome === 'success') resuming.resolve(ok({ task_id: 'alice-interrupted', status: 'running' }));
+      else resuming.reject({ response: { status: outcome === 'missing' ? 404 : 500, data: { msg: 'old failure' } } });
+    });
+    expect(screen.getByText('task-one')).toBeTruthy();
+    expect(screen.queryByText('alice-interrupted')).toBeNull();
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect((await sessionStore.read()).activeTask).toEqual({ username: 'bob', taskId: 'task-one' });
+  });
+
   it('keeps an active task while navigating, blocks duplicate starts, restores after refresh and clears on logout', async () => {
     services();
     await sessionStore.rememberLogin('alice');
@@ -279,16 +342,15 @@ describe('task navigation', () => {
     expect(JSON.parse(localStorage.getItem(SESSION_KEY)).activeTask).toEqual({ username, taskId: 'new-task' });
   });
 
-  it('clears expired task persistence and permits a new task after returning', async () => {
+  it('clears unrecoverable old task persistence and returns to course selection', async () => {
     services();
-    const normalGet = api.get.getMockImplementation();
-    api.get.mockImplementation((url, options) => url.startsWith('/task/') ? Promise.reject({ response: { status: 404 } }) : normalGet(url, options));
+    const normalPost = api.post.getMockImplementation();
+    api.post.mockImplementation((url, body, options) => url.endsWith('/resume') ? Promise.reject({ response: { status: 404 } }) : normalPost(url, body, options));
     await sessionStore.rememberLogin('alice');
     await sessionStore.rememberTask({ username: 'alice', taskId: 'expired-task' });
     render(<App />);
-    expect((await screen.findByRole('alert')).textContent).toContain('任务不存在或已过期');
+    expect((await screen.findByRole('alert')).textContent).toContain('没有可恢复的记录');
     await waitFor(() => expect(JSON.parse(localStorage.getItem(SESSION_KEY)).activeTask).toBeNull());
-    fireEvent.click(screen.getByRole('button', { name: '返回课程选择' }));
     expect((await screen.findByRole('button', { name: '开始学习' })).disabled).toBe(false);
   });
 
@@ -375,7 +437,10 @@ it('migrates legacy login to cookie-only authentication and falls back to manual
 it.each(['courses', 'progress'])('keeps the %s preview usable without backend requests', async (preview) => {
   window.history.replaceState({}, '', `/?preview=${preview}`);
   render(<App />);
-  if (preview === 'courses') fireEvent.click(await screen.findByRole('button', { name: '开始学习' }));
+  if (preview === 'courses') {
+    fireEvent.click(await screen.findByRole('button', { name: /大学英语/ }));
+    fireEvent.click(screen.getByRole('button', { name: '开始学习' }));
+  }
   await screen.findByText('preview-task');
   fireEvent.click(screen.getByRole('button', { name: '返回课程选择' }));
   await screen.findByRole('button', { name: '开始学习' });

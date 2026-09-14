@@ -23,7 +23,7 @@ export function restoreCourseSelection(config, username, courses) {
   const ids = courses.map((course) => String(course.courseId));
   const accounts = config?.selectedCoursesByAccount;
   const saved = !!accounts && Object.hasOwn(accounts, username);
-  if (!saved) return { ids, saved: false };
+  if (!saved) return { ids: [], saved: false };
   const valid = new Set(ids);
   const selection = Array.isArray(accounts[username]) ? accounts[username] : [];
   return { ids: [...new Set(selection.map(String))].filter((id) => valid.has(id)), saved: true };

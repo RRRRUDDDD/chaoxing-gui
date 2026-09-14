@@ -217,6 +217,8 @@ async function business(kind) {
     await activate(page.getByRole('button', { name: '开始学习', exact: true }));
     await page.getByText('p2-existing-task', { exact: true }).waitFor();
     await page.getByRole('log').getByText('P2 终态日志二', { exact: true }).waitFor();
+    assert.equal(await page.evaluate(() => window.scrollY), 0, 'logs must not scroll the page');
+    assert.equal(await page.getByRole('log').evaluate((element) => element.contains(document.activeElement)), false, 'logs must not take focus');
     assert.equal(await page.getByRole('log').getByText('P2 唯一日志一', { exact: true }).count(), 1);
     const beforeRefresh = await json(path.join(app.backendProfile, 'counts.json'));
     assert.equal(beforeRefresh.start, 1);
@@ -228,18 +230,63 @@ async function business(kind) {
     await page.screenshot({ path: path.join(evidence, `p2-${kind}-progress.png`), fullPage: true });
     await page.reload();
     await page.getByText('p2-existing-task', { exact: true }).waitFor();
+    await page.getByRole('log').getByText('P2 终态日志二', { exact: true }).waitFor();
     assert.equal((await json(path.join(app.backendProfile, 'counts.json'))).start, 1);
     await writeFile(path.join(app.backendProfile, 'control.json'), JSON.stringify({ missing: true }));
     await page.reload();
-    await page.getByText('已过期', { exact: true }).first().waitFor();
+    await page.getByText('上次任务已过期或没有可恢复的记录，请重新选择课程。', { exact: true }).waitFor();
     await until(async () => (await savedSession(app)).activeTask === null, '404 clears only task');
     assert.equal((await savedSession(app)).login.username, 'p2-fixture');
-    await activate(page.getByRole('button', { name: '返回课程选择', exact: true }).last());
     await activate(page.getByRole('button', { name: '退出登录', exact: true }));
     await page.getByRole('button', { name: '登录', exact: true }).waitFor();
     assert.equal((await savedSession(app)).login, null);
+
+    await page.getByLabel('手机号').fill('p2-new-account');
+    await page.getByLabel('密码', { exact: true }).fill('p2-synthetic-password');
+    await activate(page.getByRole('button', { name: '登录', exact: true }));
+    await first.waitFor();
+    assert.equal(await first.getAttribute('aria-pressed'), 'false');
+    const second = page.getByRole('button', { name: /P2 测试课程二/ });
+    assert.equal(await second.getAttribute('aria-pressed'), 'false');
+    assert.equal(await page.getByRole('button', { name: '开始学习', exact: true }).isEnabled(), false);
+    await first.focus();
+    await page.keyboard.press('Control+a');
+    assert.equal(await first.getAttribute('aria-pressed'), 'true');
+    assert.equal(await second.getAttribute('aria-pressed'), 'true');
+    await activate(page.getByRole('button', { name: '清空', exact: true }));
+    const search = page.getByRole('searchbox');
+    await search.fill('课程一');
+    await search.press('Control+a');
+    assert.deepEqual(await search.evaluate((element) => [element.selectionStart, element.selectionEnd]), [0, 3]);
+    assert.equal(await first.getAttribute('aria-pressed'), 'false');
+    await search.fill('');
+    await page.screenshot({ path: path.join(evidence, `p2-${kind}-course-selection.png`), fullPage: true, animations: 'disabled' });
+
+    const repository = 'https://github.com/RRRRUDDDD/chaoxing-gui';
+    const link = page.getByRole('link', { name: '在 GitHub 上查看项目' });
+    if (kind === 'browser') {
+      await page.context().route(repository, (route) => route.fulfill({ status: 200, contentType: 'text/html', body: '<title>Fixture repository</title>' }));
+      const opened = page.waitForEvent('popup');
+      await activate(link);
+      const popup = await opened;
+      await popup.waitForLoadState();
+      assert.equal(popup.url(), repository);
+      await popup.close();
+    } else if (kind === 'electron') {
+      // Observe the real main-process handoff without opening a user's browser.
+      await app.electron.evaluate(({ shell }) => {
+        globalThis.p2RepositoryLinks = [];
+        shell.openExternal = async (url) => { globalThis.p2RepositoryLinks.push(url); };
+      });
+      await activate(link);
+      await until(async () => (await app.electron.evaluate(() => globalThis.p2RepositoryLinks)).length === 1, 'repository browser handoff');
+      assert.deepEqual(await app.electron.evaluate(() => globalThis.p2RepositoryLinks), [repository]);
+      assert.equal(app.electron.windows().length, 1);
+    }
+    await activate(page.getByRole('button', { name: '退出登录', exact: true }));
+    await page.getByRole('button', { name: '登录', exact: true }).waitFor();
     record(`${kind}-business`, { transport: kind === 'tauri' ? 'native invoke -> HTTP fixture' : 'HTTP fixture',
-      cases: ['account selection', 'config save', '409 restore without repeat start', 'terminal log retry', 'after cursor dedup', 'refresh restore', '404 clears task', 'logout clears account'], counters: beforeRefresh });
+      cases: ['account selection', 'config save', '409 restore without repeat start', 'terminal log retry', 'after cursor dedup', 'refresh restore', '404 clears task', 'logout clears account', 'new account defaults to no selection', 'Ctrl+A selects courses', 'search keeps text select-all', 'logs preserve page scroll and focus', ...(kind !== 'tauri' ? ['repository opens in browser'] : [])], counters: beforeRefresh });
   } catch (error) {
     await page.screenshot({ path: path.join(evidence, `p2-${kind}-error.png`), fullPage: true }).catch(() => {});
     await writeFile(path.join(evidence, `p2-${kind}-error.json`), JSON.stringify({

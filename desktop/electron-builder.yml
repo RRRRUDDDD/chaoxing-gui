@@ -6,6 +6,7 @@ files:
   - main.js
   - preload.js
   - session-store.js
+  - repository-link.js
   - package.json
 extraResources:
   - from: backend/chaoxing-backend

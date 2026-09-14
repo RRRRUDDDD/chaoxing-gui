@@ -29,6 +29,10 @@ function fixtureApi(method, path, payload, after = 0) {
   }
   if (path === '/api/start') return { status: 409, body: { status: false, data: { task_id: 'shared-task' } } };
   if (fixture.gone) return { status: 404, body: { status: false, msg: '任务不存在或已过期' } };
+  if (path === '/api/task/shared-task/resume') {
+    if (fixture.status === 'interrupted') fixture.status = 'running';
+    return ok({ task_id: 'shared-task', status: fixture.status });
+  }
   if (path === '/api/task/shared-task') {
     return ok({ status: fixture.status, progress: 0, total: 1, stats: { completed_chapters: 0, total_chapters: 0 } });
   }
@@ -108,6 +112,7 @@ describe('shared task flow over real Axios transports', () => {
           login: ['POST', '/api/login'], courses: ['POST', '/api/courses'],
           configRead: ['GET', '/api/config'], configWrite: ['POST', '/api/config'], start: ['POST', '/api/start'],
           taskStatus: ['GET', `/api/task/${taskId}`], taskDetails: ['GET', `/api/task/${taskId}/details`], taskLogs: ['GET', `/api/logs/${taskId}`],
+          taskResume: ['POST', `/api/task/${taskId}/resume`],
         };
         const [method, path] = routes[operation];
         return fixtureApi(method, path, payload, after);
@@ -144,9 +149,12 @@ describe('shared task flow over real Axios transports', () => {
     expect(screen.getByRole('button', { name: '开始学习' }).disabled).toBe(true);
 
     view.unmount();
+    fixture.status = 'interrupted';
     view = mount();
     await screen.findByText('shared-task');
     await screen.findByText('初始日志');
+    expect(fixture.status).toBe('running');
+    expect(fixture.calls.filter((call) => call.path === '/api/task/shared-task/resume')).toHaveLength(2);
     fixture.status = 'completed';
     await screen.findByText('最终日志', {}, { timeout: 4500 });
     await waitFor(() => expect(fixture.finalDetails).toBe(2), { timeout: 4500 });
@@ -158,9 +166,8 @@ describe('shared task flow over real Axios transports', () => {
     view.unmount();
     fixture.gone = true;
     view = mount();
-    expect((await screen.findByRole('alert')).textContent).toContain('任务不存在或已过期');
+    expect((await screen.findByRole('alert')).textContent).toContain('没有可恢复的记录');
     await waitFor(async () => expect(await sessionStore.read()).toEqual({ version: 1, login: { username: 'alice', use_cookies: true }, activeTask: null }));
-    fireEvent.click(screen.getByRole('button', { name: '返回课程选择' }));
     expect((await screen.findByRole('button', { name: '开始学习' })).disabled).toBe(false);
     expect(fixture.calls.filter((call) => call.path === '/api/start')).toHaveLength(1);
     expect(fixture.calls.filter((call) => call.path === '/api/login').every((call) => call.payload.use_cookies === true && call.payload.password === '')).toBe(true);

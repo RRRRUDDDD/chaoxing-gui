@@ -628,7 +628,7 @@ async function syntheticBusiness(app, record) {
   assert.equal((await json(path.join(app.fixture, 'counts.json'))).start, 1);
   await writeFile(path.join(app.fixture, 'control.json'), JSON.stringify({ missing: true }));
   await page.reload();
-  await page.getByText('已过期', { exact: true }).first().waitFor();
+  await page.getByText('上次任务已过期或没有可恢复的记录，请重新选择课程。', { exact: true }).waitFor();
   await until(async () => (await page.evaluate(() => window.__TAURI__.core.invoke('session_read'))).activeTask === null, 'missing task clears saved task');
   assert.equal((await page.evaluate(() => window.__TAURI__.core.invoke('session_read'))).login.username, 'p2-fixture');
   record('synthetic-login-config-start409-after-once-refresh404', { counters, upstreamAccountsUsed: false, input: 'visible/enabled DOM click over CDP' });

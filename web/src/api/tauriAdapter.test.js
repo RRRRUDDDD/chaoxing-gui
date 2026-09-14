@@ -29,6 +29,7 @@ describe('Tauri API contract', () => {
     ['post', '/config', { selectedCoursesByAccount: { alice: ['one'] } }, {}, { operation: 'configWrite' }],
     ['post', '/start', { username: 'alice', course_list: ['one'] }, {}, { operation: 'start' }],
     ['get', '/task/task-1_A', undefined, {}, { operation: 'taskStatus', taskId: 'task-1_A' }],
+    ['post', '/task/task-1_A/resume', { username: 'alice', password: '', use_cookies: true }, {}, { operation: 'taskResume', taskId: 'task-1_A' }],
     ['get', '/task/task-1_A/details', undefined, {}, { operation: 'taskDetails', taskId: 'task-1_A' }],
     ['get', '/logs/task-1_A', undefined, { params: { after: 17 } }, { operation: 'taskLogs', taskId: 'task-1_A', after: 17 }],
   ])('maps %s %s to one explicit operation', async (method, url, data, config, operation) => {
@@ -62,6 +63,10 @@ describe('Tauri API contract', () => {
     { url: '/task/%2e%2e' },
     { url: '/task/a%2fb' },
     { url: '/task/a/extra' },
+    { url: '/task/a/resume' },
+    { url: '/task/a%2fb/resume', method: 'post', data: {} },
+    { url: '/task/a/resume?after=1', method: 'post', data: {} },
+    { url: '/task/a/resume', method: 'post', data: null },
     { url: '/config#fragment' },
     { url: '/config?after=1' },
     { url: '/logs/task?after=1&after=2' },

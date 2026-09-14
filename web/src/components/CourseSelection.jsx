@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Button from './ui/Button';
 import Input from './ui/Input';
 import Label from './ui/Label';
 import AdvancedSettings from './AdvancedSettings';
+import RepositoryLink from './RepositoryLink';
 import {
   BookOpen, SlidersHorizontal, LogOut, Play, Save, Loader2,
-  Check, Search, GraduationCap, AlertCircle, BookX, Github,
+  Check, Search, GraduationCap, AlertCircle, BookX,
 } from 'lucide-react';
 import api from '../api/axios';
 import { defaultSettings, normalizeCourses, restoreCourseSelection, restoreSettings } from '../lib/courseSelection';
@@ -48,7 +49,6 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
         { courseId: 'preview-002', title: '高等数学（演示课程）' },
         { courseId: 'preview-003', title: '计算机基础（演示课程）' },
       ]);
-      setSelectedCourses(['preview-001']);
       setLoadedAccount(username);
       setSelectionNotice('请至少选择一门课程后开始学习');
       setLoading(false);
@@ -74,7 +74,7 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
         setSelectedCourses(selection.ids);
         setSelectionNotice(selection.saved
           ? selection.ids.length ? '已恢复此账号仍有效的课程选择，可继续调整' : '保存的课程选择为空或已失效，请重新选择课程'
-          : '此账号尚无已保存选择，已勾选全部课程，可按需取消');
+          : '请勾选需要学习的课程，可使用 Ctrl+A 全选当前列表');
       } catch (error) {
         if (!controller.signal.aborted) setLoadError(error.response?.data?.msg || error.message || '获取课程失败，请重试');
       } finally {
@@ -102,7 +102,24 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
   }, [courses, query]);
 
   const selectedCount = selectedCourses.length;
+  const canSelect = !loading && loadedAccount === username && !loadError && !loggingOut;
   const canStart = !loading && loadedAccount === username && !loadError && courses.length > 0 && selectedCount > 0 && !starting && !loggingOut && !taskRunning;
+
+  const selectAllVisible = useCallback(() => {
+    if (canSelect) setSelectedCourses((selected) => [...new Set([...selected, ...filteredCourses.map((course) => course.courseId)])]);
+  }, [canSelect, filteredCourses]);
+
+  useEffect(() => {
+    if (!canSelect || !filteredCourses.length) return undefined;
+    const onKeyDown = (event) => {
+      if (event.defaultPrevented || !(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey || event.key.toLowerCase() !== 'a') return;
+      if (event.target?.closest?.('input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"]')) return;
+      event.preventDefault();
+      selectAllVisible();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [canSelect, filteredCourses.length, selectAllVisible]);
 
   const handleStartStudy = () => {
     if (!canStart) return;
@@ -162,16 +179,7 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <a
-              href="https://github.com/RRRRUDDDD/chaoxing-gui"
-              target="_blank"
-              rel="noreferrer"
-              aria-label="在 GitHub 上查看项目"
-              title="在 GitHub 上查看项目"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-faint transition-colors duration-150 hover:bg-soft hover:text-ink focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/20"
-            >
-              <Github className="h-4 w-4" aria-hidden="true" />
-            </a>
+            <RepositoryLink />
             {userInfo?.username && (
               <span className="hidden font-mono text-xs text-faint sm:inline tnum">
                 {userInfo.username}
@@ -222,16 +230,20 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
                   已选 {selectedCount} / 共 {courses.length}
                 </span>
               </h2>
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-faint" aria-hidden="true" />
-                <input
-                  type="search"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="搜索课程"
-                  aria-label="搜索课程"
-                  className="h-8 w-44 rounded-lg border border-line bg-white pl-8 pr-3 text-[13px] placeholder:text-faint/70 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand/15"
-                />
+              <div className="flex flex-wrap items-center gap-2">
+                <Button variant="ghost" size="sm" onClick={selectAllVisible} disabled={!canSelect || !filteredCourses.length} title="Ctrl+A / ⌘A 全选当前列表" aria-keyshortcuts="Control+A Meta+A">全选</Button>
+                <Button variant="ghost" size="sm" onClick={() => setSelectedCourses([])} disabled={!canSelect || !selectedCount}>清空</Button>
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-faint" aria-hidden="true" />
+                  <input
+                    type="search"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="搜索课程"
+                    aria-label="搜索课程"
+                    className="h-8 w-44 rounded-lg border border-line bg-white pl-8 pr-3 text-[13px] placeholder:text-faint/70 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand/15"
+                  />
+                </div>
               </div>
             </div>
 

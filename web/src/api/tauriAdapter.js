@@ -30,6 +30,10 @@ function requestOperation(config) {
   const routes = { 'post /login': 'login', 'post /courses': 'courses', 'get /config': 'configRead', 'post /config': 'configWrite', 'post /start': 'start' };
   let operation = routes[`${method} ${path}`];
   let taskId;
+  if (!operation && method === 'post') {
+    const task = path.match(new RegExp(`^/task/(${TASK_ID})/resume$`));
+    if (task) { operation = 'taskResume'; taskId = task[1]; }
+  }
   if (!operation && method === 'get') {
     const task = path.match(new RegExp(`^/task/(${TASK_ID})(/details)?$`));
     const logs = path.match(new RegExp(`^/logs/(${TASK_ID})$`));
