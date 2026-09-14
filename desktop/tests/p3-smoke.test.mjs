@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { spawn, execFile } from 'node:child_process';
 import fileSystem, { copyFile, mkdtemp, mkdir, readFile, writeFile, readdir, realpath, rm, symlink } from 'node:fs/promises';
 import { syncBuiltinESMExports } from 'node:module';
+import { createServer } from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -10,7 +11,7 @@ import test from 'node:test';
 import {
   parseArguments, assertReleasePermission, assertOwnedOrAbsent, claimProfileRoots,
   releaseProfileRoots, removeProfilesAfterVerifiedCleanup, sanitizedEnvironment, validateInputs, until, withCleanup,
-  NativeSupervisor, windowsContext, assertBuildProfile,
+  NativeSupervisor, windowsContext, assertBuildProfile, freePort,
 } from '../scripts/p3-smoke.mjs';
 
 const exec = promisify(execFile);
@@ -59,6 +60,25 @@ test('Compiled profile mismatches and unsupported native probe exits fail closed
   assert.throws(() => assertBuildProfile(0, 'Release'), /profile.*refused/i);
   assert.throws(() => assertBuildProfile(1, 'Debug'), /profile.*refused/i);
   assert.throws(() => assertBuildProfile(null, 'Release'), /profile.*refused/i);
+});
+
+test('Configured CDP port is used exactly and an occupied port is refused', async (t) => {
+  const selected = await freePort();
+  assert.ok(selected > 0 && selected <= 65535);
+  assert.equal(await freePort(String(selected)), selected);
+  const occupied = createServer();
+  t.after(() => new Promise((resolve) => occupied.close(resolve)));
+  await new Promise((resolve, reject) => {
+    occupied.once('error', reject);
+    occupied.listen(0, '127.0.0.1', resolve);
+  });
+  await assert.rejects(freePort(String(occupied.address().port)), { code: 'EADDRINUSE' });
+});
+
+test('Invalid configured CDP ports fail before opening a listener', async () => {
+  for (const value of ['', '0', '-1', '65536', '1.5', '9222extra', ' 9222', 'NaN']) {
+    await assert.rejects(freePort(value), /CDP port.*between 1 and 65535/);
+  }
 });
 
 test('Production paths come from Windows known folders and include Electron legacy data', () => {

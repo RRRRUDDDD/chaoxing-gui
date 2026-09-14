@@ -368,9 +368,13 @@ export class NativeSupervisor {
   }
 }
 
-async function freePort() {
+export async function freePort(requestedPort) {
+  const portNumber = requestedPort === undefined ? 0 : Number(requestedPort);
+  if (requestedPort !== undefined && (!/^[1-9]\d{0,4}$/.test(String(requestedPort)) || portNumber > 65535)) {
+    throw new Error('Configured CDP port must be an integer between 1 and 65535');
+  }
   const server = createServer();
-  await new Promise((resolve, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', resolve); });
+  await new Promise((resolve, reject) => { server.once('error', reject); server.listen(portNumber, '127.0.0.1', resolve); });
   const port = server.address().port;
   await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
   return port;
@@ -440,7 +444,9 @@ async function runTauri(options, context, evidence, result, record) {
       }
       if (fault === 'bad-executable') await writeFile(backend, 'P3 deliberately invalid Windows executable');
     }
-    const port = await freePort();
+    // Elevated WebView2 150+ ignores environment overrides. CI supplies the
+    // same port through its temporary, per-executable HKLM policy.
+    const port = await freePort(process.env.P3_WEBVIEW2_CDP_PORT);
     const env = sanitizedEnvironment(process.env, context, { configuration: options.configuration, profile, backend });
     env.WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = `--remote-debugging-address=127.0.0.1 --remote-debugging-port=${port} --force-device-scale-factor=1`;
     if (kind === 'fake') Object.assign(env, { P2_FIXTURE_ROOT: fixture, P2_WEB_DIST: path.join(repo, 'web/dist') });
@@ -448,7 +454,7 @@ async function runTauri(options, context, evidence, result, record) {
     const owner = new NativeSupervisor(context.powerShell, scenarioEvidence);
     const item = { scenario: name, host, expectedBackend: backend, configuration: options.configuration,
       packagedResourceLookup: options.configuration === 'Release', layout: options.usePackagedLayout ? 'input package executed in place' : 'owned fixture package copy',
-      sanitizedPath: env.PATH, stdin: 'real pipe held by supervisor',
+      sanitizedPath: env.PATH, stdin: 'real pipe held by supervisor', cdpPort: port,
       outerJobAssignedBeforeResume: false, processes: [], cleanup: null };
     result.processes.push(item);
     let browser;
@@ -616,6 +622,9 @@ async function syntheticBusiness(app, record) {
   await page.screenshot({ path: path.join(app.scenarioEvidence, 'synthetic-progress.png'), fullPage: true });
   await page.reload();
   await page.getByText('p2-existing-task', { exact: true }).waitFor();
+  // Let the restored task finish its final poll before injecting 404. Otherwise
+  // the old document can clear the saved task while the next reload starts.
+  await page.getByRole('log').getByText('P2 终态日志二', { exact: true }).waitFor();
   assert.equal((await json(path.join(app.fixture, 'counts.json'))).start, 1);
   await writeFile(path.join(app.fixture, 'control.json'), JSON.stringify({ missing: true }));
   await page.reload();

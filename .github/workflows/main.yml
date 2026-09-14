@@ -252,6 +252,30 @@ jobs:
           cargo build --manifest-path desktop/src-tauri/Cargo.toml --locked -j 1 --features custom-protocol --bin chaoxing-desktop
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Configure WebView2 debugging for the elevated disposable runner
+        run: |
+          $ErrorActionPreference = 'Stop'
+          # WebView2 150+ ignores WEBVIEW2_* environment overrides when elevated.
+          # Apply the supported HKLM policy only to our two smoke host names.
+          $p3PolicyKey = 'HKLM:\Software\Policies\Microsoft\Edge\WebView2\AdditionalBrowserArguments'
+          $p3Hosts = @('chaoxing-desktop.exe', 'chaoxing-gui-tauri.exe')
+          if (Test-Path -LiteralPath $p3PolicyKey) {
+            $p3Existing = Get-Item -LiteralPath $p3PolicyKey
+            foreach ($p3HostName in $p3Hosts) {
+              if ($p3Existing.GetValueNames() -contains $p3HostName) { throw "Refusing to replace existing WebView2 policy for $p3HostName" }
+            }
+          }
+          $p3Port = node --input-type=module -e "import { freePort } from './desktop/scripts/p3-smoke.mjs'; console.log(await freePort());"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $p3Arguments = "--remote-debugging-address=127.0.0.1 --remote-debugging-port=$([int]$p3Port) --force-device-scale-factor=1"
+          # Record ownership before the first write so partial setup is cleaned too.
+          @{ runId=$env:GITHUB_RUN_ID; hosts=$p3Hosts; arguments=$p3Arguments; cleaned=$false } | ConvertTo-Json | Set-Content desktop/release/verification/webview2-debug-policy.json -Encoding utf8
+          if (-not (Test-Path -LiteralPath $p3PolicyKey)) { New-Item -Path $p3PolicyKey -Force | Out-Null }
+          foreach ($p3HostName in $p3Hosts) {
+            New-ItemProperty -LiteralPath $p3PolicyKey -Name $p3HostName -Value $p3Arguments -PropertyType String | Out-Null
+          }
+          "P3_WEBVIEW2_CDP_PORT=$([int]$p3Port)" >> $env:GITHUB_ENV
+
       - name: Debug fake faults and frozen backend smoke in nested Jobs
         run: |
           pwsh -NoProfile -File desktop/scripts/smoke-tauri.ps1 -HostPath desktop/src-tauri/target/debug/chaoxing-desktop.exe -BackendDirectory desktop/src-tauri/resources/backend -FakeBackendDirectory desktop/src-tauri/target/p3-fixture/dist/p2-backend -EvidenceDirectory desktop/release/verification/tauri-debug -Configuration Debug -Scenario All -NestedJob
@@ -266,6 +290,27 @@ jobs:
         run: |
           pwsh -NoProfile -File desktop/scripts/smoke-installation.ps1 -InstallerPath "desktop/release/tauri/chaoxing-gui-tauri-setup-$env:APP_VERSION-windows-x64.exe" -PortablePath "desktop/release/tauri/chaoxing-gui-tauri-portable-$env:APP_VERSION-windows-x64.zip" -EvidenceDirectory desktop/release/verification/tauri-installation
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Remove temporary WebView2 debugging policies
+        if: always()
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $p3RecordPath = 'desktop/release/verification/webview2-debug-policy.json'
+          if (Test-Path -LiteralPath $p3RecordPath) {
+            $p3Record = Get-Content -Raw -LiteralPath $p3RecordPath | ConvertFrom-Json
+            if ($p3Record.runId -cne $env:GITHUB_RUN_ID -or ($p3Record.hosts -join '|') -cne 'chaoxing-desktop.exe|chaoxing-gui-tauri.exe') { throw 'Unexpected WebView2 policy ownership record' }
+            $p3PolicyKey = 'HKLM:\Software\Policies\Microsoft\Edge\WebView2\AdditionalBrowserArguments'
+            foreach ($p3HostName in $p3Record.hosts) {
+              if (-not (Test-Path -LiteralPath $p3PolicyKey)) { continue }
+              $p3Policy = Get-Item -LiteralPath $p3PolicyKey
+              if ($p3Policy.GetValueNames() -notcontains $p3HostName) { continue }
+              if ($p3Policy.GetValue($p3HostName) -cne $p3Record.arguments) { throw "WebView2 policy changed during smoke: $p3HostName" }
+              Remove-ItemProperty -LiteralPath $p3PolicyKey -Name $p3HostName
+              if ((Get-Item -LiteralPath $p3PolicyKey).GetValueNames() -contains $p3HostName) { throw "WebView2 policy cleanup failed: $p3HostName" }
+            }
+            $p3Record.cleaned = $true
+            $p3Record | ConvertTo-Json | Set-Content -LiteralPath $p3RecordPath -Encoding utf8
+          }
 
       - name: Upload validation evidence
         if: always()
