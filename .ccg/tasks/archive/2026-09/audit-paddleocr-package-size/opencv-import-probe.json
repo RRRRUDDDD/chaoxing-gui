@@ -1,0 +1,6 @@
+{
+  "opencv_blocked": true,
+  "ddddocr_import_succeeded": false,
+  "error_type": "ImportError",
+  "error": "OpenCV导入失败，请参考上述解决方案"
+}

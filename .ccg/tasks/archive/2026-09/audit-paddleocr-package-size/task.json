@@ -1,0 +1,24 @@
+{
+  "id": "audit-paddleocr-package-size",
+  "title": "检查 PaddleOCR 实际使用情况并评估程序体积优化",
+  "status": "completed",
+  "complexity": "M",
+  "risk": "low",
+  "domain": "backend",
+  "currentPhase": "completed",
+  "nextAction": "检查结束；按建议实施裁剪需另开开发任务",
+  "createdAt": "2026-09-14T23:44:33Z",
+  "branch": "main",
+  "constraints": [
+    "用户明确要求不调用双模型",
+    "本任务以检查和建议为主，不改变程序行为"
+  ],
+  "completedAt": "2026-09-14T23:52:17.823545+00:00",
+  "validation": {
+    "ocr_unittest": "24 passed",
+    "ddddocr_default_model_probe": "common_old.onnx; CPU; synthetic 1234 -> 1234",
+    "opencv_import_probe": "removal breaks ddddocr import",
+    "archive_inspection": "No Paddle modules in backend PYZ or portable ZIP"
+  },
+  "result": "桌面包未包含 PaddleOCR；建议先裁剪闲置 ddddocr 模型约70.8 MiB，再适配移除 OpenCV约111.8 MiB。"
+}

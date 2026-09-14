@@ -1,0 +1,39 @@
+test_cli_config_file_is_read_with_environment_override (tests.test_ocr.OCRConfigTests.test_cli_config_file_is_read_with_environment_override) ... ok
+test_concurrent_contexts_and_copied_thread_contexts_are_isolated (tests.test_ocr.OCRConfigTests.test_concurrent_contexts_and_copied_thread_contexts_are_isolated) ... ok
+test_empty_explicit_config_disables_environment_and_restores_outer_config (tests.test_ocr.OCRConfigTests.test_empty_explicit_config_disables_environment_and_restores_outer_config) ... ok
+test_remote_empty_success_is_distinct_from_http_failure (tests.test_ocr.OCRConfigTests.test_remote_empty_success_is_distinct_from_http_failure) ... 2026-09-15 07:47:13.324 | DEBUG    | api.vision_ocr:_call_openai_compatible:255 - OpenAI 兼容 API 返回异常: 503 - offline failure
+ok
+test_paddle_two_and_three_result_formats (tests.test_ocr.OCRParsingCompatibilityTests.test_paddle_two_and_three_result_formats) ... ok
+test_question_option_labels_and_multiple_answer_fields_are_preserved (tests.test_ocr.OCRParsingCompatibilityTests.test_question_option_labels_and_multiple_answer_fields_are_preserved) ... ok
+test_title_and_choice_parsing_preserve_image_identity_after_failure (tests.test_ocr.OCRParsingCompatibilityTests.test_title_and_choice_parsing_preserve_image_identity_after_failure) ... ok
+test_all_remote_engine_settings_are_part_of_cache_identity (tests.test_ocr.OCRPipelineTests.test_all_remote_engine_settings_are_part_of_cache_identity) ... ok
+test_cache_capacity_is_bounded (tests.test_ocr.OCRPipelineTests.test_cache_capacity_is_bounded) ... ok
+test_concurrent_paddle_initialization_constructs_only_one_engine (tests.test_ocr.OCRPipelineTests.test_concurrent_paddle_initialization_constructs_only_one_engine) ... 2026-09-15 07:47:13.334 | INFO     | api.decode:_init_paddle_ocr:247 - PaddleOCR 初始化成功 (GPU)，将用于题目图片 OCR
+ok
+test_concurrent_requests_for_one_image_recognize_once (tests.test_ocr.OCRPipelineTests.test_concurrent_requests_for_one_image_recognize_once) ... ok
+test_download_failure_has_short_retry_window (tests.test_ocr.OCRPipelineTests.test_download_failure_has_short_retry_window) ... 2026-09-15 07:47:13.342 | DEBUG    | api.decode:_download_ocr_image:391 - 下载题目图片异常: offline timeout
+ok
+test_explicitly_disabled_ocr_does_not_download_or_initialize (tests.test_ocr.OCRPipelineTests.test_explicitly_disabled_ocr_does_not_download_or_initialize) ... ok
+test_http_fallback_empty_response_does_not_hide_primary_failure (tests.test_ocr.OCRPipelineTests.test_http_fallback_empty_response_does_not_hide_primary_failure) ... ok
+test_independent_download_closes_its_session_without_loading_cookies (tests.test_ocr.OCRPipelineTests.test_independent_download_closes_its_session_without_loading_cookies) ... ok
+test_independent_session_is_closed_after_download_failure (tests.test_ocr.OCRPipelineTests.test_independent_session_is_closed_after_download_failure) ... 2026-09-15 07:47:13.351 | DEBUG    | api.decode:_download_ocr_image:391 - 下载题目图片异常: offline timeout
+ok
+test_local_gpu_inference_can_fall_back_to_cpu (tests.test_ocr.OCRPipelineTests.test_local_gpu_inference_can_fall_back_to_cpu) ... 2026-09-15 07:47:13.354 | DEBUG    | api.decode:_local_ocr_result:448 - PaddleOCR GPU 推理失败，切换到 CPU: offline GPU failure
+2026-09-15 07:47:13.354 | DEBUG    | api.decode:_local_ocr_result:459 - PaddleOCR 提取文本成功 (预处理模式0): CPU answer 来自 https://p.ananas.chaoxing.com/question.png
+ok
+test_local_inference_cleans_temporary_image_and_caches_text (tests.test_ocr.OCRPipelineTests.test_local_inference_cleans_temporary_image_and_caches_text) ... 2026-09-15 07:47:13.358 | DEBUG    | api.decode:_local_ocr_result:459 - PaddleOCR 提取文本成功 (预处理模式0): x=1 y=2 来自 https://p.ananas.chaoxing.com/question.png
+ok
+test_paddle_initialization_failure_backs_off_even_for_forced_device (tests.test_ocr.OCRPipelineTests.test_paddle_initialization_failure_backs_off_even_for_forced_device) ... 2026-09-15 07:47:13.361 | WARNING  | api.decode:_init_paddle_ocr:262 - PaddleOCR 初始化失败，将不使用本地 OCR: offline missing paddle
+ok
+2026-09-15 07:47:13.361 | WARNING  | api.decode:_init_paddle_ocr:262 - PaddleOCR 初始化失败，将不使用本地 OCR: offline missing paddle
+test_parse_then_query_does_not_repeat_failed_model_initialization (tests.test_ocr.OCRPipelineTests.test_parse_then_query_does_not_repeat_failed_model_initialization) ... 2026-09-15 07:47:13.364 | WARNING  | api.decode:_init_paddle_ocr:262 - PaddleOCR 初始化失败，将不使用本地 OCR: offline missing paddle
+ok
+test_remote_failure_is_retried_without_permanent_empty_cache (tests.test_ocr.OCRPipelineTests.test_remote_failure_is_retried_without_permanent_empty_cache) ... ok
+test_successful_empty_recognition_has_finite_longer_cache_window (tests.test_ocr.OCRPipelineTests.test_successful_empty_recognition_has_finite_longer_cache_window) ... ok
+test_url_and_content_cache_reuse_recognition_and_borrow_account_session (tests.test_ocr.OCRPipelineTests.test_url_and_content_cache_reuse_recognition_and_borrow_account_session) ... ok
+test_url_cache_does_not_cross_account_sessions (tests.test_ocr.OCRPipelineTests.test_url_cache_does_not_cross_account_sessions) ... ok
+
+----------------------------------------------------------------------
+Ran 24 tests in 0.060s
+
+OK

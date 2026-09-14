@@ -1,0 +1,70 @@
+{
+  "measured_at_utc": "2026-09-14T23:48:58.449743+00:00",
+  "baseline": "Local existing artifacts, built September 7-8, 2026; not a rebuild of current HEAD or remote release",
+  "backend": {
+    "path": "dist/chaoxing-backend",
+    "bytes": 340942329,
+    "files": 815,
+    "largest_groups_bytes": {
+      "_internal/cv2": 117183874,
+      "_internal/ddddocr": 87893260,
+      "_internal/onnxruntime": 35286520,
+      "_internal/numpy.libs": 20990544,
+      "chaoxing-backend.exe": 15662650,
+      "_internal/PIL": 13422080,
+      "_internal/cryptography": 9903104,
+      "_internal/lxml": 6884536,
+      "_internal/numpy": 6154752,
+      "_internal/python311.dll": 5800216,
+      "_internal/pydantic_core": 5240320,
+      "_internal/libcrypto-3.dll": 5191960,
+      "_internal/resource": 1607208,
+      "_internal/base_library.zip": 1443565,
+      "_internal/unicodedata.pyd": 1140504,
+      "_internal/libssl-3.dll": 787224,
+      "_internal/msvcp140.dll": 643512,
+      "_internal/tzdata": 513630
+    },
+    "paddle_pyz_modules": [],
+    "bundled_model_selection_verified": {
+      "module": "ddddocr.models.model_loader",
+      "method": "ModelLoader.load_ocr_model",
+      "default": "common_old.onnx",
+      "beta": "common.onnx",
+      "method_inspected": "Embedded PYZ bytecode; default branch loads common_old.onnx"
+    }
+  },
+  "portable": {
+    "path": "desktop/release/tauri/chaoxing-gui-tauri-portable-1.1.1-windows-x64.zip",
+    "modified_at_utc": "2026-09-07T17:43:55.178034+00:00",
+    "zip_bytes": 186516281,
+    "uncompressed_bytes": 350686866,
+    "paddle_members": [],
+    "models": [
+      {
+        "path": "backend/_internal/ddddocr/common.onnx",
+        "bytes": 54088400,
+        "compressed_bytes": 50251491
+      },
+      {
+        "path": "backend/_internal/ddddocr/common_det.onnx",
+        "bytes": 20127694,
+        "compressed_bytes": 18660292
+      },
+      {
+        "path": "backend/_internal/ddddocr/common_old.onnx",
+        "bytes": 13606051,
+        "compressed_bytes": 6734038
+      }
+    ],
+    "opencv_bytes": 117183874,
+    "opencv_compressed_bytes": 45229772
+  },
+  "estimate": {
+    "unused_default_ddddocr_model_bytes": 74216094,
+    "unused_default_ddddocr_model_zip_payload_bytes": 68911783,
+    "backend_bytes_after_unused_models": 266726235,
+    "backend_bytes_after_unused_models_and_opencv": 149542361,
+    "note": "Arithmetic estimate from present artifact only; removing OpenCV requires code adaptation; no trimmed package built."
+  }
+}

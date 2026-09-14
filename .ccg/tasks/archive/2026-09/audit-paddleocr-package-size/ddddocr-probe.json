@@ -1,0 +1,18 @@
+{
+  "package": "ddddocr",
+  "version": "1.6.1",
+  "constructor": "DdddOcr(show_ad=False)",
+  "models_loaded": [
+    "common_old.onnx"
+  ],
+  "providers": [
+    "CPUExecutionProvider"
+  ],
+  "synthetic_input": "1234",
+  "prediction": "1234",
+  "default_options": {
+    "old": false,
+    "beta": false,
+    "det": false
+  }
+}

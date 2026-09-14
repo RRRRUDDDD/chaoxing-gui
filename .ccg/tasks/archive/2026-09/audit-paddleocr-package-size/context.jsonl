@@ -1,0 +1,9 @@
+{"path":"api/decode.py","lines":[87,182,402,488,508,1101],"purpose":"PaddleOCR 加载、推理及题目解析入口"}
+{"path":"api/vision_ocr.py","lines":[106,134,146,152],"purpose":"CLI/Web OCR 配置与默认开关"}
+{"path":"api/captcha.py","lines":[23,31,41,144],"purpose":"独立的 ddddocr 验证码识别路径"}
+{"path":"chaoxing-backend.spec","lines":[13,24,28,45],"purpose":"数据与依赖收集、Paddle 排除"}
+{"path":"chaoxing.spec","lines":[11,43],"purpose":"独立 EXE 的同类打包配置"}
+{"path":".github/workflows/main.yml","lines":[174],"purpose":"CI 排除 paddleocr 安装"}
+{"path":"start.bat","lines":[3,30],"purpose":"源码启动启用并安装 PaddleOCR"}
+{"path":"build_portable.bat","lines":[85,91,134,149],"purpose":"旧便携版安装与复制策略"}
+{"path":"tests/test_ocr.py","lines":[211,221,229,235,246],"purpose":"离线开关、初始化与推理分支回归"}
