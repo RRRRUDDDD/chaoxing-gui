@@ -1,0 +1,16 @@
+{"path":"api/task_state.py","purpose":"任务参数和终态持久化、原子恢复及专用任务缺失异常"}
+{"path":"app.py","purpose":"恢复存储路径、共享参数校验和同账号任务恢复接口"}
+{"path":"tests/test_task_recovery.py","purpose":"进程重启、并发、账号、磁盘失败和平台进度回归"}
+{"path":"web/src/App.jsx","purpose":"登录后恢复任务、失败重试和异步账号隔离"}
+{"path":"web/src/components/StudyProgress.jsx","purpose":"恢复交互及局部日志滚动"}
+{"path":"web/src/components/CourseSelection.jsx","purpose":"课程选择快捷键和默认空选界面"}
+{"path":"web/src/lib/courseSelection.js","purpose":"同账号显式选择恢复，无配置时为空"}
+{"path":"web/src/components/RepositoryLink.jsx","purpose":"浏览器、Electron、Tauri 共用仓库入口"}
+{"path":"web/src/lib/desktopBridge.js","purpose":"Tauri 固定仓库命令桥接"}
+{"path":"web/src/api/tauriAdapter.js","purpose":"任务恢复白名单操作适配"}
+{"path":"desktop/repository-link.js","purpose":"Electron 固定仓库地址外部浏览器处理"}
+{"path":"desktop/electron-builder.yml","purpose":"将仓库链接处理模块纳入打包"}
+{"path":"desktop/src-tauri/src/lib.rs","purpose":"受控无参数 open_repository 命令"}
+{"path":"desktop/src-tauri/src/api_proxy.rs","purpose":"受控 taskResume 请求和严格参数校验"}
+{"path":"desktop/scripts/p2-smoke.mjs","purpose":"浏览器和 Electron 用户交互验收"}
+{"path":"desktop/scripts/p3-smoke.mjs","purpose":"适配过期任务返回选课的验收断言"}

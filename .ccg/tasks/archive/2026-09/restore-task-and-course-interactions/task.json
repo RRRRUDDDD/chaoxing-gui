@@ -1,0 +1,13 @@
+{
+  "id": "restore-task-and-course-interactions",
+  "title": "修复任务恢复、GitHub 跳转、课程选择和执行日志焦点",
+  "status": "completed",
+  "complexity": "L+",
+  "risk": "medium",
+  "domain": "fullstack",
+  "currentPhase": "completed",
+  "nextAction": "无，任务已完成并归档；产品代码保留在工作区",
+  "createdAt": "2026-09-14T13:14:29.6603054Z",
+  "completedAt": "2026-09-14T13:53:44Z",
+  "branch": "main"
+}
