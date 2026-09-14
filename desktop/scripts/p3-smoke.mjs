@@ -283,9 +283,11 @@ export async function withCleanup(resource, action, cleanup) {
 }
 
 export class NativeSupervisor {
-  constructor(powerShell, evidenceDirectory) {
+  constructor(powerShell, evidenceDirectory, { initializationTimeout = 60000, startTimeout = 20000 } = {}) {
     this.powerShell = powerShell;
     this.evidenceDirectory = evidenceDirectory;
+    this.initializationTimeout = initializationTimeout;
+    this.startTimeout = startTimeout;
     this.identity = null;
     this.pending = new Map();
     this.counter = 0;
@@ -315,10 +317,20 @@ export class NativeSupervisor {
     this.child.on('error', failed);
     this.child.on('exit', (code, signal) => failed(new Error(`Process supervisor exited ${code ?? signal}: ${this.diagnostics}`)));
     try {
+      // Cold PowerShell/.NET initialization must not consume the host's launch
+      // deadline. Never queue a launch before the controller is ready.
+      const initializationStarted = Date.now();
+      this.diagnostics += `Initializing process supervisor (timeout ${this.initializationTimeout}ms)\n`;
+      const initialized = await this.command('initialize', {}, this.initializationTimeout);
+      assert.equal(initialized?.protocolVersion, 1, 'Unsupported supervisor protocol');
+      this.diagnostics += `Process supervisor initialized in ${Date.now() - initializationStarted}ms\n`;
+      const launchStarted = Date.now();
       this.identity = await this.command('start', { specification: { ...specification,
-        stdoutPath: path.join(this.evidenceDirectory, 'stdout.log'), stderrPath: path.join(this.evidenceDirectory, 'stderr.log') } }, 20000);
+        stdoutPath: path.join(this.evidenceDirectory, 'stdout.log'), stderrPath: path.join(this.evidenceDirectory, 'stderr.log') } }, this.startTimeout);
+      this.diagnostics += `Captured host launched in ${Date.now() - launchStarted}ms\n`;
       return this.identity;
     } catch (error) {
+      this.diagnostics += `${error.stack || error}\n`;
       await this.dispose().catch((cleanup) => { error.message += `; launch cleanup: ${cleanup.message}`; });
       throw error;
     }
@@ -327,7 +339,7 @@ export class NativeSupervisor {
     if (!this.child || this.child.exitCode !== null || this.child.signalCode !== null) return Promise.reject(new Error('Process supervisor is not running'));
     const id = ++this.counter;
     return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => { this.pending.delete(id); reject(new Error(`Supervisor ${operation} timed out`)); }, timeout);
+      const timer = setTimeout(() => { this.pending.delete(id); reject(new Error(`Supervisor ${operation} timed out after ${timeout}ms`)); }, timeout);
       this.pending.set(id, { resolve, reject, timer });
       this.child.stdin.write(`${JSON.stringify({ id, operation, ...properties })}\n`, (error) => {
         if (error && this.pending.delete(id)) { clearTimeout(timer); reject(error); }

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { spawn, execFile } from 'node:child_process';
+import childProcess, { spawn, execFile } from 'node:child_process';
 import fileSystem, { copyFile, mkdtemp, mkdir, readFile, writeFile, readdir, realpath, rm, symlink } from 'node:fs/promises';
 import { syncBuiltinESMExports } from 'node:module';
 import { createServer } from 'node:net';
@@ -338,6 +338,65 @@ test('PowerShell smoke wrappers choose the first real Node when PATH contains mu
     assert.equal(report.success, false, script);
     assert.deepEqual(report.processes, [], script);
   }
+});
+
+async function initializationFixture(t, mode, delayMs, timeouts) {
+  const root = await temporary(t);
+  const record = path.join(root, 'requests.jsonl');
+  const originalSpawn = childProcess.spawn;
+  const replacement = t.mock.method(childProcess, 'spawn', (executable, args, options) => executable === 'p3-initialization-fixture'
+    ? originalSpawn(process.execPath, [path.join(repo, 'desktop/tests/fixtures/p3-supervisor-initialization.mjs'), record, mode, String(delayMs)], options)
+    : originalSpawn(executable, args, options));
+  syncBuiltinESMExports();
+  t.after(() => { replacement.mock.restore(); syncBuiltinESMExports(); });
+  return {
+    root,
+    supervisor: new NativeSupervisor('p3-initialization-fixture', root, timeouts),
+    specification: { executable: 'never-run.exe', args: [], cwd: root, env: {} },
+    operations: async () => (await readFile(record, 'utf8').catch((error) => {
+      if (error.code === 'ENOENT') return '';
+      throw error;
+    })).trim().split('\n').filter(Boolean).map((line) => JSON.parse(line).operation),
+  };
+}
+
+test('Supervisor initialization can outlast the separate host launch budget', { timeout: 15000 }, async (t) => {
+  const fixture = await initializationFixture(t, 'ready', 1000, { initializationTimeout: 10000, startTimeout: 500 });
+  try {
+    await fixture.supervisor.start(fixture.specification);
+    await fixture.supervisor.dispose();
+    assert.deepEqual(await fixture.operations(), ['initialize', 'start', 'finish']);
+  } finally { await fixture.supervisor.dispose(); }
+});
+
+test('Supervisor initialization timeout never queues a host launch and retains diagnostics', { timeout: 15000 }, async (t) => {
+  const fixture = await initializationFixture(t, 'stall-initialize', 0, { initializationTimeout: 150, startTimeout: 500 });
+  try {
+    await assert.rejects(fixture.supervisor.start(fixture.specification), /Supervisor initialize timed out/);
+    assert.equal(fixture.supervisor.identity, null);
+    assert.ok(!(await fixture.operations()).includes('start'));
+    assert.ok(fixture.supervisor.child.exitCode !== null || fixture.supervisor.child.signalCode !== null);
+    assert.match(await readFile(path.join(fixture.root, 'supervisor.log'), 'utf8'), /initialize timed out/);
+  } finally { await fixture.supervisor.dispose(); }
+});
+
+test('Supervisor initialization rejects an unsupported handshake before host launch', { timeout: 15000 }, async (t) => {
+  const fixture = await initializationFixture(t, 'invalid-protocol', 0, { initializationTimeout: 10000 });
+  try {
+    await assert.rejects(fixture.supervisor.start(fixture.specification), /Unsupported supervisor protocol/);
+    assert.deepEqual(await fixture.operations(), ['initialize']);
+    assert.equal(fixture.supervisor.identity, null);
+  } finally { await fixture.supervisor.dispose(); }
+});
+
+test('Supervisor initialization does not remove the host launch deadline', { timeout: 15000 }, async (t) => {
+  const fixture = await initializationFixture(t, 'stall-start', 0, { initializationTimeout: 10000, startTimeout: 100 });
+  try {
+    await assert.rejects(fixture.supervisor.start(fixture.specification), /Supervisor start timed out/);
+    assert.deepEqual(await fixture.operations(), ['initialize', 'start']);
+    assert.equal(fixture.supervisor.identity, null);
+    assert.ok(fixture.supervisor.child.exitCode !== null || fixture.supervisor.child.signalCode !== null);
+  } finally { await fixture.supervisor.dispose(); }
 });
 
 test('Windows supervisor reports start failure without leaving a captured process', { skip: process.platform !== 'win32', timeout: 30000 }, async (t) => {

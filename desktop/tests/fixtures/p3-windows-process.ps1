@@ -12,12 +12,15 @@ try {
     # truncate a UTF-8 JSON line at a Chinese title. Decode the pipe bytes with
     # an explicit reader instead; the Node controller always writes UTF-8.
     $p3Input = [IO.StreamReader]::new([Console]::OpenStandardInput(), [Text.UTF8Encoding]::new($false, $true), $false, 4096, $false)
+    [Console]::Error.WriteLine('Loading native process supervisor')
     Add-Type -Path (Join-Path $PSScriptRoot 'p3-windows-process.cs')
     $p3Owner = [Chaoxing.P3Smoke.ProcessOwner]::new()
+    [Console]::Error.WriteLine('Native process supervisor ready')
     while ($null -ne ($p3Line = $p3Input.ReadLine())) {
         $p3Request = $p3Line | ConvertFrom-Json
         try {
             $p3Result = switch ($p3Request.operation) {
+                'initialize' { @{ protocolVersion = 1 } }
                 'start' {
                     $p3Spec = $p3Request.specification
                     $p3Environment = [Collections.Generic.Dictionary[string,string]]::new([StringComparer]::OrdinalIgnoreCase)
