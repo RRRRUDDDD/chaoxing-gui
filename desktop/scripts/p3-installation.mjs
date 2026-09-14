@@ -98,6 +98,17 @@ export function assertInstallRegistry(records, directory) {
   }
 }
 
+export async function createOwnedScratch(parent, runId) {
+  assert.ok(await checkNoLinks(parent), 'Scratch parent must exist without linked ancestors');
+  const directory = await mkdtemp(path.join(parent, 'chaoxing-p3 安装 空格-'));
+  assert.ok(await checkNoLinks(directory), 'Scratch must exist without linked ancestors');
+  // TEMP can contain RUNNER~1. Publish ownership and derive all installation
+  // paths only after resolving that alias, while preserving the no-links guard.
+  const resolved = await realpath(directory);
+  await writeFile(path.join(resolved, scratchMarker), JSON.stringify({ runId, path: resolved }), { flag: 'wx' });
+  return resolved;
+}
+
 async function assertScratchOwnership(directory, runId) {
   assert.ok(await checkNoLinks(directory), 'Scratch must exist without linked ancestors');
   await checkNoLinks(path.join(directory, scratchMarker));
@@ -523,8 +534,7 @@ export async function installationMain(argv = process.argv.slice(2)) {
     preflightPassed = true;
     result.sources = await Promise.all([options.installerPath, options.portablePath, `${options.installerPath}.manifest.json`]
       .map(async (filename) => ({ path: filename, sha256: await sha256(filename) })));
-    scratch = await mkdtemp(path.join(context.temp, 'chaoxing-p3 安装 空格-'));
-    await writeFile(path.join(scratch, scratchMarker), JSON.stringify({ runId: result.runId, path: scratch }), { flag: 'wx' });
+    scratch = await createOwnedScratch(context.temp, result.runId);
     result.scratch = scratch;
     installDirectory = path.join(scratch, '安装 目录');
     const portableDirectory = path.join(scratch, '便携 解压');

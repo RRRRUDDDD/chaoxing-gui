@@ -9,7 +9,7 @@ import { promisify } from 'node:util';
 import test from 'node:test';
 import {
   parseInstallationArguments, assertInstallationPreflight, validateInstallationInputs,
-  nsisSpecification, assertInstallRegistry, removeOwnedScratch, installationPowerShellScripts,
+  nsisSpecification, assertInstallRegistry, createOwnedScratch, removeOwnedScratch, installationPowerShellScripts,
   createInstallationJunctionFixture, assertInstallationJunctionRejected, removeInstallationJunction,
   installationRetentionFixtures, assertRetainedFiles,
   cleanupChildProfileInvocation,
@@ -155,6 +155,52 @@ test('Registry acceptance requires the owned install path and exact expected uni
   assert.throws(() => assertInstallRegistry([{ ...good[0], hive: 'LocalMachine' }], directory), /CurrentUser|current.user/i);
   assert.throws(() => assertInstallRegistry([{ ...good[0], installLocation: 'C:\\Users\\real\\AppData\\Local\\Chaoxing GUI Tauri' }], directory), /location|directory/i);
   assert.throws(() => assertInstallRegistry([{ ...good[0], uninstallString: 'C:\\other\\uninstall.exe /S' }], directory), /uninstaller/i);
+});
+
+test('Installation scratch resolves an actual Windows short TEMP alias before ownership and junction checks', { skip: process.platform !== 'win32', timeout: 20000 }, async (t) => {
+  const parent = await temporary(t);
+  const script = String.raw`
+[Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
+Add-Type -TypeDefinition @'
+using System.Text;
+using System.Runtime.InteropServices;
+public static class P3ShortPath {
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    public static extern uint GetShortPathName(string path, StringBuilder result, uint capacity);
+}
+'@
+$p3Buffer = [Text.StringBuilder]::new(32768)
+$p3Length = [P3ShortPath]::GetShortPathName($env:P3_ALIAS_PARENT, $p3Buffer, $p3Buffer.Capacity)
+if ($p3Length -eq 0 -or $p3Length -ge $p3Buffer.Capacity) { throw 'Unable to obtain TEMP alias' }
+[Console]::WriteLine($p3Buffer.ToString())
+`;
+  const { stdout } = await exec('pwsh.exe', ['-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(script, 'utf16le').toString('base64')], {
+    env: { ...process.env, P3_ALIAS_PARENT: parent }, windowsHide: true, timeout: 15000,
+  });
+  const alias = stdout.trim();
+  if (alias.toLowerCase() === parent.toLowerCase()) { t.skip('The temporary volume does not provide 8.3 aliases'); return; }
+  assert.match(alias, /~/);
+  const scratch = await createOwnedScratch(alias, 'run');
+  assert.equal(scratch, await realpath(scratch));
+  assert.equal(path.dirname(scratch).toLowerCase(), parent.toLowerCase());
+  const ownership = JSON.parse(await readFile(path.join(scratch, '.p3-installation-owner.json'), 'utf8'));
+  assert.deepEqual(ownership, { runId: 'run', path: scratch });
+  const fixture = await createInstallationJunctionFixture(scratch, 'run', 'install-directory');
+  await assertInstallationJunctionRejected(fixture, 2, []);
+  await removeInstallationJunction(fixture);
+  await assert.rejects(removeOwnedScratch(scratch, 'other-run'), /owner/i);
+  await removeOwnedScratch(scratch, 'run');
+  assert.deepEqual(await readdir(parent), []);
+});
+
+test('Installation scratch refuses a linked TEMP before creating any files', async (t) => {
+  const root = await temporary(t);
+  const target = path.join(root, 'target');
+  const linked = path.join(root, 'linked-temp');
+  await mkdir(target);
+  await symlink(target, linked, process.platform === 'win32' ? 'junction' : 'dir');
+  await assert.rejects(createOwnedScratch(linked, 'run'), /reparse|symbolic|link/i);
+  assert.deepEqual(await readdir(target), []);
 });
 
 test('Scratch cleanup requires its current ownership marker and refuses junctions', async (t) => {
