@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawn, execFile } from 'node:child_process';
-import fileSystem, { copyFile, mkdtemp, mkdir, readFile, writeFile, readdir, rm, symlink } from 'node:fs/promises';
+import fileSystem, { copyFile, mkdtemp, mkdir, readFile, writeFile, readdir, realpath, rm, symlink } from 'node:fs/promises';
 import { syncBuiltinESMExports } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
@@ -18,7 +18,8 @@ const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const temporary = async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'chaoxing-p3-test-'));
   t.after(() => rm(root, { recursive: true, force: true, maxRetries: 4, retryDelay: 100 }));
-  return root;
+  // Windows TEMP can use an 8.3 alias; match the paths resolved by the smoke guards.
+  return realpath(root);
 };
 const syntheticContext = {
   windows: 'C:\\Windows', roaming: 'C:\\Users\\fixture\\AppData\\Roaming',

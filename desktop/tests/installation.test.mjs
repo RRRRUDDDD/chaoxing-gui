@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
-import { lstat, mkdtemp, mkdir, readFile, writeFile, readdir, rm, symlink, unlink } from 'node:fs/promises';
+import { lstat, mkdtemp, mkdir, readFile, writeFile, readdir, realpath, rm, symlink, unlink } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -21,7 +21,8 @@ const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const temporary = async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'chaoxing-p3-install-test-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  return root;
+  // Windows TEMP can use an 8.3 alias; match the paths resolved by the smoke guards.
+  return realpath(root);
 };
 const hash = (bytes) => createHash('sha256').update(bytes).digest('hex');
 
