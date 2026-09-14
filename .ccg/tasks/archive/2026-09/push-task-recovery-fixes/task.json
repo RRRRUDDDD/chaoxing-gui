@@ -1,0 +1,16 @@
+{
+  "id": "push-task-recovery-fixes",
+  "title": "提交并推送任务恢复与课程交互修复到 GitHub",
+  "status": "completed",
+  "complexity": "M",
+  "risk": "medium",
+  "domain": "git",
+  "currentPhase": "completed",
+  "nextAction": "无，产品提交已推送至 origin/main 并确认工作流触发",
+  "createdAt": "2026-09-14T13:58:19Z",
+  "completedAt": "2026-09-14T14:02:08Z",
+  "sourceCommit": "60190bb5020d368aff55cfb17cd183ff4f2cf45e",
+  "pushedCommit": "88ed064fca640463ed2aee7a3fcc831f36de7930",
+  "workflowRun": "https://github.com/RRRRUDDDD/chaoxing-gui/actions/runs/34852907745",
+  "branch": "main"
+}

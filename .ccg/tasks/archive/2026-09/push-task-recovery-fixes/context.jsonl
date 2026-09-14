@@ -1,0 +1,4 @@
+{"commit":"60190bb5020d368aff55cfb17cd183ff4f2cf45e","purpose":"本地开发分支上的产品修复提交"}
+{"commit":"88ed064fca640463ed2aee7a3fcc831f36de7930","purpose":"基于远程 main 的已推送产品修复提交"}
+{"path":".ccg/tasks/archive/2026-09/restore-task-and-course-interactions/review.md","purpose":"本次四项修复的实现审查及有效测试记录"}
+{"url":"https://github.com/RRRRUDDDD/chaoxing-gui/actions/runs/34852907745","purpose":"本次 push 触发的 Windows 打包工作流"}
