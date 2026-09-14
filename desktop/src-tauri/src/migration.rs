@@ -19,7 +19,7 @@ use windows::Win32::Storage::FileSystem::{
     FILE_FLAG_OPEN_REPARSE_POINT, FILE_LIST_DIRECTORY, FILE_READ_ATTRIBUTES, FILE_RENAME_INFO,
     FILE_SHARE_READ, FILE_SHARE_WRITE,
 };
-use windows::Win32::UI::WindowsAndMessaging::{FindWindowExW, HWND_MESSAGE};
+use windows::Win32::UI::WindowsAndMessaging::{FindWindowExW, InternalGetWindowText, HWND_MESSAGE};
 
 pub const LEGACY_DIR_ENV: &str = "CHAOXING_LEGACY_DATA_DIR";
 pub const LEGACY_DIR_DEFAULT: &str = "chaoxing-desktop";
@@ -299,7 +299,8 @@ fn window_title(path: &Path) -> Vec<u16> {
 }
 
 fn legacy_running(legacy: &Path) -> io::Result<bool> {
-    for path in [std::path::absolute(legacy)?, fs::canonicalize(legacy)?] {
+    let resolved = fs::canonicalize(legacy)?;
+    for path in [std::path::absolute(legacy)?, resolved.clone()] {
         let title = window_title(&path);
         // Exact profile matching avoids deferring for unrelated Electron apps.
         // Older Chromium versions may use a hidden top-level window instead.
@@ -314,6 +315,44 @@ fn legacy_running(legacy: &Path) -> io::Result<bool> {
             }
             .is_ok()
             {
+                return Ok(true);
+            }
+        }
+    }
+    // A title can mix short and long components (for example RUNNER~1 with a
+    // long profile name). Neither the canonical nor the fully short spelling
+    // can reconstruct every such alias, so compare existing profile identities.
+    let expected = path_key(&resolved);
+    let mut title = vec![0u16; 32768];
+    for parent in [Some(HWND_MESSAGE), None] {
+        let mut previous = None;
+        for index in 0..1024 {
+            let Ok(window) = (unsafe {
+                FindWindowExW(parent, previous, w!("Chrome_MessageWindow"), PCWSTR::null())
+            }) else {
+                break;
+            };
+            if index == 1023 {
+                return Err(io::Error::other("too many Electron singleton windows"));
+            }
+            previous = Some(window);
+            // Read the stored caption without sending WM_GETTEXT to another
+            // thread, which may not be pumping messages during startup/exit.
+            let length = unsafe { InternalGetWindowText(window, &mut title) };
+            if length <= 0 || length as usize >= title.len() - 1 {
+                continue;
+            }
+            let candidate = PathBuf::from(std::ffi::OsString::from_wide(&title[..length as usize]));
+            if !candidate.is_absolute()
+                || path_key(&candidate).components().next() != expected.components().next()
+            {
+                // Do not inspect unrelated volumes or network shares.
+                continue;
+            }
+            if checked_metadata(&candidate).ok().flatten().is_none() {
+                continue;
+            }
+            if fs::canonicalize(&candidate).is_ok_and(|path| path_key(&path) == expected) {
                 return Ok(true);
             }
         }
@@ -335,17 +374,36 @@ enum Checkpoint {
     Published,
 }
 
-fn paths_overlap(first: &Path, second: &Path) -> bool {
+fn path_key(path: &Path) -> PathBuf {
     // Case folding is conservative on Windows: false positives safely refuse
     // an import instead of allowing an override to change the old data tree.
-    fn key(path: &Path) -> PathBuf {
-        let title = window_title(path);
-        let path = std::ffi::OsString::from_wide(&title[..title.len() - 1]);
-        PathBuf::from(path.to_string_lossy().to_lowercase())
+    let title = window_title(path);
+    let path = std::ffi::OsString::from_wide(&title[..title.len() - 1]);
+    PathBuf::from(path.to_string_lossy().to_lowercase())
+}
+
+fn resolved_path_key(path: &Path) -> io::Result<PathBuf> {
+    let absolute = std::path::absolute(path)?;
+    // The destination/staging may not exist yet. Resolve the nearest existing
+    // ancestor and append the absent suffix without creating anything. Check
+    // reparse points before canonicalizing so aliases cannot hide junctions.
+    for ancestor in absolute.ancestors() {
+        if checked_metadata(ancestor)?.is_some() {
+            let resolved = fs::canonicalize(ancestor)?
+                .join(absolute.strip_prefix(ancestor).expect("path ancestor"));
+            return Ok(path_key(&resolved));
+        }
     }
-    let first = key(first);
-    let second = key(second);
-    first.starts_with(&second) || second.starts_with(&first)
+    Err(io::Error::new(
+        io::ErrorKind::NotFound,
+        "migration path has no existing ancestor",
+    ))
+}
+
+fn paths_overlap(first: &Path, second: &Path) -> io::Result<bool> {
+    let first = resolved_path_key(first)?;
+    let second = resolved_path_key(second)?;
+    Ok(first.starts_with(&second) || second.starts_with(&first))
 }
 
 /// Run before starting the backend. Any Err or DeferredLegacyRunning must keep
@@ -378,10 +436,11 @@ fn migrate_with_checkpoint(
     })?;
     let staging = parent.join(STAGING_DIR);
     let legacy = legacy.map(std::path::absolute).transpose()?;
-    if paths_overlap(&data_dir, &staging)
-        || legacy
-            .as_ref()
-            .is_some_and(|path| paths_overlap(path, &data_dir) || paths_overlap(path, &staging))
+    if paths_overlap(&data_dir, &staging)?
+        || match legacy.as_ref() {
+            Some(path) => paths_overlap(path, &data_dir)? || paths_overlap(path, &staging)?,
+            None => false,
+        }
     {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
@@ -747,6 +806,7 @@ mod p2_tests {
     fn unrelated_electron_message_window_does_not_defer_import() {
         let fixture = Fixture::new("unrelated-electron");
         fixture.write_legacy("cookies.txt", b"cookies");
+        fs::create_dir(fixture.root.join("another-user-data")).unwrap();
         let _window = SingletonWindow::new(&fixture.root.join("another-user-data"));
         assert!(matches!(
             fixture.run().unwrap(),
@@ -1299,6 +1359,13 @@ mod p2_tests {
         let before = source_bytes(&fixture.legacy);
         assert!(migrate_from(&fixture.legacy, Some(&fixture.legacy)).is_err());
         assert!(migrate_from(&fixture.legacy.join("data"), Some(&fixture.legacy)).is_err());
+        assert!(migrate_from(
+            &fs::canonicalize(&fixture.legacy)
+                .unwrap()
+                .join("missing/parent/data"),
+            Some(&fixture.legacy)
+        )
+        .is_err());
         assert!(migrate_from(
             &fixture.legacy.join("data"),
             Some(&fs::canonicalize(&fixture.legacy).unwrap())

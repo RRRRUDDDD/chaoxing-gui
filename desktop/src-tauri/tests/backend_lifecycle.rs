@@ -372,6 +372,9 @@ fn p2_post_ready_exit_is_observable_and_reaps_grandchild() {
     let grandchild = read_pid(&state.data_dir.join("fake-grandchild.pid"));
     assert_eq!(state.status().phase, BackendPhase::Ready);
     assert_process_exited(pid);
+    // The exit code can become visible before Windows signals the process
+    // handle used by Child::try_wait. Observe the transition within a deadline.
+    wait_until(|| state.status().phase == BackendPhase::Failed);
     let status = state.status();
     assert_eq!(status.phase, BackendPhase::Failed);
     assert!(status.error.is_some());
