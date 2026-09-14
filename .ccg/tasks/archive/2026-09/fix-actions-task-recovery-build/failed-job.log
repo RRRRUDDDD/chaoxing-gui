@@ -1,0 +1,25 @@
+build-windows	Smoke test independent executable with owned stdin and process tree	﻿2026-09-14T14:08:34.4189200Z ##[group]Run pwsh -NoProfile -File desktop/scripts/smoke-python.ps1 -ExecutablePath dist/chaoxing-gui.exe -Mode Independent -EvidenceDirectory desktop/release/verification/python-independent
+build-windows	Smoke test independent executable with owned stdin and process tree	2026-09-14T14:08:34.4190710Z ^[[36;1mpwsh -NoProfile -File desktop/scripts/smoke-python.ps1 -ExecutablePath dist/chaoxing-gui.exe -Mode Independent -EvidenceDirectory desktop/release/verification/python-independent^[[0m
+build-windows	Smoke test independent executable with owned stdin and process tree	2026-09-14T14:08:34.4191605Z ^[[36;1mif ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }^[[0m
+build-windows	Smoke test independent executable with owned stdin and process tree	2026-09-14T14:08:34.4266283Z shell: C:\Program Files\PowerShell\7\pwsh.EXE -command ". '{0}'"
+build-windows	Smoke test independent executable with owned stdin and process tree	2026-09-14T14:08:34.4266655Z env:
+build-windows	Smoke test independent executable with owned stdin and process tree	2026-09-14T14:08:34.4266841Z   PYTHONUTF8: 1
+build-windows	Smoke test independent executable with owned stdin and process tree	2026-09-14T14:08:34.4267053Z   CARGO_BUILD_JOBS: 1
+build-windows	Smoke test independent executable with owned stdin and process tree	2026-09-14T14:08:34.4267362Z   pythonLocation: C:\hostedtoolcache\windows\Python\3.11.9\x64
+build-windows	Smoke test independent executable with owned stdin and process tree	2026-09-14T14:08:34.4267835Z   PKG_CONFIG_PATH: C:\hostedtoolcache\windows\Python\3.11.9\x64/lib/pkgconfig
+build-windows	Smoke test independent executable with owned stdin and process tree	2026-09-14T14:08:34.4268307Z   Python_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.11.9\x64
+build-windows	Smoke test independent executable with owned stdin and process tree	2026-09-14T14:08:34.4268763Z   Python2_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.11.9\x64
+build-windows	Smoke test independent executable with owned stdin and process tree	2026-09-14T14:08:34.4269176Z   Python3_ROOT_DIR: C:\hostedtoolcache\windows\Python\3.11.9\x64
+build-windows	Smoke test independent executable with owned stdin and process tree	2026-09-14T14:08:34.4269524Z   CARGO_HOME: C:\Users\runneradmin\.cargo
+build-windows	Smoke test independent executable with owned stdin and process tree	2026-09-14T14:08:34.4269786Z   CARGO_INCREMENTAL: 0
+build-windows	Smoke test independent executable with owned stdin and process tree	2026-09-14T14:08:34.4270023Z   CARGO_TERM_COLOR: always
+build-windows	Smoke test independent executable with owned stdin and process tree	2026-09-14T14:08:34.4270250Z   CACHE_ON_FAILURE: false
+build-windows	Smoke test independent executable with owned stdin and process tree	2026-09-14T14:08:34.4270477Z   APP_VERSION: 1.1.1
+build-windows	Smoke test independent executable with owned stdin and process tree	2026-09-14T14:08:34.4270686Z   RELEASE_TAG: v1.1.1
+build-windows	Smoke test independent executable with owned stdin and process tree	2026-09-14T14:08:34.4270901Z ##[endgroup]
+build-windows	Smoke test independent executable with owned stdin and process tree	2026-09-14T14:09:02.0848199Z Error: Supervisor start timed out; launch cleanup: Supervisor required forced cleanup
+build-windows	Smoke test independent executable with owned stdin and process tree	2026-09-14T14:09:02.0849519Z     at Timeout._onTimeout (file:///D:/a/chaoxing-gui/chaoxing-gui/desktop/scripts/p3-smoke.mjs:330:72)
+build-windows	Smoke test independent executable with owned stdin and process tree	2026-09-14T14:09:02.0850461Z     at listOnTimeout (node:internal/timers:581:17)
+build-windows	Smoke test independent executable with owned stdin and process tree	2026-09-14T14:09:02.0851127Z     at process.processTimers (node:internal/timers:519:7)
+build-windows	Smoke test independent executable with owned stdin and process tree	2026-09-14T14:09:02.0868307Z Evidence: D:\a\chaoxing-gui\chaoxing-gui\desktop\release\verification\python-independent\smoke-rYvu1T\result.json
+build-windows	Smoke test independent executable with owned stdin and process tree	2026-09-14T14:09:02.1730361Z ##[error]Process completed with exit code 1.

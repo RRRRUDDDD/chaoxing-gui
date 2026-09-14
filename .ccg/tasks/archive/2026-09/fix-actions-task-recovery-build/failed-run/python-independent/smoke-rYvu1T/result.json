@@ -1,0 +1,35 @@
+{
+  "runId": "6c29bced-021d-4e85-83c3-f98a5408e17b",
+  "startedAt": "2026-09-14T14:08:35.238Z",
+  "success": false,
+  "checks": [],
+  "processes": [
+    {
+      "executable": "D:\\a\\chaoxing-gui\\chaoxing-gui\\desktop\\release\\verification\\python-independent\\smoke-rYvu1T\\fixture\\package\\chaoxing-gui.exe",
+      "mode": "Independent",
+      "data": "D:\\a\\chaoxing-gui\\chaoxing-gui\\desktop\\release\\verification\\python-independent\\smoke-rYvu1T\\fixture\\data",
+      "sanitizedPath": "C:\\Windows\\System32;C:\\Windows;C:\\Windows\\System32\\Wbem",
+      "headless": true,
+      "stdin": "real pipe",
+      "process": null
+    }
+  ],
+  "limitations": [
+    "DOM clicks over CDP do not represent physical mouse input",
+    "Debug execution does not qualify as release or clean-system validation"
+  ],
+  "selection": {
+    "kind": "python",
+    "configuration": "Release",
+    "scenario": "All",
+    "mode": "Independent",
+    "nestedJob": false,
+    "usePackagedLayout": false
+  },
+  "releasePermission": {
+    "required": false,
+    "allowed": true
+  },
+  "error": "Error: Supervisor start timed out; launch cleanup: Supervisor required forced cleanup\n    at Timeout._onTimeout (file:///D:/a/chaoxing-gui/chaoxing-gui/desktop/scripts/p3-smoke.mjs:330:72)\n    at listOnTimeout (node:internal/timers:581:17)\n    at process.processTimers (node:internal/timers:519:7)",
+  "endedAt": "2026-09-14T14:09:02.084Z"
+}

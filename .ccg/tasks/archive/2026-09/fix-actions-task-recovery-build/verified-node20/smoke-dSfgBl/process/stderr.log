@@ -1,0 +1,19 @@
+[32m2026-09-14 22:35:33.992[0m | [33m[1mWARNING [0m | [36m__main__[0m:[36m<module>[0m:[36m37[0m - [33m[1mpystray Î´°²×°£¬ÍÐÅÌÍ¼±ê¹¦ÄÜ²»¿ÉÓÃ[0m
+[32m2026-09-14 22:35:34.002[0m | [1mINFO    [0m | [36m__main__[0m:[36m<module>[0m:[36m863[0m - [1mElectron ÎÞÍ·Ä£Ê½Æô¶¯£¬¹¤×÷Ä¿Â¼: E:\Downloads\45\chaoxing-gui\.ccg\tasks\fix-actions-task-recovery-build\verified-node20\smoke-dSfgBl\fixture\data[0m
+[32m2026-09-14 22:35:34.002[0m | [1mINFO    [0m | [36m__main__[0m:[36m<module>[0m:[36m867[0m - [1m¼ì²âµ½Ç°¶Ë¹¹½¨£¬½«Ìá¹©¾²Ì¬ÎÄ¼þ·þÎñ: C:\Users\RUD\AppData\Local\Temp\_MEI394482\web\dist[0m
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://127.0.0.1:37528
+Press CTRL+C to quit
+127.0.0.1 - - [14/Sep/2026 22:35:34] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [14/Sep/2026 22:35:34] "GET /api/health HTTP/1.1" 200 -
+[32m2026-09-14 22:35:34.515[0m | [1mINFO    [0m | [36m__main__[0m:[36m<module>[0m:[36m889[0m - [1mºó¶Ë¾ÍÐ÷: http://127.0.0.1:37528[0m
+127.0.0.1 - - [14/Sep/2026 22:35:34] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [14/Sep/2026 22:35:34] "GET /api/config HTTP/1.1" 200 -
+127.0.0.1 - - [14/Sep/2026 22:35:34] "POST /api/config HTTP/1.1" 200 -
+127.0.0.1 - - [14/Sep/2026 22:35:34] "POST /api/login HTTP/1.1" 400 -
+127.0.0.1 - - [14/Sep/2026 22:35:34] "POST /api/courses HTTP/1.1" 400 -
+127.0.0.1 - - [14/Sep/2026 22:35:34] "POST /api/start HTTP/1.1" 400 -
+127.0.0.1 - - [14/Sep/2026 22:35:34] "GET /api/task/p3-never-created HTTP/1.1" 404 -
+127.0.0.1 - - [14/Sep/2026 22:35:34] "GET /api/task/p3-never-created/details HTTP/1.1" 404 -
+127.0.0.1 - - [14/Sep/2026 22:35:34] "GET /api/logs/p3-never-created?after=0 HTTP/1.1" 404 -
+[32m2026-09-14 22:35:34.954[0m | [1mINFO    [0m | [36m__main__[0m:[36mwatch_parent_stdin[0m:[36m795[0m - [1m¸¸½ø³ÌÒÑÍË³ö£¬ÕýÔÚÖÕÖ¹ºó¶Ë...[0m

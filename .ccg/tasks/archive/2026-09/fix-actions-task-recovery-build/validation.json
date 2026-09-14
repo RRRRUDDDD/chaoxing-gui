@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "originalRun": 34852907745,
+  "originalCommit": "88ed064fca640463ed2aee7a3fcc831f36de7930",
+  "originalExecutableSha256": "ACA3C6165586245509040B1938BBCFD5B23A9562933CC434A680E9932EFC1223",
+  "originalExecutableBytes": 177191369,
+  "localSourceCommit": "1be45ec078e79e77c37af3c249195936735e0307",
+  "pushedCommit": "057ed25df913753843ce5e8aa5ebf50595d20bb0",
+  "regressionBefore": {
+    "failed": 4,
+    "passed": 0
+  },
+  "regressionAfter": {
+    "failed": 0,
+    "passed": 4
+  },
+  "desktopSuite": {
+    "log": "desktop-node20.log",
+    "failed": 0,
+    "runtime": "Node 20.20.2",
+    "skipped": 0,
+    "passed": 101
+  },
+  "originalExecutableBeforeFix": {
+    "evidence": "reproduction/smoke-qoVX7h/result.json",
+    "success": true,
+    "cleanup": {
+      "fallbackUsed": false,
+      "before": [],
+      "remaining": [],
+      "observed": [
+        {
+          "pid": 18832,
+          "createdAtFileTime": "134338694551567053",
+          "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\fix-actions-task-recovery-build\\reproduction\\smoke-qoVX7h\\fixture\\package\\chaoxing-gui.exe",
+          "inOuterJob": true,
+          "alive": false,
+          "exitCode": 0
+        },
+        {
+          "pid": 14960,
+          "createdAtFileTime": "134338694568893970",
+          "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\fix-actions-task-recovery-build\\reproduction\\smoke-qoVX7h\\fixture\\package\\chaoxing-gui.exe",
+          "inOuterJob": true,
+          "alive": false,
+          "exitCode": 0
+        }
+      ],
+      "verified": true
+    }
+  },
+  "originalExecutableAfterFix": {
+    "evidence": "verified-node20/smoke-dSfgBl/result.json",
+    "success": true,
+    "cleanup": {
+      "fallbackUsed": false,
+      "before": [],
+      "remaining": [],
+      "observed": [
+        {
+          "pid": 39448,
+          "createdAtFileTime": "134338701308213306",
+          "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\fix-actions-task-recovery-build\\verified-node20\\smoke-dSfgBl\\fixture\\package\\chaoxing-gui.exe",
+          "inOuterJob": true,
+          "alive": false,
+          "exitCode": 0
+        },
+        {
+          "pid": 23936,
+          "createdAtFileTime": "134338701326677967",
+          "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\fix-actions-task-recovery-build\\verified-node20\\smoke-dSfgBl\\fixture\\package\\chaoxing-gui.exe",
+          "inOuterJob": true,
+          "alive": false,
+          "exitCode": 0
+        }
+      ],
+      "verified": true
+    }
+  }
+}

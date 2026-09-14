@@ -1,0 +1,5 @@
+2026-09-14 22:24:17.887 | WARNING  | __main__:<module>:37 - pystray 未安装，托盘图标功能不可用
+2026-09-14 22:24:17.892 | INFO     | __main__:<module>:863 - Electron 无头模式启动，工作目录: E:\Downloads\45\chaoxing-gui\.ccg\tasks\fix-actions-task-recovery-build\reproduction\smoke-qoVX7h\fixture\data
+2026-09-14 22:24:17.892 | INFO     | __main__:<module>:867 - 检测到前端构建，将提供静态文件服务: C:\Users\RUD\AppData\Local\Temp\_MEI188322\web\dist
+2026-09-14 22:24:18.407 | INFO     | __main__:<module>:889 - 后端就绪: http://127.0.0.1:14852
+2026-09-14 22:24:18.862 | INFO     | __main__:watch_parent_stdin:795 - 父进程已退出，正在终止后端...

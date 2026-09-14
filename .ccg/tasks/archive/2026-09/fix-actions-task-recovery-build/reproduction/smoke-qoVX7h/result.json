@@ -1,0 +1,233 @@
+{
+  "runId": "ccfc5afa-ba7e-4021-b908-247733225dd8",
+  "startedAt": "2026-09-14T14:24:13.028Z",
+  "success": true,
+  "checks": [
+    {
+      "name": "python-independent-health-static-config-validation-eof",
+      "result": "PASS",
+      "upstreamAccountsUsed": false,
+      "learningTaskCreated": false,
+      "before": {
+        "host": {
+          "pid": 18832,
+          "createdAtFileTime": "134338694551567053",
+          "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\fix-actions-task-recovery-build\\reproduction\\smoke-qoVX7h\\fixture\\package\\chaoxing-gui.exe",
+          "inOuterJob": true,
+          "alive": true,
+          "exitCode": null
+        },
+        "active": [
+          {
+            "pid": 18832,
+            "createdAtFileTime": "134338694551567053",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\fix-actions-task-recovery-build\\reproduction\\smoke-qoVX7h\\fixture\\package\\chaoxing-gui.exe",
+            "inOuterJob": true,
+            "alive": true,
+            "exitCode": null
+          },
+          {
+            "pid": 14960,
+            "createdAtFileTime": "134338694568893970",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\fix-actions-task-recovery-build\\reproduction\\smoke-qoVX7h\\fixture\\package\\chaoxing-gui.exe",
+            "inOuterJob": true,
+            "alive": true,
+            "exitCode": null
+          }
+        ],
+        "observed": [
+          {
+            "pid": 18832,
+            "createdAtFileTime": "134338694551567053",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\fix-actions-task-recovery-build\\reproduction\\smoke-qoVX7h\\fixture\\package\\chaoxing-gui.exe",
+            "inOuterJob": true,
+            "alive": true,
+            "exitCode": null
+          },
+          {
+            "pid": 14960,
+            "createdAtFileTime": "134338694568893970",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\fix-actions-task-recovery-build\\reproduction\\smoke-qoVX7h\\fixture\\package\\chaoxing-gui.exe",
+            "inOuterJob": true,
+            "alive": true,
+            "exitCode": null
+          }
+        ],
+        "outerJobHandleRetained": true
+      },
+      "after": {
+        "host": {
+          "pid": 18832,
+          "createdAtFileTime": "134338694551567053",
+          "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\fix-actions-task-recovery-build\\reproduction\\smoke-qoVX7h\\fixture\\package\\chaoxing-gui.exe",
+          "inOuterJob": true,
+          "alive": false,
+          "exitCode": 0
+        },
+        "active": [],
+        "observed": [
+          {
+            "pid": 18832,
+            "createdAtFileTime": "134338694551567053",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\fix-actions-task-recovery-build\\reproduction\\smoke-qoVX7h\\fixture\\package\\chaoxing-gui.exe",
+            "inOuterJob": true,
+            "alive": false,
+            "exitCode": 0
+          },
+          {
+            "pid": 14960,
+            "createdAtFileTime": "134338694568893970",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\fix-actions-task-recovery-build\\reproduction\\smoke-qoVX7h\\fixture\\package\\chaoxing-gui.exe",
+            "inOuterJob": true,
+            "alive": false,
+            "exitCode": 0
+          }
+        ],
+        "outerJobHandleRetained": true
+      }
+    }
+  ],
+  "processes": [
+    {
+      "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\fix-actions-task-recovery-build\\reproduction\\smoke-qoVX7h\\fixture\\package\\chaoxing-gui.exe",
+      "mode": "Independent",
+      "data": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\fix-actions-task-recovery-build\\reproduction\\smoke-qoVX7h\\fixture\\data",
+      "sanitizedPath": "C:\\WINDOWS\\System32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem",
+      "headless": true,
+      "stdin": "real pipe",
+      "process": {
+        "pid": 18832,
+        "createdAtFileTime": "134338694551567053",
+        "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\fix-actions-task-recovery-build\\reproduction\\smoke-qoVX7h\\fixture\\package\\chaoxing-gui.exe",
+        "inOuterJob": true,
+        "alive": true,
+        "exitCode": null
+      },
+      "listeners": [
+        {
+          "pid": 14960,
+          "port": 14852,
+          "address": "127.0.0.1"
+        }
+      ],
+      "ready": {
+        "host": {
+          "pid": 18832,
+          "createdAtFileTime": "134338694551567053",
+          "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\fix-actions-task-recovery-build\\reproduction\\smoke-qoVX7h\\fixture\\package\\chaoxing-gui.exe",
+          "inOuterJob": true,
+          "alive": true,
+          "exitCode": null
+        },
+        "active": [
+          {
+            "pid": 18832,
+            "createdAtFileTime": "134338694551567053",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\fix-actions-task-recovery-build\\reproduction\\smoke-qoVX7h\\fixture\\package\\chaoxing-gui.exe",
+            "inOuterJob": true,
+            "alive": true,
+            "exitCode": null
+          },
+          {
+            "pid": 14960,
+            "createdAtFileTime": "134338694568893970",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\fix-actions-task-recovery-build\\reproduction\\smoke-qoVX7h\\fixture\\package\\chaoxing-gui.exe",
+            "inOuterJob": true,
+            "alive": true,
+            "exitCode": null
+          }
+        ],
+        "observed": [
+          {
+            "pid": 18832,
+            "createdAtFileTime": "134338694551567053",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\fix-actions-task-recovery-build\\reproduction\\smoke-qoVX7h\\fixture\\package\\chaoxing-gui.exe",
+            "inOuterJob": true,
+            "alive": true,
+            "exitCode": null
+          },
+          {
+            "pid": 14960,
+            "createdAtFileTime": "134338694568893970",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\fix-actions-task-recovery-build\\reproduction\\smoke-qoVX7h\\fixture\\package\\chaoxing-gui.exe",
+            "inOuterJob": true,
+            "alive": true,
+            "exitCode": null
+          }
+        ],
+        "outerJobHandleRetained": true
+      },
+      "shutdown": {
+        "host": {
+          "pid": 18832,
+          "createdAtFileTime": "134338694551567053",
+          "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\fix-actions-task-recovery-build\\reproduction\\smoke-qoVX7h\\fixture\\package\\chaoxing-gui.exe",
+          "inOuterJob": true,
+          "alive": false,
+          "exitCode": 0
+        },
+        "active": [],
+        "observed": [
+          {
+            "pid": 18832,
+            "createdAtFileTime": "134338694551567053",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\fix-actions-task-recovery-build\\reproduction\\smoke-qoVX7h\\fixture\\package\\chaoxing-gui.exe",
+            "inOuterJob": true,
+            "alive": false,
+            "exitCode": 0
+          },
+          {
+            "pid": 14960,
+            "createdAtFileTime": "134338694568893970",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\fix-actions-task-recovery-build\\reproduction\\smoke-qoVX7h\\fixture\\package\\chaoxing-gui.exe",
+            "inOuterJob": true,
+            "alive": false,
+            "exitCode": 0
+          }
+        ],
+        "outerJobHandleRetained": true
+      },
+      "cleanup": {
+        "fallbackUsed": false,
+        "before": [],
+        "remaining": [],
+        "observed": [
+          {
+            "pid": 18832,
+            "createdAtFileTime": "134338694551567053",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\fix-actions-task-recovery-build\\reproduction\\smoke-qoVX7h\\fixture\\package\\chaoxing-gui.exe",
+            "inOuterJob": true,
+            "alive": false,
+            "exitCode": 0
+          },
+          {
+            "pid": 14960,
+            "createdAtFileTime": "134338694568893970",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\fix-actions-task-recovery-build\\reproduction\\smoke-qoVX7h\\fixture\\package\\chaoxing-gui.exe",
+            "inOuterJob": true,
+            "alive": false,
+            "exitCode": 0
+          }
+        ],
+        "verified": true
+      }
+    }
+  ],
+  "limitations": [
+    "DOM clicks over CDP do not represent physical mouse input",
+    "Debug execution does not qualify as release or clean-system validation"
+  ],
+  "selection": {
+    "kind": "python",
+    "configuration": "Release",
+    "scenario": "All",
+    "mode": "Independent",
+    "nestedJob": false,
+    "usePackagedLayout": false
+  },
+  "releasePermission": {
+    "required": false,
+    "allowed": true
+  },
+  "endedAt": "2026-09-14T14:24:19.507Z"
+}

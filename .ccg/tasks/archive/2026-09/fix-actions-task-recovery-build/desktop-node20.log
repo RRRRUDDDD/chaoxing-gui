@@ -1,0 +1,515 @@
+TAP version 13
+# Subtest: Installation selection rejects unknown switches, missing inputs, and invalid deadlines
+ok 1 - Installation selection rejects unknown switches, missing inputs, and invalid deadlines
+  ---
+  duration_ms: 2.0279
+  ...
+# Subtest: Installation CLI refuses the real user before any installer or host and saves JSON
+ok 2 - Installation CLI refuses the real user before any installer or host and saves JSON
+  ---
+  duration_ms: 92.2011
+  ...
+# Subtest: Preexisting application, legacy, default install, or registry state blocks installation
+ok 3 - Preexisting application, legacy, default install, or registry state blocks installation
+  ---
+  duration_ms: 6.4175
+  ...
+# Subtest: Missing or incorrectly typed installation artifacts are rejected without execution
+ok 4 - Missing or incorrectly typed installation artifacts are rejected without execution
+  ---
+  duration_ms: 6.095
+  ...
+# Subtest: NSIS directory tails preserve Unicode/spaces and are never general raw arguments
+ok 5 - NSIS directory tails preserve Unicode/spaces and are never general raw arguments
+  ---
+  duration_ms: 1.4246
+  ...
+# Subtest: Registry acceptance requires the owned install path and exact expected uninstaller
+ok 6 - Registry acceptance requires the owned install path and exact expected uninstaller
+  ---
+  duration_ms: 2.2662
+  ...
+# Subtest: Installation scratch resolves an actual Windows short TEMP alias before ownership and junction checks
+ok 7 - Installation scratch resolves an actual Windows short TEMP alias before ownership and junction checks
+  ---
+  duration_ms: 919.5716
+  ...
+# Subtest: Installation scratch refuses a linked TEMP before creating any files
+ok 8 - Installation scratch refuses a linked TEMP before creating any files
+  ---
+  duration_ms: 3.7701
+  ...
+# Subtest: Scratch cleanup requires its current ownership marker and refuses junctions
+ok 9 - Scratch cleanup requires its current ownership marker and refuses junctions
+  ---
+  duration_ms: 19.7726
+  ...
+# Subtest: Installation install-directory junction fixture checks rejection and unlinks without deleting its target
+ok 10 - Installation install-directory junction fixture checks rejection and unlinks without deleting its target
+  ---
+  duration_ms: 70.49
+  ...
+# Subtest: Installation backend junction fixture checks rejection and unlinks without deleting its target
+ok 11 - Installation backend junction fixture checks rejection and unlinks without deleting its target
+  ---
+  duration_ms: 56.6916
+  ...
+# Subtest: Installation nested-backend junction fixture checks rejection and unlinks without deleting its target
+ok 12 - Installation nested-backend junction fixture checks rejection and unlinks without deleting its target
+  ---
+  duration_ms: 60.318
+  ...
+# Subtest: Installation junction acceptance rejects payload writes and changed target bytes
+ok 13 - Installation junction acceptance rejects payload writes and changed target bytes
+  ---
+  duration_ms: 54.5359
+  ...
+# Subtest: Installation junction cleanup refuses an unowned scratch or a substituted target
+ok 14 - Installation junction cleanup refuses an unowned scratch or a substituted target
+  ---
+  duration_ms: 24.0442
+  ...
+# Subtest: Portable files are verified against both manifests without executing payloads
+ok 15 - Portable files are verified against both manifests without executing payloads
+  ---
+  duration_ms: 1281.4561
+  ...
+# Subtest: Installed files are verified against both manifests without executing payloads
+ok 16 - Installed files are verified against both manifests without executing payloads
+  ---
+  duration_ms: 1171.5676
+  ...
+# Subtest: NSIS reference binds inert artifacts and verifies the exact installed host
+ok 17 - NSIS reference binds inert artifacts and verifies the exact installed host
+  ---
+  duration_ms: 4364.5863
+  ...
+# Subtest: Installed NSIS layout refuses portable manifests and unchanged UNK host hashes
+ok 18 - Installed NSIS layout refuses portable manifests and unchanged UNK host hashes
+  ---
+  duration_ms: 1880.0635
+  ...
+# Subtest: Installed manifest verification catches changed host bytes, missing licenses, changed metadata, and extra files
+ok 19 - Installed manifest verification catches changed host bytes, missing licenses, changed metadata, and extra files
+  ---
+  duration_ms: 3228.033
+  ...
+# Subtest: Uninstall retention includes actual Tauri files and detects deleted LocalAppData WebView data
+ok 20 - Uninstall retention includes actual Tauri files and detects deleted LocalAppData WebView data
+  ---
+  duration_ms: 12.581
+  ...
+# Subtest: Cancelled nested smoke profiles are reclaimed from its pre-claim handoff after verified Job cleanup
+ok 21 - Cancelled nested smoke profiles are reclaimed from its pre-claim handoff after verified Job cleanup
+  ---
+  duration_ms: 23.6959
+  ...
+# Subtest: Nested profile cleanup refuses unverified/live processes, changed handoffs, and another run ownership
+ok 22 - Nested profile cleanup refuses unverified/live processes, changed handoffs, and another run ownership
+  ---
+  duration_ms: 22.4653
+  ...
+# Subtest: Native formatter emits NSIS special paths last and unquoted without executing an installer
+ok 23 - Native formatter emits NSIS special paths last and unquoted without executing an installer
+  ---
+  duration_ms: 1455.5908
+  ...
+# Subtest: Embedded installation PowerShell scripts parse without running installers or registry mutations
+ok 24 - Embedded installation PowerShell scripts parse without running installers or registry mutations
+  ---
+  duration_ms: 920.3667
+  ...
+# Subtest: NSIS production table checks every emitted payload kind before install and uninstall mutations
+ok 25 - NSIS production table checks every emitted payload kind before install and uninstall mutations
+  ---
+  duration_ms: 449.7515
+  ...
+# Subtest: NSIS guards allow normal Chinese and space paths for install and uninstall while retaining data
+ok 26 - NSIS guards allow normal Chinese and space paths for install and uninstall while retaining data
+  ---
+  duration_ms: 416.4142
+  ...
+# Subtest: NSIS guards allow a fresh directory, repeated separators and ordinary dot filenames
+ok 27 - NSIS guards allow a fresh directory, repeated separators and ordinary dot filenames
+  ---
+  duration_ms: 1062.4657
+  ...
+# Subtest: NSIS install rejects installation directory junction before any payload mutation
+ok 28 - NSIS install rejects installation directory junction before any payload mutation
+  ---
+  duration_ms: 191.9188
+  ...
+# Subtest: NSIS install rejects backend junction before any payload mutation
+ok 29 - NSIS install rejects backend junction before any payload mutation
+  ---
+  duration_ms: 199.2156
+  ...
+# Subtest: NSIS install rejects backend/_internal junction before any payload mutation
+ok 30 - NSIS install rejects backend/_internal junction before any payload mutation
+  ---
+  duration_ms: 188.2396
+  ...
+# Subtest: NSIS uninstall rejects installation directory junction before any payload mutation
+ok 31 - NSIS uninstall rejects installation directory junction before any payload mutation
+  ---
+  duration_ms: 180.8459
+  ...
+# Subtest: NSIS uninstall rejects backend junction before any payload mutation
+ok 32 - NSIS uninstall rejects backend junction before any payload mutation
+  ---
+  duration_ms: 181.4935
+  ...
+# Subtest: NSIS uninstall rejects backend/_internal junction before any payload mutation
+ok 33 - NSIS uninstall rejects backend/_internal junction before any payload mutation
+  ---
+  duration_ms: 182.4698
+  ...
+# Subtest: NSIS checks ancestors above INSTDIR and existing host/uninstaller leaf paths
+ok 34 - NSIS checks ancestors above INSTDIR and existing host/uninstaller leaf paths
+  ---
+  duration_ms: 1295.5285
+  ...
+# Subtest: NSIS guards reject relative roots, traversal, ADS, device paths and file/directory collisions
+ok 35 - NSIS guards reject relative roots, traversal, ADS, device paths and file/directory collisions
+  ---
+  duration_ms: 9297.7289
+  ...
+# Subtest: NSIS checks the entire previous install tree before invoking an older uninstaller
+ok 36 - NSIS checks the entire previous install tree before invoking an older uninstaller
+  ---
+  duration_ms: 728.9216
+  ...
+# Subtest: NSIS stops a legacy-tree scan at its depth limit and refuses unverified MSI migration
+ok 37 - NSIS stops a legacy-tree scan at its depth limit and refuses unverified MSI migration
+  ---
+  duration_ms: 1058.3588
+  ...
+# Subtest: NSIS complete payload matches the portable manifest including nested Unicode dependencies
+ok 38 - NSIS complete payload matches the portable manifest including nested Unicode dependencies
+  ---
+  duration_ms: 721.6826
+  ...
+# Subtest: NSIS missing, foreign, duplicate, traversal and wrong-format payloads are rejected before extraction
+ok 39 - NSIS missing, foreign, duplicate, traversal and wrong-format payloads are rejected before extraction
+  ---
+  duration_ms: 5061.6522
+  ...
+# Subtest: NSIS equal-size content tampering and extracted junctions cannot pass hash verification
+ok 40 - NSIS equal-size content tampering and extracted junctions cannot pass hash verification
+  ---
+  duration_ms: 1356.9278
+  ...
+# Subtest: NSIS generated uninstaller and decoder metadata are distinct from application payload
+ok 41 - NSIS generated uninstaller and decoder metadata are distinct from application payload
+  ---
+  duration_ms: 1791.9132
+  ...
+# Subtest: NSIS host expectation accounts for exactly the Tauri bundle marker without modifying the source
+ok 42 - NSIS host expectation accounts for exactly the Tauri bundle marker without modifying the source
+  ---
+  duration_ms: 2472.5457
+  ...
+# Subtest: NSIS artifact record binds both artifacts and validates every byte with a distinct host hash
+ok 43 - NSIS artifact record binds both artifacts and validates every byte with a distinct host hash
+  ---
+  duration_ms: 3914.4462
+  ...
+# Subtest: NSIS signed-host capture must originate from the exact unsigned compiler output
+ok 44 - NSIS signed-host capture must originate from the exact unsigned compiler output
+  ---
+  duration_ms: 584.2933
+  ...
+# Subtest: P3 rejects unknown, missing, and mismatched smoke selections
+ok 45 - P3 rejects unknown, missing, and mismatched smoke selections
+  ---
+  duration_ms: 1.5601
+  ...
+# Subtest: Release requires an explicit disposable user or a hosted runner, never GITHUB_ACTIONS alone
+ok 46 - Release requires an explicit disposable user or a hosted runner, never GITHUB_ACTIONS alone
+  ---
+  duration_ms: 0.4743
+  ...
+# Subtest: Compiled profile mismatches and unsupported native probe exits fail closed
+ok 47 - Compiled profile mismatches and unsupported native probe exits fail closed
+  ---
+  duration_ms: 0.5074
+  ...
+# Subtest: Configured CDP port is used exactly and an occupied port is refused
+ok 48 - Configured CDP port is used exactly and an occupied port is refused
+  ---
+  duration_ms: 18.0755
+  ...
+# Subtest: Invalid configured CDP ports fail before opening a listener
+ok 49 - Invalid configured CDP ports fail before opening a listener
+  ---
+  duration_ms: 1.2572
+  ...
+# Subtest: Production paths come from Windows known folders and include Electron legacy data
+ok 50 - Production paths come from Windows known folders and include Electron legacy data
+  ---
+  duration_ms: 0.4986
+  ...
+# Subtest: Release profile ownership refuses existing data and previous smoke runs without modifying them
+ok 51 - Release profile ownership refuses existing data and previous smoke runs without modifying them
+  ---
+  duration_ms: 50.3897
+  ...
+# Subtest: Only current smoke ownership permits profile reuse; legacy roots are never created
+ok 52 - Only current smoke ownership permits profile reuse; legacy roots are never created
+  ---
+  duration_ms: 18.54
+  ...
+# Subtest: Owned profiles survive missing or unverified supervisor cleanup reports
+ok 53 - Owned profiles survive missing or unverified supervisor cleanup reports
+  ---
+  duration_ms: 14.367
+  ...
+# Subtest: Owned profile cleanup rejects live processes and incomplete captured Job reports
+ok 54 - Owned profile cleanup rejects live processes and incomplete captured Job reports
+  ---
+  duration_ms: 7.1982
+  ...
+# Subtest: Verified empty Job cleanup still enforces run and SID ownership before removing a profile
+ok 55 - Verified empty Job cleanup still enforces run and SID ownership before removing a profile
+  ---
+  duration_ms: 11.69
+  ...
+# Subtest: Primary GUI failure and supervisor failure remain observable while owned profiles are retained
+ok 56 - Primary GUI failure and supervisor failure remain observable while owned profiles are retained
+  ---
+  duration_ms: 4.9441
+  ...
+# Subtest: A profile created after the absent preflight cannot be adopted by this smoke run
+ok 57 - A profile created after the absent preflight cannot be adopted by this smoke run
+  ---
+  duration_ms: 5.3271
+  ...
+# Subtest: Profile guard refuses junctions before following them
+ok 58 - Profile guard refuses junctions before following them
+  ---
+  duration_ms: 3.7181
+  ...
+# Subtest: Host environment cannot resolve system Python or use inherited development overrides
+ok 59 - Host environment cannot resolve system Python or use inherited development overrides
+  ---
+  duration_ms: 0.6094
+  ...
+# Subtest: Missing host and incomplete frozen resources fail validation before launch
+ok 60 - Missing host and incomplete frozen resources fail validation before launch
+  ---
+  duration_ms: 3.9247
+  ...
+# Subtest: Installed layout requires the host adjacent backend and never rewrites its source files
+ok 61 - Installed layout requires the host adjacent backend and never rewrites its source files
+  ---
+  duration_ms: 3.9214
+  ...
+# Subtest: Timeout always runs cleanup and cleanup failure cannot turn into a pass
+ok 62 - Timeout always runs cleanup and cleanup failure cannot turn into a pass
+  ---
+  duration_ms: 83.0938
+  ...
+# Subtest: Release CLI fails closed and writes failure evidence without launching a host
+ok 63 - Release CLI fails closed and writes failure evidence without launching a host
+  ---
+  duration_ms: 86.9456
+  ...
+# Subtest: PowerShell smoke wrappers choose the first real Node when PATH contains multiple matches
+ok 64 - PowerShell smoke wrappers choose the first real Node when PATH contains multiple matches
+  ---
+  duration_ms: 3776.8784
+  ...
+# Subtest: Supervisor initialization can outlast the separate host launch budget
+ok 65 - Supervisor initialization can outlast the separate host launch budget
+  ---
+  duration_ms: 1181.4909
+  ...
+# Subtest: Supervisor initialization timeout never queues a host launch and retains diagnostics
+ok 66 - Supervisor initialization timeout never queues a host launch and retains diagnostics
+  ---
+  duration_ms: 280.7301
+  ...
+# Subtest: Supervisor initialization rejects an unsupported handshake before host launch
+ok 67 - Supervisor initialization rejects an unsupported handshake before host launch
+  ---
+  duration_ms: 186.8086
+  ...
+# Subtest: Supervisor initialization does not remove the host launch deadline
+ok 68 - Supervisor initialization does not remove the host launch deadline
+  ---
+  duration_ms: 279.6689
+  ...
+# Subtest: Windows supervisor reports start failure without leaving a captured process
+ok 69 - Windows supervisor reports start failure without leaving a captured process
+  ---
+  duration_ms: 1591.4052
+  ...
+# Subtest: Windows supervisor supplies live stdin and observes a clean EOF shutdown
+ok 70 - Windows supervisor supplies live stdin and observes a clean EOF shutdown
+  ---
+  duration_ms: 2038.9021
+  ...
+# Subtest: Timed-out Windows tree is cleaned while an unrelated process survives
+ok 71 - Timed-out Windows tree is cleaned while an unrelated process survives
+  ---
+  duration_ms: 1740.5707
+  ...
+# Subtest: Chinese title crosses the supervisor pipe and WM_CLOSE reaches only the captured real window
+ok 72 - Chinese title crosses the supervisor pipe and WM_CLOSE reaches only the captured real window
+  ---
+  duration_ms: 3321.7152
+  ...
+# Subtest: staging preserves the complete onedir tree, hashes, empty directories and source bytes
+ok 73 - staging preserves the complete onedir tree, hashes, empty directories and source bytes
+  ---
+  duration_ms: 2029.518
+  ...
+# Subtest: missing frozen executable, _internal, HTML, assets or referenced chunks fail without replacing staging
+ok 74 - missing frozen executable, _internal, HTML, assets or referenced chunks fail without replacing staging
+  ---
+  duration_ms: 4344.9813
+  ...
+# Subtest: overlapping source/destination and filesystem roots are refused before mutation
+ok 75 - overlapping source/destination and filesystem roots are refused before mutation
+  ---
+  duration_ms: 2227.9654
+  ...
+# Subtest: a locked manifest rolls back an already replaced staging directory
+ok 76 - a locked manifest rolls back an already replaced staging directory
+  ---
+  duration_ms: 11880.0358
+  ...
+# Subtest: publication survives a transient Windows directory sharing lock without changing the source
+ok 77 - publication survives a transient Windows directory sharing lock without changing the source
+  ---
+  duration_ms: 2545.4525
+  ...
+# Subtest: source, staging and ancestor junctions are refused without touching their targets
+ok 78 - source, staging and ancestor junctions are refused without touching their targets
+  ---
+  duration_ms: 1611.5892
+  ...
+# Subtest: version drift and unsafe version text fail before staging or artifact publication
+ok 79 - version drift and unsafe version text fail before staging or artifact publication
+  ---
+  duration_ms: 2566.2689
+  ...
+# Subtest: portable ZIP preserves backend hierarchy and verifies artifact and every payload file without launching it
+ok 80 - portable ZIP preserves backend hierarchy and verifies artifact and every payload file without launching it
+  ---
+  duration_ms: 2584.1142
+  ...
+# Subtest: tampered staging, missing manifest and backend version drift preserve previous published artifacts
+ok 81 - tampered staging, missing manifest and backend version drift preserve previous published artifacts
+  ---
+  duration_ms: 3831.8633
+  ...
+# Subtest: ZIP verifier rejects outer checksum drift, inner tampering, missing payload and traversal entries
+ok 82 - ZIP verifier rejects outer checksum drift, inner tampering, missing payload and traversal entries
+  ---
+  duration_ms: 7678.5446
+  ...
+# Subtest: Windows PowerShell portable entrypoints preserve check/start errors and never install a runtime automatically
+ok 83 - Windows PowerShell portable entrypoints preserve check/start errors and never install a runtime automatically
+  ---
+  duration_ms: 3975.0708
+  ...
+# Subtest: opens the fixed repository in the system browser and never creates a renderer
+ok 84 - opens the fixed repository in the system browser and never creates a renderer
+  ---
+  duration_ms: 2.6696
+  ...
+# Subtest: refuses every other URL, including lookalike hosts and local schemes
+ok 85 - refuses every other URL, including lookalike hosts and local schemes
+  ---
+  duration_ms: 0.3073
+  ...
+# Subtest: reports synchronous and asynchronous browser launch errors
+ok 86 - reports synchronous and asynchronous browser launch errors
+  ---
+  duration_ms: 0.3343
+  ...
+# Subtest: account and task persist across process/origin changes; logout removes them
+ok 87 - account and task persist across process/origin changes; logout removes them
+  ---
+  duration_ms: 11.3997
+  ...
+# Subtest: payloads reject passwords, extra fields, oversized values and account mismatches
+ok 88 - payloads reject passwords, extra fields, oversized values and account mismatches
+  ---
+  duration_ms: 6.7188
+  ...
+# Subtest: corrupt, oversized and credential-bearing disk records are never exposed
+ok 89 - corrupt, oversized and credential-bearing disk records are never exposed
+  ---
+  duration_ms: 2.7557
+  ...
+# Subtest: IPC trusts only the current main window main frame and exact backend origin
+ok 90 - IPC trusts only the current main window main frame and exact backend origin
+  ---
+  duration_ms: 0.8001
+  ...
+# Subtest: all IPC methods enforce sender and argument boundaries before touching storage
+ok 91 - all IPC methods enforce sender and argument boundaries before touching storage
+  ---
+  duration_ms: 3.1888
+  ...
+# Subtest: sandbox preload exposes four named operations, never a generic IPC API
+ok 92 - sandbox preload exposes four named operations, never a generic IPC API
+  ---
+  duration_ms: 1.3428
+  ...
+# Subtest: Bundle callback preserves exact unsigned backend EXE/DLL bytes without requiring a certificate
+ok 93 - Bundle callback preserves exact unsigned backend EXE/DLL bytes without requiring a certificate
+  ---
+  duration_ms: 1757.1297
+  ...
+# Subtest: Bundle callback preserves an existing valid vendor signature with its original signer
+ok 94 - Bundle callback preserves an existing valid vendor signature with its original signer
+  ---
+  duration_ms: 892.0231
+  ...
+# Subtest: Bundle callback rejects an invalid existing signature even when its file hash matches the manifest
+ok 95 - Bundle callback rejects an invalid existing signature even when its file hash matches the manifest
+  ---
+  duration_ms: 795.8976
+  ...
+# Subtest: Backend length/hash changes and unlisted resources fail before any signing
+ok 96 - Backend length/hash changes and unlisted resources fail before any signing
+  ---
+  duration_ms: 1982.6922
+  ...
+# Subtest: Backend manifest schema, duplicate paths, and traversal entries are refused
+ok 97 - Backend manifest schema, duplicate paths, and traversal entries are refused
+  ---
+  duration_ms: 2761.5025
+  ...
+# Subtest: Bundle callback rejects resource junctions and record paths inside the frozen backend
+ok 98 - Bundle callback rejects resource junctions and record paths inside the frozen backend
+  ---
+  duration_ms: 1266.7535
+  ...
+# Subtest: NSIS host requires one NSS marker before it can reach the signer
+ok 99 - NSIS host requires one NSS marker before it can reach the signer
+  ---
+  duration_ms: 2637.629
+  ...
+# Subtest: Host capture refuses old records, missing capture directories, and invalid input paths
+ok 100 - Host capture refuses old records, missing capture directories, and invalid input paths
+  ---
+  duration_ms: 3061.6053
+  ...
+# Subtest: A valid marker without the requested private key fails without signing or publishing a record
+ok 101 - A valid marker without the requested private key fails without signing or publishing a record
+  ---
+  duration_ms: 1490.0191
+  ...
+1..101
+# tests 101
+# suites 0
+# pass 101
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 49402.5512

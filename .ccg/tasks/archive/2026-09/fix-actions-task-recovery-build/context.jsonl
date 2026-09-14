@@ -1,0 +1,6 @@
+{"path":"desktop/scripts/p3-smoke.mjs","purpose":"辅助进程初始化握手、单独截止时间及阶段诊断"}
+{"path":"desktop/tests/fixtures/p3-windows-process.ps1","purpose":"PowerShell 完成 Add-Type 后确认初始化协议"}
+{"path":"desktop/tests/p3-smoke.test.mjs","purpose":"慢初始化、超时、无效协议及启动期限回归"}
+{"path":"desktop/tests/fixtures/p3-supervisor-initialization.mjs","purpose":"不启动被测程序的初始化协议夹具"}
+{"url":"https://github.com/RRRRUDDDD/chaoxing-gui/actions/runs/34852907745/job/104006074471","purpose":"原始失败日志与打包 exe 证据来源"}
+{"url":"https://github.com/RRRRUDDDD/chaoxing-gui/actions/runs/34857176177","purpose":"修复提交的完整云端构建验证"}

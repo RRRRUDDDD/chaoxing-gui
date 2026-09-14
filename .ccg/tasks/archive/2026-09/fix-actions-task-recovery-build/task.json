@@ -1,0 +1,18 @@
+{
+  "id": "fix-actions-task-recovery-build",
+  "title": "修复任务恢复改动后的 GitHub Actions 构建失败",
+  "status": "completed",
+  "complexity": "M",
+  "risk": "medium",
+  "domain": "desktop",
+  "currentPhase": "completed",
+  "nextAction": "无，修复已推送，云端完整构建和全部验收通过",
+  "createdAt": "2026-09-14T14:19:17Z",
+  "completedAt": "2026-09-14T15:08:14Z",
+  "verificationConclusion": "success",
+  "sourceCommit": "1be45ec078e79e77c37af3c249195936735e0307",
+  "pushedCommit": "057ed25df913753843ce5e8aa5ebf50595d20bb0",
+  "verificationRun": "https://github.com/RRRRUDDDD/chaoxing-gui/actions/runs/34857176177",
+  "branch": "main",
+  "failedRun": "https://github.com/RRRRUDDDD/chaoxing-gui/actions/runs/34852907745/job/104006074471"
+}
