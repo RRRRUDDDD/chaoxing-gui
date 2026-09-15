@@ -1,0 +1,458 @@
+{
+  "success": true,
+  "comparison_cases": 48,
+  "tensor_equality": "exact",
+  "cases": [
+    {
+      "input": "1234",
+      "mode": "RGB",
+      "size": [
+        160,
+        60
+      ],
+      "prediction": "1234"
+    },
+    {
+      "input": "1234",
+      "mode": "RGB",
+      "size": [
+        107,
+        39
+      ],
+      "prediction": "1234"
+    },
+    {
+      "input": "1234",
+      "mode": "L",
+      "size": [
+        160,
+        60
+      ],
+      "prediction": "1234"
+    },
+    {
+      "input": "1234",
+      "mode": "L",
+      "size": [
+        107,
+        39
+      ],
+      "prediction": "1234"
+    },
+    {
+      "input": "1234",
+      "mode": "RGBA",
+      "size": [
+        160,
+        60
+      ],
+      "prediction": "1234"
+    },
+    {
+      "input": "1234",
+      "mode": "RGBA",
+      "size": [
+        107,
+        39
+      ],
+      "prediction": "1234"
+    },
+    {
+      "input": "1234",
+      "mode": "P",
+      "size": [
+        160,
+        60
+      ],
+      "prediction": "1234"
+    },
+    {
+      "input": "1234",
+      "mode": "P",
+      "size": [
+        107,
+        39
+      ],
+      "prediction": "1234"
+    },
+    {
+      "input": "8877",
+      "mode": "RGB",
+      "size": [
+        160,
+        60
+      ],
+      "prediction": "8877"
+    },
+    {
+      "input": "8877",
+      "mode": "RGB",
+      "size": [
+        107,
+        39
+      ],
+      "prediction": "8877"
+    },
+    {
+      "input": "8877",
+      "mode": "L",
+      "size": [
+        160,
+        60
+      ],
+      "prediction": "8877"
+    },
+    {
+      "input": "8877",
+      "mode": "L",
+      "size": [
+        107,
+        39
+      ],
+      "prediction": "8877"
+    },
+    {
+      "input": "8877",
+      "mode": "RGBA",
+      "size": [
+        160,
+        60
+      ],
+      "prediction": "8877"
+    },
+    {
+      "input": "8877",
+      "mode": "RGBA",
+      "size": [
+        107,
+        39
+      ],
+      "prediction": "8877"
+    },
+    {
+      "input": "8877",
+      "mode": "P",
+      "size": [
+        160,
+        60
+      ],
+      "prediction": "8877"
+    },
+    {
+      "input": "8877",
+      "mode": "P",
+      "size": [
+        107,
+        39
+      ],
+      "prediction": "8877"
+    },
+    {
+      "input": "1122",
+      "mode": "RGB",
+      "size": [
+        160,
+        60
+      ],
+      "prediction": "1122"
+    },
+    {
+      "input": "1122",
+      "mode": "RGB",
+      "size": [
+        107,
+        39
+      ],
+      "prediction": "1122"
+    },
+    {
+      "input": "1122",
+      "mode": "L",
+      "size": [
+        160,
+        60
+      ],
+      "prediction": "1122"
+    },
+    {
+      "input": "1122",
+      "mode": "L",
+      "size": [
+        107,
+        39
+      ],
+      "prediction": "1122"
+    },
+    {
+      "input": "1122",
+      "mode": "RGBA",
+      "size": [
+        160,
+        60
+      ],
+      "prediction": "1122"
+    },
+    {
+      "input": "1122",
+      "mode": "RGBA",
+      "size": [
+        107,
+        39
+      ],
+      "prediction": "1122"
+    },
+    {
+      "input": "1122",
+      "mode": "P",
+      "size": [
+        160,
+        60
+      ],
+      "prediction": "1122"
+    },
+    {
+      "input": "1122",
+      "mode": "P",
+      "size": [
+        107,
+        39
+      ],
+      "prediction": "1122"
+    },
+    {
+      "input": "AbC9",
+      "mode": "RGB",
+      "size": [
+        160,
+        60
+      ],
+      "prediction": "abc9"
+    },
+    {
+      "input": "AbC9",
+      "mode": "RGB",
+      "size": [
+        107,
+        39
+      ],
+      "prediction": "Abc9"
+    },
+    {
+      "input": "AbC9",
+      "mode": "L",
+      "size": [
+        160,
+        60
+      ],
+      "prediction": "abc9"
+    },
+    {
+      "input": "AbC9",
+      "mode": "L",
+      "size": [
+        107,
+        39
+      ],
+      "prediction": "Abc9"
+    },
+    {
+      "input": "AbC9",
+      "mode": "RGBA",
+      "size": [
+        160,
+        60
+      ],
+      "prediction": "abc9"
+    },
+    {
+      "input": "AbC9",
+      "mode": "RGBA",
+      "size": [
+        107,
+        39
+      ],
+      "prediction": "Abc9"
+    },
+    {
+      "input": "AbC9",
+      "mode": "P",
+      "size": [
+        160,
+        60
+      ],
+      "prediction": "abc9"
+    },
+    {
+      "input": "AbC9",
+      "mode": "P",
+      "size": [
+        107,
+        39
+      ],
+      "prediction": "abc9"
+    },
+    {
+      "input": "Zx82",
+      "mode": "RGB",
+      "size": [
+        160,
+        60
+      ],
+      "prediction": "Zx82"
+    },
+    {
+      "input": "Zx82",
+      "mode": "RGB",
+      "size": [
+        107,
+        39
+      ],
+      "prediction": "Zx82"
+    },
+    {
+      "input": "Zx82",
+      "mode": "L",
+      "size": [
+        160,
+        60
+      ],
+      "prediction": "Zx82"
+    },
+    {
+      "input": "Zx82",
+      "mode": "L",
+      "size": [
+        107,
+        39
+      ],
+      "prediction": "Zx82"
+    },
+    {
+      "input": "Zx82",
+      "mode": "RGBA",
+      "size": [
+        160,
+        60
+      ],
+      "prediction": "Zx82"
+    },
+    {
+      "input": "Zx82",
+      "mode": "RGBA",
+      "size": [
+        107,
+        39
+      ],
+      "prediction": "Zx82"
+    },
+    {
+      "input": "Zx82",
+      "mode": "P",
+      "size": [
+        160,
+        60
+      ],
+      "prediction": "Zx82"
+    },
+    {
+      "input": "Zx82",
+      "mode": "P",
+      "size": [
+        107,
+        39
+      ],
+      "prediction": "Zx82"
+    },
+    {
+      "input": "2026",
+      "mode": "RGB",
+      "size": [
+        160,
+        60
+      ],
+      "prediction": "2026"
+    },
+    {
+      "input": "2026",
+      "mode": "RGB",
+      "size": [
+        107,
+        39
+      ],
+      "prediction": "2026"
+    },
+    {
+      "input": "2026",
+      "mode": "L",
+      "size": [
+        160,
+        60
+      ],
+      "prediction": "2026"
+    },
+    {
+      "input": "2026",
+      "mode": "L",
+      "size": [
+        107,
+        39
+      ],
+      "prediction": "2026"
+    },
+    {
+      "input": "2026",
+      "mode": "RGBA",
+      "size": [
+        160,
+        60
+      ],
+      "prediction": "2026"
+    },
+    {
+      "input": "2026",
+      "mode": "RGBA",
+      "size": [
+        107,
+        39
+      ],
+      "prediction": "2026"
+    },
+    {
+      "input": "2026",
+      "mode": "P",
+      "size": [
+        160,
+        60
+      ],
+      "prediction": "2026"
+    },
+    {
+      "input": "2026",
+      "mode": "P",
+      "size": [
+        107,
+        39
+      ],
+      "prediction": "2026"
+    }
+  ],
+  "without_opencv_or_ddddocr_import": {
+    "success": true,
+    "model": "common_old.onnx",
+    "model_sha256": "b8f2ad9cbc1f2e3922a6cb9459e30824e7e2467f3fb4fd61420640e34ea0bf68",
+    "charset_sha256": "2c097552127cb5476189e653c0d2ccfd6b6c87425c57f81a01b5770207c33360",
+    "characters": 8210,
+    "providers": [
+      "CPUExecutionProvider"
+    ],
+    "prediction": "1234",
+    "frozen": false
+  },
+  "versions": {
+    "ddddocr": "1.6.1",
+    "numpy": "2.4.6",
+    "onnxruntime": "1.27.0",
+    "Pillow": "12.3.0"
+  },
+  "scope": "Synthetic regression and execution checks; not real-world captcha accuracy acceptance"
+}

@@ -1,0 +1,21 @@
+{
+  "success": true,
+  "executable": "E:\\Downloads\\45\\chaoxing-gui\\dist\\ocr-optimized\\chaoxing-backend\\chaoxing-backend.exe",
+  "layout": "onedir",
+  "files": 808,
+  "bytes": 149574706,
+  "excluded_modules": [],
+  "unused_ocr_files": [],
+  "diagnostic": {
+    "success": true,
+    "model": "common_old.onnx",
+    "model_sha256": "b8f2ad9cbc1f2e3922a6cb9459e30824e7e2467f3fb4fd61420640e34ea0bf68",
+    "charset_sha256": "2c097552127cb5476189e653c0d2ccfd6b6c87425c57f81a01b5770207c33360",
+    "characters": 8210,
+    "providers": [
+      "CPUExecutionProvider"
+    ],
+    "prediction": "1234",
+    "frozen": true
+  }
+}

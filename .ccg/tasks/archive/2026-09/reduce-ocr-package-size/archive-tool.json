@@ -1,0 +1,27 @@
+[
+  {
+    "source": "C:\\Program Files\\WindowsApps\\40174MouriNaruto.NanaZip_6.5.1767.0_x64__gnj4mf6z9tkrc\\NanaZip.Universal.Console.exe",
+    "copy": "desktop\\src-tauri\\target\\acceptance-followup-tools\\nanazip-6.5.1767.0\\7z.exe",
+    "sha256": "02fc0b957a418c20f57165e68351483c416c84c6d59ae043827178169df02cc6"
+  },
+  {
+    "source": "C:\\Program Files\\WindowsApps\\40174MouriNaruto.NanaZip_6.5.1767.0_x64__gnj4mf6z9tkrc\\NanaZip.Core.dll",
+    "copy": "desktop\\src-tauri\\target\\acceptance-followup-tools\\nanazip-6.5.1767.0\\NanaZip.Core.dll",
+    "sha256": "e8cba05abf47b3a81b5b3565c224888ffa8372a6ac1d7c47ac1b3355b2d5d7e4"
+  },
+  {
+    "source": "C:\\Program Files\\WindowsApps\\40174MouriNaruto.NanaZip_6.5.1767.0_x64__gnj4mf6z9tkrc\\NanaZip.Codecs.dll",
+    "copy": "desktop\\src-tauri\\target\\acceptance-followup-tools\\nanazip-6.5.1767.0\\NanaZip.Codecs.dll",
+    "sha256": "4c76d676143ab12f0d3298ebb1a5447b1ce397c4688b68bcbb08ed47e5783988"
+  },
+  {
+    "source": "C:\\Program Files\\WindowsApps\\40174MouriNaruto.NanaZip_6.5.1767.0_x64__gnj4mf6z9tkrc\\K7Base.dll",
+    "copy": "desktop\\src-tauri\\target\\acceptance-followup-tools\\nanazip-6.5.1767.0\\K7Base.dll",
+    "sha256": "8479ae027ccce63c63c9657d7bdd5d761107ae5563ad9fd948f6a0a80e76fc48"
+  },
+  {
+    "source": "C:\\Program Files\\WindowsApps\\40174MouriNaruto.NanaZip_6.5.1767.0_x64__gnj4mf6z9tkrc\\K7User.dll",
+    "copy": "desktop\\src-tauri\\target\\acceptance-followup-tools\\nanazip-6.5.1767.0\\K7User.dll",
+    "sha256": "ce39c462dec5aecea3d2f6f3d4e4ce3066a268e353e4370ce5d407ddd8180bc1"
+  }
+]

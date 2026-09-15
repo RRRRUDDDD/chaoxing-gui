@@ -1,0 +1,36 @@
+{
+  "measured_at_utc": "2026-09-15T00:03:37.729126+00:00",
+  "baseline": "Existing local artifacts before optimization; same artifacts as prior audit, not a current-source rebuild",
+  "backend": {
+    "path": "dist\\chaoxing-backend",
+    "bytes": 340942329,
+    "files": 815,
+    "largest_groups_bytes": {
+      "_internal/cv2": 117183874,
+      "_internal/ddddocr": 87893260,
+      "_internal/onnxruntime": 35286520,
+      "_internal/numpy.libs": 20990544,
+      "chaoxing-backend.exe": 15662650,
+      "_internal/PIL": 13422080,
+      "_internal/cryptography": 9903104,
+      "_internal/lxml": 6884536,
+      "_internal/numpy": 6154752,
+      "_internal/python311.dll": 5800216,
+      "_internal/pydantic_core": 5240320,
+      "_internal/libcrypto-3.dll": 5191960,
+      "_internal/resource": 1607208,
+      "_internal/base_library.zip": 1443565,
+      "_internal/unicodedata.pyd": 1140504,
+      "_internal/libssl-3.dll": 787224,
+      "_internal/msvcp140.dll": 643512,
+      "_internal/tzdata": 513630,
+      "_internal/fontTools": 491008,
+      "_internal/jiter": 452608
+    }
+  },
+  "artifacts": {
+    "dist\\chaoxing-gui.exe": 180706432,
+    "desktop\\release\\tauri\\chaoxing-gui-tauri-setup-1.1.1-windows-x64.exe": 153754871,
+    "desktop\\release\\tauri\\chaoxing-gui-tauri-portable-1.1.1-windows-x64.zip": 186516281
+  }
+}

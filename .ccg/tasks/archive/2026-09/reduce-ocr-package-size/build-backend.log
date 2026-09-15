@@ -1,0 +1,111 @@
+163 INFO: PyInstaller: 6.21.0, contrib hooks: 2026.6
+163 INFO: Python: 3.11.9
+178 INFO: Platform: Windows-10-10.0.26100-SP0
+178 INFO: Python environment: C:\Users\RUD\AppData\Local\Programs\Python\Python311
+183 INFO: Removing temporary files and cleaning cache in C:\Users\RUD\AppData\Local\pyinstaller
+394 INFO: Module search paths (PYTHONPATH):
+['E:\\Downloads\\45\\chaoxing-gui',
+ 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\python311.zip',
+ 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\DLLs',
+ 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib',
+ 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311',
+ 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages',
+ 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\win32',
+ 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\win32\\lib',
+ 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\pythonwin',
+ 'E:\\Downloads\\45\\chaoxing-gui']
+708 INFO: Appending 'datas' from .spec
+713 INFO: checking Analysis
+713 INFO: Building Analysis because Analysis-00.toc is non existent
+713 INFO: Looking for Python shared library...
+713 INFO: Using Python shared library: C:\Users\RUD\AppData\Local\Programs\Python\Python311\python311.dll
+713 INFO: Running Analysis Analysis-00.toc
+713 INFO: Target bytecode optimization level: 0
+713 INFO: Initializing module dependency graph...
+714 INFO: Initializing module graph hook caches...
+781 INFO: Analyzing modules for base_library.zip ...
+1558 INFO: Processing standard module hook 'hook-heapq.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\PyInstaller\\hooks'
+1637 INFO: Processing standard module hook 'hook-encodings.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\PyInstaller\\hooks'
+2950 INFO: Processing standard module hook 'hook-math.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\PyInstaller\\hooks'
+3040 INFO: Processing standard module hook 'hook-pickle.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\PyInstaller\\hooks'
+4401 INFO: Caching module dependency graph...
+4436 INFO: Analyzing E:\Downloads\45\chaoxing-gui\app.py
+4511 INFO: Processing standard module hook 'hook-numpy.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\PyInstaller\\hooks'
+4890 INFO: Processing pre-safe-import-module hook 'hook-typing_extensions.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+4892 INFO: SetuptoolsInfo: initializing cached setuptools info...
+5816 INFO: Processing standard module hook 'hook-multiprocessing.util.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\PyInstaller\\hooks'
+5940 INFO: Processing standard module hook 'hook-xml.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\PyInstaller\\hooks'
+6208 INFO: Processing standard module hook 'hook-_ctypes.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\PyInstaller\\hooks'
+6641 INFO: Processing standard module hook 'hook-difflib.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\PyInstaller\\hooks'
+7021 INFO: Processing standard module hook 'hook-sysconfig.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\PyInstaller\\hooks'
+7096 INFO: Processing standard module hook 'hook-platform.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\PyInstaller\\hooks'
+7548 INFO: Processing standard module hook 'hook-webbrowser.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\PyInstaller\\hooks'
+8649 INFO: Processing standard module hook 'hook-charset_normalizer.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+8939 INFO: Processing standard module hook 'hook-PIL.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\PyInstaller\\hooks'
+9039 INFO: Processing standard module hook 'hook-PIL.Image.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\PyInstaller\\hooks'
+9378 INFO: Processing standard module hook 'hook-xml.etree.cElementTree.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\PyInstaller\\hooks'
+9584 INFO: Processing standard module hook 'hook-PIL.ImageFilter.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\PyInstaller\\hooks'
+9866 INFO: Processing standard module hook 'hook-onnxruntime.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+9987 INFO: Processing pre-safe-import-module hook 'hook-tensorflow.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\pre_safe_import_module'
+10263 INFO: Processing standard module hook 'hook-urllib3.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+10385 INFO: Processing pre-safe-import-module hook 'hook-backports.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+10809 INFO: Processing standard module hook 'hook-certifi.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+10873 INFO: Processing standard module hook 'hook-cryptography.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+11866 INFO: hook-cryptography: cryptography does not seem to be using dynamically linked OpenSSL.
+12974 INFO: Processing standard module hook 'hook-jinja2.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+13470 INFO: Processing pre-safe-import-module hook 'hook-importlib_metadata.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+13610 INFO: Processing pre-safe-import-module hook 'hook-importlib_resources.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+13936 INFO: Processing standard module hook 'hook-anyio.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+14832 INFO: Processing standard module hook 'hook-pygments.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\PyInstaller\\hooks'
+15770 INFO: Processing standard module hook 'hook-pydantic.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+16497 INFO: Processing standard module hook 'hook-zoneinfo.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+20165 INFO: Processing standard module hook 'hook-websockets.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+24303 INFO: Processing standard module hook 'hook-lxml.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+24649 INFO: Processing standard module hook 'hook-lxml.etree.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+28048 INFO: Processing standard module hook 'hook-pystray.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+28406 INFO: Processing pre-safe-import-module hook 'hook-six.moves.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+28486 INFO: Processing pre-safe-import-module hook 'hook-gi.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+28558 INFO: Analyzing hidden import 'api.process'
+28560 INFO: Processing module hooks (post-graph stage)...
+29144 INFO: Processing standard module hook 'hook-lxml.isoschematron.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+29318 INFO: Processing pre-safe-import-module hook 'hook-tomli.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+29818 INFO: Processing standard module hook 'hook-PIL.SpiderImagePlugin.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\PyInstaller\\hooks'
+32797 INFO: Processing standard module hook 'hook-lxml.objectify.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+32798 INFO: Processing standard module hook 'hook-tzdata.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+33601 INFO: Performing binary vs. data reclassification (650 entries)
+33775 INFO: Looking for ctypes DLLs
+33981 INFO: Analyzing run-time hooks ...
+33994 INFO: Including run-time hook 'pyi_rth_pkgutil.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+33998 INFO: Including run-time hook 'pyi_rth_multiprocessing.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+34001 INFO: Including run-time hook 'pyi_rth_inspect.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+34004 INFO: Including run-time hook 'pyi_rth_cryptography_openssl.py' from 'C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\rthooks'
+34088 INFO: Creating base_library.zip...
+34115 INFO: Looking for dynamic libraries
+38761 INFO: Extra DLL search directories (AddDllDirectory): ['C:\\Users\\RUD\\AppData\\Local\\Programs\\Python\\Python311\\Lib\\site-packages\\numpy.libs']
+38761 INFO: Extra DLL search directories (PATH): []
+40414 INFO: Warnings written to E:\Downloads\45\chaoxing-gui\build\ocr-optimized\chaoxing-backend\warn-chaoxing-backend.txt
+40796 INFO: Graph cross-reference written to E:\Downloads\45\chaoxing-gui\build\ocr-optimized\chaoxing-backend\xref-chaoxing-backend.html
+40894 INFO: checking PYZ
+40894 INFO: Building PYZ because PYZ-00.toc is non existent
+40894 INFO: Building PYZ (ZlibArchive) E:\Downloads\45\chaoxing-gui\build\ocr-optimized\chaoxing-backend\PYZ-00.pyz
+42596 INFO: Building PYZ (ZlibArchive) E:\Downloads\45\chaoxing-gui\build\ocr-optimized\chaoxing-backend\PYZ-00.pyz completed successfully.
+42666 INFO: checking PKG
+42666 INFO: Building PKG because PKG-00.toc is non existent
+42667 INFO: Building PKG (CArchive) chaoxing-backend.pkg
+42717 INFO: Building PKG (CArchive) chaoxing-backend.pkg completed successfully.
+42719 INFO: Bootloader C:\Users\RUD\AppData\Local\Programs\Python\Python311\Lib\site-packages\PyInstaller\bootloader\Windows-64bit-intel\run.exe
+42719 INFO: checking EXE
+42719 INFO: Building EXE because EXE-00.toc is non existent
+42719 INFO: Building EXE from EXE-00.toc
+42720 INFO: Copying bootloader EXE to E:\Downloads\45\chaoxing-gui\build\ocr-optimized\chaoxing-backend\chaoxing-backend.exe
+42724 INFO: Copying icon to EXE
+43258 INFO: Copying 0 resources to EXE
+43260 INFO: Embedding manifest in EXE
+43262 INFO: Appending PKG archive to EXE
+43272 INFO: Fixing EXE headers
+43414 INFO: Building EXE from EXE-00.toc completed successfully.
+43420 INFO: checking COLLECT
+43420 INFO: Building COLLECT because COLLECT-00.toc is non existent
+43421 INFO: Building COLLECT COLLECT-00.toc
+44247 INFO: Building COLLECT COLLECT-00.toc completed successfully.
+44260 INFO: Build complete! The results are available in: E:\Downloads\45\chaoxing-gui\dist\ocr-optimized

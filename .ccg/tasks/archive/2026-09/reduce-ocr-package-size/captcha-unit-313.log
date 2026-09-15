@@ -1,0 +1,27 @@
+test_asset_location_uses_distribution_not_current_directory (tests.test_captcha_ocr.CaptchaAssetTests.test_asset_location_uses_distribution_not_current_directory) ... ok
+test_charset_order_and_missing_file_are_checked (tests.test_captcha_ocr.CaptchaAssetTests.test_charset_order_and_missing_file_are_checked) ... ok
+test_charset_source_is_parsed_without_executing_it (tests.test_captcha_ocr.CaptchaAssetTests.test_charset_source_is_parsed_without_executing_it) ... ok
+test_missing_and_corrupt_model_fail_before_inference (tests.test_captcha_ocr.CaptchaAssetTests.test_missing_and_corrupt_model_fail_before_inference) ... ok
+test_unverified_package_version_is_rejected (tests.test_captcha_ocr.CaptchaAssetTests.test_unverified_package_version_is_rejected) ... ok
+test_default_engine_uses_cpu_and_retains_classification_contract (tests.test_captcha_ocr.CaptchaLifecycleTests.test_default_engine_uses_cpu_and_retains_classification_contract) ... ok
+test_explicit_none_and_injected_recognizer_do_not_initialize (tests.test_captcha_ocr.CaptchaLifecycleTests.test_explicit_none_and_injected_recognizer_do_not_initialize) ... 2026-09-15 08:18:59.936 | ERROR    | api.captcha:recognition:133 - ddddocr ʵ��δ�ɹ���ʼ�����޷�ִ����֤��ʶ��
+ok
+test_invalid_self_check_arguments_do_not_start_application (tests.test_captcha_ocr.CaptchaLifecycleTests.test_invalid_self_check_arguments_do_not_start_application) ... ok
+test_optional_dependencies_or_bad_assets_keep_manual_fallback (tests.test_captcha_ocr.CaptchaLifecycleTests.test_optional_dependencies_or_bad_assets_keep_manual_fallback) ... 2026-09-15 08:18:59.947 | WARNING  | api.captcha:ocr_init:34 - ��֤�� OCR ��ʼ��ʧ��: missing onnxruntime������403����������������ֶ������֤��
+2026-09-15 08:18:59.947 | WARNING  | api.captcha:ocr_init:34 - ��֤�� OCR ��ʼ��ʧ��: model������403����������������ֶ������֤��
+2026-09-15 08:18:59.947 | WARNING  | api.captcha:ocr_init:34 - ��֤�� OCR ��ʼ��ʧ��: wrong version������403����������������ֶ������֤��
+ok
+test_recognition_failure_never_submits (tests.test_captcha_ocr.CaptchaLifecycleTests.test_recognition_failure_never_submits) ... 2026-09-15 08:18:59.948 | ERROR    | api.captcha:try_pass:154 - ��֤���Զ���֤ʱ�����쳣: bad image
+ok
+test_self_check_runs_before_web_imports_and_business_initialization (tests.test_captcha_ocr.CaptchaLifecycleTests.test_self_check_runs_before_web_imports_and_business_initialization) ... ok
+test_ctc_deduplicates_indices_and_preserves_blank_separated_repeats (tests.test_captcha_ocr.CaptchaTensorTests.test_ctc_deduplicates_indices_and_preserves_blank_separated_repeats) ... ok
+test_decoder_accepts_upstream_sequence_layouts (tests.test_captcha_ocr.CaptchaTensorTests.test_decoder_accepts_upstream_sequence_layouts) ... ok
+test_default_rgba_behavior_does_not_composite_onto_white (tests.test_captcha_ocr.CaptchaTensorTests.test_default_rgba_behavior_does_not_composite_onto_white) ... ok
+test_input_is_float32_nchw_with_unit_range (tests.test_captcha_ocr.CaptchaTensorTests.test_input_is_float32_nchw_with_unit_range) ... ok
+test_invalid_image_and_non_bytes_fail (tests.test_captcha_ocr.CaptchaTensorTests.test_invalid_image_and_non_bytes_fail) ... ok
+test_resize_preserves_aspect_ratio_using_integer_width (tests.test_captcha_ocr.CaptchaTensorTests.test_resize_preserves_aspect_ratio_using_integer_width) ... ok
+
+----------------------------------------------------------------------
+Ran 17 tests in 0.148s
+
+OK

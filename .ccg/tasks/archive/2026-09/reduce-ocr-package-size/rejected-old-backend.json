@@ -1,0 +1,4 @@
+{
+  "success": false,
+  "error": "Invalid OCR module payload; excluded modules: ['ddddocr', 'ddddocr.compat', 'ddddocr.compat.v1', 'ddddocr.core', 'ddddocr.core.base', 'ddddocr.core.detection_engine', 'ddddocr.core.ocr_engine', 'ddddocr.core.slide_engine', 'ddddocr.models', 'ddddocr.models.charset_manager', 'ddddocr.models.model_loader', 'ddddocr.preprocessing', 'ddddocr.preprocessing.color_filter', 'ddddocr.preprocessing.image_processor', 'ddddocr.utils', 'ddddocr.utils.compat', 'ddddocr.utils.exceptions', 'ddddocr.utils.image_io', 'ddddocr.utils.validators']"
+}

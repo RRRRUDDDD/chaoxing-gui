@@ -1,0 +1,73 @@
+{
+  "measured_at_utc": "2026-09-15T00:32:16.342778+00:00",
+  "baseline": "Existing local artifacts before optimization; same artifacts as prior audit, not a current-source rebuild",
+  "comparison": [
+    {
+      "kind": "backend (expanded)",
+      "before_bytes": 340942329,
+      "after_bytes": 149574706,
+      "before_mib": 325.15,
+      "after_mib": 142.65,
+      "reduction_percent": 56.13
+    },
+    {
+      "kind": "chaoxing-gui.exe",
+      "path": "dist\\ocr-optimized\\chaoxing-gui.exe",
+      "before_bytes": 180706432,
+      "after_bytes": 68021318,
+      "sha256": "925fca286e13029abc6912ba758df76c45b76bdcad49811a276a946cbf4c3513",
+      "before_mib": 172.34,
+      "after_mib": 64.87,
+      "reduction_percent": 62.36
+    },
+    {
+      "kind": "chaoxing-gui-tauri-setup-1.1.1-windows-x64.exe",
+      "path": "desktop\\release\\ocr-optimized\\chaoxing-gui-tauri-setup-1.1.1-windows-x64.exe",
+      "before_bytes": 153754871,
+      "after_bytes": 54064651,
+      "sha256": "673430d73e8f3fade5cef9e3f0c16ccad2b5d749becf9136092285f11537af97",
+      "before_mib": 146.63,
+      "after_mib": 51.56,
+      "reduction_percent": 64.84
+    },
+    {
+      "kind": "chaoxing-gui-tauri-portable-1.1.1-windows-x64.zip",
+      "path": "desktop\\release\\ocr-optimized\\chaoxing-gui-tauri-portable-1.1.1-windows-x64.zip",
+      "before_bytes": 186516281,
+      "after_bytes": 72342898,
+      "sha256": "e3a62d0f58eeec0db60da56958fff46db76fbc5b9efc88195b3bb847a629e5b8",
+      "before_mib": 177.88,
+      "after_mib": 68.99,
+      "reduction_percent": 61.21
+    }
+  ],
+  "backend_groups_bytes": {
+    "_internal/onnxruntime": 35286520,
+    "_internal/numpy.libs": 20990544,
+    "chaoxing-backend.exe": 15570344,
+    "_internal/ddddocr": 13753441,
+    "_internal/PIL": 13422080,
+    "_internal/cryptography": 9903104,
+    "_internal/lxml": 6884536,
+    "_internal/numpy": 6154752,
+    "_internal/python311.dll": 5800216,
+    "_internal/pydantic_core": 5240320,
+    "_internal/libcrypto-3.dll": 5191960,
+    "_internal/resource": 1608300,
+    "_internal/base_library.zip": 1443565,
+    "_internal/unicodedata.pyd": 1140504,
+    "_internal/libssl-3.dll": 787224,
+    "_internal/msvcp140.dll": 643512,
+    "_internal/tzdata": 513630,
+    "_internal/fontTools": 491008
+  },
+  "portable": {
+    "expanded_bytes": 159416271,
+    "expanded_mib": 152.03,
+    "models": [
+      "backend/_internal/ddddocr/common_old.onnx"
+    ],
+    "opencv_members": []
+  },
+  "note": "Before sizes are existing September 7-8 artifacts; after sizes are local builds from current working tree. The total delta includes intervening source/host changes. Unsigned; not published."
+}

@@ -1,0 +1,37 @@
+{
+  "id": "reduce-ocr-package-size",
+  "title": "根据 PaddleOCR 体积审计优化 OCR 依赖与桌面发布体积",
+  "status": "completed",
+  "complexity": "L",
+  "risk": "high",
+  "domain": "packaging/backend",
+  "currentPhase": "completed",
+  "nextAction": "已完成本地优化、验证和归档；新产物位于 desktop/release/ocr-optimized/",
+  "createdAt": "2026-09-14T23:59:13Z",
+  "branch": "main",
+  "userOverride": "用户要求不要调用双模型；停止已启动的外部分析，由主代理继续完成实施和审查",
+  "completedAt": "2026-09-15T00:48:59.0845869Z",
+  "implementationCommit": "a11eb383ed1b6c59eddcd9e0ece2aebed46665d1",
+  "validation": {
+    "python311": "193 passed",
+    "python313": "193 passed",
+    "captchaTargeted": "17 passed on both Python versions after diagnostic argument adjustment",
+    "sourceComparison": "48 synthetic cases: identical tensors and text; import-blocked real inference passed",
+    "frozenOCR": "onedir and onefile actual executables passed",
+    "startupSmoke": "backend and independent health/static/config/EOF passed; Job cleanup verified",
+    "web": "141 passed",
+    "desktop": "101 passed",
+    "build": "PyInstaller 6.21.0 both specs and Tauri release/NSIS succeeded",
+    "packaging": "ZIP 819 files and NSIS 818 application files verified against hashes",
+    "review": "single-agent, per user override",
+    "published": false
+  },
+  "result": {
+    "backendMiB": 142.65,
+    "backendReductionPercent": 56.13,
+    "independentExeMiB": 64.87,
+    "tauriInstallerMiB": 51.56,
+    "tauriPortableZipMiB": 68.99
+  },
+  "specFeedback": "已追加本地 .ccg/spec/backend/index.md；该文件原本未跟踪且被仓库忽略，维持现状，未把既有规范全文纳入代码提交。经验同时记录在归档 findings.md。"
+}

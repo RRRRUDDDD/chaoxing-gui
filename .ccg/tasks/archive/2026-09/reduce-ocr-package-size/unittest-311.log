@@ -1,0 +1,405 @@
+2026-09-15 08:14:40.920 | WARNING  | app:<module>:46 - pystray 未安装，托盘图标功能不可用
+test_cold_read_cannot_overwrite_concurrent_update (test_answer_cache.AnswerCacheTests.test_cold_read_cannot_overwrite_concurrent_update) ... ok
+test_concurrent_updates_all_reach_disk (test_answer_cache.AnswerCacheTests.test_concurrent_updates_all_reach_disk) ... ok
+test_empty_answer_is_not_cached (test_answer_cache.AnswerCacheTests.test_empty_answer_is_not_cached) ... 2026-09-15 08:14:41.190 | DEBUG    | api.answer:query:386 - 原始标题：Question
+2026-09-15 08:14:41.191 | DEBUG    | api.answer:query:395 - 处理后标题：Question
+2026-09-15 08:14:41.191 | ERROR    | api.answer:query:424 - 从AI大模型答题获取答案失败：Question
+2026-09-15 08:14:41.191 | DEBUG    | api.answer:query:386 - 原始标题：Question
+2026-09-15 08:14:41.191 | DEBUG    | api.answer:query:395 - 处理后标题：Question
+2026-09-15 08:14:41.192 | INFO     | api.answer:query:408 - 从AI大模型答题获取答案：Question -> answer
+ok
+test_failed_replace_preserves_previous_file_and_retries_dirty_data (test_answer_cache.AnswerCacheTests.test_failed_replace_preserves_previous_file_and_retries_dirty_data) ... 2026-09-15 08:14:41.195 | ERROR    | api.answer:_write_cache:220 - 缓存原子写入失败，保留待写数据: disk temporarily unavailable
+ok
+test_key_normalizes_whitespace_and_unicode_without_reordering_options (test_answer_cache.AnswerCacheTests.test_key_normalizes_whitespace_and_unicode_without_reordering_options) ... 2026-09-15 08:14:41.198 | DEBUG    | api.answer:query:386 - 原始标题：  café   question  
+2026-09-15 08:14:41.199 | DEBUG    | api.answer:query:395 - 处理后标题：  café   question  
+2026-09-15 08:14:41.199 | INFO     | api.answer:query:408 - 从AI大模型答题获取答案：  café   question   -> A
+2026-09-15 08:14:41.200 | DEBUG    | api.answer:query:386 - 原始标题：café question
+2026-09-15 08:14:41.200 | DEBUG    | api.answer:query:395 - 处理后标题：café question
+2026-09-15 08:14:41.200 | INFO     | api.answer:query:402 - 从缓存中获取答案：café question -> A
+ok
+test_legacy_title_only_entries_are_not_reused (test_answer_cache.AnswerCacheTests.test_legacy_title_only_entries_are_not_reused) ... 2026-09-15 08:14:41.201 | DEBUG    | api.answer:query:386 - 原始标题：Question
+2026-09-15 08:14:41.203 | DEBUG    | api.answer:query:395 - 处理后标题：Question
+2026-09-15 08:14:41.203 | INFO     | api.answer:query:408 - 从AI大模型答题获取答案：Question -> new answer
+ok
+test_option_order_and_question_type_do_not_share_letter_answers (test_answer_cache.AnswerCacheTests.test_option_order_and_question_type_do_not_share_letter_answers) ... 2026-09-15 08:14:41.205 | DEBUG    | api.answer:query:386 - 原始标题：Which is four?
+2026-09-15 08:14:41.205 | DEBUG    | api.answer:query:395 - 处理后标题：Which is four?
+2026-09-15 08:14:41.206 | INFO     | api.answer:query:408 - 从AI大模型答题获取答案：Which is four? -> A
+2026-09-15 08:14:41.206 | DEBUG    | api.answer:query:386 - 原始标题：Which is four?
+2026-09-15 08:14:41.206 | DEBUG    | api.answer:query:395 - 处理后标题：Which is four?
+2026-09-15 08:14:41.206 | INFO     | api.answer:query:408 - 从AI大模型答题获取答案：Which is four? -> B
+2026-09-15 08:14:41.206 | DEBUG    | api.answer:query:386 - 原始标题：Which is four?
+2026-09-15 08:14:41.206 | DEBUG    | api.answer:query:395 - 处理后标题：Which is four?
+2026-09-15 08:14:41.206 | INFO     | api.answer:query:408 - 从AI大模型答题获取答案：Which is four? -> A
+B
+2026-09-15 08:14:41.206 | DEBUG    | api.answer:query:386 - 原始标题：Which is four?
+2026-09-15 08:14:41.207 | DEBUG    | api.answer:query:395 - 处理后标题：Which is four?
+2026-09-15 08:14:41.207 | INFO     | api.answer:query:402 - 从缓存中获取答案：Which is four? -> A
+ok
+test_significant_leading_numbers_remain_part_of_cache_identity (test_answer_cache.AnswerCacheTests.test_significant_leading_numbers_remain_part_of_cache_identity) ... 2026-09-15 08:14:41.208 | DEBUG    | api.answer:query:386 - 原始标题：2+2=?
+2026-09-15 08:14:41.209 | DEBUG    | api.answer:query:395 - 处理后标题：+2=?
+2026-09-15 08:14:41.209 | INFO     | api.answer:query:408 - 从AI大模型答题获取答案：+2=? -> 4
+2026-09-15 08:14:41.209 | DEBUG    | api.answer:query:386 - 原始标题：3+2=?
+2026-09-15 08:14:41.209 | DEBUG    | api.answer:query:395 - 处理后标题：+2=?
+2026-09-15 08:14:41.209 | INFO     | api.answer:query:408 - 从AI大模型答题获取答案：+2=? -> 5
+2026-09-15 08:14:41.209 | DEBUG    | api.answer:query:386 - 原始标题：2+2=?
+2026-09-15 08:14:41.210 | DEBUG    | api.answer:query:395 - 处理后标题：+2=?
+2026-09-15 08:14:41.210 | INFO     | api.answer:query:402 - 从缓存中获取答案：+2=? -> 4
+ok
+test_tiku_close_flushes_and_closes_owned_resources_once (test_answer_cache.AnswerCacheTests.test_tiku_close_flushes_and_closes_owned_resources_once) ... ok
+test_tiku_close_flushes_shared_cache_even_without_queries (test_answer_cache.AnswerCacheTests.test_tiku_close_flushes_shared_cache_even_without_queries) ... ok
+test_tiku_releases_clients_even_if_flush_raises (test_answer_cache.AnswerCacheTests.test_tiku_releases_clients_even_if_flush_raises) ... 2026-09-15 08:14:41.219 | WARNING  | api.answer:close:278 - 关闭题库时缓存 flush 失败: offline disk failure
+ok
+test_updates_flush_in_batches_and_explicit_flush_is_atomic (test_answer_cache.AnswerCacheTests.test_updates_flush_in_batches_and_explicit_flush_is_atomic) ... ok
+test_actual_scheduler_distinguishes_empty_and_unopened_skipped (test_app.WebAppTests.test_actual_scheduler_distinguishes_empty_and_unopened_skipped) ... 2026-09-15 08:14:41.237 | INFO     | main:process_course:585 - 开始学习课程: 课程一
+2026-09-15 08:14:41.238 | INFO     | main:process_chapter:505 - 当前章节: 章节一
+2026-09-15 08:14:41.239 | INFO     | main:process_chapter:505 - 当前章节: 关闭章节
+ok
+test_actual_scheduler_reports_mixed_job_outcomes_within_a_chapter (test_app.WebAppTests.test_actual_scheduler_reports_mixed_job_outcomes_within_a_chapter) ... 2026-09-15 08:14:41.245 | INFO     | main:process_course:585 - 开始学习课程: 课程一
+2026-09-15 08:14:41.246 | INFO     | main:process_chapter:505 - 当前章节: 章节一
+2026-09-15 08:14:41.249 | INFO     | main:process_chapter:505 - 当前章节: 章节一
+2026-09-15 08:14:41.249 | INFO     | main:process_chapter:505 - 当前章节: 章节一
+2026-09-15 08:14:41.250 | INFO     | main:process_chapter:505 - 当前章节: 章节一
+2026-09-15 08:14:41.250 | INFO     | main:process_chapter:505 - 当前章节: 章节一
+2026-09-15 08:14:41.251 | ERROR    | main:worker_thread:471 - 章节重试耗尽: 章节一
+ok
+test_actual_scheduler_retry_exhaustion_propagates_to_api (test_app.WebAppTests.test_actual_scheduler_retry_exhaustion_propagates_to_api) ... 2026-09-15 08:14:41.258 | INFO     | main:process_course:585 - 开始学习课程: 课程一
+2026-09-15 08:14:41.259 | INFO     | main:process_chapter:505 - 当前章节: 章节一
+2026-09-15 08:14:41.259 | ERROR    | main:worker_thread:450 - 章节处理异常: 章节一 -> job response 503
+2026-09-15 08:14:41.260 | INFO     | main:process_chapter:505 - 当前章节: 章节一
+2026-09-15 08:14:41.260 | ERROR    | main:worker_thread:450 - 章节处理异常: 章节一 -> job response 503
+2026-09-15 08:14:41.260 | INFO     | main:process_chapter:505 - 当前章节: 章节一
+2026-09-15 08:14:41.260 | ERROR    | main:worker_thread:450 - 章节处理异常: 章节一 -> job response 503
+2026-09-15 08:14:41.262 | INFO     | main:process_chapter:505 - 当前章节: 章节一
+2026-09-15 08:14:41.262 | ERROR    | main:worker_thread:450 - 章节处理异常: 章节一 -> job response 503
+2026-09-15 08:14:41.263 | INFO     | main:process_chapter:505 - 当前章节: 章节一
+2026-09-15 08:14:41.263 | ERROR    | main:worker_thread:450 - 章节处理异常: 章节一 -> job response 503
+2026-09-15 08:14:41.263 | ERROR    | main:worker_thread:471 - 章节重试耗尽: 章节一
+ok
+test_cleanup_error_does_not_erase_completed_learning (test_app.WebAppTests.test_cleanup_error_does_not_erase_completed_learning) ... 2026-09-15 08:14:41.268 | WARNING  | app:_close_resource:177 - 清理学习资源失败: cache flush failed
+ok
+test_client_construction_failure_closes_created_tiku (test_app.WebAppTests.test_client_construction_failure_closes_created_tiku) ... ok
+test_completed_course_and_failed_course_produce_partial_task (test_app.WebAppTests.test_completed_course_and_failed_course_produce_partial_task) ... 2026-09-15 08:14:41.273 | ERROR    | app:login:206 - 登录错误: constructor failed
+2026-09-15 08:14:41.277 | ERROR    | app:_run_study_task:525 - 课程处理失败 课程一: first course failed
+ok
+test_concurrent_config_saves_preserve_both_account_keys (test_app.WebAppTests.test_concurrent_config_saves_preserve_both_account_keys) ... ok
+test_concurrent_tasks_keep_worker_logs_in_their_own_context (test_app.WebAppTests.test_concurrent_tasks_keep_worker_logs_in_their_own_context) ... 2026-09-15 08:14:41.289 | INFO     | main:process_course:585 - 开始学习课程: 课程一
+2026-09-15 08:14:41.292 | INFO     | main:process_course:585 - 开始学习课程: 课程一
+2026-09-15 08:14:41.292 | INFO     | main:process_chapter:505 - 当前章节: 章节一
+2026-09-15 08:14:41.294 | INFO     | main:process_chapter:505 - 当前章节: 章节一
+2026-09-15 08:14:41.295 | INFO     | test_app:get_jobs:382 - bob-worker-marker
+2026-09-15 08:14:41.295 | INFO     | test_app:get_jobs:382 - alice-worker-marker
+ok
+test_config_merges_selections_by_account_and_discards_legacy_selection (test_app.WebAppTests.test_config_merges_selections_by_account_and_discards_legacy_selection) ... ok
+test_cookie_only_login_courses_and_start (test_app.WebAppTests.test_cookie_only_login_courses_and_start) ... ok
+test_course_exception_is_not_reported_as_success (test_app.WebAppTests.test_course_exception_is_not_reported_as_success) ... 2026-09-15 08:14:41.311 | ERROR    | app:_run_study_task:525 - 课程处理失败 课程一: upstream 503
+ok
+test_duplicate_start_returns_existing_id_until_terminal (test_app.WebAppTests.test_duplicate_start_returns_existing_id_until_terminal) ... ok
+test_failed_chapter_list_counts_course_without_inventing_job_counts (test_app.WebAppTests.test_failed_chapter_list_counts_course_without_inventing_job_counts) ... 2026-09-15 08:14:41.380 | ERROR    | app:_run_study_task:525 - 课程处理失败 课程一: chapter list unavailable
+ok
+test_final_logs_include_resource_cleanup_and_notification_tail (test_app.WebAppTests.test_final_logs_include_resource_cleanup_and_notification_tail) ... 2026-09-15 08:14:41.387 | INFO     | test_app:<lambda>:351 - cleanup-tail-marker
+2026-09-15 08:14:41.387 | INFO     | test_app:<lambda>:352 - notification-tail-marker
+ok
+test_invalid_config_shapes_are_rejected (test_app.WebAppTests.test_invalid_config_shapes_are_rejected) ... ok
+test_invalid_start_parameters_are_rejected_before_creating_task (test_app.WebAppTests.test_invalid_start_parameters_are_rejected_before_creating_task) ... ok
+test_log_cursor_validation_and_expiry_apply_to_all_endpoints (test_app.WebAppTests.test_log_cursor_validation_and_expiry_apply_to_all_endpoints) ... ok
+test_login_and_course_requests_close_on_success_failure_and_exception (test_app.WebAppTests.test_login_and_course_requests_close_on_success_failure_and_exception) ... 2026-09-15 08:14:41.414 | ERROR    | app:login:206 - 登录错误: offline error
+2026-09-15 08:14:41.414 | ERROR    | app:get_courses:223 - 获取课程列表错误: offline error
+ok
+test_login_and_courses_reject_missing_credentials_without_constructing_client (test_app.WebAppTests.test_login_and_courses_reject_missing_credentials_without_constructing_client) ... ok
+2026-09-15 08:14:41.415 | ERROR    | app:get_courses:223 - 获取课程列表错误: list failed
+test_login_failure_and_initialization_failure_release_account (test_app.WebAppTests.test_login_failure_and_initialization_failure_release_account) ... 2026-09-15 08:14:41.423 | ERROR    | app:_run_study_task:540 - 任务执行错误: expired session
+2026-09-15 08:14:41.426 | ERROR    | app:_run_study_task:540 - 任务执行错误: cannot initialize
+ok
+test_missing_course_result_fails_instead_of_implicit_success (test_app.WebAppTests.test_missing_course_result_fails_instead_of_implicit_success) ... 2026-09-15 08:14:41.432 | ERROR    | app:_run_study_task:525 - 课程处理失败 课程一: 课程未返回有效学习结果
+ok
+test_notifications_cannot_overwrite_real_learning_result (test_app.WebAppTests.test_notifications_cannot_overwrite_real_learning_result) ... 2026-09-15 08:14:41.437 | WARNING  | app:_run_study_task:498 - 通知初始化失败: notify init
+2026-09-15 08:14:41.440 | WARNING  | app:_run_study_task:546 - 通知发送失败: notify send
+ok
+test_ocr_config_is_explicit_and_never_changes_process_environment (test_app.WebAppTests.test_ocr_config_is_explicit_and_never_changes_process_environment) ... ok
+test_ocr_import_failure_finishes_task_and_releases_account (test_app.WebAppTests.test_ocr_import_failure_finishes_task_and_releases_account) ... 2026-09-15 08:14:41.455 | ERROR    | app:_run_study_task:540 - 任务执行错误: OCR module unavailable
+ok
+test_parameter_boundaries_preserve_speed_clamp (test_app.WebAppTests.test_parameter_boundaries_preserve_speed_clamp) ... ok
+test_partial_chapter_results_override_estimates_and_are_counted_once (test_app.WebAppTests.test_partial_chapter_results_override_estimates_and_are_counted_once) ... ok
+test_success_reuses_chapter_snapshot_and_closes_client (test_app.WebAppTests.test_success_reuses_chapter_snapshot_and_closes_client) ... ok
+test_thread_start_failure_releases_account (test_app.WebAppTests.test_thread_start_failure_releases_account) ... 2026-09-15 08:14:41.481 | ERROR    | app:start_study:627 - 启动任务错误: thread unavailable
+ok
+test_unknown_course_ids_fail_without_selecting_all_courses (test_app.WebAppTests.test_unknown_course_ids_fail_without_selecting_all_courses) ... 2026-09-15 08:14:41.486 | ERROR    | app:_run_study_task:540 - 任务执行错误: 课程选择已失效，请重新选择: unknown
+ok
+test_upstream_value_errors_are_server_errors_and_close_client (test_app.WebAppTests.test_upstream_value_errors_are_server_errors_and_close_client) ... 2026-09-15 08:14:41.493 | ERROR    | app:login:206 - 登录错误: invalid upstream JSON
+2026-09-15 08:14:41.494 | ERROR    | app:get_courses:223 - 获取课程列表错误: invalid upstream JSON
+ok
+test_asset_location_uses_distribution_not_current_directory (test_captcha_ocr.CaptchaAssetTests.test_asset_location_uses_distribution_not_current_directory) ... ok
+test_charset_order_and_missing_file_are_checked (test_captcha_ocr.CaptchaAssetTests.test_charset_order_and_missing_file_are_checked) ... ok
+test_charset_source_is_parsed_without_executing_it (test_captcha_ocr.CaptchaAssetTests.test_charset_source_is_parsed_without_executing_it) ... ok
+test_missing_and_corrupt_model_fail_before_inference (test_captcha_ocr.CaptchaAssetTests.test_missing_and_corrupt_model_fail_before_inference) ... ok
+test_unverified_package_version_is_rejected (test_captcha_ocr.CaptchaAssetTests.test_unverified_package_version_is_rejected) ... ok
+test_default_engine_uses_cpu_and_retains_classification_contract (test_captcha_ocr.CaptchaLifecycleTests.test_default_engine_uses_cpu_and_retains_classification_contract) ... ok
+test_explicit_none_and_injected_recognizer_do_not_initialize (test_captcha_ocr.CaptchaLifecycleTests.test_explicit_none_and_injected_recognizer_do_not_initialize) ... ok
+test_invalid_self_check_arguments_do_not_start_application (test_captcha_ocr.CaptchaLifecycleTests.test_invalid_self_check_arguments_do_not_start_application) ... 2026-09-15 08:14:41.570 | ERROR    | api.captcha:recognition:133 - ddddocr 实例未成功初始化，无法执行验证码识别
+ok
+test_optional_dependencies_or_bad_assets_keep_manual_fallback (test_captcha_ocr.CaptchaLifecycleTests.test_optional_dependencies_or_bad_assets_keep_manual_fallback) ... 2026-09-15 08:14:41.578 | WARNING  | api.captcha:ocr_init:34 - 验证码 OCR 初始化失败: missing onnxruntime，如遇403限制请在浏览器端手动完成验证。
+2026-09-15 08:14:41.578 | WARNING  | api.captcha:ocr_init:34 - 验证码 OCR 初始化失败: model，如遇403限制请在浏览器端手动完成验证。
+ok
+test_recognition_failure_never_submits (test_captcha_ocr.CaptchaLifecycleTests.test_recognition_failure_never_submits) ... 2026-09-15 08:14:41.578 | WARNING  | api.captcha:ocr_init:34 - 验证码 OCR 初始化失败: wrong version，如遇403限制请在浏览器端手动完成验证。
+2026-09-15 08:14:41.579 | ERROR    | api.captcha:try_pass:154 - 验证码自动验证时发生异常: bad image
+ok
+test_self_check_runs_before_web_imports_and_business_initialization (test_captcha_ocr.CaptchaLifecycleTests.test_self_check_runs_before_web_imports_and_business_initialization) ... ok
+test_ctc_deduplicates_indices_and_preserves_blank_separated_repeats (test_captcha_ocr.CaptchaTensorTests.test_ctc_deduplicates_indices_and_preserves_blank_separated_repeats) ... ok
+test_decoder_accepts_upstream_sequence_layouts (test_captcha_ocr.CaptchaTensorTests.test_decoder_accepts_upstream_sequence_layouts) ... ok
+test_default_rgba_behavior_does_not_composite_onto_white (test_captcha_ocr.CaptchaTensorTests.test_default_rgba_behavior_does_not_composite_onto_white) ... ok
+test_input_is_float32_nchw_with_unit_range (test_captcha_ocr.CaptchaTensorTests.test_input_is_float32_nchw_with_unit_range) ... ok
+test_invalid_image_and_non_bytes_fail (test_captcha_ocr.CaptchaTensorTests.test_invalid_image_and_non_bytes_fail) ... ok
+test_resize_preserves_aspect_ratio_using_integer_width (test_captcha_ocr.CaptchaTensorTests.test_resize_preserves_aspect_ratio_using_integer_width) ... ok
+test_all_cards_reach_chapter_counts_without_an_empty_page_request (test_decode_jobs.DecodeJobResultIntegrationTests.test_all_cards_reach_chapter_counts_without_an_empty_page_request) ... 2026-09-15 08:14:41.767 | INFO     | main:process_chapter:505 - 当前章节: Chapter
+2026-09-15 08:14:41.769 | INFO     | api.base:get_job_list:275 - 章节任务点读取成功...
+ok
+test_explicit_evidence_recovers_retry_with_stable_fallback_identities (test_decode_jobs.DecodeJobResultIntegrationTests.test_explicit_evidence_recovers_retry_with_stable_fallback_identities) ... 2026-09-15 08:14:41.770 | INFO     | main:process_chapter:505 - 当前章节: Chapter
+2026-09-15 08:14:41.771 | INFO     | api.base:get_job_list:275 - 章节任务点读取成功...
+2026-09-15 08:14:41.772 | INFO     | main:process_chapter:505 - 当前章节: Chapter
+2026-09-15 08:14:41.773 | INFO     | api.base:get_job_list:275 - 章节任务点读取成功...
+2026-09-15 08:14:41.773 | INFO     | main:process_chapter:505 - 当前章节: Chapter
+ok
+test_missing_failed_task_without_evidence_stays_failed_after_empty_page (test_decode_jobs.DecodeJobResultIntegrationTests.test_missing_failed_task_without_evidence_stays_failed_after_empty_page) ... 2026-09-15 08:14:41.774 | INFO     | api.base:get_job_list:275 - 章节任务点读取成功...
+2026-09-15 08:14:41.775 | INFO     | main:process_chapter:505 - 当前章节: Chapter
+2026-09-15 08:14:41.775 | INFO     | api.base:get_job_list:275 - 章节任务点读取成功...
+2026-09-15 08:14:41.776 | INFO     | main:process_chapter:505 - 当前章节: Chapter
+2026-09-15 08:14:41.776 | INFO     | api.base:get_job_list:275 - 章节任务点读取成功...
+ok
+test_blank_or_non_scalar_identities_are_not_completion_evidence (test_decode_jobs.DecodeJobsTests.test_blank_or_non_scalar_identities_are_not_completion_evidence) ... ok
+test_empty_and_unopened_cards_always_have_empty_passed_list (test_decode_jobs.DecodeJobsTests.test_empty_and_unopened_cards_always_have_empty_passed_list) ... ok
+test_false_completion_markers_do_not_count_as_passed (test_decode_jobs.DecodeJobsTests.test_false_completion_markers_do_not_count_as_passed) ... ok
+test_live_hints_keep_the_same_identity_after_job_field_disappears (test_decode_jobs.DecodeJobsTests.test_live_hints_keep_the_same_identity_after_job_field_disappears) ... ok
+test_mixed_pending_and_passed_tasks_keep_separate_identities (test_decode_jobs.DecodeJobsTests.test_mixed_pending_and_passed_tasks_keep_separate_identities) ... ok
+test_non_read_markers_and_non_task_attachments_preserve_pending_parsing (test_decode_jobs.DecodeJobsTests.test_non_read_markers_and_non_task_attachments_preserve_pending_parsing) ... ok
+2026-09-15 08:14:41.781 | WARNING  | api.decode:_process_video_task:940 - 出现转码失败视频，已跳过...
+test_object_and_read_ids_are_preserved_when_jobid_is_absent (test_decode_jobs.DecodeJobsTests.test_object_and_read_ids_are_preserved_when_jobid_is_absent) ... ok
+test_passed_boolean_variants_do_not_require_job (test_decode_jobs.DecodeJobsTests.test_passed_boolean_variants_do_not_require_job) ... ok
+test_passed_tasks_match_pending_identity_even_without_job_or_playback_fields (test_decode_jobs.DecodeJobsTests.test_passed_tasks_match_pending_identity_even_without_job_or_playback_fields) ... ok
+test_read_true_is_explicit_completion_without_is_passed (test_decode_jobs.DecodeJobsTests.test_read_true_is_explicit_completion_without_is_passed) ... ok
+test_unknown_and_unidentified_attachments_are_not_successful_tasks (test_decode_jobs.DecodeJobsTests.test_unknown_and_unidentified_attachments_are_not_successful_tasks) ... ok
+test_app_entry_has_no_tauri_side_effect (test_desktop_runtime.NormalModeTests.test_app_entry_has_no_tauri_side_effect)
+app.py 模块导入（无 TAURI env）不应注册 guard 或改变 CORS。 ... ok
+test_health_without_token_200 (test_desktop_runtime.NormalModeTests.test_health_without_token_200) ... 127.0.0.1 - - [15/Sep/2026 08:14:42] "GET /api/health HTTP/1.1" 200 -
+ok
+test_empty_token_raises (test_desktop_runtime.ParseReadyEnvTests.test_empty_token_raises) ... ok
+test_missing_instance_raises (test_desktop_runtime.ParseReadyEnvTests.test_missing_instance_raises) ... ok
+test_missing_token_raises (test_desktop_runtime.ParseReadyEnvTests.test_missing_token_raises) ... ok
+test_no_fallback_in_real_environ (test_desktop_runtime.ParseReadyEnvTests.test_no_fallback_in_real_environ)
+真实 os.environ 缺少变量时必须抛错（不允许回退旧模式）。 ... ok
+test_valid_env_returns_pair (test_desktop_runtime.ParseReadyEnvTests.test_valid_env_returns_pair) ... ok
+test_ready_line_format (test_desktop_runtime.ReadyLineTests.test_ready_line_format) ... ok
+{"ready":"chaoxing-ready","version":1,"port":24094,"instanceId":"inst-xyz789"}
+test_binds_random_port_and_connectable (test_desktop_runtime.TokenGuardTests.test_binds_random_port_and_connectable) ... ok
+{"ready":"chaoxing-ready","version":1,"port":24097,"instanceId":"inst-xyz789"}
+test_business_route_without_token_401 (test_desktop_runtime.TokenGuardTests.test_business_route_without_token_401) ... 127.0.0.1 - - [15/Sep/2026 08:14:43] "GET /api/config HTTP/1.1" 401 -
+ok
+{"ready":"chaoxing-ready","version":1,"port":24100,"instanceId":"inst-xyz789"}
+test_correct_token_and_host_200 (test_desktop_runtime.TokenGuardTests.test_correct_token_and_host_200) ... 127.0.0.1 - - [15/Sep/2026 08:14:43] "GET /api/health HTTP/1.1" 200 -
+ok
+{"ready":"chaoxing-ready","version":1,"port":24107,"instanceId":"inst-xyz789"}
+test_correct_token_business_route_200 (test_desktop_runtime.TokenGuardTests.test_correct_token_business_route_200) ... 127.0.0.1 - - [15/Sep/2026 08:14:44] "GET /api/task/t1 HTTP/1.1" 200 -
+ok
+{"ready":"chaoxing-ready","version":1,"port":24114,"instanceId":"inst-xyz789"}
+test_health_forged_host_401 (test_desktop_runtime.TokenGuardTests.test_health_forged_host_401) ... 127.0.0.1 - - [15/Sep/2026 08:14:44] "GET /api/health HTTP/1.1" 401 -
+ok
+{"ready":"chaoxing-ready","version":1,"port":24119,"instanceId":"inst-xyz789"}
+test_health_without_token_401 (test_desktop_runtime.TokenGuardTests.test_health_without_token_401) ... 127.0.0.1 - - [15/Sep/2026 08:14:45] "GET /api/health HTTP/1.1" 401 -
+ok
+{"ready":"chaoxing-ready","version":1,"port":24123,"instanceId":"inst-xyz789"}
+test_health_wrong_token_401 (test_desktop_runtime.TokenGuardTests.test_health_wrong_token_401) ... 127.0.0.1 - - [15/Sep/2026 08:14:45] "GET /api/health HTTP/1.1" 401 -
+ok
+{"ready":"chaoxing-ready","version":1,"port":24130,"instanceId":"inst-xyz789"}
+test_no_cors_header_in_tauri_mode (test_desktop_runtime.TokenGuardTests.test_no_cors_header_in_tauri_mode) ... 127.0.0.1 - - [15/Sep/2026 08:14:46] "GET /api/health HTTP/1.1" 200 -
+ok
+{"ready":"chaoxing-ready","version":1,"port":24134,"instanceId":"inst-xyz789"}
+test_options_preflight_401 (test_desktop_runtime.TokenGuardTests.test_options_preflight_401) ... 127.0.0.1 - - [15/Sep/2026 08:14:46] "OPTIONS /api/config HTTP/1.1" 401 -
+ok
+test_all_http_notifications_are_bounded_and_do_not_retry_posts (test_notifications.NotificationTests.test_all_http_notifications_are_bounded_and_do_not_retry_posts) ... 2026-09-15 08:14:47.426 | ERROR    | api.notification:_send:252 - Bark通知发送失败: 
+2026-09-15 08:14:47.428 | ERROR    | api.notification:_send:217 - Qmsg酱通知发送失败: 
+2026-09-15 08:14:47.428 | ERROR    | api.notification:_send:181 - Server酱通知发送失败: 
+2026-09-15 08:14:47.428 | ERROR    | api.notification:_send:293 - Telegram通知发送失败: 
+ok
+test_cli_config_file_is_read_with_environment_override (test_ocr.OCRConfigTests.test_cli_config_file_is_read_with_environment_override) ... ok
+test_concurrent_contexts_and_copied_thread_contexts_are_isolated (test_ocr.OCRConfigTests.test_concurrent_contexts_and_copied_thread_contexts_are_isolated) ... ok
+test_empty_explicit_config_disables_environment_and_restores_outer_config (test_ocr.OCRConfigTests.test_empty_explicit_config_disables_environment_and_restores_outer_config) ... ok
+test_remote_empty_success_is_distinct_from_http_failure (test_ocr.OCRConfigTests.test_remote_empty_success_is_distinct_from_http_failure) ... ok
+2026-09-15 08:14:47.435 | DEBUG    | api.vision_ocr:_call_openai_compatible:255 - OpenAI 兼容 API 返回异常: 503 - offline failure
+test_paddle_two_and_three_result_formats (test_ocr.OCRParsingCompatibilityTests.test_paddle_two_and_three_result_formats) ... ok
+test_question_option_labels_and_multiple_answer_fields_are_preserved (test_ocr.OCRParsingCompatibilityTests.test_question_option_labels_and_multiple_answer_fields_are_preserved) ... ok
+test_title_and_choice_parsing_preserve_image_identity_after_failure (test_ocr.OCRParsingCompatibilityTests.test_title_and_choice_parsing_preserve_image_identity_after_failure) ... ok
+test_all_remote_engine_settings_are_part_of_cache_identity (test_ocr.OCRPipelineTests.test_all_remote_engine_settings_are_part_of_cache_identity) ... ok
+test_cache_capacity_is_bounded (test_ocr.OCRPipelineTests.test_cache_capacity_is_bounded) ... ok
+test_concurrent_paddle_initialization_constructs_only_one_engine (test_ocr.OCRPipelineTests.test_concurrent_paddle_initialization_constructs_only_one_engine) ... 2026-09-15 08:14:47.441 | INFO     | api.decode:_init_paddle_ocr:247 - PaddleOCR 初始化成功 (GPU)，将用于题目图片 OCR
+ok
+test_concurrent_requests_for_one_image_recognize_once (test_ocr.OCRPipelineTests.test_concurrent_requests_for_one_image_recognize_once) ... ok
+test_download_failure_has_short_retry_window (test_ocr.OCRPipelineTests.test_download_failure_has_short_retry_window) ... 2026-09-15 08:14:47.448 | DEBUG    | api.decode:_download_ocr_image:391 - 下载题目图片异常: offline timeout
+ok
+test_explicitly_disabled_ocr_does_not_download_or_initialize (test_ocr.OCRPipelineTests.test_explicitly_disabled_ocr_does_not_download_or_initialize) ... ok
+test_http_fallback_empty_response_does_not_hide_primary_failure (test_ocr.OCRPipelineTests.test_http_fallback_empty_response_does_not_hide_primary_failure) ... ok
+test_independent_download_closes_its_session_without_loading_cookies (test_ocr.OCRPipelineTests.test_independent_download_closes_its_session_without_loading_cookies) ... ok
+test_independent_session_is_closed_after_download_failure (test_ocr.OCRPipelineTests.test_independent_session_is_closed_after_download_failure) ... ok
+2026-09-15 08:14:47.455 | DEBUG    | api.decode:_download_ocr_image:391 - 下载题目图片异常: offline timeout
+test_local_gpu_inference_can_fall_back_to_cpu (test_ocr.OCRPipelineTests.test_local_gpu_inference_can_fall_back_to_cpu) ... 2026-09-15 08:14:47.457 | DEBUG    | api.decode:_local_ocr_result:448 - PaddleOCR GPU 推理失败，切换到 CPU: offline GPU failure
+2026-09-15 08:14:47.457 | DEBUG    | api.decode:_local_ocr_result:459 - PaddleOCR 提取文本成功 (预处理模式0): CPU answer 来自 https://p.ananas.chaoxing.com/question.png
+ok
+test_local_inference_cleans_temporary_image_and_caches_text (test_ocr.OCRPipelineTests.test_local_inference_cleans_temporary_image_and_caches_text) ... 2026-09-15 08:14:47.459 | DEBUG    | api.decode:_local_ocr_result:459 - PaddleOCR 提取文本成功 (预处理模式0): x=1 y=2 来自 https://p.ananas.chaoxing.com/question.png
+ok
+test_paddle_initialization_failure_backs_off_even_for_forced_device (test_ocr.OCRPipelineTests.test_paddle_initialization_failure_backs_off_even_for_forced_device) ... 2026-09-15 08:14:47.461 | WARNING  | api.decode:_init_paddle_ocr:262 - PaddleOCR 初始化失败，将不使用本地 OCR: offline missing paddle
+2026-09-15 08:14:47.461 | WARNING  | api.decode:_init_paddle_ocr:262 - PaddleOCR 初始化失败，将不使用本地 OCR: offline missing paddle
+ok
+test_parse_then_query_does_not_repeat_failed_model_initialization (test_ocr.OCRPipelineTests.test_parse_then_query_does_not_repeat_failed_model_initialization) ... 2026-09-15 08:14:47.463 | WARNING  | api.decode:_init_paddle_ocr:262 - PaddleOCR 初始化失败，将不使用本地 OCR: offline missing paddle
+ok
+test_remote_failure_is_retried_without_permanent_empty_cache (test_ocr.OCRPipelineTests.test_remote_failure_is_retried_without_permanent_empty_cache) ... ok
+test_successful_empty_recognition_has_finite_longer_cache_window (test_ocr.OCRPipelineTests.test_successful_empty_recognition_has_finite_longer_cache_window) ... ok
+test_url_and_content_cache_reuse_recognition_and_borrow_account_session (test_ocr.OCRPipelineTests.test_url_and_content_cache_reuse_recognition_and_borrow_account_session) ... ok
+test_url_cache_does_not_cross_account_sessions (test_ocr.OCRPipelineTests.test_url_cache_does_not_cross_account_sessions) ... ok
+test_artifact_kind_requires_its_matching_extension (test_release_version.ReleaseVersionTests.test_artifact_kind_requires_its_matching_extension) ... ok
+test_artifact_versions_must_match_the_source (test_release_version.ReleaseVersionTests.test_artifact_versions_must_match_the_source) ... ok
+test_drift_in_each_metadata_file_is_rejected (test_release_version.ReleaseVersionTests.test_drift_in_each_metadata_file_is_rejected) ... ok
+test_invalid_source_version_is_rejected_before_writes (test_release_version.ReleaseVersionTests.test_invalid_source_version_is_rejected_before_writes) ... ok
+test_matching_metadata_and_tag_are_accepted_without_mutation (test_release_version.ReleaseVersionTests.test_matching_metadata_and_tag_are_accepted_without_mutation) ... ok
+test_missing_cargo_package_is_not_fabricated_by_sync (test_release_version.ReleaseVersionTests.test_missing_cargo_package_is_not_fabricated_by_sync) ... ok
+test_npm_lock_root_package_version_is_checked (test_release_version.ReleaseVersionTests.test_npm_lock_root_package_version_is_checked) ... ok
+test_sync_uses_pyproject_and_preserves_dependency_versions (test_release_version.ReleaseVersionTests.test_sync_uses_pyproject_and_preserves_dependency_versions) ... ok
+test_tag_mismatch_blocks_release (test_release_version.ReleaseVersionTests.test_tag_mismatch_blocks_release) ... ok
+test_api_selection_rejects_empty_or_any_unknown_id (test_scheduler.SchedulerTests.test_api_selection_rejects_empty_or_any_unknown_id) ... ok
+test_cli_blank_selection_explicitly_selects_all (test_scheduler.SchedulerTests.test_cli_blank_selection_explicitly_selects_all) ... ok
+test_course_uses_provided_chapter_snapshot (test_scheduler.SchedulerTests.test_course_uses_provided_chapter_snapshot) ... 2026-09-15 08:14:48.902 | INFO     | main:process_course:585 - 开始学习课程: Course
+ok
+test_exhausted_retry_propagates_failure_and_closes_threads (test_scheduler.SchedulerTests.test_exhausted_retry_propagates_failure_and_closes_threads) ... 2026-09-15 08:14:48.904 | ERROR    | main:worker_thread:471 - 章节重试耗尽: Chapter 1
+ok
+test_invalid_concurrency_never_starts_threads (test_scheduler.SchedulerTests.test_invalid_concurrency_never_starts_threads) ... ok
+test_missing_failed_job_without_passed_evidence_stays_failed (test_scheduler.SchedulerTests.test_missing_failed_job_without_passed_evidence_stays_failed) ... 2026-09-15 08:14:48.906 | INFO     | main:process_chapter:505 - 当前章节: Chapter 1
+2026-09-15 08:14:48.906 | INFO     | main:process_chapter:505 - 当前章节: Chapter 1
+2026-09-15 08:14:48.906 | ERROR    | main:worker_thread:471 - 章节重试耗尽: Chapter 1
+ok
+test_partial_job_failure_does_not_call_done (test_scheduler.SchedulerTests.test_partial_job_failure_does_not_call_done) ... 2026-09-15 08:14:48.907 | INFO     | main:process_chapter:505 - 当前章节: Chapter 1
+ok
+test_partial_thread_start_failure_joins_already_started_retry_worker (test_scheduler.SchedulerTests.test_partial_thread_start_failure_joins_already_started_retry_worker) ... ok
+test_passed_metadata_finishes_retry_without_losing_prior_jobs (test_scheduler.SchedulerTests.test_passed_metadata_finishes_retry_without_losing_prior_jobs) ... 2026-09-15 08:14:48.909 | INFO     | main:process_chapter:505 - 当前章节: Chapter 1
+2026-09-15 08:14:48.910 | INFO     | main:process_chapter:505 - 当前章节: Chapter 1
+ok
+test_shrinking_retry_list_keeps_completed_job_counts (test_scheduler.SchedulerTests.test_shrinking_retry_list_keeps_completed_job_counts) ... 2026-09-15 08:14:48.911 | INFO     | main:process_chapter:505 - 当前章节: Chapter 1
+2026-09-15 08:14:48.911 | INFO     | main:process_chapter:505 - 当前章节: Chapter 1
+2026-09-15 08:14:48.912 | INFO     | main:process_chapter:505 - 当前章节: Chapter 1
+2026-09-15 08:14:48.912 | ERROR    | main:worker_thread:471 - 章节重试耗尽: Chapter 1
+ok
+test_skipped_jobs_are_not_completed (test_scheduler.SchedulerTests.test_skipped_jobs_are_not_completed) ... 2026-09-15 08:14:48.913 | INFO     | main:process_chapter:505 - 当前章节: Chapter 1
+ok
+test_successive_courses_leave_no_scheduler_threads (test_scheduler.SchedulerTests.test_successive_courses_leave_no_scheduler_threads) ... ok
+test_task_context_reaches_workers_and_job_pool (test_scheduler.SchedulerTests.test_task_context_reaches_workers_and_job_pool) ... 2026-09-15 08:14:48.916 | INFO     | main:process_chapter:505 - 当前章节: Chapter 1
+ok
+test_unopened_chapter_is_skipped_or_failed (test_scheduler.SchedulerTests.test_unopened_chapter_is_skipped_or_failed) ... 2026-09-15 08:14:48.918 | ERROR    | main:worker_thread:471 - 章节重试耗尽: Chapter 1
+ok
+test_worker_exceptions_are_reported_and_joined (test_scheduler.SchedulerTests.test_worker_exceptions_are_reported_and_joined) ... 2026-09-15 08:14:48.919 | ERROR    | main:worker_thread:450 - 章节处理异常: Chapter 1 -> offline failure
+2026-09-15 08:14:48.919 | ERROR    | main:worker_thread:450 - 章节处理异常: Chapter 1 -> offline failure
+2026-09-15 08:14:48.920 | ERROR    | main:worker_thread:450 - 章节处理异常: Chapter 1 -> offline failure
+2026-09-15 08:14:48.920 | ERROR    | main:worker_thread:450 - 章节处理异常: Chapter 1 -> offline failure
+2026-09-15 08:14:48.920 | ERROR    | main:worker_thread:450 - 章节处理异常: Chapter 1 -> offline failure
+2026-09-15 08:14:48.920 | ERROR    | main:worker_thread:471 - 章节重试耗尽: Chapter 1
+ok
+test_account_cookies_never_fall_back_to_another_account (test_sessions.SessionTests.test_account_cookies_never_fall_back_to_another_account) ... ok
+test_context_is_scoped_and_can_be_copied (test_sessions.SessionTests.test_context_is_scoped_and_can_be_copied) ... ok
+test_cookie_attributes_survive_persistence (test_sessions.SessionTests.test_cookie_attributes_survive_persistence) ... ok
+test_cookie_only_login_uses_selected_account (test_sessions.SessionTests.test_cookie_only_login_uses_selected_account) ... 2026-09-15 08:14:48.933 | INFO     | api.base:login:96 - Logging in with cookies
+2026-09-15 08:14:48.934 | INFO     | api.base:login:106 - 登录成功...
+2026-09-15 08:14:48.934 | INFO     | api.base:login:96 - Logging in with cookies
+2026-09-15 08:14:48.935 | WARNING  | api.base:login:99 - Cookie 登录校验失败，尝试使用账号密码重新登录
+ok
+test_cookie_replacement_clears_old_values (test_sessions.SessionTests.test_cookie_replacement_clears_old_values) ... ok
+test_forbidden_recovery_keeps_its_own_login_session (test_sessions.SessionTests.test_forbidden_recovery_keeps_its_own_login_session) ... ok
+test_legacy_cookie_refresh_is_published_without_hostless_duplicates (test_sessions.SessionTests.test_legacy_cookie_refresh_is_published_without_hostless_duplicates) ... 2026-09-15 08:14:48.942 | INFO     | api.base:login:96 - Logging in with cookies
+2026-09-15 08:14:48.944 | INFO     | api.base:login:106 - 登录成功...
+ok
+test_login_has_timeout_and_owns_a_reusable_session (test_sessions.SessionTests.test_login_has_timeout_and_owns_a_reusable_session) ... 2026-09-15 08:14:48.950 | INFO     | api.base:login:133 - 登录成功...
+ok
+test_reuses_thread_session_without_reloading_cookies (test_sessions.SessionTests.test_reuses_thread_session_without_reloading_cookies) ... ok
+test_same_uid_on_multiple_service_domains_is_unambiguous (test_sessions.SessionTests.test_same_uid_on_multiple_service_domains_is_unambiguous) ... ok
+test_threads_have_separate_jars_and_close_their_sessions (test_sessions.SessionTests.test_threads_have_separate_jars_and_close_their_sessions) ... ok
+test_ai_worker_failure_prevents_form_submission (test_study_results.StudyResultTests.test_ai_worker_failure_prevents_form_submission) ... 2026-09-15 08:14:48.955 | DEBUG    | api.base:_handle_question:765 - 当前题目信息 -> {'id': 'q1', 'title': 'Offline question', 'type': 'single', 'options': 'A. first\nB. second', 'answerField': {}}
+ok
+test_cli_failure_does_not_send_success_notification_and_closes_client (test_study_results.StudyResultTests.test_cli_failure_does_not_send_success_notification_and_closes_client) ... 2026-09-15 08:14:48.957 | INFO     | main:main:680 - 课程列表过滤完毕, 当前课程任务数量: 1
+ok
+2026-09-15 08:14:48.957 | WARNING  | main:main:686 - 课程处理结束：1 个章节失败，0 个章节跳过
+test_confirmed_empty_page_has_an_explicit_empty_result (test_study_results.StudyResultTests.test_confirmed_empty_page_has_an_explicit_empty_result) ... 2026-09-15 08:14:48.958 | INFO     | main:process_chapter:505 - 当前章节: Chapter 1
+ok
+test_disabled_question_provider_is_a_skip (test_study_results.StudyResultTests.test_disabled_question_provider_is_a_skip) ... ok
+test_empty_page_failure_is_propagated (test_study_results.StudyResultTests.test_empty_page_failure_is_propagated) ... 2026-09-15 08:14:48.960 | INFO     | api.base:get_job_list:275 - 章节任务点读取成功...
+ok
+test_expired_work_is_skipped (test_study_results.StudyResultTests.test_expired_work_is_skipped) ... 2026-09-15 08:14:48.963 | DEBUG    | api.base:_handle_question:765 - 当前题目信息 -> {'id': 'q1', 'title': 'Offline question', 'type': 'single', 'options': 'A. first\nB. second', 'answerField': {}}
+2026-09-15 08:14:48.963 | INFO     | api.base:_handle_question:843 - 成功获取到答案：A
+2026-09-15 08:14:48.963 | INFO     | api.base:_handle_question:848 - Offline question 填写答案为 A
+2026-09-15 08:14:48.963 | INFO     | api.base:study_work:888 - 章节检测题库覆盖率： 100%
+ok
+test_failed_live_retry_does_not_report_completion (test_study_results.StudyResultTests.test_failed_live_retry_does_not_report_completion) ... 2026-09-15 08:14:48.964 | WARNING  | api.base:study_work:957 - 提交答题失败(作业已过期，将跳过本作业) -> 作业已过期
+2026-09-15 08:14:48.964 | INFO     | api.live_process:run_live:29 - 开始刷取直播'<Mock name='offline-live.name' id='686392720'>'，总时长1分钟（已根据倍速调整）
+2026-09-15 08:14:48.965 | INFO     | api.live_process:run_live:33 - 直播'<Mock name='offline-live.name' id='686392720'>'已观看1/1分钟
+2026-09-15 08:14:48.965 | WARNING  | api.live_process:run_live:36 - 第1分钟时长提交失败，将重试
+2026-09-15 08:14:48.966 | ERROR    | api.live_process:run_live:40 - 直播时长提交重试失败
+ok
+test_http_503_cannot_become_a_successful_empty_chapter (test_study_results.StudyResultTests.test_http_503_cannot_become_a_successful_empty_chapter) ... 2026-09-15 08:14:48.966 | INFO     | main:process_chapter:505 - 当前章节: Chapter 1
+ok
+test_live_failure_is_reported_by_job (test_study_results.StudyResultTests.test_live_failure_is_reported_by_job) ... ok
+test_passed_jobs_across_cards_are_preserved_without_empty_page_request (test_study_results.StudyResultTests.test_passed_jobs_across_cards_are_preserved_without_empty_page_request) ... 2026-09-15 08:14:48.967 | INFO     | main:process_chapter:505 - 当前章节: Chapter 1
+ok
+test_saved_but_unsubmitted_work_is_skipped (test_study_results.StudyResultTests.test_saved_but_unsubmitted_work_is_skipped) ... 2026-09-15 08:14:48.969 | INFO     | api.base:get_job_list:275 - 章节任务点读取成功...
+2026-09-15 08:14:48.969 | DEBUG    | api.base:_handle_question:765 - 当前题目信息 -> {'id': 'q1', 'title': 'Offline question', 'type': 'single', 'options': 'A. first\nB. second', 'answerField': {}}
+2026-09-15 08:14:48.970 | INFO     | api.base:_handle_question:843 - 成功获取到答案：A
+2026-09-15 08:14:48.970 | INFO     | api.base:_handle_question:848 - Offline question 填写答案为 A
+2026-09-15 08:14:48.970 | INFO     | api.base:study_work:888 - 章节检测题库覆盖率： 100%
+2026-09-15 08:14:48.970 | INFO     | api.base:study_work:952 - 保存答题成功 -> accepted
+ok
+test_submitted_work_is_completed (test_study_results.StudyResultTests.test_submitted_work_is_completed) ... 2026-09-15 08:14:48.971 | DEBUG    | api.base:_handle_question:765 - 当前题目信息 -> {'id': 'q1', 'title': 'Offline question', 'type': 'single', 'options': 'A. first\nB. second', 'answerField': {}}
+2026-09-15 08:14:48.972 | INFO     | api.base:_handle_question:843 - 成功获取到答案：A
+2026-09-15 08:14:48.972 | INFO     | api.base:_handle_question:848 - Offline question 填写答案为 A
+2026-09-15 08:14:48.972 | INFO     | api.base:study_work:888 - 章节检测题库覆盖率： 100%
+2026-09-15 08:14:48.972 | INFO     | api.base:study_work:952 - 提交答题成功 -> accepted
+ok
+test_web_outcome_remains_partial_after_pending_list_shrinks (test_study_results.StudyResultTests.test_web_outcome_remains_partial_after_pending_list_shrinks) ... 2026-09-15 08:14:48.973 | INFO     | main:process_course:585 - 开始学习课程: Course
+2026-09-15 08:14:48.974 | INFO     | main:process_chapter:505 - 当前章节: Chapter 1
+2026-09-15 08:14:48.975 | INFO     | main:process_chapter:505 - 当前章节: Chapter 1
+2026-09-15 08:14:48.975 | INFO     | main:process_chapter:505 - 当前章节: Chapter 1
+2026-09-15 08:14:48.975 | INFO     | main:process_chapter:505 - 当前章节: Chapter 1
+2026-09-15 08:14:48.976 | INFO     | main:process_chapter:505 - 当前章节: Chapter 1
+2026-09-15 08:14:48.976 | ERROR    | main:worker_thread:471 - 章节重试耗尽: Chapter 1
+ok
+test_completed_task_does_not_restart (test_task_recovery.TaskRecoveryApiTests.test_completed_task_does_not_restart) ... ok
+test_failed_login_or_wrong_account_never_resumes (test_task_recovery.TaskRecoveryApiTests.test_failed_login_or_wrong_account_never_resumes) ... ok
+test_persisted_settings_are_validated_before_launch (test_task_recovery.TaskRecoveryApiTests.test_persisted_settings_are_validated_before_launch) ... ok
+test_resume_reloads_platform_progress_and_skips_completed_chapters (test_task_recovery.TaskRecoveryApiTests.test_resume_reloads_platform_progress_and_skips_completed_chapters) ... 2026-09-15 08:14:49.000 | INFO     | main:process_course:585 - 开始学习课程: Fixture course
+2026-09-15 08:14:49.000 | INFO     | main:process_chapter:505 - 当前章节: Already done
+2026-09-15 08:14:49.000 | INFO     | main:process_chapter:505 - 当前章节: Remaining chapter
+ok
+test_start_restart_resume_uses_saved_parameters_and_cookie_login (test_task_recovery.TaskRecoveryApiTests.test_start_restart_resume_uses_saved_parameters_and_cookie_login) ... ok
+test_upstream_key_error_does_not_turn_a_recoverable_task_into_a_404 (test_task_recovery.TaskRecoveryApiTests.test_upstream_key_error_does_not_turn_a_recoverable_task_into_a_404) ... 2026-09-15 08:14:49.016 | ERROR    | app:resume_study:665 - 恢复任务失败: 'unexpected upstream response'
+ok
+test_worker_launch_failure_can_be_retried (test_task_recovery.TaskRecoveryApiTests.test_worker_launch_failure_can_be_retried) ... 2026-09-15 08:14:49.024 | ERROR    | app:resume_study:665 - 恢复任务失败: cannot start worker
+ok
+test_account_mismatch_does_not_claim_task (test_task_recovery.TaskRecoveryTests.test_account_mismatch_does_not_claim_task) ... ok
+test_checkpoint_survives_process_exit_without_cleanup_handlers (test_task_recovery.TaskRecoveryTests.test_checkpoint_survives_process_exit_without_cleanup_handlers) ... ok
+test_corrupt_checkpoint_is_reported_and_never_overwritten (test_task_recovery.TaskRecoveryTests.test_corrupt_checkpoint_is_reported_and_never_overwritten) ... ok
+test_failed_initial_write_rolls_back_reservation_and_keeps_previous_file (test_task_recovery.TaskRecoveryTests.test_failed_initial_write_rolls_back_reservation_and_keeps_previous_file) ... ok
+test_failed_resume_write_leaves_task_retryable (test_task_recovery.TaskRecoveryTests.test_failed_resume_write_leaves_task_retryable) ... ok
+test_finish_write_failure_is_visible_and_terminal_in_memory (test_task_recovery.TaskRecoveryTests.test_finish_write_failure_is_visible_and_terminal_in_memory) ... ok
+test_only_one_concurrent_resume_claim_succeeds (test_task_recovery.TaskRecoveryTests.test_only_one_concurrent_resume_claim_succeeds) ... ok
+test_restart_preserves_task_identity_and_reserves_account_without_starting (test_task_recovery.TaskRecoveryTests.test_restart_preserves_task_identity_and_reserves_account_without_starting) ... ok
+test_terminal_results_survive_restart_and_expire_without_resuming (test_task_recovery.TaskRecoveryTests.test_terminal_results_survive_restart_and_expire_without_resuming) ... ok
+test_account_reservation_is_atomic_and_ids_are_uuids (test_task_state.TaskStoreTests.test_account_reservation_is_atomic_and_ids_are_uuids) ... ok
+test_cleanup_thread_start_failure_does_not_reserve_account (test_task_state.TaskStoreTests.test_cleanup_thread_start_failure_does_not_reserve_account) ... ok
+test_cursor_reports_gaps_and_only_new_records (test_task_state.TaskStoreTests.test_cursor_reports_gaps_and_only_new_records) ... ok
+test_edit_serializes_concurrent_progress_updates (test_task_state.TaskStoreTests.test_edit_serializes_concurrent_progress_updates) ... ok
+test_finish_freezes_log_tail_and_clears_active_jobs (test_task_state.TaskStoreTests.test_finish_freezes_log_tail_and_clears_active_jobs) ... ok
+test_logs_are_isolated_bounded_and_reads_do_not_consume (test_task_state.TaskStoreTests.test_logs_are_isolated_bounded_and_reads_do_not_consume) ... ok
+test_long_messages_are_truncated_and_blank_messages_are_ignored (test_task_state.TaskStoreTests.test_long_messages_are_truncated_and_blank_messages_are_ignored) ... ok
+test_only_one_cleanup_thread_is_created_for_many_tasks (test_task_state.TaskStoreTests.test_only_one_cleanup_thread_is_created_for_many_tasks) ... ok
+test_released_account_is_not_removed_when_old_record_expires (test_task_state.TaskStoreTests.test_released_account_is_not_removed_when_old_record_expires) ... ok
+test_snapshots_do_not_expose_mutable_store_state (test_task_state.TaskStoreTests.test_snapshots_do_not_expose_mutable_store_state) ... ok
+test_terminal_ttl_removes_status_details_and_logs_together (test_task_state.TaskStoreTests.test_terminal_ttl_removes_status_details_and_logs_together) ... ok
+test_normal_browser_mode_keeps_cors_and_unauthenticated_health (test_tauri_entry_contract.TauriEntryContractTests.test_normal_browser_mode_keeps_cors_and_unauthenticated_health) ... ok
+test_tauri_ignores_legacy_port_environment (test_tauri_entry_contract.TauriEntryContractTests.test_tauri_ignores_legacy_port_environment) ... ok
+test_tauri_origin_is_rejected_without_cors_even_with_valid_token (test_tauri_entry_contract.TauriEntryContractTests.test_tauri_origin_is_rejected_without_cors_even_with_valid_token) ... ok
+
+----------------------------------------------------------------------
+Ran 193 tests in 12.487s
+
+OK

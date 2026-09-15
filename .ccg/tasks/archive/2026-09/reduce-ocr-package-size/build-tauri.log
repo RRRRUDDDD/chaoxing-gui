@@ -1,0 +1,15 @@
+
+> chaoxing-desktop@1.1.1 tauri
+> tauri build --ci --target x86_64-pc-windows-msvc --bundles nsis -- --locked -j 1 --no-default-features
+
+        Info Looking up installed tauri packages to check mismatched versions...
+   Compiling chaoxing-desktop v1.1.1 (E:\Downloads\45\chaoxing-gui\desktop\src-tauri)
+   Compiling windows v0.62.2
+    Finished `release` profile [optimized] target(s) in 2m 20s
+       Built application at: E:\Downloads\45\chaoxing-gui\desktop\src-tauri\target\x86_64-pc-windows-msvc\release\chaoxing-gui-tauri.exe
+        Info Patching E:\Downloads\45\chaoxing-gui\desktop\src-tauri\target\x86_64-pc-windows-msvc\release\chaoxing-gui-tauri.exe with bundle type information: nsis
+        Info Target: x64
+     Running makensis to produce E:\Downloads\45\chaoxing-gui\desktop\src-tauri\target\x86_64-pc-windows-msvc\release\bundle\nsis\Chaoxing GUI Tauri_1.1.1_x64-setup.exe
+    Finished 1 bundle at:
+        E:\Downloads\45\chaoxing-gui\desktop\src-tauri\target\x86_64-pc-windows-msvc\release\bundle\nsis\Chaoxing GUI Tauri_1.1.1_x64-setup.exe
+

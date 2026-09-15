@@ -1,0 +1,240 @@
+{
+  "runId": "87e7cc4d-dd35-4bcf-b201-573fb96e98b0",
+  "startedAt": "2026-09-15T00:21:41.405Z",
+  "success": true,
+  "checks": [
+    {
+      "name": "python-backend-validated-ready-handshake",
+      "result": "PASS",
+      "version": 1,
+      "instanceMatched": true,
+      "dynamicPort": true
+    },
+    {
+      "name": "python-backend-health-static-config-validation-eof",
+      "result": "PASS",
+      "upstreamAccountsUsed": false,
+      "learningTaskCreated": false,
+      "before": {
+        "host": {
+          "pid": 5344,
+          "createdAtFileTime": "134339053066454757",
+          "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\reduce-ocr-package-size\\smoke-backend\\smoke-MIkSgc\\fixture\\package\\chaoxing-backend.exe",
+          "inOuterJob": true,
+          "alive": true,
+          "exitCode": null
+        },
+        "active": [
+          {
+            "pid": 5344,
+            "createdAtFileTime": "134339053066454757",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\reduce-ocr-package-size\\smoke-backend\\smoke-MIkSgc\\fixture\\package\\chaoxing-backend.exe",
+            "inOuterJob": true,
+            "alive": true,
+            "exitCode": null
+          },
+          {
+            "pid": 32096,
+            "createdAtFileTime": "134339053066587295",
+            "executable": "C:\\Windows\\System32\\conhost.exe",
+            "inOuterJob": true,
+            "alive": true,
+            "exitCode": null
+          }
+        ],
+        "observed": [
+          {
+            "pid": 5344,
+            "createdAtFileTime": "134339053066454757",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\reduce-ocr-package-size\\smoke-backend\\smoke-MIkSgc\\fixture\\package\\chaoxing-backend.exe",
+            "inOuterJob": true,
+            "alive": true,
+            "exitCode": null
+          },
+          {
+            "pid": 32096,
+            "createdAtFileTime": "134339053066587295",
+            "executable": "C:\\Windows\\System32\\conhost.exe",
+            "inOuterJob": true,
+            "alive": true,
+            "exitCode": null
+          }
+        ],
+        "outerJobHandleRetained": true
+      },
+      "after": {
+        "host": {
+          "pid": 5344,
+          "createdAtFileTime": "134339053066454757",
+          "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\reduce-ocr-package-size\\smoke-backend\\smoke-MIkSgc\\fixture\\package\\chaoxing-backend.exe",
+          "inOuterJob": true,
+          "alive": false,
+          "exitCode": 0
+        },
+        "active": [],
+        "observed": [
+          {
+            "pid": 5344,
+            "createdAtFileTime": "134339053066454757",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\reduce-ocr-package-size\\smoke-backend\\smoke-MIkSgc\\fixture\\package\\chaoxing-backend.exe",
+            "inOuterJob": true,
+            "alive": false,
+            "exitCode": 0
+          },
+          {
+            "pid": 32096,
+            "createdAtFileTime": "134339053066587295",
+            "executable": "C:\\Windows\\System32\\conhost.exe",
+            "inOuterJob": true,
+            "alive": false,
+            "exitCode": 0
+          }
+        ],
+        "outerJobHandleRetained": true
+      }
+    }
+  ],
+  "processes": [
+    {
+      "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\reduce-ocr-package-size\\smoke-backend\\smoke-MIkSgc\\fixture\\package\\chaoxing-backend.exe",
+      "mode": "Backend",
+      "data": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\reduce-ocr-package-size\\smoke-backend\\smoke-MIkSgc\\fixture\\data",
+      "sanitizedPath": "C:\\WINDOWS\\System32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem",
+      "headless": true,
+      "stdin": "real pipe",
+      "process": {
+        "pid": 5344,
+        "createdAtFileTime": "134339053066454757",
+        "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\reduce-ocr-package-size\\smoke-backend\\smoke-MIkSgc\\fixture\\package\\chaoxing-backend.exe",
+        "inOuterJob": true,
+        "alive": true,
+        "exitCode": null
+      },
+      "listeners": [
+        {
+          "pid": 5344,
+          "address": "127.0.0.1",
+          "port": 33817
+        }
+      ],
+      "ready": {
+        "host": {
+          "pid": 5344,
+          "createdAtFileTime": "134339053066454757",
+          "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\reduce-ocr-package-size\\smoke-backend\\smoke-MIkSgc\\fixture\\package\\chaoxing-backend.exe",
+          "inOuterJob": true,
+          "alive": true,
+          "exitCode": null
+        },
+        "active": [
+          {
+            "pid": 5344,
+            "createdAtFileTime": "134339053066454757",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\reduce-ocr-package-size\\smoke-backend\\smoke-MIkSgc\\fixture\\package\\chaoxing-backend.exe",
+            "inOuterJob": true,
+            "alive": true,
+            "exitCode": null
+          },
+          {
+            "pid": 32096,
+            "createdAtFileTime": "134339053066587295",
+            "executable": "C:\\Windows\\System32\\conhost.exe",
+            "inOuterJob": true,
+            "alive": true,
+            "exitCode": null
+          }
+        ],
+        "observed": [
+          {
+            "pid": 5344,
+            "createdAtFileTime": "134339053066454757",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\reduce-ocr-package-size\\smoke-backend\\smoke-MIkSgc\\fixture\\package\\chaoxing-backend.exe",
+            "inOuterJob": true,
+            "alive": true,
+            "exitCode": null
+          },
+          {
+            "pid": 32096,
+            "createdAtFileTime": "134339053066587295",
+            "executable": "C:\\Windows\\System32\\conhost.exe",
+            "inOuterJob": true,
+            "alive": true,
+            "exitCode": null
+          }
+        ],
+        "outerJobHandleRetained": true
+      },
+      "shutdown": {
+        "host": {
+          "pid": 5344,
+          "createdAtFileTime": "134339053066454757",
+          "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\reduce-ocr-package-size\\smoke-backend\\smoke-MIkSgc\\fixture\\package\\chaoxing-backend.exe",
+          "inOuterJob": true,
+          "alive": false,
+          "exitCode": 0
+        },
+        "active": [],
+        "observed": [
+          {
+            "pid": 5344,
+            "createdAtFileTime": "134339053066454757",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\reduce-ocr-package-size\\smoke-backend\\smoke-MIkSgc\\fixture\\package\\chaoxing-backend.exe",
+            "inOuterJob": true,
+            "alive": false,
+            "exitCode": 0
+          },
+          {
+            "pid": 32096,
+            "createdAtFileTime": "134339053066587295",
+            "executable": "C:\\Windows\\System32\\conhost.exe",
+            "inOuterJob": true,
+            "alive": false,
+            "exitCode": 0
+          }
+        ],
+        "outerJobHandleRetained": true
+      },
+      "cleanup": {
+        "fallbackUsed": false,
+        "before": [],
+        "remaining": [],
+        "observed": [
+          {
+            "pid": 5344,
+            "createdAtFileTime": "134339053066454757",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\reduce-ocr-package-size\\smoke-backend\\smoke-MIkSgc\\fixture\\package\\chaoxing-backend.exe",
+            "inOuterJob": true,
+            "alive": false,
+            "exitCode": 0
+          },
+          {
+            "pid": 32096,
+            "createdAtFileTime": "134339053066587295",
+            "executable": "C:\\Windows\\System32\\conhost.exe",
+            "inOuterJob": true,
+            "alive": false,
+            "exitCode": 0
+          }
+        ],
+        "verified": true
+      }
+    }
+  ],
+  "limitations": [
+    "DOM clicks over CDP do not represent physical mouse input",
+    "Debug execution does not qualify as release or clean-system validation"
+  ],
+  "selection": {
+    "kind": "python",
+    "configuration": "Release",
+    "scenario": "All",
+    "mode": "Backend",
+    "nestedJob": false,
+    "usePackagedLayout": false
+  },
+  "releasePermission": {
+    "required": false,
+    "allowed": true
+  },
+  "endedAt": "2026-09-15T00:21:50.023Z"
+}

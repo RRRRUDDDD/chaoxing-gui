@@ -1,0 +1,233 @@
+{
+  "runId": "7043f4da-fc46-42ee-a0e1-6ad752f4c173",
+  "startedAt": "2026-09-15T00:24:32.417Z",
+  "success": true,
+  "checks": [
+    {
+      "name": "python-independent-health-static-config-validation-eof",
+      "result": "PASS",
+      "upstreamAccountsUsed": false,
+      "learningTaskCreated": false,
+      "before": {
+        "host": {
+          "pid": 8388,
+          "createdAtFileTime": "134339054744026548",
+          "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\reduce-ocr-package-size\\smoke-independent\\smoke-Sj0GWI\\fixture\\package\\chaoxing-gui.exe",
+          "inOuterJob": true,
+          "alive": true,
+          "exitCode": null
+        },
+        "active": [
+          {
+            "pid": 8388,
+            "createdAtFileTime": "134339054744026548",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\reduce-ocr-package-size\\smoke-independent\\smoke-Sj0GWI\\fixture\\package\\chaoxing-gui.exe",
+            "inOuterJob": true,
+            "alive": true,
+            "exitCode": null
+          },
+          {
+            "pid": 1668,
+            "createdAtFileTime": "134339054757030013",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\reduce-ocr-package-size\\smoke-independent\\smoke-Sj0GWI\\fixture\\package\\chaoxing-gui.exe",
+            "inOuterJob": true,
+            "alive": true,
+            "exitCode": null
+          }
+        ],
+        "observed": [
+          {
+            "pid": 8388,
+            "createdAtFileTime": "134339054744026548",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\reduce-ocr-package-size\\smoke-independent\\smoke-Sj0GWI\\fixture\\package\\chaoxing-gui.exe",
+            "inOuterJob": true,
+            "alive": true,
+            "exitCode": null
+          },
+          {
+            "pid": 1668,
+            "createdAtFileTime": "134339054757030013",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\reduce-ocr-package-size\\smoke-independent\\smoke-Sj0GWI\\fixture\\package\\chaoxing-gui.exe",
+            "inOuterJob": true,
+            "alive": true,
+            "exitCode": null
+          }
+        ],
+        "outerJobHandleRetained": true
+      },
+      "after": {
+        "host": {
+          "pid": 8388,
+          "createdAtFileTime": "134339054744026548",
+          "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\reduce-ocr-package-size\\smoke-independent\\smoke-Sj0GWI\\fixture\\package\\chaoxing-gui.exe",
+          "inOuterJob": true,
+          "alive": false,
+          "exitCode": 0
+        },
+        "active": [],
+        "observed": [
+          {
+            "pid": 8388,
+            "createdAtFileTime": "134339054744026548",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\reduce-ocr-package-size\\smoke-independent\\smoke-Sj0GWI\\fixture\\package\\chaoxing-gui.exe",
+            "inOuterJob": true,
+            "alive": false,
+            "exitCode": 0
+          },
+          {
+            "pid": 1668,
+            "createdAtFileTime": "134339054757030013",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\reduce-ocr-package-size\\smoke-independent\\smoke-Sj0GWI\\fixture\\package\\chaoxing-gui.exe",
+            "inOuterJob": true,
+            "alive": false,
+            "exitCode": 0
+          }
+        ],
+        "outerJobHandleRetained": true
+      }
+    }
+  ],
+  "processes": [
+    {
+      "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\reduce-ocr-package-size\\smoke-independent\\smoke-Sj0GWI\\fixture\\package\\chaoxing-gui.exe",
+      "mode": "Independent",
+      "data": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\reduce-ocr-package-size\\smoke-independent\\smoke-Sj0GWI\\fixture\\data",
+      "sanitizedPath": "C:\\WINDOWS\\System32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem",
+      "headless": true,
+      "stdin": "real pipe",
+      "process": {
+        "pid": 8388,
+        "createdAtFileTime": "134339054744026548",
+        "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\reduce-ocr-package-size\\smoke-independent\\smoke-Sj0GWI\\fixture\\package\\chaoxing-gui.exe",
+        "inOuterJob": true,
+        "alive": true,
+        "exitCode": null
+      },
+      "listeners": [
+        {
+          "port": 20786,
+          "address": "127.0.0.1",
+          "pid": 1668
+        }
+      ],
+      "ready": {
+        "host": {
+          "pid": 8388,
+          "createdAtFileTime": "134339054744026548",
+          "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\reduce-ocr-package-size\\smoke-independent\\smoke-Sj0GWI\\fixture\\package\\chaoxing-gui.exe",
+          "inOuterJob": true,
+          "alive": true,
+          "exitCode": null
+        },
+        "active": [
+          {
+            "pid": 8388,
+            "createdAtFileTime": "134339054744026548",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\reduce-ocr-package-size\\smoke-independent\\smoke-Sj0GWI\\fixture\\package\\chaoxing-gui.exe",
+            "inOuterJob": true,
+            "alive": true,
+            "exitCode": null
+          },
+          {
+            "pid": 1668,
+            "createdAtFileTime": "134339054757030013",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\reduce-ocr-package-size\\smoke-independent\\smoke-Sj0GWI\\fixture\\package\\chaoxing-gui.exe",
+            "inOuterJob": true,
+            "alive": true,
+            "exitCode": null
+          }
+        ],
+        "observed": [
+          {
+            "pid": 8388,
+            "createdAtFileTime": "134339054744026548",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\reduce-ocr-package-size\\smoke-independent\\smoke-Sj0GWI\\fixture\\package\\chaoxing-gui.exe",
+            "inOuterJob": true,
+            "alive": true,
+            "exitCode": null
+          },
+          {
+            "pid": 1668,
+            "createdAtFileTime": "134339054757030013",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\reduce-ocr-package-size\\smoke-independent\\smoke-Sj0GWI\\fixture\\package\\chaoxing-gui.exe",
+            "inOuterJob": true,
+            "alive": true,
+            "exitCode": null
+          }
+        ],
+        "outerJobHandleRetained": true
+      },
+      "shutdown": {
+        "host": {
+          "pid": 8388,
+          "createdAtFileTime": "134339054744026548",
+          "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\reduce-ocr-package-size\\smoke-independent\\smoke-Sj0GWI\\fixture\\package\\chaoxing-gui.exe",
+          "inOuterJob": true,
+          "alive": false,
+          "exitCode": 0
+        },
+        "active": [],
+        "observed": [
+          {
+            "pid": 8388,
+            "createdAtFileTime": "134339054744026548",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\reduce-ocr-package-size\\smoke-independent\\smoke-Sj0GWI\\fixture\\package\\chaoxing-gui.exe",
+            "inOuterJob": true,
+            "alive": false,
+            "exitCode": 0
+          },
+          {
+            "pid": 1668,
+            "createdAtFileTime": "134339054757030013",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\reduce-ocr-package-size\\smoke-independent\\smoke-Sj0GWI\\fixture\\package\\chaoxing-gui.exe",
+            "inOuterJob": true,
+            "alive": false,
+            "exitCode": 0
+          }
+        ],
+        "outerJobHandleRetained": true
+      },
+      "cleanup": {
+        "fallbackUsed": false,
+        "before": [],
+        "remaining": [],
+        "observed": [
+          {
+            "pid": 8388,
+            "createdAtFileTime": "134339054744026548",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\reduce-ocr-package-size\\smoke-independent\\smoke-Sj0GWI\\fixture\\package\\chaoxing-gui.exe",
+            "inOuterJob": true,
+            "alive": false,
+            "exitCode": 0
+          },
+          {
+            "pid": 1668,
+            "createdAtFileTime": "134339054757030013",
+            "executable": "E:\\Downloads\\45\\chaoxing-gui\\.ccg\\tasks\\reduce-ocr-package-size\\smoke-independent\\smoke-Sj0GWI\\fixture\\package\\chaoxing-gui.exe",
+            "inOuterJob": true,
+            "alive": false,
+            "exitCode": 0
+          }
+        ],
+        "verified": true
+      }
+    }
+  ],
+  "limitations": [
+    "DOM clicks over CDP do not represent physical mouse input",
+    "Debug execution does not qualify as release or clean-system validation"
+  ],
+  "selection": {
+    "kind": "python",
+    "configuration": "Release",
+    "scenario": "All",
+    "mode": "Independent",
+    "nestedJob": false,
+    "usePackagedLayout": false
+  },
+  "releasePermission": {
+    "required": false,
+    "allowed": true
+  },
+  "endedAt": "2026-09-15T00:24:38.913Z"
+}
