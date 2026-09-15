@@ -1,5 +1,14 @@
 import os
 import sys
+
+# Validate the actual frozen OCR payload before Flask, logging or account state
+# is initialized. This diagnostic is also safe in a console=False executable.
+if __name__ == "__main__" and sys.argv[1:2] == ["--check-captcha-ocr"]:
+    if len(sys.argv) not in (2, 3):
+        raise SystemExit(2)
+    from api.captcha_ocr import check_captcha_ocr
+    raise SystemExit(check_captcha_ocr(sys.argv[2] if len(sys.argv) == 3 else None))
+
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import threading

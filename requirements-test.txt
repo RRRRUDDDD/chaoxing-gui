@@ -12,4 +12,5 @@ openai>=1.109.1
 tqdm>=4.67.1
 httpx[socks]>=0.28.1
 tenacity>=8.2.0
-Pillow
+Pillow>=10.1.0
+numpy>=1.26.4

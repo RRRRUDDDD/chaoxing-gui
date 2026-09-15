@@ -178,9 +178,19 @@ jobs:
           python -m pip install pyinstaller==6.21.0
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Compare lightweight captcha OCR against pinned upstream
+        run: |
+          python desktop/scripts/verify-captcha-ocr.py --source --output desktop/release/verification/captcha-source.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Build single-file executable
         run: |
           python -m PyInstaller --clean --noconfirm chaoxing.spec
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Verify single-file OCR assets and real inference
+        run: |
+          python desktop/scripts/verify-captcha-ocr.py --executable dist/chaoxing-gui.exe --output desktop/release/verification/captcha-independent.json
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Smoke test independent executable with owned stdin and process tree
@@ -199,6 +209,11 @@ jobs:
       - name: Build desktop backend executable
         run: |
           python -m PyInstaller --clean --noconfirm chaoxing-backend.spec
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Verify desktop backend OCR assets and real inference
+        run: |
+          python desktop/scripts/verify-captcha-ocr.py --executable dist/chaoxing-backend/chaoxing-backend.exe --output desktop/release/verification/captcha-backend.json
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Smoke test frozen desktop backend

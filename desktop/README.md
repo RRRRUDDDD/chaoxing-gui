@@ -28,7 +28,17 @@ Tauri 使用独立的 `chaoxing-gui-tauri.exe` 和 `Chaoxing GUI Tauri` 安装�
 
 ### 构建与版本
 
-Windows 构建需要 PowerShell 7、Python 3.11+、Node 20、MSVC C++ Build Tools 与 Windows SDK、支持 NSIS 3 的近期 7-Zip（`7z.exe` 在 PATH，GitHub Windows runner 已提供），以及 Rust **1.95.0**（rustfmt/clippy）。Tauri Rust 依赖锁定 **2.11.5**，CLI 锁定 **2.11.4**。安装 Python 构建依赖时沿用 CI 的排除 PaddleOCR 策略和 PyInstaller **6.21.0**；不改变现有两个 PyInstaller spec 的 console 或排除项。
+Windows 构建需要 PowerShell 7、Python 3.11+、Node 20、MSVC C++ Build Tools 与 Windows SDK、支持 NSIS 3 的近期 7-Zip（`7z.exe` 在 PATH，GitHub Windows runner 已提供），以及 Rust **1.95.0**（rustfmt/clippy）。Tauri Rust 依赖锁定 **2.11.5**，CLI 锁定 **2.11.4**。安装 Python 构建依赖时沿用 CI 的排除 PaddleOCR 策略和 PyInstaller **6.21.0**；两个 PyInstaller spec 保留原 console 模式。
+
+验证码使用 ddddocr **1.6.1** 的原始 `common_old.onnx` 和完整默认字符表，由 Pillow、NumPy、ONNX Runtime 执行现有文字识别路径。两个 spec 只收集这组资源和许可证/版本元数据，排除 ddddocr 运行时代码、OpenCV、beta/检测模型。构建环境仍会安装 ddddocr 的传递依赖；这些依赖不会全部进入发行包。升级 ddddocr 前必须重新核对模型与字符表 SHA256，并运行下列比较及冻结验证，不能只改版本号。
+
+```powershell
+python desktop/scripts/verify-captcha-ocr.py --source
+python desktop/scripts/verify-captcha-ocr.py --executable dist/chaoxing-backend/chaoxing-backend.exe
+python desktop/scripts/verify-captcha-ocr.py --executable dist/chaoxing-gui.exe
+```
+
+CI 对 48 张生成图片比较新旧预处理张量和识别结果，并在禁止导入 ddddocr/cv2 的独立进程验证识别。冻结检查读取实际 EXE 模块/资源清单，再在空临时目录运行 `--check-captcha-ocr`，不启动 Web 服务或访问账号；独立 exe 也通过报告文件验证结果。此检查证明运行与上游一致性，不代表真实课程验证码准确率已验收。题目图片的云端/HTTP OCR 和源码可选 PaddleOCR 不受这次裁剪影响。
 
 ```powershell
 # 本项目已配置的本机工具链环境；标准 rustup/MSVC 开发终端可直接使用。

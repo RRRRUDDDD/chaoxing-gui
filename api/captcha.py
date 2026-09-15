@@ -2,7 +2,7 @@
 Captcha API for Chaoxing
 
 本模块用于通过CX验证码，提供包括验证码获取、识别、验证等接口。
-使用了开源的验证码识别库[DdddOcr](https://github.com/sml2h3/ddddocr)
+使用开源 DdddOcr 的默认模型与字符表，通过轻量 CPU 适配进行文字识别。
 
 Author: skreon
 Email: 1340554713@qq.com
@@ -19,28 +19,19 @@ from typing import Optional
 from loguru import logger
 from requests import session
 
-try:
-    from ddddocr import DdddOcr
-
-    HAS_DDDDOCR = True
-except ImportError:
-    DdddOcr = None
-    HAS_DDDDOCR = False
+from api.captcha_ocr import CaptchaOcr
 
 
-def ocr_init() -> Optional[DdddOcr]:
+def ocr_init() -> Optional[CaptchaOcr]:
     """
     初始化OCR对象
 
-    Returns: DdddOcr对象
+    Returns: 验证码文字识别对象；缺少依赖或模型时返回 None。
     """
-    if not HAS_DDDDOCR:
-        logger.warning("未检测到 ddddocr 依赖，自动验证码识别将不可用。如遇403限制请在浏览器端手动完成验证。")
-        return None
     try:
-        return DdddOcr(show_ad=False)
+        return CaptchaOcr()
     except Exception as e:
-        logger.warning(f"ddddocr 初始化失败: {e}，自动验证码识别将不可用")
+        logger.warning(f"验证码 OCR 初始化失败: {e}，如遇403限制请在浏览器端手动完成验证。")
         return None
 
 
@@ -52,7 +43,7 @@ class CxCaptcha:
     CxCaptcha 类用于处理学习任务中出现的验证码
 
     该类提供了获取、识别和提交验证码的方法，使用 requests 库进行 HTTP 请求，
-    并利用 DdddOcr 进行验证码识别。
+    并利用 DdddOcr 的默认模型进行验证码识别。
 
     Attributes:
         host (str): 超星平台的主机地址。
@@ -68,14 +59,14 @@ class CxCaptcha:
         'submit': '/html/processVerify.ac'
     }
 
-    def __init__(self, user_agent: str, cookies: str, ocr: Optional[DdddOcr] = _MISSING):
+    def __init__(self, user_agent: str, cookies: str, ocr: Optional[CaptchaOcr] = _MISSING):
         """
         初始化 CxCaptcha 实例。
 
         Args:
             user_agent (str): 用户代理字符串。
             cookies (str): 会话 cookies。
-            ocr (DdddOcr, optional): 已初始化的 DdddOcr 对象。如果显式传入 None 则禁用 OCR。
+            ocr (optional): 提供 classification 方法的对象。如果显式传入 None 则禁用 OCR。
         """
 
         self.user_agent = user_agent

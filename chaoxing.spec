@@ -1,5 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
-from PyInstaller.utils.hooks import collect_data_files, collect_submodules
+from importlib.metadata import distribution
+from PyInstaller.utils.hooks import collect_submodules, copy_metadata
 
 datas = [
     ("web/dist", "web/dist"),
@@ -8,7 +9,16 @@ datas = [
     ("fav.jpg", "."),
     ("web/public/fav.jpg", "."),
 ]
-datas += collect_data_files("ddddocr")
+# The adapter reads assets without importing ddddocr (and therefore OpenCV).
+# Keep this whitelist in sync with chaoxing-backend.spec; never collect all models.
+captcha_assets = distribution("ddddocr")
+if captcha_assets.version != "1.6.1":
+    raise SystemExit("Captcha packaging requires ddddocr==1.6.1")
+datas += [
+    (str(captcha_assets.locate_file("ddddocr/" + name)), "ddddocr")
+    for name in ("common_old.onnx", "charsets.py")
+]
+datas += copy_metadata("ddddocr")  # Runtime version/resource lookup and MIT license.
 
 hiddenimports = [
     "flask_cors",
@@ -18,11 +28,9 @@ hiddenimports = [
     "lxml",
     "openai",
     "httpx",
-    "ddddocr",
     "onnxruntime",
     "PIL",
     "numpy",
-    "cv2",
     "tqdm",
     "fontTools",
     "requests",
@@ -40,7 +48,7 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=["paddleocr", "paddlepaddle", "PaddleOCR", "celery"],
+    excludes=["ddddocr", "cv2", "paddle", "paddleocr", "paddlepaddle", "paddlex", "PaddleOCR", "celery"],
     noarchive=False,
 )
 pyz = PYZ(a.pure)

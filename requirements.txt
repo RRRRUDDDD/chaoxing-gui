@@ -9,7 +9,12 @@ flask>=3.1.2
 flask-cors>=5.0.0
 fonttools>=4.60.1
 openai>=1.109.1
-ddddocr
+# Supplies the verified default captcha model/table; the runtime adapter uses
+# Pillow/NumPy/ONNX Runtime directly. Revalidate assets before changing this pin.
+ddddocr==1.6.1
+numpy>=1.26.4
+onnxruntime>=1.20.0
+Pillow>=10.1.0
 tqdm>=4.67.1
 httpx[socks]>=0.28.1
 urllib3>=2.5.0
