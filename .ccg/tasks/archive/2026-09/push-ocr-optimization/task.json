@@ -1,0 +1,33 @@
+{
+  "id": "push-ocr-optimization",
+  "title": "将 OCR 体积优化推送到 GitHub",
+  "status": "completed",
+  "complexity": "S",
+  "risk": "medium",
+  "domain": "repository",
+  "currentPhase": "completed",
+  "nextAction": "已推送并核对远端 main；GitHub Actions 自动构建进行中",
+  "createdAt": "2026-09-15T01:00:59.7630375Z",
+  "branch": "main",
+  "remote": "https://github.com/RRRRUDDDD/chaoxing-gui.git",
+  "userOverride": "用户明确要求不调用双模型，由主代理独立执行检查与推送",
+  "implementationCommit": "a11eb383ed1b6c59eddcd9e0ece2aebed46665d1",
+  "scope": "正常快进推送 OCR 优化；沿用既有约定，仅在本地提交 CCG 任务归档",
+  "remoteBaseline": "057ed25df913753843ce5e8aa5ebf50595d20bb0",
+  "publicationBranch": "perf/ocr-package-size",
+  "strategy": "远程产品历史与本地开发归档历史分离；cherry-pick 唯一优化提交后验证产品树一致",
+  "publicationCommit": "9b379cee6fb794f8be7de133cdc15bbb7dc25b70",
+  "completedAt": "2026-09-15T01:03:38.4723539Z",
+  "workflowRun": "https://github.com/RRRRUDDDD/chaoxing-gui/actions/runs/34915657691",
+  "workflowStatusAtVerification": "in_progress",
+  "validation": {
+    "remoteHead": "9b379cee6fb794f8be7de133cdc15bbb7dc25b70",
+    "productTree": "与已验证实现完全一致，排除本地 CCG 归档和原有 gitignore 差异",
+    "diffCheck": "passed",
+    "fastForward": "passed",
+    "sourceTests": "沿用优化任务：Python 3.11/3.13 各 193 项、Web 141 项、Desktop 101 项及冻结 OCR/构建验证",
+    "userWorktree": "原有三个未提交文件保持不变",
+    "publicationWorktree": "确认已推送且干净后清理，保留 perf/ocr-package-size 分支",
+    "archive": "沿用既有约定，仅在本地提交 CCG 归档"
+  }
+}
