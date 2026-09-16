@@ -100,7 +100,8 @@ def _trusted_url(value, *, purpose="download", base=None):
             and not parts.query
         )
     else:
-        allowed = host == "chaoxing.com" or host.endswith(".chaoxing.com")
+        # Authenticated media metadata also uses the cldisk CDN for documents.
+        allowed = host in {"chaoxing.com", "cldisk.com"} or host.endswith((".chaoxing.com", ".cldisk.com"))
     if not allowed:
         raise ValueError("拒绝非受信任的超星资源地址")
     # Some status endpoints still label CDN links http. Never send the account's
@@ -265,7 +266,9 @@ class CourseTools:
     @staticmethod
     def _card_data(text):
         _check_html(text, "章节卡片")
-        match = re.search(r"\bmArg\s*=\s*", text)
+        # The platform initializes mArg to "" before assigning the resource
+        # object inside try/catch. Match that object, not the placeholder.
+        match = re.search(r"\bmArg\s*=\s*(?=\{)", text)
         if not match:
             raise RuntimeError("章节卡片缺少资源数据")
         try:
@@ -460,7 +463,10 @@ class CourseTools:
     def _check_report(text, *, video=False):
         label = "视频时长上报" if video else "学习次数上报"
         text = text.strip()
-        if not video and (not text or text.lower() in {"ok", "success", "true", "1"}):
+        # setlog is loaded as a script and returns the JavaScript literal
+        # 'success', which is not JSON. Accept only explicit acknowledgements.
+        if not video and (not text or text.lower() in {"ok", "success", "true", "1"}
+                          or re.fullmatch(r"(['\"])(?:ok|success|true|1)\1", text, re.I)):
             return
         try:
             data = json.loads(text)

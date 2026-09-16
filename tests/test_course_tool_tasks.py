@@ -1,11 +1,14 @@
 """Offline lifecycle tests for course utilities; never access account files."""
 
 from contextlib import contextmanager
+import json
 import os
 from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import MagicMock, patch
+
+from flask import Flask, jsonify
 
 from api.task_state import TaskAlreadyRunning, TaskStore
 from api import course_tool_tasks as tasks
@@ -82,6 +85,28 @@ class CourseToolTaskTests(unittest.TestCase):
         self.assertEqual(self.store.get_status(task_id)["status"], "completed")
         self.assertEqual(self.store.get_details(task_id)["tool"]["resources"], [RESOURCE])
         self.assertNotIn("private-token", self.state_file.read_text(encoding="utf-8"))
+
+    def test_single_course_catalog_with_418_resources_fits_complete_response_budget(self):
+        resources = [
+            dict(RESOURCE, id=f"{index:064x}", chapter_id=f"chapter-{index // 5:03}",
+                 chapter_title=f"配套课程章节 {index // 5 + 1:03}", name=f"课程配套讲义 {index + 1:03}.pdf",
+                 kind="document", watchable=False)
+            for index in range(418)
+        ]
+        self.service.scan_course.return_value = resources
+        task_id = self.run_task("catalog", {"purpose": "download"})
+        self.assertEqual(self.store.get_status(task_id)["status"], "completed")
+        details = self.store.get_details(task_id)
+        self.assertEqual(details["tool"]["course_ids"], ["c1"])
+        self.assertEqual(details["tool"]["resources"], resources)
+        self.assertEqual(details["tool"]["results"][0]["status"], "completed")
+        self.service.scan_course.assert_called_once()
+        complete_response_bytes = tasks._wire_size(details)
+        budget = (complete_response_bytes + len(resources) * tasks.RESULT_RESERVE_BYTES
+                  + tasks.SNAPSHOT_OVERHEAD_BYTES)
+        self.assertGreater(budget, 1_500_000)
+        self.assertLess(budget, 2 * 1024 * 1024)
+        self.assertLess(complete_response_bytes, 2 * 1024 * 1024)
 
     def test_cancel_during_visits_keeps_submitted_count_and_releases_account_after_close(self):
         task_id, config = self.create()
@@ -244,6 +269,85 @@ class CourseToolTaskTests(unittest.TestCase):
             "message": "错" * 240, "path": "文" * 53 + ".pdf", "bytes": 99999999999}
             for item in resources]
         self.assertLess(tasks._wire_size(details), 2 * 1024 * 1024)
+
+    def test_non_bmp_results_fit_catalog_reserve_and_complete_flask_response(self):
+        _, catalog_config = self.create("catalog", {"purpose": "download"})
+        catalog = tasks.initial_details(catalog_config, [])
+        title, message = "\U0001f4d6" * 120, "\U0001f4d6" * 240
+        resources = []
+        for index in range(tasks.MAX_ITEMS):
+            item = dict(RESOURCE, id=f"r{index}", name=title, course_title=title)
+            if not tasks._catalog_fits(catalog, resources + [item]):
+                break
+            resources.append(item)
+        self.assertGreater(len(resources), 0)
+        self.assertFalse(tasks._catalog_fits(catalog, resources + [item]))
+        config = {"task_type": "download", "course_list": ["c1"], "tool_options": {
+            "source_task_id": "source", "resource_ids": [item["id"] for item in resources],
+        }}
+        details = tasks.initial_details(config, resources)
+        details["courses"] = [{"id": "c1", "title": title, "chapters": []}]
+        store = TaskStore()
+        self.addCleanup(store.close)
+        task_id = store.create("alice", tasks.initial_status(config), details)
+        progress = tasks._Progress(store, task_id, config)
+        for item in resources:
+            progress.record(dict(COURSE, title=title), item, "error", message=message)
+        store.finish(task_id, "error")
+        with Flask(__name__).app_context():
+            response = jsonify(status=True, data=store.get_details(task_id))
+        self.assertLess(len(response.data), 2 * 1024 * 1024)
+        self.assertEqual(len(response.data), tasks._wire_size(store.get_details(task_id)))
+        rows = response.get_json()["data"]["tool"]["results"]
+        self.assertEqual(len(rows), len(resources))
+        for item, row in zip(resources, rows):
+            self.assertLessEqual(len(json.dumps(row, ensure_ascii=True, separators=(",", ":")).encode("utf-8")) + 1,
+                                 tasks.RESULT_RESERVE_BYTES)
+            self.assertEqual((row["id"], row["course_id"], row["status"], row["bytes"]),
+                             (item["id"], "c1", "error", 0))
+            self.assertEqual((row["name"], row["course_title"]), (title, title))
+            self.assertTrue(message.startswith(row["message"]))
+            self.assertLess(len(row["message"]), len(message))
+            row["message"].encode("utf-8")
+
+    def test_result_budget_preserves_short_display_text_and_fact_fields(self):
+        task_id, config = self.create("download", {"source_task_id": "source", "resource_ids": ["resource1"]}, [RESOURCE])
+        data = {"before": 12, "after": 14, "submitted": 2, "seconds": 6.5,
+                "bytes": 9876543210, "path": "资料/讲义 \U0001f4d6.pdf"}
+        message = '文件已保存\n"\U0001f4d6"\\'
+        progress = tasks._Progress(self.store, task_id, config)
+        progress.record(COURSE, RESOURCE, "completed", data, message)
+        self.assertEqual(self.store.get_details(task_id)["tool"]["results"], [{
+            "id": RESOURCE["id"], "name": RESOURCE["name"], "course_title": COURSE["title"],
+            "course_id": COURSE["courseId"], "status": "completed", "message": message, **data,
+        }])
+        self.assertEqual(self.store.get_details(task_id)["tool"]["completed_units"], data["bytes"])
+
+    def test_result_budget_shortens_display_fields_before_touching_saved_path(self):
+        task_id, config = self.create("download", {"source_task_id": "source", "resource_ids": ["resource1"]}, [RESOURCE])
+        title = "\U0001f4d6" * 120
+        progress = tasks._Progress(self.store, task_id, config)
+        for depth in (100, 200):
+            with self.subTest(depth=depth):
+                data = {"before": 12, "after": 14, "submitted": 2, "seconds": 6.5,
+                        "bytes": 9876543210, "path": "资料/" * depth + "\U0001f4d6" * 53 + ".pdf"}
+                progress.record(dict(COURSE, title=title), dict(RESOURCE, name=title),
+                                "completed", data, "\U0001f4d6" * 240)
+                row = self.store.get_details(task_id)["tool"]["results"][-1]
+                self.assertLessEqual(len(json.dumps(row, ensure_ascii=True, separators=(",", ":")).encode("utf-8")) + 1,
+                                     tasks.RESULT_RESERVE_BYTES)
+                self.assertEqual({key: row[key] for key in data}, data)
+                self.assertEqual((row["id"], row["course_id"], row["status"]), ("resource1", "c1", "completed"))
+                self.assertEqual(row["message"], "")
+                self.assertLess(len(row["name"]), len(title))
+                for key in ("name", "course_title"):
+                    self.assertTrue(title.startswith(row[key]))
+                    row[key].encode("utf-8")
+                if depth == 100:
+                    self.assertEqual(row["course_title"], title)
+                else:
+                    self.assertEqual(row["name"], "")
+                    self.assertLess(len(row["course_title"]), len(title))
 
     def test_authenticated_course_membership_is_rechecked_in_worker(self):
         self.client.get_course_list.return_value = []

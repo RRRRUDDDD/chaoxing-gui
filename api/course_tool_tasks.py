@@ -19,8 +19,8 @@ from api.task_state import TaskNotFound
 TOOL_TYPES = frozenset({"visits", "catalog", "video_time", "download"})
 TASK_LABELS = {"visits": "课程学习次数", "catalog": "读取课程资源", "video_time": "视频观看时长", "download": "课程资源下载"}
 MAX_ITEMS = 1000
-MAX_SNAPSHOT_BYTES = 1_500_000
-# Reserve a bounded result row for every selectable resource, including Chinese
+MAX_SNAPSHOT_BYTES = 2 * 1024 * 1024
+# Reserve a bounded result row for every selectable resource, including Unicode
 # JSON escaping. The native proxy caps the complete response at 2 MiB.
 RESULT_RESERVE_BYTES = 4096
 SNAPSHOT_OVERHEAD_BYTES = 65536
@@ -273,6 +273,7 @@ class _Progress:
             for key in ("before", "after", "submitted", "seconds", "path", "bytes"):
                 if key in data:
                     row[key] = data[key]
+        _bound_result_row(row)
         with self.store.edit(self.task_id) as task:
             tool = task.details["tool"]
             tool["results"].append(row)
@@ -294,11 +295,30 @@ def _public_resources(service, resources):
     return public
 
 
+def _json_size(value):
+    return len(json.dumps(value, ensure_ascii=True, allow_nan=False,
+                          separators=(",", ":")).encode("utf-8"))
+
+
 def _wire_size(details):
     # Flask's default JSON encoder escapes Chinese characters; use that exact
     # representation instead of measuring only an unescaped resources array.
-    return len(json.dumps({"status": True, "data": details}, ensure_ascii=True,
-                          allow_nan=False, separators=(",", ":")).encode("utf-8")) + 1
+    return _json_size({"status": True, "data": details}) + 1
+
+
+def _bound_result_row(row):
+    # Include the array separator. Trim display text by whole Unicode code
+    # points; identifiers, numeric results and saved paths must remain exact.
+    excess = _json_size(row) + 1 - RESULT_RESERVE_BYTES
+    for key in ("message", "name", "course_title"):
+        if excess <= 0:
+            break
+        value = row[key]
+        end = len(value)
+        while end and excess > 0:
+            end -= 1
+            excess -= _json_size(value[end]) - 2  # Exclude JSON string quotes.
+        row[key] = value[:end]
 
 
 def _catalog_fits(details, resources):

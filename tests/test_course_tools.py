@@ -47,7 +47,8 @@ def course_page(chapters=((101, "第一章", False),)):
 
 def card_page(attachments, defaults=None):
     data = {"defaults": DEFAULTS if defaults is None else defaults, "attachments": attachments}
-    return "<script>try { mArg = " + json.dumps(data, ensure_ascii=False) + "; }catch (e) {}</script>"
+    # Real card pages initialize mArg before assigning the resource object.
+    return '<script>var mArg = "";\ntry { mArg = ' + json.dumps(data, ensure_ascii=False) + "; }catch (e) {}</script>"
 
 
 def resource(kind="video", name="视频"):
@@ -270,6 +271,46 @@ class ScanTests(OfflineToolsCase):
         self.session.get.side_effect = [Response('<div class="fanyaChapterWhite">暂无章节</div>')]
         self.assertEqual(self.tools.scan_course(COURSE), [])
 
+    def test_card_placeholder_without_resource_assignment_is_not_an_empty_catalogue(self):
+        pages = (
+            '<script>var mArg = "";</script>',
+            '<script>var mArg = null; try {}catch (e) {}</script>',
+            '<script>var mArg = ""; var other = {"defaults": {}, "attachments": []};</script>',
+        )
+        for page in pages:
+            with self.subTest(page=page):
+                responses = [
+                    Response(course_page()), Response('<input id="cardcount" value="1">'), Response(page),
+                ]
+                self.session.get.side_effect = responses
+                progress = Mock()
+                with self.assertRaises(RuntimeError):
+                    self.tools.scan_course(COURSE, progress)
+                progress.assert_not_called()
+                self.assert_closed(*responses)
+
+    def test_malformed_resource_object_after_placeholder_still_fails(self):
+        assignments = (
+            "{broken}",
+            '{"defaults": {}, "attachments": [}',
+            '{"defaults": null, "attachments": []}',
+            '{"defaults": {}, "attachments": null}',
+            '{"defaults": {}, "attachments": [42]}',
+            '{"defaults": {}, "attachments": [], "status": false}',
+        )
+        for assignment in assignments:
+            with self.subTest(assignment=assignment):
+                page = '<script>var mArg = ""; try { mArg = ' + assignment + "; }catch (e) {}</script>"
+                responses = [
+                    Response(course_page()), Response('<input id="cardcount" value="1">'), Response(page),
+                ]
+                self.session.get.side_effect = responses
+                progress = Mock()
+                with self.assertRaises(RuntimeError):
+                    self.tools.scan_course(COURSE, progress)
+                progress.assert_not_called()
+                self.assert_closed(*responses)
+
     def test_public_resource_is_an_allowlist_and_does_not_publish_signed_metadata(self):
         item = {**resource(), "duration": 12, "url": "private link", "cookies": {"secret": "cookie"}}
         public = self.tools.public_resource(item)
@@ -349,6 +390,42 @@ class StatisticsAndVisitsTests(OfflineToolsCase):
         self.assertNotIn("&amp;", self.session.get.call_args.args[0])
         self.assert_closed(before, after, page, *reports)
 
+    def test_quoted_visit_success_records_each_request_and_preserves_platform_totals(self):
+        clock = self.fake_clock()
+        for payload in ("'success'", '"success"'):
+            with self.subTest(payload=payload):
+                reports = [
+                    Response(payload, headers={"Content-Type": "text/html;charset=UTF-8", "Content-Length": "9"})
+                    for _ in range(2)
+                ]
+                before, after, page = self.setup_visits(reports)
+                progress = Mock()
+                started = clock.now
+                result = self.tools.add_visits(COURSE, 2, 1.25, progress)
+                self.assertEqual(result, {"before": 10, "after": 11, "submitted": 2, "warnings": []})
+                self.assertEqual([call.args for call in progress.call_args_list], [(1, 2), (2, 2)])
+                self.assertAlmostEqual(clock.now - started, 1.25)
+                self.assert_closed(before, after, page, *reports)
+
+    def test_failed_strings_and_extra_javascript_do_not_advance_visit_progress(self):
+        self.fake_clock()
+        for payload in (
+            "'failure'", '"failed"', "'false'", "false",
+            "'success'; unexpected()", '"success"; unexpected()',
+            "'success' + 'extra'", "var result = 'success';",
+        ):
+            with self.subTest(payload=payload):
+                first = Response({"status": True})
+                failed = Response(payload, headers={"Content-Type": "text/html;charset=UTF-8"})
+                before, _, page = self.setup_visits([first, failed])
+                post_count = self.session.post.call_count
+                progress = Mock()
+                with self.assertRaises(RuntimeError):
+                    self.tools.add_visits(COURSE, 3, 1, progress)
+                progress.assert_called_once_with(1, 3)
+                self.assertEqual(self.session.post.call_count - post_count, 1)
+                self.assert_closed(before, page, first, failed)
+
     def test_non_idempotent_visit_get_disables_adapter_retries_even_on_http_failure(self):
         original_retries = self.adapter.max_retries
         before = Response({"total": 0})
@@ -427,13 +504,16 @@ class StatisticsAndVisitsTests(OfflineToolsCase):
         self.assert_closed(page, report)
 
     def test_signed_visit_address_cannot_send_account_cookies_to_another_host(self):
-        page = Response('<script src="https://fystat-ans.chaoxing.com.evil.invalid/log/setlog?enc=private"></script>')
-        self.session.post.return_value = Response({"total": 0})
-        self.session.get.return_value = page
-        with self.assertRaisesRegex(ValueError, "受信任"):
-            self.tools.add_visits(COURSE, 1, 1)
-        self.assertEqual(self.session.get.call_count, 1)
-        self.assert_closed(page)
+        for host in ("fystat-ans.chaoxing.com.evil.invalid", "s3.cldisk.com"):
+            with self.subTest(host=host):
+                page = Response(f'<script src="https://{host}/log/setlog?enc=private"></script>')
+                self.session.post.return_value = Response({"total": 0})
+                self.session.get.return_value = page
+                before = self.session.get.call_count
+                with self.assertRaisesRegex(ValueError, "受信任"):
+                    self.tools.add_visits(COURSE, 1, 1)
+                self.assertEqual(self.session.get.call_count - before, 1)
+                self.assert_closed(page)
 
     def test_each_client_borrows_only_its_account_session_without_reading_cookie_files(self):
         services = []
@@ -547,6 +627,20 @@ class VideoTests(OfflineToolsCase):
         self.assertIs(self.adapter.max_retries, original_retries)
         self.assert_closed(status, start, failed)
 
+    def test_visit_string_acknowledgements_are_not_valid_video_heartbeats(self):
+        self.fake_clock()
+        for payload in ("'success'", '"success"', "success"):
+            with self.subTest(payload=payload):
+                status = Response({"status": "success", "duration": 12, "dtoken": "signed-token"})
+                start = Response({"isPassed": False})
+                failed = Response(payload, headers={"Content-Type": "text/html;charset=UTF-8"})
+                self.session.get.side_effect = [status, start, failed]
+                progress = Mock()
+                with self.assertRaises(RuntimeError):
+                    self.tools.watch_video(COURSE, resource(), 6, progress)
+                progress.assert_called_once_with(0, 6)
+                self.assert_closed(status, start, failed)
+
     def test_cancel_during_playback_stops_before_next_heartbeat(self):
         status, reports = self.setup_video(120, 1)
         clock = self.fake_clock()
@@ -592,6 +686,7 @@ class VideoTests(OfflineToolsCase):
             "https://example.invalid/multimedia/log/a/id",
             "https://mooc1.chaoxing.com/other/path",
             "https://mooc1.chaoxing.com.evil.invalid/multimedia/log/a/id",
+            "https://s3.cldisk.com/multimedia/log/a/id",
         ):
             with self.subTest(url=url):
                 item = resource()
@@ -599,7 +694,7 @@ class VideoTests(OfflineToolsCase):
                 self.session.get.side_effect = [Response({"status": "success", "duration": 10, "dtoken": "token"})]
                 with self.assertRaises(ValueError):
                     self.tools.watch_video(COURSE, item, 6)
-        self.assertEqual(self.session.get.call_count, 3)
+        self.assertEqual(self.session.get.call_count, 4)
 
     def test_invalid_completion_flag_is_not_a_successful_heartbeat(self):
         status = Response({"status": "success", "duration": 12, "dtoken": "token"})
@@ -683,6 +778,35 @@ class DownloadTests(OfflineToolsCase):
         self.assertEqual(Path(result["path"]).read_bytes(), b"%PDF")
         self.assert_closed(status, body)
 
+    def test_document_metadata_can_select_the_cldisk_pdf(self):
+        pdf = "https://s3.cldisk.com/document/book.pdf?token=private"
+        body = Response(headers={"Content-Length": "8", "Content-Type": "application/pdf"}, chunks=[b"%PDF-1.7"])
+        status = self.setup_download(
+            body, url="http://cs.cldisk.com/document/book", filename="source.docx", pdf=pdf,
+        )
+        result = self.tools.download_resource(COURSE, resource("document", "教材.docx"), self.output)
+        self.assertEqual(self.session.get.call_args.args[0], pdf)
+        self.assertEqual(Path(result["path"]).name, "教材.pdf")
+        self.assertEqual(Path(result["path"]).read_bytes(), b"%PDF-1.7")
+        self.assertNotIn("cookies", self.session.get.call_args.kwargs)
+        self.assertNotIn("Cookie", self.session.get.call_args.kwargs["headers"])
+        self.assert_closed(status, body)
+
+    def test_cldisk_initial_urls_and_redirects_are_upgraded_to_https(self):
+        status = Response({"status": "success", "filename": "asset.pdf", "download": "http://d0.cldisk.com/asset"})
+        redirect = Response(status=302, headers={"Location": "http://s3.cldisk.com/document/asset.pdf"})
+        body = Response(headers={"Content-Length": "8"}, chunks=[b"%PDF-1.7"])
+        self.session.get.side_effect = [status, redirect, body]
+        result = self.tools.download_resource(COURSE, resource("file", "教材"), self.output)
+        calls = self.session.get.call_args_list[1:]
+        self.assertEqual([call.args[0] for call in calls], [
+            "https://d0.cldisk.com/asset", "https://s3.cldisk.com/document/asset.pdf",
+        ])
+        self.assertTrue(all(call.kwargs["allow_redirects"] is False for call in calls))
+        self.assertTrue(all("cookies" not in call.kwargs and "Cookie" not in call.kwargs["headers"] for call in calls))
+        self.assertEqual(Path(result["path"]).read_bytes(), b"%PDF-1.7")
+        self.assert_closed(status, redirect, body)
+
     def test_bad_status_length_truncation_and_error_html_leave_no_files(self):
         bodies = [
             Response(status=500), Response(status=206),
@@ -747,6 +871,7 @@ class DownloadTests(OfflineToolsCase):
             "https://127.0.0.1/resource", "https://example.invalid/resource",
             "https://s1.ananas.chaoxing.com.evil.invalid/resource",
             "https://evilchaoxing.com/resource", "file:///tmp/private",
+            "https://s3.cldisk.com.evil.invalid/resource", "https://evilcldisk.com/resource",
             "https://user:password@s1.ananas.chaoxing.com/resource",
             "https://s1.ananas.chaoxing.com:8080/resource",
             "https://s1.ananas.chaoxing.com\\@example.invalid/resource",
