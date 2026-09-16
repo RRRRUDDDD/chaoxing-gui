@@ -1,0 +1,28 @@
+{
+  "id": "publish-course-utilities",
+  "title": "提交课程学习次数、视频时长和资源下载功能并推送 GitHub",
+  "status": "completed",
+  "complexity": "S",
+  "risk": "medium",
+  "domain": "delivery",
+  "currentPhase": "completed",
+  "nextAction": "GitHub main 已推送并核对；Build Windows Package 云端构建进行中",
+  "createdAt": "2026-09-16T05:42:32.3576958Z",
+  "branch": "main",
+  "originBase": "aac62c607cbce8d6060d117de79c22a20a4de407",
+  "strategy": "沿用既有发布约定：产品代码推送 GitHub main；CCG 规范与任务归档仅保存在本地开发历史",
+  "sourceCommit": "f6946fb0b6086ddb629dcec43e8f361814a5a71a",
+  "publicationCommit": "fe2860ef5a798bac91bd71a2e9dfdd92393613ac",
+  "publicationBranch": "feat/course-utilities-20260916",
+  "publicationWorktree": "E:\\Downloads\\45\\chaoxing-gui\\.cache\\publish-course-utilities\\worktree",
+  "remoteMain": "fe2860ef5a798bac91bd71a2e9dfdd92393613ac",
+  "remoteVerifiedAt": "2026-09-16T05:45:48.2958612Z",
+  "completedAt": "2026-09-16T05:47:09.0131625Z",
+  "worktreeRemoved": true,
+  "workflow": {
+    "name": "Build Windows Package",
+    "id": 35060820176,
+    "status": "in_progress",
+    "url": "https://github.com/RRRRUDDDD/chaoxing-gui/actions/runs/35060820176"
+  }
+}
