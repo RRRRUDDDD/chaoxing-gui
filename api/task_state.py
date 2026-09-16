@@ -17,7 +17,7 @@ from typing import Callable
 from uuid import uuid4
 
 
-TERMINAL_STATES = frozenset({"completed", "error", "partial"})
+TERMINAL_STATES = frozenset({"completed", "error", "partial", "cancelled"})
 RESUME_FIELDS = frozenset({
     "course_list", "jobs", "speed", "retry_interval", "notopen_action",
     "tiku_config", "notification_config", "ocr_config",
@@ -43,6 +43,9 @@ class _Task:
     logs: deque = field(default_factory=deque)
     sequence: int = 0
     expires_at: float | None = None
+    # Runtime-only stop signal. It is never persisted: a restarted process has
+    # no worker left to stop, and reloaded tasks start with a clear event.
+    cancel: threading.Event = field(default_factory=threading.Event)
 
 
 class TaskStore:
@@ -139,6 +142,8 @@ class TaskStore:
             if task.resume_config is None:
                 raise TaskNotFound(task_id)
             previous = task.status, task.details, task.logs, task.sequence
+            # A resumed run is a new run: never inherit an earlier stop signal.
+            task.cancel.clear()
             task.status = deepcopy(status)
             task.status.update(status="running", start_time=self._wall_time())
             task.details = deepcopy(details)
@@ -157,11 +162,44 @@ class TaskStore:
         with self.edit(task_id) as task:
             if task.status["status"] in TERMINAL_STATES:
                 return
+            if task.cancel.is_set():
+                self._finish_locked(task_id, task, "cancelled")
+                return
             task.status.update(status="interrupted", resume_error=error)
             try:
                 self._save_locked()
             except OSError:
                 task.status["recovery_error"] = "保存任务恢复信息失败，请检查数据目录后重试"
+
+    def request_cancel(self, task_id: str, account: str) -> str:
+        """Ask a task to stop, reporting what the request actually changed.
+
+        An interrupted task has no worker to notice the signal, so it becomes
+        terminal here; that also releases the account for a new task.
+        """
+        with self.edit(task_id) as task:
+            if task.account != account:
+                raise TaskNotFound(task_id)
+            if task.status["status"] in TERMINAL_STATES:
+                return "already_finished"
+            task.cancel.set()
+            if task.status["status"] == "interrupted":
+                self._finish_locked(task_id, task, "cancelled")
+                return "cancelled"
+            task.status["cancel_requested"] = True
+            try:
+                self._save_locked()
+            except OSError:
+                # The stop itself is in memory and still takes effect.
+                task.status["recovery_error"] = "已请求停止，但保存任务状态失败，请检查数据目录"
+            return "stopping"
+
+    def is_cancelled(self, task_id: str) -> bool:
+        """Report the stop signal for workers; a vanished task must also stop."""
+        with self._lock:
+            self._cleanup_locked()
+            task = self._tasks.get(task_id)
+            return True if task is None else task.cancel.is_set()
 
     def _start_cleaner_locked(self):
         if self._cleanup_interval is None or self._cleaner is not None:
@@ -188,6 +226,7 @@ class TaskStore:
             if not isinstance(saved, dict) or saved.get("version") != 1 or not isinstance(saved.get("tasks"), dict):
                 raise ValueError("invalid task file")
             tasks, accounts, expirations = {}, {}, []
+            stopped_tasks = []
             for task_id, record in saved["tasks"].items():
                 if not re.fullmatch(r"[a-zA-Z0-9_-]{1,128}", task_id) or not isinstance(record, dict):
                     raise ValueError("invalid task record")
@@ -197,6 +236,13 @@ class TaskStore:
                 state = status.get("status")
                 if state not in TERMINAL_STATES | {"running", "interrupted"}:
                     raise ValueError("invalid task state")
+                if state not in TERMINAL_STATES and status.get("cancel_requested") is True:
+                    # No worker survives a process restart. An accepted stop
+                    # must not become a resumable task or reserve its account.
+                    state = "cancelled"
+                    status.update(status=state, end_time=self._wall_time())
+                    details["active_jobs"] = {}
+                    stopped_tasks.append(task_id)
                 expires_at = None
                 if state in TERMINAL_STATES:
                     ended = status.get("end_time")
@@ -235,6 +281,14 @@ class TaskStore:
             raise OSError("保存的任务格式错误，原文件已保留") from exc
         self._tasks, self._active_accounts, self._expirations = tasks, accounts, expirations
         self._loaded = True
+        if stopped_tasks:
+            try:
+                # Persist the end time once so repeated restarts cannot extend
+                # the lifetime of a cancelled task indefinitely.
+                self._save_locked()
+            except OSError:
+                for task_id in stopped_tasks:
+                    self._tasks[task_id].status["recovery_error"] = "任务已停止，但保存结果失败，请检查数据目录"
 
     def _save_locked(self):
         if self._state_file is None:
@@ -289,23 +343,31 @@ class TaskStore:
         if status not in TERMINAL_STATES:
             raise ValueError("Invalid terminal task status")
         with self.edit(task_id) as task:
-            if task.expires_at is not None:
-                return
-            task.status["status"] = status
-            task.status["end_time"] = self._wall_time()
-            if error is not None:
-                task.status["error"] = error
-            task.details["active_jobs"] = {}
-            task.expires_at = self._clock() + self._ttl
-            heappush(self._expirations, (task.expires_at, task_id))
-            if self._active_accounts.get(task.account) == task_id:
-                del self._active_accounts[task.account]
-            try:
-                self._save_locked()
-            except OSError:
-                # Completion must remain terminal even when storage becomes
-                # unavailable. The UI exposes the durability failure.
-                task.status["recovery_error"] = "任务已结束，但保存结果失败；重新打开时可能需要再次核对学习进度"
+            self._finish_locked(task_id, task, status, error=error)
+
+    def _finish_locked(self, task_id: str, task: _Task, status: str, *, error: str | None = None) -> None:
+        if task.expires_at is not None:
+            return
+        # Resolve the race with request_cancel under the same lock. Cleanup
+        # and logger flushing may have happened after the worker chose a result.
+        if task.cancel.is_set():
+            status, error = "cancelled", None
+            task.status.pop("error", None)
+        task.status["status"] = status
+        task.status["end_time"] = self._wall_time()
+        if error is not None:
+            task.status["error"] = error
+        task.details["active_jobs"] = {}
+        task.expires_at = self._clock() + self._ttl
+        heappush(self._expirations, (task.expires_at, task_id))
+        if self._active_accounts.get(task.account) == task_id:
+            del self._active_accounts[task.account]
+        try:
+            self._save_locked()
+        except OSError:
+            # Completion must remain terminal even when storage becomes
+            # unavailable. The UI exposes the durability failure.
+            task.status["recovery_error"] = "任务已结束，但保存结果失败；重新打开时可能需要再次核对学习进度"
 
     def append_log(
         self, task_id: str, message: str, *, level: str = "info", timestamp: float | None = None

@@ -180,7 +180,7 @@ class WebAppTests(unittest.TestCase):
     def test_actual_scheduler_distinguishes_empty_and_unopened_skipped(self):
         self.process.side_effect = REAL_PROCESS_COURSE
         self.snapshot["points"].append({"id": "closed", "title": "关闭章节", "jobCount": 3})
-        self.chaoxing.get_job_list.side_effect = lambda course, point: ([], {"notOpen": point["id"] == "closed"})
+        self.chaoxing.get_job_list.side_effect = lambda course, point, **kwargs: ([], {"notOpen": point["id"] == "closed"})
         task_id, status = self.state(self.start(notopen_action="continue"))
         self.assertEqual(status["status"], "partial")
         self.assertEqual(status["stats"]["empty_chapters"], 1)
@@ -377,7 +377,7 @@ class WebAppTests(unittest.TestCase):
             client = self.make_client()
             client.get_course_point.return_value = deepcopy(self.snapshot)
 
-            def get_jobs(course, point):
+            def get_jobs(course, point, **kwargs):
                 barrier.wait(timeout=5)
                 web.logger.info(f"{account}-worker-marker")
                 return [], {}

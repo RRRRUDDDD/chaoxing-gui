@@ -30,6 +30,30 @@ from api.decode import (
 from api.exceptions import MaxRetryExceeded
 
 
+def _is_cancelled(cancel_check):
+    if callable(cancel_check):
+        try:
+            return bool(cancel_check())
+        except Exception as exc:
+            logger.debug("读取停止信号失败: {}", exc)
+    return False
+
+
+def _wait_for_cancel(seconds, cancel_check):
+    """Keep CLI waits unchanged; task waits check their own signal in slices."""
+    if not callable(cancel_check):
+        time.sleep(seconds)
+        return False
+    remaining = seconds
+    while remaining > 0:
+        if _is_cancelled(cancel_check):
+            return True
+        interval = min(0.2, remaining)
+        time.sleep(interval)
+        remaining -= interval
+    return _is_cancelled(cancel_check)
+
+
 def get_timestamp():
     return str(int(time.time() * 1000))
 
@@ -228,7 +252,9 @@ class Chaoxing:
         logger.info("课程章节读取成功...")
         return decode_course_point(_resp.text)
 
-    def get_job_list(self, course: dict, point: dict) -> tuple[list[dict], dict]:
+    def get_job_list(self, course: dict, point: dict, cancel_check=None) -> tuple[list[dict], dict]:
+        if _is_cancelled(cancel_check):
+            return [], {}
         _session = self.session_manager.get_session()
         self.rate_limiter.limit_rate()
         job_list = []
@@ -246,11 +272,15 @@ class Chaoxing:
 
         # 学习界面任务卡片数, 很少有3个的, 但是对于章节解锁任务点少一个都不行, 可以从API /mooc-ans/mycourse/studentstudyAjax获取值, 或者干脆直接加, 但二者都会造成额外的请求
         for _possible_num in "0123456":
+            if _is_cancelled(cancel_check):
+                return [], {}
 
             logger.trace("开始读取章节所有任务点...")
 
             cards_params.update({"num": _possible_num})
             _resp = _session.get("https://mooc1.chaoxing.com/mooc-ans/knowledge/cards", params=cards_params)
+            if _is_cancelled(cancel_check):
+                return [], {}
             _resp.raise_for_status()
             if _resp.status_code != 200:
                 raise RequestException(f"任务卡片请求失败: HTTP {_resp.status_code}")
@@ -266,6 +296,8 @@ class Chaoxing:
             job_info.update(_job_info)
 
         job_info['passed_jobs'] = passed_jobs
+        if _is_cancelled(cancel_check):
+            return [], {}
         if not job_list and not passed_jobs:
             result = self.study_emptypage(course, point)
             if result != StudyResult.SUCCESS:
@@ -446,12 +478,17 @@ class Chaoxing:
         _speed: float = 1.0,
         _type: Literal["Video", "Audio"] = "Video",
         progress_callback=None,
+        cancel_check=None,
     ) -> StudyResult:
+        if _is_cancelled(cancel_check):
+            return StudyResult.SKIPPED
         _session = self.session_manager.get_session()
 
         headers = gc.VIDEO_HEADERS if _type == "Video" else gc.AUDIO_HEADERS
         _info_url = f"https://mooc1.chaoxing.com/ananas/status/{_job['objectid']}?k={self.get_fid()}&flag=normal"
         _video_info = _session.get(_info_url, headers=headers).json()
+        if _is_cancelled(cancel_check):
+            return StudyResult.SKIPPED
 
         if _video_info["status"] != "success":
             logger.error(f"Unknown status: {_video_info['status']}")
@@ -483,70 +520,82 @@ class Chaoxing:
         pbar = tqdm(total=duration, initial=play_time, desc=_job["name"],
                     unit_scale=True, bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
 
-        forbidden_retry = 0
-        max_forbidden_retry = 2
+        try:
+            forbidden_retry = 0
+            max_forbidden_retry = 2
+            if _is_cancelled(cancel_check):
+                return StudyResult.SKIPPED
 
-        passed, state = self.video_progress_log(_session, _course, _job, _job_info, _dtoken, duration, play_time, _type,headers=headers)
-        passed, state = self.video_progress_log(_session, _course, _job, _job_info, _dtoken, duration, duration, _type, headers=headers)
+            passed, state = self.video_progress_log(_session, _course, _job, _job_info, _dtoken, duration, play_time, _type, headers=headers)
+            if _is_cancelled(cancel_check):
+                return StudyResult.SKIPPED
+            passed, state = self.video_progress_log(_session, _course, _job, _job_info, _dtoken, duration, duration, _type, headers=headers)
+            if _is_cancelled(cancel_check):
+                return StudyResult.SKIPPED
 
-        if passed:
-            logger.info("任务瞬间完成: {}", _job['name'])
+            if passed:
+                logger.info("任务瞬间完成: {}", _job['name'])
+                return StudyResult.SUCCESS
+
+            while not passed:
+                if _is_cancelled(cancel_check):
+                    return StudyResult.SKIPPED
+                # Sometimes the last request needs to be sent several times to complete the task
+                if play_time - last_log_time >= wait_time or play_time == duration:
+                    passed, state = self.video_progress_log(_session, _course, _job, _job_info, _dtoken, duration,
+                                                            int(play_time), _type, headers=headers)
+                    if _is_cancelled(cancel_check):
+                        return StudyResult.SKIPPED
+
+                    if state == 403:
+                        if forbidden_retry >= max_forbidden_retry:
+                            logger.warning("403重试失败, 跳过当前任务")
+                            return StudyResult.FORBIDDEN
+                        forbidden_retry += 1
+                        logger.warning(
+                            "出现403报错, 正在尝试刷新会话状态 (第{}次)",
+                            forbidden_retry,
+                        )
+                        if _wait_for_cancel(random.uniform(2, 4), cancel_check):
+                            return StudyResult.SKIPPED
+                        refreshed_meta = self._recover_after_forbidden(_session, _job, _type)
+                        if refreshed_meta:
+                            # FIXME: Maybe it should be considered an error if those keys aren't present in the refreshed meta, so we perhaps shouldn't use get()
+                            _dtoken = refreshed_meta.get("dtoken", _dtoken)
+                            _duration = refreshed_meta.get("duration", duration)
+                            play_time = refreshed_meta.get("playTime", play_time)
+
+                            logger.debug("Refreshed token: {}, duration: {}, play time: {}", _dtoken, _duration, play_time)
+                            continue
+
+                    elif not passed and state != 200:
+                        return StudyResult.ERROR
+
+                    wait_time = int(random.uniform(30, 90))
+                    last_log_time = play_time
+
+                dt = (time.time() - last_iter) * _speed # Since uploading the progress takes time, we assume that the video is still playing in the background, so manually calculate the time elapsed is required
+                last_iter = time.time()
+                play_time = min(duration, play_time+dt)
+
+                pbar.n = int(play_time)
+                pbar.refresh()
+
+                # 实时上报进度给外部（如 Web 前端）
+                if callable(progress_callback):
+                    try:
+                        progress_callback(_course, _job, float(play_time), float(duration))
+                    except Exception as exc:
+                        logger.debug(f"视频进度回调执行失败: {exc}")
+
+                if _wait_for_cancel(gc.THRESHOLD, cancel_check):
+                    logger.warning("已停止, 中断当前任务: {}", _job['name'])
+                    return StudyResult.SKIPPED
+
+            logger.info("任务完成: {}", _job['name'])
             return StudyResult.SUCCESS
-
-        while not passed:
-            # Sometimes the last request needs to be sent several times to complete the task
-            if play_time - last_log_time >= wait_time or play_time == duration:
-
-                passed, state = self.video_progress_log(_session, _course, _job, _job_info, _dtoken, duration,
-                                                        int(play_time), _type, headers=headers)
-
-                if state == 403:
-                    if forbidden_retry >= max_forbidden_retry:
-                        logger.warning("403重试失败, 跳过当前任务")
-                        return StudyResult.FORBIDDEN
-                    forbidden_retry += 1
-                    logger.warning(
-                        "出现403报错, 正在尝试刷新会话状态 (第{}次)",
-                        forbidden_retry,
-                    )
-                    time.sleep(random.uniform(2, 4))
-                    refreshed_meta = self._recover_after_forbidden(_session, _job, _type)
-                    if refreshed_meta:
-                        # FIXME: Maybe it should be considered an error if those keys aren't present in the refreshed meta, so we perhaps shouldn't use get()
-                        _dtoken = refreshed_meta.get("dtoken", _dtoken)
-                        _duration = refreshed_meta.get("duration", duration)
-                        play_time = refreshed_meta.get("playTime", play_time)
-
-                        logger.debug("Refreshed token: {}, duration: {}, play time: {}", _dtoken, _duration, play_time)
-                        continue
-
-                elif not passed and state != 200:
-                    return StudyResult.ERROR
-
-
-
-
-                wait_time = int(random.uniform(30, 90))
-                last_log_time = play_time
-
-            dt = (time.time() - last_iter) * _speed # Since uploading the progress takes time, we assume that the video is still playing in the background, so manually calculate the time elapsed is required
-            last_iter = time.time()
-            play_time = min(duration, play_time+dt)
-
-            pbar.n = int(play_time)
-            pbar.refresh()
-
-            # 实时上报进度给外部（如 Web 前端）
-            if callable(progress_callback):
-                try:
-                    progress_callback(_course, _job, float(play_time), float(duration))
-                except Exception as exc:
-                    logger.debug(f"视频进度回调执行失败: {exc}")
-
-            time.sleep(gc.THRESHOLD)
-
-        logger.info("任务完成: {}", _job['name'])
-        return StudyResult.SUCCESS
+        finally:
+            pbar.close()
 
     def study_document(self, _course, _job) -> StudyResult:
         """
@@ -581,9 +630,9 @@ class Chaoxing:
             return StudyResult.SUCCESS
 
 
-    def study_work(self, _course, _job, _job_info) -> StudyResult:
+    def study_work(self, _course, _job, _job_info, cancel_check=None) -> StudyResult:
         # FIXME: 这一块可以单独搞一个类出来了，方法里面又套方法，每一次调用都会创建新的方法，十分浪费
-        if not self.tiku or self.tiku.DISABLE:
+        if _is_cancelled(cancel_check) or not self.tiku or self.tiku.DISABLE:
             return StudyResult.SKIPPED
         _ORIGIN_HTML_CONTENT = ""  # 用于配合输出网页源码, 帮助修复#391错误
 
@@ -691,8 +740,12 @@ class Chaoxing:
                 def wrapper(*args, **kwargs):
                     retries = 0
                     while retries < max_retries:
+                        if _is_cancelled(cancel_check):
+                            return None, None
                         try:
                             _resp = func(*args, **kwargs)
+                            if _is_cancelled(cancel_check):
+                                return None, None
 
                             # 未创建完成该测验则不进行答题，目前遇到的情况是未创建完成等同于没题目
                             if '教师未创建完成该测验' in _resp.text:
@@ -710,7 +763,8 @@ class Chaoxing:
                         except requests.exceptions.RequestException as e:
                             logger.warning(f"请求失败: {str(e)[:50]}, 重试中... ({retries + 1}/{max_retries})")
                         retries += 1
-                        time.sleep(delay * (2 ** retries))
+                        if _wait_for_cancel(delay * (2 ** retries), cancel_check):
+                            return None, None
                     raise MaxRetryExceeded(f"超过最大重试次数 ({max_retries})")
 
                 return wrapper
@@ -751,9 +805,13 @@ class Chaoxing:
         try:
             final_resp, questions = fetch_response()
         except Exception as e:
+            if _is_cancelled(cancel_check):
+                return StudyResult.SKIPPED
             logger.error(f"请求失败: {e}")
             return StudyResult.ERROR
 
+        if _is_cancelled(cancel_check):
+            return StudyResult.SKIPPED
         _ORIGIN_HTML_CONTENT = final_resp.text  # 用于配合输出网页源码, 帮助修复#391错误
 
         # 搜题
@@ -762,12 +820,19 @@ class Chaoxing:
 
         def _handle_question(q, inc_found):
             nonlocal found_answers
+            if _is_cancelled(cancel_check):
+                return
             logger.debug(f"当前题目信息 -> {q}")
             # 添加搜题延迟 #428 - 默认0s延迟
             query_delay = self.kwargs.get("query_delay", 0)
             if query_delay:
-                time.sleep(query_delay)
+                if _wait_for_cancel(query_delay, cancel_check):
+                    return
+            if _is_cancelled(cancel_check):
+                return
             res = self.tiku.query(q)
+            if _is_cancelled(cancel_check):
+                return
             answer = ""
             if not res:
                 # 随机答题
@@ -865,6 +930,8 @@ class Chaoxing:
 
             def handle_question_with_session(q):
                 try:
+                    if _is_cancelled(cancel_check):
+                        return
                     with self.session_manager.context():
                         return _handle_question(q, inc_found_concurrent)
                 finally:
@@ -882,8 +949,12 @@ class Chaoxing:
                 found_answers += 1
 
             for q in questions["questions"]:
+                if _is_cancelled(cancel_check):
+                    return StudyResult.SKIPPED
                 with self.session_manager.context():
                     _handle_question(q, inc_found_seq)
+        if _is_cancelled(cancel_check):
+            return StudyResult.SKIPPED
         cover_rate = (found_answers / total_questions) * 100
         logger.info(f"章节检测题库覆盖率： {cover_rate:.0f}%")
 
@@ -926,6 +997,8 @@ class Chaoxing:
 
         del questions["questions"]
 
+        if _is_cancelled(cancel_check):
+            return StudyResult.SKIPPED
         res = _session.post(
             "https://mooc1.chaoxing.com/mooc-ans/work/addStudentWorkNew",
             data=questions,

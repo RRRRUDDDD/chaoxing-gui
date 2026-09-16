@@ -1,9 +1,11 @@
 import threading
+from pathlib import Path
+import tempfile
 import unittest
 from unittest.mock import patch
 from uuid import UUID
 
-from api.task_state import TaskAlreadyRunning, TaskStore
+from api.task_state import TaskAlreadyRunning, TaskNotFound, TaskStore
 
 
 class TaskStoreTests(unittest.TestCase):
@@ -176,6 +178,92 @@ class TaskStoreTests(unittest.TestCase):
                 store.create("alice", {}, {})
         task_id = store.create("alice", {}, {})
         self.assertEqual(store.get_status(task_id)["status"], "running")
+
+    def test_cancel_signals_a_running_task_and_keeps_it_running_until_finished(self):
+        task_id = self.create()
+        self.assertFalse(self.store.is_cancelled(task_id))
+        self.assertEqual(self.store.request_cancel(task_id, "alice"), "stopping")
+        self.assertTrue(self.store.is_cancelled(task_id))
+        status = self.store.get_status(task_id)
+        self.assertEqual(status["status"], "running")
+        self.assertTrue(status["cancel_requested"])
+        # The account stays reserved until the worker publishes the terminal state.
+        with self.assertRaises(TaskAlreadyRunning):
+            self.create()
+        self.store.finish(task_id, "cancelled")
+        self.assertEqual(self.store.get_status(task_id)["status"], "cancelled")
+        self.assertNotEqual(self.create(), task_id)
+
+    def test_cancel_rejects_another_account_and_reports_finished_tasks(self):
+        task_id = self.create()
+        with self.assertRaises(TaskNotFound):
+            self.store.request_cancel(task_id, "bob")
+        self.assertFalse(self.store.is_cancelled(task_id))
+        with self.assertRaises(TaskNotFound):
+            self.store.request_cancel("missing-task", "alice")
+        self.store.finish(task_id, "completed")
+        self.assertEqual(self.store.request_cancel(task_id, "alice"), "already_finished")
+        self.assertEqual(self.store.get_status(task_id)["status"], "completed")
+
+    def test_accepted_stop_wins_a_late_terminal_result(self):
+        for outcome in ("completed", "partial", "error"):
+            with self.subTest(outcome=outcome):
+                task_id = self.create()
+                self.store.request_cancel(task_id, "alice")
+                self.store.finish(task_id, outcome, error="late execution error")
+                status = self.store.get_status(task_id)
+                self.assertEqual(status["status"], "cancelled")
+                self.assertNotIn("error", status)
+
+    def test_stop_during_failed_worker_launch_does_not_leave_account_interrupted(self):
+        task_id = self.create()
+        self.store.request_cancel(task_id, "alice")
+        self.store.interrupt(task_id, "cannot start worker")
+        self.assertEqual(self.store.get_status(task_id)["status"], "cancelled")
+        self.assertNotEqual(self.create(), task_id)
+
+    def test_restart_finishes_an_accepted_stop_instead_of_resuming_it(self):
+        with tempfile.TemporaryDirectory() as directory:
+            state_file = Path(directory) / "tasks.json"
+            settings = {
+                "course_list": ["offline-course"], "jobs": 1, "speed": 1,
+                "retry_interval": 1, "notopen_action": "retry",
+                "tiku_config": {}, "notification_config": {}, "ocr_config": {},
+            }
+            store = TaskStore(state_file=state_file, ttl_seconds=10, clock=lambda: self.now,
+                              wall_time=lambda: self.now)
+            self.addCleanup(store.close)
+            task_id = store.create("alice", {}, {}, resume_config=settings)
+            store.request_cancel(task_id, "alice")
+            restarted = TaskStore(state_file=state_file, ttl_seconds=10, clock=lambda: self.now,
+                                  wall_time=lambda: self.now)
+            self.addCleanup(restarted.close)
+            self.assertEqual(restarted.get_status(task_id)["status"], "cancelled")
+            self.assertIsNone(restarted.get_resume_config(task_id, "alice"))
+            self.assertNotEqual(restarted.create("alice", {}, {}), task_id)
+            self.now += 11
+            reloaded = TaskStore(state_file=state_file, ttl_seconds=10, clock=lambda: self.now,
+                                 wall_time=lambda: self.now)
+            self.addCleanup(reloaded.close)
+            with self.assertRaises(TaskNotFound):
+                reloaded.get_status(task_id)
+
+    def test_missing_task_reads_as_cancelled_so_workers_stop(self):
+        task_id = self.create()
+        self.store.finish(task_id, "completed")
+        self.now += 11
+        self.assertTrue(self.store.is_cancelled(task_id))
+
+    def test_cancelled_is_terminal_and_expires_like_other_end_states(self):
+        task_id = self.create()
+        with self.store.edit(task_id) as task:
+            task.details["active_jobs"] = {"job": {"progress": 50}}
+        self.store.finish(task_id, "cancelled")
+        self.assertEqual(self.store.get_details(task_id)["active_jobs"], {})
+        self.assertEqual(self.store.get_status(task_id)["end_time"], 1000 + self.now)
+        self.now += 11
+        with self.assertRaises(KeyError):
+            self.store.get_status(task_id)
 
 
 if __name__ == "__main__":

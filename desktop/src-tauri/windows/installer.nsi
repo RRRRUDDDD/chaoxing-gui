@@ -548,7 +548,17 @@ Function .onInit
         StrCpy $INSTDIR "$PROGRAMFILES\${PRODUCTNAME}"
       ${EndIf}
     !else if "${INSTALLMODE}" == "currentUser"
+      ; Default to D: when it is a local fixed disk, matching the Electron
+      ; installer. Removable, network and optical drives are never chosen, and
+      ; AppData stays the fallback. RestorePreviousInstallLocation below still
+      ; wins, so an existing installation is never relocated.
       StrCpy $INSTDIR "$LOCALAPPDATA\${PRODUCTNAME}"
+      Push $0
+      System::Call 'kernel32::GetDriveTypeW(w "D:\") i.r0'
+      ${If} $0 = 3 ; DRIVE_FIXED
+        StrCpy $INSTDIR "D:\${PRODUCTNAME}"
+      ${EndIf}
+      Pop $0
     !endif
 
     Call RestorePreviousInstallLocation

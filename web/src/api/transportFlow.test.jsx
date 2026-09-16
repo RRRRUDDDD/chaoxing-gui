@@ -27,24 +27,40 @@ function fixtureApi(method, path, payload, after = 0) {
     if (method === 'POST') fixture.config = clone(payload);
     return ok(fixture.config);
   }
-  if (path === '/api/start') return { status: 409, body: { status: false, data: { task_id: 'shared-task' } } };
+  if (path === '/api/start') {
+    if (fixture.startSucceeds) {
+      fixture.status = 'running';
+      fixture.cancelRequested = false;
+      return ok({ task_id: 'shared-task' });
+    }
+    return { status: 409, body: { status: false, data: { task_id: 'shared-task' } } };
+  }
   if (fixture.gone) return { status: 404, body: { status: false, msg: '任务不存在或已过期' } };
   if (path === '/api/task/shared-task/resume') {
     if (fixture.status === 'interrupted') fixture.status = 'running';
     return ok({ task_id: 'shared-task', status: fixture.status });
   }
-  if (path === '/api/task/shared-task') {
-    return ok({ status: fixture.status, progress: 0, total: 1, stats: { completed_chapters: 0, total_chapters: 0 } });
+  if (path === '/api/task/shared-task/stop') {
+    if (fixture.stopFailsOnce) {
+      fixture.stopFailsOnce = false;
+      return { status: 503, body: { status: false, msg: '停止暂时失败，请重试' } };
+    }
+    fixture.cancelRequested = true;
+    return ok({ task_id: 'shared-task', state: 'stopping' });
   }
+  if (path === '/api/task/shared-task') {
+    return ok({ status: fixture.status, cancel_requested: fixture.cancelRequested, progress: 0, total: 1, stats: { completed_chapters: 0, total_chapters: 0 } });
+  }
+  const terminal = ['completed', 'cancelled'].includes(fixture.status);
   if (path === '/api/task/shared-task/details') {
-    if (fixture.status === 'completed' && ++fixture.finalDetails === 1) return { status: 503, body: { status: false, msg: '模拟详情暂不可用' } };
+    if (terminal && ++fixture.finalDetails === 1) return { status: 503, body: { status: false, msg: '模拟详情暂不可用' } };
     return ok({ courses: [] });
   }
   if (path === '/api/logs/shared-task') {
     const initial = { seq: 1, timestamp: 1, level: 'info', message: '初始日志' };
     const final = { seq: 2, timestamp: 2, level: 'info', message: '最终日志' };
-    const logs = fixture.status === 'completed' ? [initial, final, final] : [initial, initial];
-    return { status: 200, body: { status: true, data: logs, next_cursor: fixture.status === 'completed' ? 2 : 1, truncated: false } };
+    const logs = terminal ? [initial, final, final] : [initial, initial];
+    return { status: 200, body: { status: true, data: logs, next_cursor: terminal ? 2 : 1, truncated: false } };
   }
   throw new Error(`Unexpected fixture request: ${method} ${path}`);
 }
@@ -95,43 +111,47 @@ afterEach(async () => {
 
 afterAll(async () => { await new Promise((resolve) => server.close(resolve)); });
 
+function configureTransport(transport, options = {}) {
+  fixture = { calls: [], config: { settings: {}, selectedCoursesByAccount: { alice: ['one'] } }, session: empty(), status: 'running', finalDetails: 0, gone: false, ...options };
+  window.history.replaceState({}, '', '/');
+  window.matchMedia = vi.fn(() => ({ matches: true }));
+  core.isTauri.mockReturnValue(transport === 'tauri');
+  if (transport === 'tauri') {
+    core.invoke.mockImplementation(async (command, args) => {
+      if (command === 'backend_status') return { phase: 'ready' };
+      if (command.startsWith('session_')) return sessionCommand(command, args);
+      if (command === 'api_cancel') return undefined;
+      if (command !== 'api_request') throw new Error(`Unexpected command: ${command}`);
+      const { operation, payload, taskId, after } = args.request;
+      const routes = {
+        login: ['POST', '/api/login'], courses: ['POST', '/api/courses'],
+        configRead: ['GET', '/api/config'], configWrite: ['POST', '/api/config'], start: ['POST', '/api/start'],
+        taskStatus: ['GET', `/api/task/${taskId}`], taskDetails: ['GET', `/api/task/${taskId}/details`], taskLogs: ['GET', `/api/logs/${taskId}`],
+        taskResume: ['POST', `/api/task/${taskId}/resume`],
+        taskStop: ['POST', `/api/task/${taskId}/stop`],
+      };
+      const [method, path] = routes[operation];
+      return fixtureApi(method, path, payload, after);
+    });
+    api.defaults.adapter = createTauriAdapter();
+    api.defaults.baseURL = '/api';
+  } else {
+    api.defaults.adapter = originalAdapter;
+    api.defaults.baseURL = `${origin}/api`;
+    if (transport === 'electron') {
+      window.chaoxingSession = {
+        read: async () => sessionCommand('session_read'),
+        rememberLogin: async (username) => sessionCommand('session_remember_login', { username }),
+        rememberTask: async (task) => sessionCommand('session_remember_task', { task }),
+        clear: async () => sessionCommand('session_clear'),
+      };
+    }
+  }
+}
+
 describe('shared task flow over real Axios transports', () => {
   it.each(['browser', 'electron', 'tauri'])('recovers 409, refreshes, retries final snapshots and clears 404 over %s', async (transport) => {
-    fixture = { calls: [], config: { settings: {}, selectedCoursesByAccount: { alice: ['one'] } }, session: empty(), status: 'running', finalDetails: 0, gone: false };
-    window.history.replaceState({}, '', '/');
-    window.matchMedia = vi.fn(() => ({ matches: true }));
-    core.isTauri.mockReturnValue(transport === 'tauri');
-    if (transport === 'tauri') {
-      core.invoke.mockImplementation(async (command, args) => {
-        if (command === 'backend_status') return { phase: 'ready' };
-        if (command.startsWith('session_')) return sessionCommand(command, args);
-        if (command === 'api_cancel') return undefined;
-        if (command !== 'api_request') throw new Error(`Unexpected command: ${command}`);
-        const { operation, payload, taskId, after } = args.request;
-        const routes = {
-          login: ['POST', '/api/login'], courses: ['POST', '/api/courses'],
-          configRead: ['GET', '/api/config'], configWrite: ['POST', '/api/config'], start: ['POST', '/api/start'],
-          taskStatus: ['GET', `/api/task/${taskId}`], taskDetails: ['GET', `/api/task/${taskId}/details`], taskLogs: ['GET', `/api/logs/${taskId}`],
-          taskResume: ['POST', `/api/task/${taskId}/resume`],
-        };
-        const [method, path] = routes[operation];
-        return fixtureApi(method, path, payload, after);
-      });
-      api.defaults.adapter = createTauriAdapter();
-      api.defaults.baseURL = '/api';
-    } else {
-      api.defaults.adapter = originalAdapter;
-      api.defaults.baseURL = `${origin}/api`;
-      if (transport === 'electron') {
-        window.chaoxingSession = {
-          read: async () => sessionCommand('session_read'),
-          rememberLogin: async (username) => sessionCommand('session_remember_login', { username }),
-          rememberTask: async (task) => sessionCommand('session_remember_task', { task }),
-          clear: async () => sessionCommand('session_clear'),
-        };
-      }
-    }
-
+    configureTransport(transport);
     await sessionStore.rememberLogin('alice');
     const mount = () => render(<React.StrictMode><DesktopStartup intervalMs={100}><App /></DesktopStartup></React.StrictMode>);
     let view = mount();
@@ -171,6 +191,50 @@ describe('shared task flow over real Axios transports', () => {
     expect((await screen.findByRole('button', { name: '开始学习' })).disabled).toBe(false);
     expect(fixture.calls.filter((call) => call.path === '/api/start')).toHaveLength(1);
     expect(fixture.calls.filter((call) => call.path === '/api/login').every((call) => call.payload.use_cookies === true && call.payload.password === '')).toBe(true);
+    view.unmount();
+  }, 15000);
+
+  it.each(['browser', 'electron', 'tauri'])('stops a running task, retries failures and reopens its result over %s', async (transport) => {
+    configureTransport(transport, { startSucceeds: true, stopFailsOnce: true });
+    await sessionStore.rememberLogin('alice');
+    const mount = () => render(<React.StrictMode><DesktopStartup intervalMs={100}><App /></DesktopStartup></React.StrictMode>);
+    let view = mount();
+    fireEvent.click(await screen.findByRole('button', { name: '开始学习' }));
+    await screen.findByText('初始日志');
+    const stopRequests = () => fixture.calls.filter((call) => call.path.endsWith('/stop'));
+    fireEvent.click(screen.getByRole('button', { name: '停止任务' }));
+    expect(stopRequests()).toHaveLength(0);
+    fireEvent.click(screen.getByRole('button', { name: '确认停止任务' }));
+    await screen.findByText('停止暂时失败，请重试');
+    expect(screen.getByRole('button', { name: '停止任务' }).disabled).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: '停止任务' }));
+    fireEvent.click(screen.getByRole('button', { name: '确认停止任务' }));
+    await waitFor(() => expect(fixture.cancelRequested).toBe(true));
+    expect(stopRequests()).toHaveLength(2);
+    expect(stopRequests().every((call) => call.method === 'POST' && call.payload.username === 'alice')).toBe(true);
+    expect(screen.getByRole('button', { name: '停止任务' }).disabled).toBe(true);
+
+    // The request acknowledgement does not mean the workers have finished.
+    expect(screen.queryByText('任务已手动停止')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: '返回课程选择' }));
+    expect((await screen.findByRole('button', { name: '开始学习' })).disabled).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: '返回运行任务' }));
+    expect((await screen.findByRole('button', { name: '停止任务' })).disabled).toBe(true);
+    fixture.status = 'cancelled';
+    await screen.findByText('任务已手动停止', {}, { timeout: 4500 });
+    await screen.findByText('最终日志');
+    await waitFor(() => expect(fixture.finalDetails).toBe(2), { timeout: 4500 });
+    expect(screen.queryByText('所有任务已完成')).toBeNull();
+    expect(screen.queryByRole('button', { name: '停止任务' })).toBeNull();
+
+    view.unmount();
+    view = mount();
+    await screen.findByText('任务已手动停止');
+    expect(screen.queryByText(/恢复任务失败/)).toBeNull();
+    expect(fixture.status).toBe('cancelled');
+    fireEvent.click(screen.getByRole('button', { name: '返回首页' }));
+    expect((await screen.findByRole('button', { name: '开始学习' })).disabled).toBe(false);
+    expect(fixture.calls.filter((call) => call.path === '/api/start')).toHaveLength(1);
     view.unmount();
   }, 15000);
 });

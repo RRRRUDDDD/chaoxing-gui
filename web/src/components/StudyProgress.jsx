@@ -5,12 +5,12 @@ import RepositoryLink from './RepositoryLink';
 import {
   Loader2, ArrowLeft, CheckCircle2, XCircle, AlertCircle,
   Play, Clock, ChevronDown, ChevronRight, BookOpen, MonitorPlay,
-  FileText, Home,
+  FileText, Home, StopCircle,
 } from 'lucide-react';
 import api from '../api/axios';
 import { LOG_LIMIT, chapterState, isTerminalStatus, resultLabels, startTaskPolling } from '../lib/taskPolling';
 
-const StudyProgress = ({ taskId, notice = '', onBack, onStatus, onMissing, recovering = false, recoveryError = '', onRetryRecovery, preview = false }) => {
+const StudyProgress = ({ taskId, notice = '', onBack, onStatus, onMissing, onStop, recovering = false, recoveryError = '', onRetryRecovery, preview = false }) => {
   const [taskStatus, setTaskStatus] = useState(preview ? {
     status: 'completed',
     progress: 3,
@@ -54,11 +54,24 @@ const StudyProgress = ({ taskId, notice = '', onBack, onStatus, onMissing, recov
   const [logsTruncated, setLogsTruncated] = useState(false);
   const [pollError, setPollError] = useState('');
   const [missing, setMissing] = useState(false);
+  const [stopConfirming, setStopConfirming] = useState(false);
+  const [stopping, setStopping] = useState(false);
+  const [stopError, setStopError] = useState('');
+  const stopConfirmTimer = useRef(null);
   const [expandedCourses, setExpandedCourses] = useState(new Set());
   const logsContainerRef = useRef(null);
   const followLogs = useRef(true);
   const callbacks = useRef({ onStatus, onMissing });
   callbacks.current = { onStatus, onMissing };
+  const stopPending = stopping || taskStatus?.cancel_requested === true;
+
+  useEffect(() => {
+    clearTimeout(stopConfirmTimer.current);
+    stopConfirmTimer.current = null;
+    setStopConfirming(false);
+    setStopping(false);
+    setStopError('');
+  }, [taskId]);
 
   useEffect(() => {
     if (preview || recovering || recoveryError) return undefined;
@@ -85,6 +98,38 @@ const StudyProgress = ({ taskId, notice = '', onBack, onStatus, onMissing, recov
     if (container && followLogs.current) container.scrollTop = container.scrollHeight;
   }, [logs]);
 
+  const clearStopConfirm = () => {
+    clearTimeout(stopConfirmTimer.current);
+    stopConfirmTimer.current = null;
+    setStopConfirming(false);
+  };
+
+  // A stop cannot be undone, so the first click only arms the button.
+  useEffect(() => () => clearTimeout(stopConfirmTimer.current), []);
+
+  const handleStopClick = async () => {
+    if (stopPending || !onStop) return;
+    if (!stopConfirming) {
+      setStopError('');
+      setStopConfirming(true);
+      clearTimeout(stopConfirmTimer.current);
+      stopConfirmTimer.current = setTimeout(() => {
+        stopConfirmTimer.current = null;
+        setStopConfirming(false);
+      }, 5000);
+      return;
+    }
+    clearStopConfirm();
+    setStopping(true);
+    setStopError('');
+    try {
+      await onStop();
+    } catch (error) {
+      setStopError(error?.response?.data?.msg || error?.message || '停止任务失败，请重试');
+      setStopping(false);
+    }
+  };
+
   const toggleCourse = (courseId) => {
     setExpandedCourses((prev) => {
       const newSet = new Set(prev);
@@ -105,7 +150,9 @@ const StudyProgress = ({ taskId, notice = '', onBack, onStatus, onMissing, recov
 
     switch (taskStatus.status) {
       case 'running':
-        return { text: '学习中', cls: 'text-brand', icon: Play };
+        return stopPending
+          ? { text: '正在停止', cls: 'text-faint', icon: Loader2 }
+          : { text: '学习中', cls: 'text-brand', icon: Play };
       case 'interrupted':
         return { text: '等待恢复', cls: 'text-warning', icon: Clock };
       case 'completed':
@@ -114,6 +161,8 @@ const StudyProgress = ({ taskId, notice = '', onBack, onStatus, onMissing, recov
         return { text: '出现错误', cls: 'text-danger', icon: AlertCircle };
       case 'partial':
         return { text: '部分完成', cls: 'text-warning', icon: AlertCircle };
+      case 'cancelled':
+        return { text: '已停止', cls: 'text-faint', icon: StopCircle };
       default:
         return { text: '未知状态', cls: 'text-faint', icon: Clock };
     }
@@ -155,6 +204,10 @@ const StudyProgress = ({ taskId, notice = '', onBack, onStatus, onMissing, recov
   const progress = taskStatus ? (taskStatus.progress / (taskStatus.total || 1)) * 100 : 0;
   const terminal = isTerminalStatus(taskStatus?.status) || missing;
   const activeJobs = !terminal && taskDetails?.active_jobs ? Object.values(taskDetails.active_jobs) : [];
+  // Offer the stop only where it can act: a live task, not a preview, and not
+  // while recovery still owns the task.
+  const canStop = !!onStop && !preview && !terminal && !recovering && !recoveryError
+    && ['running', 'interrupted'].includes(taskStatus?.status);
 
   const formatTime = (seconds) => {
     const m = Math.floor(seconds / 60);
@@ -165,6 +218,7 @@ const StudyProgress = ({ taskId, notice = '', onBack, onStatus, onMissing, recov
   const finished = taskStatus?.status === 'completed';
   const errored = taskStatus?.status === 'error';
   const partial = taskStatus?.status === 'partial';
+  const cancelled = taskStatus?.status === 'cancelled';
   const resultColor = (state) => state === 'error' ? 'text-danger' : ['skipped', 'partial'].includes(state) ? 'text-warning' : state === 'completed' ? 'text-success' : 'text-faint';
 
   const statCards = [
@@ -225,6 +279,21 @@ const StudyProgress = ({ taskId, notice = '', onBack, onStatus, onMissing, recov
           </div>
           <div className="flex items-center gap-3">
             <RepositoryLink />
+            {canStop && (
+              <Button
+                variant={stopConfirming ? 'destructive' : 'outline'}
+                size="sm"
+                onClick={handleStopClick}
+                onBlur={clearStopConfirm}
+                disabled={stopPending}
+                aria-label={stopConfirming ? '确认停止任务' : '停止任务'}
+              >
+                {stopPending
+                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                  : <StopCircle className="h-3.5 w-3.5" aria-hidden="true" />}
+                {stopPending ? '正在停止' : stopConfirming ? '确认停止' : '停止任务'}
+              </Button>
+            )}
             {terminal && (
               <Button onClick={onBack} size="sm">
                 <Home className="h-3.5 w-3.5" aria-hidden="true" />
@@ -252,6 +321,12 @@ const StudyProgress = ({ taskId, notice = '', onBack, onStatus, onMissing, recov
           <div role="alert" className="mb-5 rounded-xl bg-warning/10 px-5 py-4 text-sm text-body">
             {notice}
           </div>
+        )}
+        {stopError && (
+          <div role="alert" className="mb-5 rounded-xl bg-warning/10 px-5 py-4 text-sm text-body">{stopError}</div>
+        )}
+        {stopPending && taskStatus?.status === 'running' && (
+          <p role="status" className="mb-5 rounded-xl bg-brand-soft px-5 py-4 text-sm text-body">已请求停止，正在结束进行中的任务点…</p>
         )}
         {(missing || pollError) && (
           <div role="alert" className="mb-5 rounded-xl bg-warning/10 px-5 py-4 text-sm text-body">
@@ -532,6 +607,16 @@ const StudyProgress = ({ taskId, notice = '', onBack, onStatus, onMissing, recov
                 <div>
                   <p className="text-sm font-semibold text-danger">任务执行失败</p>
                   <p className="mt-0.5 text-xs text-body">请查看错误信息或日志排查原因</p>
+                </div>
+              </div>
+            )}
+
+            {cancelled && !missing && (
+              <div className="flex items-start gap-2.5 rounded-xl border border-line bg-soft p-4 animate-fade-in" role="status">
+                <StopCircle className="mt-0.5 h-4.5 w-4.5 shrink-0 text-faint" aria-hidden="true" />
+                <div>
+                  <p className="text-sm font-semibold text-body">任务已手动停止</p>
+                  <p className="mt-0.5 text-xs text-body">已完成的进度已保留，可返回首页重新选择课程开始新任务</p>
                 </div>
               </div>
             )}

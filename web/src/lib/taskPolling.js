@@ -1,5 +1,5 @@
 export const LOG_LIMIT = 500;
-export const isTerminalStatus = (status) => ['completed', 'error', 'partial'].includes(status);
+export const isTerminalStatus = (status) => ['completed', 'error', 'partial', 'cancelled'].includes(status);
 
 export function appendLogPage(previous, page, limit = LOG_LIMIT) {
   const incoming = new Map();
@@ -89,4 +89,5 @@ export function chapterState(chapter) {
 export const resultLabels = {
   pending: '等待中', running: '进行中', completed: '已完成',
   error: '失败', partial: '部分完成', skipped: '已跳过', empty: '无任务',
+  cancelled: '已停止',
 };

@@ -13,6 +13,7 @@ pub enum ApiOperation {
     Start,
     TaskStatus,
     TaskResume,
+    TaskStop,
     TaskDetails,
     TaskLogs,
 }
@@ -119,6 +120,7 @@ impl ApiOperation {
             ApiOperation::Start => ("POST", "/api/start"),
             ApiOperation::TaskStatus => ("GET", "/api/task/{id}"),
             ApiOperation::TaskResume => ("POST", "/api/task/{id}/resume"),
+            ApiOperation::TaskStop => ("POST", "/api/task/{id}/stop"),
             ApiOperation::TaskDetails => ("GET", "/api/task/{id}/details"),
             ApiOperation::TaskLogs => ("GET", "/api/logs/{id}"),
         }
@@ -129,6 +131,7 @@ impl ApiOperation {
             self,
             ApiOperation::TaskStatus
                 | ApiOperation::TaskResume
+                | ApiOperation::TaskStop
                 | ApiOperation::TaskDetails
                 | ApiOperation::TaskLogs
         )
@@ -290,6 +293,37 @@ mod tests {
     }
 
     #[test]
+    fn task_stop_keeps_post_payload_and_task_path_boundaries() {
+        let raw = serde_json::json!({
+            "operation": "taskStop", "requestId": 1,
+            "payload": {"username": "fixture"}, "taskId": "t-1_2"
+        });
+        let request: ApiRequest = serde_json::from_value(raw.clone()).unwrap();
+        request.validate().unwrap();
+        assert_eq!(request.operation.route(), ("POST", "/api/task/{id}/stop"));
+        assert_eq!(
+            build_path(request.operation, request.task_id.as_deref(), None).unwrap(),
+            "/api/task/t-1_2/stop"
+        );
+        for (field, value) in [
+            ("payload", serde_json::Value::Null),
+            ("payload", serde_json::json!([])),
+            ("taskId", serde_json::json!("../bad")),
+            ("taskId", serde_json::json!("a%2fb")),
+            ("after", serde_json::json!(0)),
+        ] {
+            let mut invalid = raw.clone();
+            invalid[field] = value;
+            let request: ApiRequest = serde_json::from_value(invalid).unwrap();
+            assert!(request.validate().is_err(), "accepted invalid {field}");
+        }
+        let mut missing_id = raw;
+        missing_id.as_object_mut().unwrap().remove("taskId");
+        let request: ApiRequest = serde_json::from_value(missing_id).unwrap();
+        assert!(request.validate().is_err());
+    }
+
+    #[test]
     fn dto_accepts_all_camel_case_operations() {
         for operation in [
             "login",
@@ -299,19 +333,20 @@ mod tests {
             "start",
             "taskStatus",
             "taskResume",
+            "taskStop",
             "taskDetails",
             "taskLogs",
         ] {
             let mut raw = serde_json::json!({"operation":operation, "requestId":MAX_REQUEST_ID, "payload":null});
             if matches!(
                 operation,
-                "login" | "courses" | "configWrite" | "start" | "taskResume"
+                "login" | "courses" | "configWrite" | "start" | "taskResume" | "taskStop"
             ) {
                 raw["payload"] = serde_json::json!({"username":"fixture"});
             }
             if matches!(
                 operation,
-                "taskStatus" | "taskResume" | "taskDetails" | "taskLogs"
+                "taskStatus" | "taskResume" | "taskStop" | "taskDetails" | "taskLogs"
             ) {
                 raw["taskId"] = "t-1".into();
             }

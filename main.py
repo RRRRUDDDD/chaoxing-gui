@@ -17,7 +17,7 @@ from typing import Any
 from tqdm import tqdm
 
 from api.answer import Tiku
-from api.base import Chaoxing, Account, StudyResult
+from api.base import Chaoxing, Account, StudyResult, _is_cancelled
 from api.exceptions import LoginError, InputFormatError
 from api.logger import logger
 from api.notification import Notification
@@ -225,19 +225,27 @@ def init_chaoxing(common_config, tiku_config):
     return chaoxing
 
 
-def process_job(chaoxing: Chaoxing, course: dict, job: dict, job_info: dict, speed: float, progress_callback=None) -> StudyResult:
+def process_job(chaoxing: Chaoxing, course: dict, job: dict, job_info: dict, speed: float, progress_callback=None,
+                cancel_check=None) -> StudyResult:
     """处理单个任务点"""
+    if _is_cancelled(cancel_check):
+        return StudyResult.SKIPPED
     # 视频任务
     if job["type"] == "video":
         logger.trace(f"识别到视频任务, 任务章节: {course['title']} 任务ID: {job['jobid']}")
         # 超星的接口没有返回当前任务是否为Audio音频任务
         video_result = chaoxing.study_video(
-            course, job, job_info, _speed=speed, _type="Video", progress_callback=progress_callback
+            course, job, job_info, _speed=speed, _type="Video", progress_callback=progress_callback,
+            cancel_check=cancel_check,
         )
+        # An in-flight failed request can return after the stop was accepted.
+        if _is_cancelled(cancel_check):
+            return StudyResult.SKIPPED
         if video_result.is_failure():
             logger.warning("当前任务非视频任务, 正在尝试音频任务解码")
             video_result = chaoxing.study_video(
-                course, job, job_info, _speed=speed, _type="Audio", progress_callback=progress_callback)
+                course, job, job_info, _speed=speed, _type="Audio", progress_callback=progress_callback,
+                cancel_check=cancel_check)
         if video_result.is_failure():
             logger.warning(
                 f"出现异常任务 -> 任务章节: {course['title']} 任务ID: {job['jobid']}, 已跳过"
@@ -250,7 +258,7 @@ def process_job(chaoxing: Chaoxing, course: dict, job: dict, job_info: dict, spe
     # 测验任务
     elif job["type"] == "workid":
         logger.trace(f"识别到章节检测任务, 任务章节: {course['title']}")
-        return chaoxing.study_work(course, job, job_info)
+        return chaoxing.study_work(course, job, job_info, cancel_check=cancel_check)
     # 阅读任务
     elif job["type"] == "read":
         logger.trace(f"识别到阅读任务, 任务章节: {course['title']}")
@@ -274,7 +282,10 @@ def process_job(chaoxing: Chaoxing, course: dict, job: dict, job_info: dict, spe
             )
 
             # 直播刷取是同步循环, 直接在当前线程等待完成
-            return StudyResult.SUCCESS if LiveProcessor.run_live(live, speed) else StudyResult.ERROR
+            completed = LiveProcessor.run_live(live, speed, cancel_check=cancel_check)
+            if _is_cancelled(cancel_check):
+                return StudyResult.SKIPPED
+            return StudyResult.SUCCESS if completed else StudyResult.ERROR
         except Exception as e:
             logger.error(f"处理直播任务时出错: {str(e)}")
             return StudyResult.ERROR
@@ -352,6 +363,24 @@ def _record_job_counts(point):
     }
 
 
+def _cancel_chapter(point):
+    """Keep proven completions and mark the remaining work as skipped."""
+    point.pop('_error', None)
+    if point.get('has_finished', False):
+        _chapter_counts(point, ChapterResult.SUCCESS)
+        return ChapterResult.SUCCESS
+    if point.get('_job_results'):
+        point['_job_results'] = {
+            key: StudyResult.SKIPPED if result.is_failure() else result
+            for key, result in point['_job_results'].items()
+        }
+        _record_job_counts(point)
+        return ChapterResult.SKIPPED if point['_task_stats']['skipped'] else ChapterResult.SUCCESS
+    point.pop('_task_stats', None)
+    _chapter_counts(point, ChapterResult.SKIPPED)
+    return ChapterResult.SKIPPED
+
+
 def _session_context(chaoxing):
     manager = getattr(chaoxing, 'session_manager', None)
     return manager.context() if manager is not None else nullcontext()
@@ -384,6 +413,11 @@ class JobProcessor:
         if not math.isfinite(self.retry_interval) or not 0 <= self.retry_interval <= 300:
             raise InputFormatError("重试间隔必须为 0 到 300 秒")
         self._stop = threading.Event()
+        # Distinct from _stop, which also fires during a normal shutdown:
+        # only a user-requested stop turns pending chapters into skips.
+        self._cancelled = threading.Event()
+        self._cancel_check = config.get("cancel_check")
+        self._watcher_done = threading.Event()
         self._sentinel = ChapterTask(sys.maxsize, {})
         self._workers = []
         self._retry_worker = None
@@ -397,7 +431,9 @@ class JobProcessor:
             return CourseResult(())
         for task in self.tasks:
             self.task_queue.put(task)
+        watcher = None
         try:
+            watcher = self._start_cancel_watcher()
             self._retry_worker = self._start_thread(self.retry_thread, 'chaoxing-retry')
             for i in range(min(self.worker_num, len(self.tasks))):
                 self._workers.append(self._start_thread(self.worker_thread, f'chaoxing-worker-{i + 1}'))
@@ -406,12 +442,55 @@ class JobProcessor:
             return CourseResult(tuple(self.tasks))
         finally:
             self._stop.set()
+            self._watcher_done.set()
+            if watcher is not None:
+                watcher.join()
             for _ in self._workers:
                 self.task_queue.put(self._sentinel)
             if self._retry_worker is not None:
                 self.retry_queue.put(self._sentinel)
             for thread in self.threads:
                 thread.join()
+
+    def _start_cancel_watcher(self):
+        """Poll an external stop request so workers react within a second.
+
+        The watcher is joined by run(), so no thread survives a normal course.
+        """
+        if not callable(self._cancel_check):
+            return None
+
+        def watch():
+            while not self._watcher_done.wait(0.5):
+                try:
+                    requested = self._cancel_check()
+                except Exception as exc:
+                    logger.debug('读取停止信号失败: {}', exc)
+                    continue
+                if requested:
+                    logger.warning('收到停止请求，正在结束当前课程的剩余章节')
+                    self._cancelled.set()
+                    # Wakes the retry thread's timed wait immediately.
+                    self._stop.set()
+                    return
+
+        thread = threading.Thread(target=copy_context().run, args=(watch,), name='chaoxing-cancel', daemon=True)
+        thread.start()
+        return thread
+
+    def cancelled(self):
+        """Report a user-requested stop, including one seen before the watcher."""
+        if self._cancelled.is_set():
+            return True
+        if callable(self._cancel_check):
+            try:
+                if self._cancel_check():
+                    self._cancelled.set()
+                    self._stop.set()
+                    return True
+            except Exception as exc:
+                logger.debug('读取停止信号失败: {}', exc)
+        return False
 
     def _start_thread(self, target, name):
         context = copy_context()
@@ -440,7 +519,10 @@ class JobProcessor:
                     if task is self._sentinel:
                         return
                     try:
-                        if self._stop.is_set():
+                        if self.cancelled():
+                            # A user-requested stop is not a failure.
+                            task.result = _cancel_chapter(task.point)
+                        elif self._stop.is_set():
                             task.result = ChapterResult.ERROR
                         else:
                             with _session_context(self.chaoxing):
@@ -451,6 +533,8 @@ class JobProcessor:
                         task.point['_error'] = str(exc)
                         task.result = ChapterResult.ERROR
 
+                    if self.cancelled():
+                        task.result = _cancel_chapter(task.point)
                     if task.result == ChapterResult.NOT_OPEN and self.config.get('notopen_action') == 'continue':
                         task.result = ChapterResult.SKIPPED
                         if task.point.get('_job_results'):
@@ -461,9 +545,14 @@ class JobProcessor:
                             _record_job_counts(task.point)
                     if task.result in {ChapterResult.ERROR, ChapterResult.NOT_OPEN}:
                         task.tries += 1
-                        if task.tries < self.max_tries and not self._stop.is_set():
+                        if task.tries < self.max_tries and not self.cancelled() and not self._stop.is_set():
                             self.retry_queue.put(task)
                             deferred_ack = True
+                            continue
+                        if self.cancelled():
+                            # Interrupted midway by the user, not exhausted retries.
+                            task.result = _cancel_chapter(task.point)
+                            self._finish_task(task)
                             continue
                         if task.result == ChapterResult.NOT_OPEN:
                             task.point['_error'] = '章节未开放，已达到最大重试次数'
@@ -485,7 +574,11 @@ class JobProcessor:
                 if task is self._sentinel:
                     return
                 try:
-                    if self._stop.wait(self.retry_interval):
+                    interrupted = self._stop.wait(self.retry_interval)
+                    if self.cancelled():
+                        task.result = _cancel_chapter(task.point)
+                        self._finish_task(task)
+                    elif interrupted:
                         task.result = ChapterResult.ERROR
                         self._finish_task(task)
                     else:
@@ -502,6 +595,17 @@ def process_chapter(chaoxing: Chaoxing, course: dict[str, Any], point: dict[str,
                     speed: float, config: dict[str, Any] | None = None) -> ChapterResult:
     """Process every job and retain counts without treating skipped work as done."""
     config = config or {}
+    cancel_check = config.get('cancel_check')
+
+    def stopped():
+        if not callable(cancel_check):
+            return False
+        try:
+            return bool(cancel_check())
+        except Exception as exc:
+            logger.debug('读取停止信号失败: {}', exc)
+            return False
+
     logger.info('当前章节: {}', point["title"])
     if point.get('_job_results'):
         _record_job_counts(point)
@@ -520,8 +624,16 @@ def process_chapter(chaoxing: Chaoxing, course: dict[str, Any], point: dict[str,
         _chapter_counts(point, ChapterResult.SUCCESS)
         return ChapterResult.SUCCESS
 
+    # Stop before spending a request on a chapter that will not be studied.
+    if stopped():
+        return _cancel_chapter(point)
+
     chaoxing.rate_limiter.limit_rate(random_time=True, random_min=0, random_max=0.2)
-    jobs, job_info = chaoxing.get_job_list(course, point)
+    if stopped():
+        return _cancel_chapter(point)
+    jobs, job_info = chaoxing.get_job_list(course, point, cancel_check=cancel_check)
+    if stopped():
+        return _cancel_chapter(point)
     if job_info.get('notOpen', False):
         return ChapterResult.NOT_OPEN
 
@@ -546,9 +658,13 @@ def process_chapter(chaoxing: Chaoxing, course: dict[str, Any], point: dict[str,
 
     def run_job(job):
         try:
+            # Queued jobs must not start after the user asked to stop.
+            if stopped():
+                return StudyResult.SKIPPED
             with _session_context(chaoxing):
                 result = process_job(chaoxing, course, job, job_info, speed,
-                                     progress_callback=video_progress_callback)
+                                     progress_callback=video_progress_callback,
+                                     cancel_check=cancel_check)
                 return result if isinstance(result, StudyResult) else StudyResult.ERROR
         finally:
             _close_thread_session(chaoxing)
@@ -565,6 +681,8 @@ def process_chapter(chaoxing: Chaoxing, course: dict[str, Any], point: dict[str,
                     point['_error'] = str(exc)
                     outcomes[key] = StudyResult.ERROR
     _record_job_counts(point)
+    if stopped():
+        return _cancel_chapter(point)
     if point['_task_stats']['failed']:
         return ChapterResult.ERROR
     if point['_task_stats']['skipped']:

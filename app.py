@@ -451,6 +451,22 @@ class _StudyProgress:
                 "timestamp": now,
             }
 
+    def cancel_remaining(self):
+        with self.store.edit(self.task_id) as task:
+            for detail in task.details["courses"]:
+                if detail["status"] not in {"pending", "running"}:
+                    continue
+                for chapter in detail["chapters"]:
+                    if chapter["status"] not in {"pending", "running"}:
+                        continue
+                    counts = dict(chapter["task_stats"])
+                    counts["skipped"] += max(0, counts["total"] - sum(
+                        counts[key] for key in ("completed", "failed", "skipped")
+                    ))
+                    self._replace_chapter(task, chapter, "skipped", counts)
+                failed = any(chapter["task_stats"]["failed"] for chapter in detail["chapters"])
+                self._end_course(task, detail, failed=failed, skipped=True)
+
     def outcome(self, *, fatal=False):
         stats = self.store.get_status(self.task_id)["stats"]
         failed = fatal or stats["failed_courses"] or stats["failed_chapters"] or stats["failed_tasks"]
@@ -465,6 +481,11 @@ def _notification_message(store, task_id, outcome, error):
     if outcome == "completed":
         return "超星学习通: 所有课程学习任务已完成"
     stats = store.get_status(task_id)["stats"]
+    if outcome == "cancelled":
+        return (
+            f"超星学习通: 学习任务已手动停止，已完成课程 {stats['completed_courses']}，"
+            f"已完成任务 {stats['completed_tasks']}"
+        )
     message = (
         f"超星学习通: 学习任务结束，完成课程 {stats['completed_courses']}，"
         f"失败课程 {stats['failed_courses']}，跳过课程 {stats['skipped_courses']}，"
@@ -475,6 +496,10 @@ def _notification_message(store, task_id, outcome, error):
 
 def _run_study_task(task_id, store, common_config, tiku_config, notification_config, ocr_config):
     progress = _StudyProgress(store, task_id)
+
+    def cancelled():
+        return store.is_cancelled(task_id)
+
     chaoxing = None
     notification = None
     sink_id = None
@@ -484,6 +509,8 @@ def _run_study_task(task_id, store, common_config, tiku_config, notification_con
         try:
             capture = LogCapture(task_id, store)
             sink_id = logger.add(capture.write, enqueue=True, filter=lambda record: record["extra"].get("task_id") == task_id)
+            if cancelled():
+                return
             from api.vision_ocr import ocr_context
 
             with ocr_context(ocr_config or {}):
@@ -499,29 +526,45 @@ def _run_study_task(task_id, store, common_config, tiku_config, notification_con
                         with store.edit(task_id) as task:
                             task.status["notification_error"] = str(exc)
 
+                    if cancelled():
+                        return
                     common_config.update(
                         chapter_start_callback=progress.chapter_start,
                         chapter_result_callback=progress.chapter_result,
                         video_progress_callback=progress.video_progress,
+                        cancel_check=cancelled,
                     )
                     chaoxing = main_module.init_chaoxing(common_config, tiku_config)
+                    if cancelled():
+                        return
                     result = chaoxing.login(login_with_cookies=common_config["use_cookies"])
+                    if cancelled():
+                        return
                     if not result["status"]:
                         raise LoginError(result.get("msg", "登录失败"))
                     courses = main_module.filter_courses(
                         chaoxing.get_course_list(), common_config["course_list"], interactive=False
                     )
+                    if cancelled():
+                        return
                     progress.set_courses(courses)
                     for index, course in enumerate(courses):
+                        if cancelled():
+                            logger.warning("任务已被手动停止，剩余课程不再开始")
+                            break
                         progress.begin_course(course, index)
                         try:
                             point_list = chaoxing.get_course_point(course["courseId"], course["clazzId"], course["cpi"])
+                            if cancelled():
+                                break
                             progress.add_chapters(course, point_list)
                             course_result = main_module.process_course(
                                 chaoxing, course, common_config, point_list=point_list
                             )
                             progress.finish_course(course, course_result)
                         except Exception as exc:
+                            if cancelled():
+                                break
                             logger.error(f"课程处理失败 {course['title']}: {exc}")
                             progress.fail_course(course, exc)
                         with store.edit(task_id) as task:
@@ -529,6 +572,9 @@ def _run_study_task(task_id, store, common_config, tiku_config, notification_con
                     outcome = progress.outcome()
                     if outcome != "completed":
                         error = "部分课程失败或被跳过，请查看课程详情"
+                    if cancelled():
+                        # A user-requested stop is not an error, so no error text.
+                        outcome, error = "cancelled", None
                 finally:
                     cleanup_error = _close_resource(chaoxing)
                     if cleanup_error:
@@ -538,7 +584,15 @@ def _run_study_task(task_id, store, common_config, tiku_config, notification_con
             error = str(exc)
             outcome = progress.outcome(fatal=True)
             logger.error(f"任务执行错误: {exc}")
+            if cancelled():
+                # Tearing down mid-flight can surface as an exception; the user
+                # asked for the stop, so report it as a stop.
+                outcome, error = "cancelled", None
         finally:
+            # A stop may arrive while sessions or answer caches are closing.
+            if cancelled():
+                outcome, error = "cancelled", None
+                progress.cancel_remaining()
             if notification is not None:
                 try:
                     notification.send(_notification_message(store, task_id, outcome, error))
@@ -663,6 +717,28 @@ def resume_study(task_id):
         return jsonify({"status": False, "msg": str(exc)}), 401
     except Exception as exc:
         logger.error(f"恢复任务失败: {exc}")
+        return jsonify({"status": False, "msg": str(exc)}), 500
+
+
+@app.route('/api/task/<task_id>/stop', methods=['POST'])
+def stop_study(task_id):
+    """Stop a task on request. Ownership comes from the stored account, so no
+    password or fresh login is needed to abandon work already started here."""
+    try:
+        data = _json_body()
+        username = data.get("username")
+        if not isinstance(username, str) or not username.strip():
+            raise ValueError("用户名不能为空")
+        state = task_store.request_cancel(task_id, username.strip())
+        return jsonify({"status": True, "data": {"task_id": task_id, "state": state}})
+    except TaskNotFound:
+        # A missing task and an account mismatch
+        # are reported the same way, so a stop cannot probe other accounts.
+        return jsonify({"status": False, "msg": "任务不存在或已过期"}), 404
+    except ValueError as exc:
+        return jsonify({"status": False, "msg": str(exc)}), 400
+    except Exception as exc:
+        logger.error(f"停止任务失败: {exc}")
         return jsonify({"status": False, "msg": str(exc)}), 500
 
 

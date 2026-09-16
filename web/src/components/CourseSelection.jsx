@@ -74,7 +74,7 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
         setSelectedCourses(selection.ids);
         setSelectionNotice(selection.saved
           ? selection.ids.length ? '已恢复此账号仍有效的课程选择，可继续调整' : '保存的课程选择为空或已失效，请重新选择课程'
-          : '请勾选需要学习的课程，可使用 Ctrl+A 全选当前列表');
+          : '请勾选需要学习的课程');
       } catch (error) {
         if (!controller.signal.aborted) setLoadError(error.response?.data?.msg || error.message || '获取课程失败，请重试');
       } finally {

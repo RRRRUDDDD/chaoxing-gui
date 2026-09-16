@@ -23,6 +23,7 @@ function App() {
   const loggingOutRef = useRef(false);
   const startController = useRef(null);
   const recoveryController = useRef(null);
+  const stopController = useRef(null);
   const sessionGeneration = useRef(0);
   const taskRunning = !!taskId && !isTerminalStatus(taskStatus) && taskStatus !== 'missing';
   const currentTaskNotice = taskNotice?.username === userInfo?.username && taskNotice?.taskId === taskId ? taskNotice.message : '';
@@ -32,6 +33,7 @@ function App() {
     sessionGeneration.current += 1;
     startController.current?.abort();
     recoveryController.current?.abort();
+    stopController.current?.abort();
   }, []);
 
   const recoverTask = useCallback(async (id, info) => {
@@ -48,7 +50,7 @@ function App() {
       if (!isCurrent()) return;
       if (!response.data.status) throw new Error(response.data.msg || '恢复任务失败');
       if (response.data.data?.task_id !== id) throw new Error('服务返回的任务 ID 无效');
-      if (!['running', 'completed', 'partial', 'error'].includes(response.data.data.status)) throw new Error('任务尚未恢复，请重试');
+      if (response.data.data.status !== 'running' && !isTerminalStatus(response.data.data.status)) throw new Error('任务尚未恢复，请重试');
       setTaskStatus(response.data.data.status);
       setRecovery(null);
     } catch (error) {
@@ -78,8 +80,10 @@ function App() {
     const generation = ++sessionGeneration.current;
     startController.current?.abort();
     recoveryController.current?.abort();
+    stopController.current?.abort();
     recoveryController.current = null;
     startController.current = null;
+    stopController.current = null;
     startingRef.current = false;
     setStarting(false);
     let saved;
@@ -109,6 +113,34 @@ function App() {
     sessionStore.rememberTask(null).catch(() => {});
   }, []);
 
+  // Request a stop and let polling publish the resulting terminal state.
+  const handleStopTask = useCallback(async () => {
+    if (!taskId || !userInfo || loggingOutRef.current) return;
+    const controller = new AbortController();
+    const generation = sessionGeneration.current;
+    stopController.current?.abort();
+    stopController.current = controller;
+    const isCurrent = () => !loggingOutRef.current && generation === sessionGeneration.current
+      && !controller.signal.aborted && stopController.current === controller;
+    try {
+      const response = await api.post(`/task/${encodeURIComponent(taskId)}/stop`,
+        { username: userInfo.username }, { signal: controller.signal });
+      if (!isCurrent()) return;
+      if (!response.data.status) throw new Error(response.data.msg || '停止任务失败，请重试');
+      // An interrupted task is stopped outright, so reflect it without waiting.
+      if (response.data.data?.state === 'cancelled') setTaskStatus('cancelled');
+    } catch (error) {
+      if (!isCurrent()) return;
+      if (error.response?.status === 404) {
+        handleTaskMissing();
+        return;
+      }
+      throw error;
+    } finally {
+      if (isCurrent()) stopController.current = null;
+    }
+  }, [taskId, userInfo, handleTaskMissing]);
+
   // Keep the task reachable and prevent a second start while browsing courses.
   useEffect(() => {
     if (isPreview || step !== 'courses' || !taskRunning || currentRecovery) return undefined;
@@ -121,6 +153,8 @@ function App() {
   const adoptTask = async (id, username, isCurrent, resume = false) => {
     if (!isCurrent()) return;
     if (!validTaskId(id)) throw new Error('服务返回的任务 ID 无效');
+    stopController.current?.abort();
+    stopController.current = null;
     setTaskId(id);
     setTaskStatus('running');
     setMonitorError('');
@@ -177,7 +211,9 @@ function App() {
     setLoggingOut(true);
     startController.current?.abort();
     recoveryController.current?.abort();
+    stopController.current?.abort();
     recoveryController.current = null;
+    stopController.current = null;
     setStarting(false);
     setRecovery((previous) => previous?.pending ? { ...previous, pending: false, error: '恢复已中断，请重试恢复任务' } : previous);
     setStartError('');
@@ -230,6 +266,7 @@ function App() {
           onBack={() => setStep('courses')}
           onStatus={handleTaskStatus}
           onMissing={handleTaskMissing}
+          onStop={handleStopTask}
           recovering={currentRecovery?.pending === true}
           recoveryError={currentRecovery?.error || ''}
           onRetryRecovery={() => { if (userInfo && taskId) void recoverTask(taskId, userInfo); }}

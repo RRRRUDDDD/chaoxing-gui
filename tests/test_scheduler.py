@@ -23,6 +23,69 @@ def config(**values):
 
 
 class SchedulerTests(unittest.TestCase):
+    def test_cancel_wakes_long_retry_without_failing_completed_jobs(self):
+        cancel = threading.Event()
+        retry_waiting = threading.Event()
+        callback = Mock()
+        chapter = point(jobCount=2)
+        client = SimpleNamespace(rate_limiter=Mock(), get_job_list=Mock(return_value=(
+            [{'type': 'read', 'jobid': 'done'}, {'type': 'read', 'jobid': 'pending'}], {})))
+        processor = main.JobProcessor(client, COURSE, [main.ChapterTask(0, chapter)],
+                                      config(retry_interval=300, cancel_check=cancel.is_set,
+                                             chapter_result_callback=callback))
+        wait = processor._stop.wait
+
+        def wait_for_retry(timeout):
+            retry_waiting.set()
+            return wait(timeout)
+
+        results = []
+        runner = threading.Thread(target=lambda: results.append(processor.run()), daemon=True)
+        with patch.object(processor._stop, 'wait', side_effect=wait_for_retry), \
+             patch('main.process_job', side_effect=lambda _client, _course, job, *_args, **_kwargs:
+                   StudyResult.SUCCESS if job['jobid'] == 'done' else StudyResult.ERROR) as jobs:
+            runner.start()
+            try:
+                self.assertTrue(retry_waiting.wait(3))
+                cancel.set()
+                runner.join(3)
+            finally:
+                processor._stop.set()
+                runner.join(3)
+        self.assertFalse(runner.is_alive())
+        self.assertEqual(len(results), 1)
+        self.assertEqual(len(results[0].skipped), 1)
+        self.assertEqual(results[0].failed, [])
+        self.assertEqual(chapter['_task_stats'], {'total': 2, 'completed': 1, 'failed': 0, 'skipped': 1})
+        callback.assert_called_once_with(COURSE, chapter, main.ChapterResult.SKIPPED)
+        self.assertEqual(jobs.call_count, 2)
+        self.assertTrue(all(not thread.is_alive() for thread in processor.threads))
+        self.assertFalse(any(thread.name == 'chaoxing-cancel' for thread in threading.enumerate()))
+
+    def test_stop_during_job_discovery_does_not_report_an_empty_chapter_done(self):
+        cancel = threading.Event()
+        done = Mock()
+
+        def jobs(*args, **kwargs):
+            cancel.set()
+            return [], {}
+
+        client = SimpleNamespace(rate_limiter=Mock(), get_job_list=Mock(side_effect=jobs))
+        result = main.process_chapter(client, COURSE, point(), 1,
+                                      config(cancel_check=cancel.is_set, chapter_done_callback=done))
+        self.assertEqual(result, main.ChapterResult.SKIPPED)
+        done.assert_not_called()
+
+    def test_cancel_skips_pending_chapters_and_preserves_platform_completed_ones(self):
+        tasks = [main.ChapterTask(0, point(1, has_finished=True)), main.ChapterTask(1, point(2))]
+        processor = main.JobProcessor(Mock(session_manager=None), COURSE, tasks, config(cancel_check=lambda: True))
+        with patch('main.process_chapter') as process:
+            result = processor.run()
+        process.assert_not_called()
+        self.assertEqual(result.completed, [tasks[0]])
+        self.assertEqual(result.skipped, [tasks[1]])
+        self.assertEqual(tasks[0].point['_task_stats']['completed'], 1)
+
     def test_exhausted_retry_propagates_failure_and_closes_threads(self):
         callback = Mock()
         task = main.ChapterTask(0, point())

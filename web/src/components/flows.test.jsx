@@ -354,7 +354,44 @@ describe('task navigation', () => {
     expect((await screen.findByRole('button', { name: '开始学习' })).disabled).toBe(false);
   });
 
-  it.each(['completed', 'partial', 'error'])('allows a new task only after the tracked task becomes %s', async (status) => {
+  it.each(['success', 'missing', 'error'])('ignores a late %s stop response after a new task starts for the same account', async (outcome) => {
+    services();
+    await sessionStore.rememberLogin('alice');
+    const stopping = deferred();
+    const normalPost = api.post.getMockImplementation();
+    const normalGet = api.get.getMockImplementation();
+    let starts = 0;
+    let oldStatus = 'running';
+    api.post.mockImplementation((url, body, options) => {
+      if (url.endsWith('/stop')) return stopping.promise;
+      if (url === '/start') return Promise.resolve(ok({ task_id: starts++ === 0 ? 'old-task' : 'new-task' }));
+      return normalPost(url, body, options);
+    });
+    api.get.mockImplementation((url, options) => url === '/task/old-task'
+      ? Promise.resolve(ok(taskState(oldStatus))) : normalGet(url, options));
+    render(<App />);
+    fireEvent.click(await screen.findByRole('button', { name: '开始学习' }));
+    fireEvent.click(await screen.findByRole('button', { name: '停止任务' }));
+    fireEvent.click(screen.getByRole('button', { name: '确认停止任务' }));
+    const oldSignal = api.post.mock.calls.find(([url]) => url.endsWith('/stop'))[2].signal;
+    oldStatus = 'completed';
+    fireEvent.click(screen.getByRole('button', { name: '返回课程选择' }));
+    await screen.findByRole('button', { name: '查看上次任务' });
+    fireEvent.click(screen.getByRole('button', { name: '开始学习' }));
+    await screen.findByText('new-task');
+    expect(oldSignal.aborted).toBe(true);
+    await act(async () => {
+      if (outcome === 'success') stopping.resolve(ok({ task_id: 'old-task', state: 'cancelled' }));
+      else stopping.reject({ response: { status: outcome === 'missing' ? 404 : 500, data: { msg: 'old stop failure' } } });
+    });
+    expect(screen.queryByRole('alert')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: '返回课程选择' }));
+    await screen.findByRole('button', { name: '返回运行任务' });
+    expect(screen.getByRole('button', { name: '开始学习' }).disabled).toBe(true);
+    expect((await sessionStore.read()).activeTask).toEqual({ username: 'alice', taskId: 'new-task' });
+  });
+
+  it.each(['completed', 'partial', 'error', 'cancelled'])('allows a new task only after the tracked task becomes %s', async (status) => {
     services({ status });
     await sessionStore.rememberLogin('alice');
     await sessionStore.rememberTask({ username: 'alice', taskId: 'task-one' });
