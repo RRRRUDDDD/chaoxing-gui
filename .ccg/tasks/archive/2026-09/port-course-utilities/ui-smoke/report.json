@@ -1,0 +1,202 @@
+{
+  "startedAt": "2026-09-16T05:20:23.870Z",
+  "fixtureOnly": true,
+  "viewports": [
+    {
+      "name": "desktop",
+      "viewport": {
+        "width": 1366,
+        "height": 900
+      },
+      "layout": [
+        {
+          "name": "visits-validation",
+          "viewport": 1366,
+          "documentWidth": 1366,
+          "bodyWidth": 1366,
+          "clipped": []
+        },
+        {
+          "name": "visits-results",
+          "viewport": 1366,
+          "documentWidth": 1366,
+          "bodyWidth": 1366,
+          "clipped": []
+        },
+        {
+          "name": "video-validation",
+          "viewport": 1366,
+          "documentWidth": 1366,
+          "bodyWidth": 1366,
+          "clipped": []
+        },
+        {
+          "name": "video-start-error",
+          "viewport": 1366,
+          "documentWidth": 1366,
+          "bodyWidth": 1366,
+          "clipped": []
+        },
+        {
+          "name": "video-running",
+          "viewport": 1366,
+          "documentWidth": 1366,
+          "bodyWidth": 1366,
+          "clipped": []
+        },
+        {
+          "name": "video-cancelled",
+          "viewport": 1366,
+          "documentWidth": 1366,
+          "bodyWidth": 1366,
+          "clipped": []
+        },
+        {
+          "name": "download-catalog",
+          "viewport": 1366,
+          "documentWidth": 1366,
+          "bodyWidth": 1366,
+          "clipped": []
+        },
+        {
+          "name": "download-open-error",
+          "viewport": 1366,
+          "documentWidth": 1366,
+          "bodyWidth": 1366,
+          "clipped": []
+        },
+        {
+          "name": "download-result",
+          "viewport": 1366,
+          "documentWidth": 1366,
+          "bodyWidth": 1366,
+          "clipped": []
+        }
+      ],
+      "pageErrors": [],
+      "blockedRequests": [],
+      "passed": true,
+      "startTypes": [
+        "visits",
+        "catalog",
+        "video_time",
+        "video_time",
+        "catalog",
+        "download"
+      ],
+      "apiCalls": 34,
+      "contextClosed": true
+    },
+    {
+      "name": "mobile",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "layout": [
+        {
+          "name": "visits-validation",
+          "viewport": 390,
+          "documentWidth": 390,
+          "bodyWidth": 390,
+          "clipped": []
+        },
+        {
+          "name": "visits-results",
+          "viewport": 390,
+          "documentWidth": 390,
+          "bodyWidth": 390,
+          "clipped": []
+        },
+        {
+          "name": "video-validation",
+          "viewport": 390,
+          "documentWidth": 390,
+          "bodyWidth": 390,
+          "clipped": []
+        },
+        {
+          "name": "video-start-error",
+          "viewport": 390,
+          "documentWidth": 390,
+          "bodyWidth": 390,
+          "clipped": []
+        },
+        {
+          "name": "video-running",
+          "viewport": 390,
+          "documentWidth": 390,
+          "bodyWidth": 390,
+          "clipped": []
+        },
+        {
+          "name": "video-cancelled",
+          "viewport": 390,
+          "documentWidth": 390,
+          "bodyWidth": 390,
+          "clipped": []
+        },
+        {
+          "name": "download-catalog",
+          "viewport": 390,
+          "documentWidth": 390,
+          "bodyWidth": 390,
+          "clipped": []
+        },
+        {
+          "name": "download-open-error",
+          "viewport": 390,
+          "documentWidth": 390,
+          "bodyWidth": 390,
+          "clipped": []
+        },
+        {
+          "name": "download-result",
+          "viewport": 390,
+          "documentWidth": 390,
+          "bodyWidth": 390,
+          "clipped": []
+        }
+      ],
+      "pageErrors": [],
+      "blockedRequests": [],
+      "passed": true,
+      "startTypes": [
+        "visits",
+        "catalog",
+        "video_time",
+        "video_time",
+        "catalog",
+        "download"
+      ],
+      "apiCalls": 34,
+      "contextClosed": true
+    }
+  ],
+  "screenshots": [
+    "desktop-visits-validation.png",
+    "desktop-visits-results.png",
+    "desktop-video-validation.png",
+    "desktop-video-start-error.png",
+    "desktop-video-running.png",
+    "desktop-video-cancelled.png",
+    "desktop-download-catalog.png",
+    "desktop-download-open-error.png",
+    "desktop-download-result.png",
+    "mobile-visits-validation.png",
+    "mobile-visits-results.png",
+    "mobile-video-validation.png",
+    "mobile-video-start-error.png",
+    "mobile-video-running.png",
+    "mobile-video-cancelled.png",
+    "mobile-download-catalog.png",
+    "mobile-download-open-error.png",
+    "mobile-download-result.png"
+  ],
+  "cleanup": {
+    "browserClosed": true,
+    "serverClosed": true
+  },
+  "passed": true,
+  "finishedAt": "2026-09-16T05:20:33.156Z"
+}

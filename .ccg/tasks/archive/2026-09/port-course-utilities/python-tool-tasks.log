@@ -1,0 +1,32 @@
+test_authenticated_course_membership_is_rechecked_in_worker (tests.test_course_tool_tasks.CourseToolTaskTests.test_authenticated_course_membership_is_rechecked_in_worker) ... 2026-09-16 13:07:22.372 | ERROR    | api.course_tool_tasks:run_tool_task:329 - 课程工具执行失败：部分课程已不属于当前账号，请重新获取课程列表
+ok
+test_cancel_during_visits_keeps_submitted_count_and_releases_account_after_close (tests.test_course_tool_tasks.CourseToolTaskTests.test_cancel_during_visits_keeps_submitted_count_and_releases_account_after_close) ... 2026-09-16 13:07:22.388 | INFO     | api.course_tool_tasks:run_tool_task:324 - 课程学习次数执行结束
+2026-09-16 13:07:22.388 | INFO     | api.course_tool_tasks:run_tool_task:333 - 课程工具已停止，已完成的记录和下载文件已保留
+ok
+test_catalog_does_not_publish_private_attachment_parameters (tests.test_course_tool_tasks.CourseToolTaskTests.test_catalog_does_not_publish_private_attachment_parameters) ... 2026-09-16 13:07:22.400 | INFO     | api.course_tool_tasks:_run_courses:365 - 课程一：读取到 1 个资源
+2026-09-16 13:07:22.401 | INFO     | api.course_tool_tasks:run_tool_task:324 - 读取课程资源执行结束
+ok
+test_checkpoint_records_progress_before_a_later_process_restart (tests.test_course_tool_tasks.CourseToolTaskTests.test_checkpoint_records_progress_before_a_later_process_restart) ... ok
+test_failed_progress_checkpoint_aborts_later_requests_without_duplicate_rows (tests.test_course_tool_tasks.CourseToolTaskTests.test_failed_progress_checkpoint_aborts_later_requests_without_duplicate_rows) ... 2026-09-16 13:07:22.416 | ERROR    | api.course_tool_tasks:run_tool_task:329 - 课程工具执行失败：保存执行记录失败，已停止后续操作；请检查数据目录
+ok
+test_failed_result_checkpoint_does_not_append_duplicate_failure (tests.test_course_tool_tasks.CourseToolTaskTests.test_failed_result_checkpoint_does_not_append_duplicate_failure) ... 2026-09-16 13:07:22.425 | ERROR    | api.course_tool_tasks:run_tool_task:329 - 课程工具执行失败：保存执行记录失败，已停止后续操作；请检查数据目录
+ok
+test_missing_selected_resource_is_reported (tests.test_course_tool_tasks.CourseToolTaskTests.test_missing_selected_resource_is_reported) ... 2026-09-16 13:07:22.436 | ERROR    | api.course_tool_tasks:_run_resources:430 - 演示视频处理失败：此资源已不可用或章节未开放，请重新读取资源列表
+2026-09-16 13:07:22.437 | INFO     | api.course_tool_tasks:run_tool_task:324 - 课程资源下载执行结束
+ok
+test_upstream_failures_are_not_success_and_final_logs_are_visible (tests.test_course_tool_tasks.CourseToolTaskTests.test_upstream_failures_are_not_success_and_final_logs_are_visible) ... 2026-09-16 13:07:22.446 | ERROR    | api.course_tool_tasks:_run_courses:372 - 课程一处理失败：statistics endpoint unavailable
+2026-09-16 13:07:22.447 | INFO     | api.course_tool_tasks:run_tool_task:324 - 课程学习次数执行结束
+ok
+test_video_refreshes_resource_metadata_instead_of_reusing_catalog_tokens (tests.test_course_tool_tasks.CourseToolTaskTests.test_video_refreshes_resource_metadata_instead_of_reusing_catalog_tokens) ... 2026-09-16 13:07:22.456 | INFO     | api.course_tool_tasks:_run_resources:424 - 演示视频：已提交 6 秒观看记录，平台统计可能延迟更新
+2026-09-16 13:07:22.458 | INFO     | api.course_tool_tasks:run_tool_task:324 - 视频观看时长执行结束
+ok
+test_visits_counts_submissions_separately_and_closes_before_terminal (tests.test_course_tool_tasks.CourseToolTaskTests.test_visits_counts_submissions_separately_and_closes_before_terminal) ... 2026-09-16 13:07:22.468 | INFO     | api.course_tool_tasks:_run_courses:365 - 课程一：已成功提交 2 次访问；平台统计以返回值为准
+2026-09-16 13:07:22.468 | INFO     | api.course_tool_tasks:run_tool_task:324 - 课程学习次数执行结束
+ok
+test_download_directory_rejects_bad_task_id_and_linked_parents (tests.test_course_tool_tasks.ToolOptionTests.test_download_directory_rejects_bad_task_id_and_linked_parents) ... ok
+test_invalid_numbers_shapes_and_untrusted_fields_are_rejected (tests.test_course_tool_tasks.ToolOptionTests.test_invalid_numbers_shapes_and_untrusted_fields_are_rejected) ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 0.109s
+
+OK

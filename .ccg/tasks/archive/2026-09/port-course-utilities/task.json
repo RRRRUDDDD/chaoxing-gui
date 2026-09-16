@@ -1,0 +1,16 @@
+{
+  "id": "port-course-utilities",
+  "title": "将 chaoxing_tool 的学习次数、视频观看时长和课程资源下载接入 chaoxing-gui",
+  "status": "completed",
+  "complexity": "L+",
+  "risk": "high",
+  "domain": "fullstack",
+  "currentPhase": "completed",
+  "nextAction": "功能已完成并推送 GitHub main；本地归档按既有约定独立提交",
+  "createdAt": "2026-09-16T04:51:28.0699259Z",
+  "branch": "main",
+  "completedAt": "2026-09-16T05:40:40.7877703Z",
+  "sourceCommit": "f6946fb0b6086ddb629dcec43e8f361814a5a71a",
+  "publicationCommit": "fe2860ef5a798bac91bd71a2e9dfdd92393613ac",
+  "publicationTask": "publish-course-utilities"
+}

@@ -1,0 +1,7 @@
+ROLE_FILE: C:/Users/RUD/.claude/.ccg/prompts/claude/analyzer.md
+<TASK>
+Read-only analysis, no modifications, no subagents. Workspace E:/Downloads/45/chaoxing-gui. User requests porting three features from local chaoxing_tool: learning visit count, course video viewing duration, downloading course chapter resources. GUI and interaction must fit chaoxing-gui.
+Read .ccg/spec/frontend/index.md and backend/index.md, relevant web/src/App.jsx, CourseSelection.jsx, StudyProgress.jsx, session/task polling and API adapters, and desktop/src-tauri/src/api_proxy.rs. Review reference functions under chaoxing_tool/functions. Existing working tree changes must be preserved (stop/recovery work etc.).
+Recommend a concrete GUI flow and minimal compatible request/task contract; identify how to support resource selection, download retrieval in browser/Electron/Tauri, account/logout/stop/race handling, appropriate tests and file ownership for parallel implementation. Only task-sized scope, no broad refactoring. Do not make platform requests or read private cookies/configs. Use local files only. Independent analysis; give specific paths and interface recommendations.
+</TASK>
+OUTPUT: concise Chinese structured analysis with key pitfalls, recommended contract, affected files and acceptance tests.

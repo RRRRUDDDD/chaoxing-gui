@@ -1,0 +1,8 @@
+ROLE_FILE: C:/Users/RUD/.claude/.ccg/prompts/claude/reviewer.md
+<TASK>
+READ-ONLY FINAL CODE REVIEW; no file changes, no commits, no subagents, no external web or real account data. Workspace E:/Downloads/45/chaoxing-gui. User waived dual-model analysis; this is final code review under AGENTS.
+Review new GUI course tools and task flow using .ccg/tasks/port-course-utilities/plan.md and .ccg/spec/frontend/index.md. Read new CourseToolSettings.jsx/CourseToolProgress.jsx/CourseTools.test.jsx, changes in CourseSelection.jsx/StudyProgress.jsx/App.jsx, tauriAdapter.js and courseToolsFlow.test.jsx, Rust api_proxy.rs, and backend public DTO/start/resume/open-downloads paths in api/course_tool_tasks.py/app.py. git diff + new source files are authoritative; preserve unrelated workspace changes.
+Check catalog -> explicit resource selection -> start flow, account/task/logout races, partial/error/cancel semantics, final detail polling and source expiration, progress units and honest statistics, cross-runtime API whitelist, opening downloaded folders and input validation. UI uses existing design language. Small screen local fixture smoke is also running.
+Do not suggest rewriting existing automatic-study behavior or duplicating authentication. Report only actionable bugs in these changes; if none, clearly say so with tested/unverified boundary. No changes.
+</TASK>
+OUTPUT: Chinese Critical / Warning / Info findings and short approve/request-changes verdict.

@@ -1,0 +1,58 @@
+2026-09-16 13:20:06.544 | WARNING  | app:<module>:47 - pystray 未安装，托盘图标功能不可用
+test_authenticated_course_membership_is_rechecked_in_worker (tests.test_course_tool_tasks.CourseToolTaskTests.test_authenticated_course_membership_is_rechecked_in_worker) ... 2026-09-16 13:20:06.555 | ERROR    | api.course_tool_tasks:run_tool_task:367 - 课程工具执行失败：部分课程已不属于当前账号，请重新获取课程列表
+ok
+test_cancel_during_visits_keeps_submitted_count_and_releases_account_after_close (tests.test_course_tool_tasks.CourseToolTaskTests.test_cancel_during_visits_keeps_submitted_count_and_releases_account_after_close) ... 2026-09-16 13:20:06.566 | INFO     | api.course_tool_tasks:run_tool_task:362 - 课程学习次数执行结束
+2026-09-16 13:20:06.566 | INFO     | api.course_tool_tasks:run_tool_task:371 - 课程工具已停止，已完成的记录和下载文件已保留
+ok
+test_cancelled_download_does_not_claim_discarded_bytes_were_saved (tests.test_course_tool_tasks.CourseToolTaskTests.test_cancelled_download_does_not_claim_discarded_bytes_were_saved) ... 2026-09-16 13:20:06.578 | INFO     | api.course_tool_tasks:run_tool_task:362 - 课程资源下载执行结束
+2026-09-16 13:20:06.579 | INFO     | api.course_tool_tasks:run_tool_task:371 - 课程工具已停止，已完成的记录和下载文件已保留
+ok
+test_catalog_budget_reserves_complete_ascii_encoded_download_results (tests.test_course_tool_tasks.CourseToolTaskTests.test_catalog_budget_reserves_complete_ascii_encoded_download_results) ... ok
+test_catalog_does_not_publish_private_attachment_parameters (tests.test_course_tool_tasks.CourseToolTaskTests.test_catalog_does_not_publish_private_attachment_parameters) ... 2026-09-16 13:20:06.684 | INFO     | api.course_tool_tasks:_run_courses:403 - 课程一：读取到 1 个资源
+2026-09-16 13:20:06.684 | INFO     | api.course_tool_tasks:run_tool_task:362 - 读取课程资源执行结束
+ok
+test_checkpoint_records_progress_before_a_later_process_restart (tests.test_course_tool_tasks.CourseToolTaskTests.test_checkpoint_records_progress_before_a_later_process_restart) ... ok
+test_completed_download_rows_remain_counted_when_resumed_worker_skips_them (tests.test_course_tool_tasks.CourseToolTaskTests.test_completed_download_rows_remain_counted_when_resumed_worker_skips_them) ... 2026-09-16 13:20:06.701 | INFO     | api.course_tool_tasks:run_tool_task:362 - 课程资源下载执行结束
+ok
+test_failed_download_does_not_claim_discarded_bytes_were_saved (tests.test_course_tool_tasks.CourseToolTaskTests.test_failed_download_does_not_claim_discarded_bytes_were_saved) ... 2026-09-16 13:20:06.714 | ERROR    | api.course_tool_tasks:_run_resources:471 - 演示视频处理失败：truncated transfer
+2026-09-16 13:20:06.714 | INFO     | api.course_tool_tasks:run_tool_task:362 - 课程资源下载执行结束
+ok
+test_failed_progress_checkpoint_aborts_later_requests_without_duplicate_rows (tests.test_course_tool_tasks.CourseToolTaskTests.test_failed_progress_checkpoint_aborts_later_requests_without_duplicate_rows) ... 2026-09-16 13:20:06.719 | ERROR    | api.course_tool_tasks:run_tool_task:367 - 课程工具执行失败：保存执行记录失败，已停止后续操作；请检查数据目录
+ok
+test_failed_result_checkpoint_does_not_append_duplicate_failure (tests.test_course_tool_tasks.CourseToolTaskTests.test_failed_result_checkpoint_does_not_append_duplicate_failure) ... 2026-09-16 13:20:06.725 | ERROR    | api.course_tool_tasks:run_tool_task:367 - 课程工具执行失败：保存执行记录失败，已停止后续操作；请检查数据目录
+ok
+test_missing_selected_resource_is_reported (tests.test_course_tool_tasks.CourseToolTaskTests.test_missing_selected_resource_is_reported) ... 2026-09-16 13:20:06.733 | ERROR    | api.course_tool_tasks:_run_resources:471 - 演示视频处理失败：此资源已不可用或章节未开放，请重新读取资源列表
+2026-09-16 13:20:06.733 | INFO     | api.course_tool_tasks:run_tool_task:362 - 课程资源下载执行结束
+ok
+test_upstream_failures_are_not_success_and_final_logs_are_visible (tests.test_course_tool_tasks.CourseToolTaskTests.test_upstream_failures_are_not_success_and_final_logs_are_visible) ... 2026-09-16 13:20:06.740 | ERROR    | api.course_tool_tasks:_run_courses:410 - 课程一处理失败：statistics endpoint unavailable
+2026-09-16 13:20:06.740 | INFO     | api.course_tool_tasks:run_tool_task:362 - 课程学习次数执行结束
+ok
+test_video_refreshes_resource_metadata_instead_of_reusing_catalog_tokens (tests.test_course_tool_tasks.CourseToolTaskTests.test_video_refreshes_resource_metadata_instead_of_reusing_catalog_tokens) ... 2026-09-16 13:20:06.748 | INFO     | api.course_tool_tasks:_run_resources:465 - 演示视频：已提交 6 秒观看记录，平台统计可能延迟更新
+2026-09-16 13:20:06.748 | INFO     | api.course_tool_tasks:run_tool_task:362 - 视频观看时长执行结束
+ok
+test_visits_counts_submissions_separately_and_closes_before_terminal (tests.test_course_tool_tasks.CourseToolTaskTests.test_visits_counts_submissions_separately_and_closes_before_terminal) ... 2026-09-16 13:20:06.755 | INFO     | api.course_tool_tasks:_run_courses:403 - 课程一：已成功提交 2 次访问；平台统计以返回值为准
+2026-09-16 13:20:06.755 | INFO     | api.course_tool_tasks:run_tool_task:362 - 课程学习次数执行结束
+ok
+test_download_directory_rejects_bad_task_id_and_linked_parents (tests.test_course_tool_tasks.ToolOptionTests.test_download_directory_rejects_bad_task_id_and_linked_parents) ... ok
+test_invalid_numbers_shapes_and_untrusted_fields_are_rejected (tests.test_course_tool_tasks.ToolOptionTests.test_invalid_numbers_shapes_and_untrusted_fields_are_rejected) ... ok
+test_real_linked_download_root_is_rejected_without_writing_outside (tests.test_course_tool_tasks.ToolOptionTests.test_real_linked_download_root_is_rejected_without_writing_outside) ... ok
+test_catalogue_restart_claims_original_id_once (tests.test_course_tool_api.CourseToolApiTests.test_catalogue_restart_claims_original_id_once) ... ok
+test_download_can_resume_from_its_own_selection_after_source_expires (tests.test_course_tool_api.CourseToolApiTests.test_download_can_resume_from_its_own_selection_after_source_expires) ... ok
+test_download_resolves_selection_from_own_completed_catalogue (tests.test_course_tool_api.CourseToolApiTests.test_download_resolves_selection_from_own_completed_catalogue) ... ok
+test_download_restart_keeps_completed_files_without_requiring_live_source (tests.test_course_tool_api.CourseToolApiTests.test_download_restart_keeps_completed_files_without_requiring_live_source) ... ok
+test_expired_catalogue_is_rejected_before_creating_a_new_task (tests.test_course_tool_api.CourseToolApiTests.test_expired_catalogue_is_rejected_before_creating_a_new_task) ... ok
+test_launcher_failure_finishes_task_and_releases_account (tests.test_course_tool_api.CourseToolApiTests.test_launcher_failure_finishes_task_and_releases_account) ... 2026-09-16 13:20:06.807 | ERROR    | app:_start_course_tool:708 - 启动课程工具失败: cannot start worker
+ok
+test_non_idempotent_restart_keeps_acknowledged_progress_without_replaying (tests.test_course_tool_api.CourseToolApiTests.test_non_idempotent_restart_keeps_acknowledged_progress_without_replaying) ... ok
+test_open_downloads_is_task_owned_and_does_not_accept_a_client_path (tests.test_course_tool_api.CourseToolApiTests.test_open_downloads_is_task_owned_and_does_not_accept_a_client_path) ... ok
+test_other_account_expired_source_unknown_ids_and_wrong_function_are_rejected (tests.test_course_tool_api.CourseToolApiTests.test_other_account_expired_source_unknown_ids_and_wrong_function_are_rejected) ... ok
+test_oversized_catalogue_stays_readable_through_the_real_details_endpoint (tests.test_course_tool_api.CourseToolApiTests.test_oversized_catalogue_stays_readable_through_the_real_details_endpoint) ... 2026-09-16 13:20:06.848 | ERROR    | api.course_tool_tasks:_run_courses:410 - 课程一处理失败：课程资源过多，请减少勾选课程后分批读取
+2026-09-16 13:20:06.849 | INFO     | api.course_tool_tasks:run_tool_task:362 - 读取课程资源执行结束
+ok
+test_tool_start_persists_only_options_and_uses_same_account_lock (tests.test_course_tool_api.CourseToolApiTests.test_tool_start_persists_only_options_and_uses_same_account_lock) ... ok
+test_unsupported_types_and_invalid_options_do_not_launch (tests.test_course_tool_api.CourseToolApiTests.test_unsupported_types_and_invalid_options_do_not_launch) ... ok
+
+----------------------------------------------------------------------
+Ran 29 tests in 0.310s
+
+OK

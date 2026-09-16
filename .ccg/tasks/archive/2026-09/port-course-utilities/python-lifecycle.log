@@ -1,0 +1,168 @@
+2026-09-16 13:06:32.844 | WARNING  | app:<module>:47 - pystray 未安装，托盘图标功能不可用
+test_accepted_stop_wins_a_late_terminal_result (tests.test_task_state.TaskStoreTests.test_accepted_stop_wins_a_late_terminal_result) ... ok
+test_account_reservation_is_atomic_and_ids_are_uuids (tests.test_task_state.TaskStoreTests.test_account_reservation_is_atomic_and_ids_are_uuids) ... ok
+test_cancel_rejects_another_account_and_reports_finished_tasks (tests.test_task_state.TaskStoreTests.test_cancel_rejects_another_account_and_reports_finished_tasks) ... ok
+test_cancel_signals_a_running_task_and_keeps_it_running_until_finished (tests.test_task_state.TaskStoreTests.test_cancel_signals_a_running_task_and_keeps_it_running_until_finished) ... ok
+test_cancelled_is_terminal_and_expires_like_other_end_states (tests.test_task_state.TaskStoreTests.test_cancelled_is_terminal_and_expires_like_other_end_states) ... ok
+test_cleanup_thread_start_failure_does_not_reserve_account (tests.test_task_state.TaskStoreTests.test_cleanup_thread_start_failure_does_not_reserve_account) ... ok
+test_cursor_reports_gaps_and_only_new_records (tests.test_task_state.TaskStoreTests.test_cursor_reports_gaps_and_only_new_records) ... ok
+test_edit_serializes_concurrent_progress_updates (tests.test_task_state.TaskStoreTests.test_edit_serializes_concurrent_progress_updates) ... ok
+test_finish_freezes_log_tail_and_clears_active_jobs (tests.test_task_state.TaskStoreTests.test_finish_freezes_log_tail_and_clears_active_jobs) ... ok
+test_logs_are_isolated_bounded_and_reads_do_not_consume (tests.test_task_state.TaskStoreTests.test_logs_are_isolated_bounded_and_reads_do_not_consume) ... ok
+test_long_messages_are_truncated_and_blank_messages_are_ignored (tests.test_task_state.TaskStoreTests.test_long_messages_are_truncated_and_blank_messages_are_ignored) ... ok
+test_missing_task_reads_as_cancelled_so_workers_stop (tests.test_task_state.TaskStoreTests.test_missing_task_reads_as_cancelled_so_workers_stop) ... ok
+test_only_one_cleanup_thread_is_created_for_many_tasks (tests.test_task_state.TaskStoreTests.test_only_one_cleanup_thread_is_created_for_many_tasks) ... ok
+test_released_account_is_not_removed_when_old_record_expires (tests.test_task_state.TaskStoreTests.test_released_account_is_not_removed_when_old_record_expires) ... ok
+test_restart_finishes_an_accepted_stop_instead_of_resuming_it (tests.test_task_state.TaskStoreTests.test_restart_finishes_an_accepted_stop_instead_of_resuming_it) ... ok
+test_snapshots_do_not_expose_mutable_store_state (tests.test_task_state.TaskStoreTests.test_snapshots_do_not_expose_mutable_store_state) ... ok
+test_stop_during_failed_worker_launch_does_not_leave_account_interrupted (tests.test_task_state.TaskStoreTests.test_stop_during_failed_worker_launch_does_not_leave_account_interrupted) ... ok
+test_terminal_ttl_removes_status_details_and_logs_together (tests.test_task_state.TaskStoreTests.test_terminal_ttl_removes_status_details_and_logs_together) ... ok
+test_completed_task_does_not_restart (tests.test_task_recovery.TaskRecoveryApiTests.test_completed_task_does_not_restart) ... ok
+test_failed_login_or_wrong_account_never_resumes (tests.test_task_recovery.TaskRecoveryApiTests.test_failed_login_or_wrong_account_never_resumes) ... ok
+test_persisted_settings_are_validated_before_launch (tests.test_task_recovery.TaskRecoveryApiTests.test_persisted_settings_are_validated_before_launch) ... ok
+test_resume_reloads_platform_progress_and_skips_completed_chapters (tests.test_task_recovery.TaskRecoveryApiTests.test_resume_reloads_platform_progress_and_skips_completed_chapters) ... 2026-09-16 13:06:32.915 | INFO     | main:process_course:703 - 开始学习课程: Fixture course
+2026-09-16 13:06:32.916 | INFO     | main:process_chapter:609 - 当前章节: Already done
+2026-09-16 13:06:32.916 | INFO     | main:process_chapter:609 - 当前章节: Remaining chapter
+ok
+test_start_restart_resume_uses_saved_parameters_and_cookie_login (tests.test_task_recovery.TaskRecoveryApiTests.test_start_restart_resume_uses_saved_parameters_and_cookie_login) ... ok
+test_upstream_key_error_does_not_turn_a_recoverable_task_into_a_404 (tests.test_task_recovery.TaskRecoveryApiTests.test_upstream_key_error_does_not_turn_a_recoverable_task_into_a_404) ... 2026-09-16 13:06:32.932 | ERROR    | app:resume_study:797 - 恢复任务失败: 'unexpected upstream response'
+ok
+test_worker_launch_failure_can_be_retried (tests.test_task_recovery.TaskRecoveryApiTests.test_worker_launch_failure_can_be_retried) ... 2026-09-16 13:06:32.939 | ERROR    | app:resume_study:797 - 恢复任务失败: cannot start worker
+ok
+test_account_mismatch_does_not_claim_task (tests.test_task_recovery.TaskRecoveryTests.test_account_mismatch_does_not_claim_task) ... ok
+test_checkpoint_survives_process_exit_without_cleanup_handlers (tests.test_task_recovery.TaskRecoveryTests.test_checkpoint_survives_process_exit_without_cleanup_handlers) ... ok
+test_corrupt_checkpoint_is_reported_and_never_overwritten (tests.test_task_recovery.TaskRecoveryTests.test_corrupt_checkpoint_is_reported_and_never_overwritten) ... ok
+test_failed_initial_write_rolls_back_reservation_and_keeps_previous_file (tests.test_task_recovery.TaskRecoveryTests.test_failed_initial_write_rolls_back_reservation_and_keeps_previous_file) ... ok
+test_failed_resume_write_leaves_task_retryable (tests.test_task_recovery.TaskRecoveryTests.test_failed_resume_write_leaves_task_retryable) ... ok
+test_finish_write_failure_is_visible_and_terminal_in_memory (tests.test_task_recovery.TaskRecoveryTests.test_finish_write_failure_is_visible_and_terminal_in_memory) ... ok
+test_only_one_concurrent_resume_claim_succeeds (tests.test_task_recovery.TaskRecoveryTests.test_only_one_concurrent_resume_claim_succeeds) ... ok
+test_restart_preserves_task_identity_and_reserves_account_without_starting (tests.test_task_recovery.TaskRecoveryTests.test_restart_preserves_task_identity_and_reserves_account_without_starting) ... ok
+test_terminal_results_survive_restart_and_expire_without_resuming (tests.test_task_recovery.TaskRecoveryTests.test_terminal_results_survive_restart_and_expire_without_resuming) ... ok
+test_stop_after_last_card_does_not_submit_empty_page_completion (tests.test_task_stop.ChapterDiscoveryStopTests.test_stop_after_last_card_does_not_submit_empty_page_completion) ... 2026-09-16 13:06:33.077 | INFO     | main:process_chapter:609 - 当前章节: Chapter 1
+ok
+test_stop_during_card_request_does_not_fetch_remaining_cards (tests.test_task_stop.ChapterDiscoveryStopTests.test_stop_during_card_request_does_not_fetch_remaining_cards) ... 2026-09-16 13:06:33.079 | INFO     | main:process_chapter:609 - 当前章节: Chapter 1
+ok
+test_stop_interrupts_live_retry_without_another_submission (tests.test_task_stop.LiveStopTests.test_stop_interrupts_live_retry_without_another_submission) ... 2026-09-16 13:06:33.080 | INFO     | api.live_process:run_live:34 - 开始刷取直播'<Mock name='mock.name' id='123323344'>'，总时长3分钟（已根据倍速调整）
+2026-09-16 13:06:33.081 | INFO     | api.live_process:run_live:40 - 直播'<Mock name='mock.name' id='123323344'>'已观看1/3分钟
+ok
+test_stop_interrupts_live_sleep_and_job_is_skipped (tests.test_task_stop.LiveStopTests.test_stop_interrupts_live_sleep_and_job_is_skipped) ... 2026-09-16 13:06:33.081 | WARNING  | api.live_process:run_live:45 - 第1分钟时长提交失败，将重试
+2026-09-16 13:06:33.083 | INFO     | api.live_process:run_live:34 - 开始刷取直播'<Mock name='mock.name' id='123327248'>'，总时长3分钟（已根据倍速调整）
+ok
+2026-09-16 13:06:33.083 | INFO     | api.live_process:run_live:40 - 直播'<Mock name='mock.name' id='123327248'>'已观看1/3分钟
+test_stopped_live_does_not_fetch_status (tests.test_task_stop.LiveStopTests.test_stopped_live_does_not_fetch_status) ... ok
+test_cancelled_video_does_not_start_audio_fallback (tests.test_task_stop.StudyOperationStopTests.test_cancelled_video_does_not_start_audio_fallback) ... ok
+test_running_video_stops_after_one_sleep_slice (tests.test_task_stop.StudyOperationStopTests.test_running_video_stops_after_one_sleep_slice) ... 2026-09-16 13:06:33.088 | INFO     | api.base:study_video:511 - 开始任务: Offline video, 总时长: 1800s, 已进行: 0s
+ok
+test_stop_between_initial_video_reports_prevents_completion_report (tests.test_task_stop.StudyOperationStopTests.test_stop_between_initial_video_reports_prevents_completion_report) ... 2026-09-16 13:06:33.089 | WARNING  | api.base:study_video:592 - 已停止, 中断当前任务: Offline video
+ok
+test_stopped_video_does_not_fetch_or_report_progress (tests.test_task_stop.StudyOperationStopTests.test_stopped_video_does_not_fetch_or_report_progress) ... ok
+2026-09-16 13:06:33.091 | INFO     | api.base:study_video:511 - 开始任务: Offline video, 总时长: 1800s, 已进行: 0s
+test_stopped_work_does_not_fetch_questions (tests.test_task_stop.StudyOperationStopTests.test_stopped_work_does_not_fetch_questions) ... ok
+test_video_failure_closes_progress_resource (tests.test_task_stop.StudyOperationStopTests.test_video_failure_closes_progress_resource) ... 2026-09-16 13:06:33.098 | INFO     | api.base:study_video:511 - 开始任务: Offline video, 总时长: 1800s, 已进行: 0s
+ok
+test_video_forbidden_backoff_stops_before_refreshing (tests.test_task_stop.StudyOperationStopTests.test_video_forbidden_backoff_stops_before_refreshing) ... 2026-09-16 13:06:33.100 | INFO     | api.base:study_video:511 - 开始任务: Offline video, 总时长: 1800s, 已进行: 1800s
+ok
+test_work_fetch_backoff_stops_before_retrying (tests.test_task_stop.StudyOperationStopTests.test_work_fetch_backoff_stops_before_retrying) ... 2026-09-16 13:06:33.100 | WARNING  | api.base:study_video:555 - 出现403报错, 正在尝试刷新会话状态 (第1次)
+ok
+2026-09-16 13:06:33.102 | WARNING  | api.base:wrapper:764 - 请求失败: offline failure, 重试中... (1/3)
+test_work_query_delay_is_interruptible (tests.test_task_stop.StudyOperationStopTests.test_work_query_delay_is_interruptible) ... 2026-09-16 13:06:33.105 | DEBUG    | api.base:_handle_question:825 - 当前题目信息 -> {'id': '0', 'title': 'Question 0', 'type': 'single', 'options': 'A. first\nB. second', 'answerField': {}}
+ok
+test_work_stop_skips_remaining_questions_and_never_submits (tests.test_task_stop.StudyOperationStopTests.test_work_stop_skips_remaining_questions_and_never_submits) ... 2026-09-16 13:06:33.107 | DEBUG    | api.base:_handle_question:825 - 当前题目信息 -> {'id': '0', 'title': 'Question 0', 'type': 'single', 'options': 'A. first\nB. second', 'answerField': {}}
+2026-09-16 13:06:33.108 | DEBUG    | api.base:_handle_question:825 - 当前题目信息 -> {'id': '0', 'title': 'Question 0', 'type': 'single', 'options': 'A. first\nB. second', 'answerField': {}}
+ok
+test_stop_accepted_during_final_log_flush_wins_terminal_publication (tests.test_task_stop.StudyTaskStopTests.test_stop_accepted_during_final_log_flush_wins_terminal_publication) ... 2026-09-16 13:06:33.113 | INFO     | main:process_course:703 - 开始学习课程: Course
+ok
+test_stop_before_worker_runs_does_not_initialize_or_login (tests.test_task_stop.StudyTaskStopTests.test_stop_before_worker_runs_does_not_initialize_or_login) ... ok
+test_stop_during_chapter_discovery_does_not_begin_study (tests.test_task_stop.StudyTaskStopTests.test_stop_during_chapter_discovery_does_not_begin_study) ... ok
+test_stop_during_cleanup_waits_for_resources_and_preserves_final_logs (tests.test_task_stop.StudyTaskStopTests.test_stop_during_cleanup_waits_for_resources_and_preserves_final_logs) ... 2026-09-16 13:06:33.123 | INFO     | main:process_course:703 - 开始学习课程: Course
+2026-09-16 13:06:33.124 | INFO     | tests.test_task_stop:close:147 - stop-cleanup-tail
+ok
+test_stop_during_login_does_not_begin_course_discovery (tests.test_task_stop.StudyTaskStopTests.test_stop_during_login_does_not_begin_course_discovery) ... ok
+test_interrupted_task_stops_without_needing_a_worker (tests.test_task_stop.TaskStopApiTests.test_interrupted_task_stops_without_needing_a_worker) ... ok
+test_stop_is_idempotent_and_account_stays_reserved_until_worker_finishes (tests.test_task_stop.TaskStopApiTests.test_stop_is_idempotent_and_account_stays_reserved_until_worker_finishes) ... ok
+test_stop_validates_json_and_account_before_setting_signal (tests.test_task_stop.TaskStopApiTests.test_stop_validates_json_and_account_before_setting_signal) ... ok
+test_unrelated_key_error_is_a_server_error_and_does_not_hide_task (tests.test_task_stop.TaskStopApiTests.test_unrelated_key_error_is_a_server_error_and_does_not_hide_task) ... ok
+2026-09-16 13:06:33.135 | ERROR    | app:stop_study:819 - 停止任务失败: 'invalid internal record'
+test_actual_scheduler_distinguishes_empty_and_unopened_skipped (tests.test_app.WebAppTests.test_actual_scheduler_distinguishes_empty_and_unopened_skipped) ... 2026-09-16 13:06:33.140 | INFO     | main:process_course:703 - 开始学习课程: 课程一
+2026-09-16 13:06:33.141 | INFO     | main:process_chapter:609 - 当前章节: 章节一
+2026-09-16 13:06:33.142 | INFO     | main:process_chapter:609 - 当前章节: 关闭章节
+ok
+test_actual_scheduler_reports_mixed_job_outcomes_within_a_chapter (tests.test_app.WebAppTests.test_actual_scheduler_reports_mixed_job_outcomes_within_a_chapter) ... 2026-09-16 13:06:33.149 | INFO     | main:process_course:703 - 开始学习课程: 课程一
+2026-09-16 13:06:33.150 | INFO     | main:process_chapter:609 - 当前章节: 章节一
+2026-09-16 13:06:33.153 | INFO     | main:process_chapter:609 - 当前章节: 章节一
+2026-09-16 13:06:33.154 | INFO     | main:process_chapter:609 - 当前章节: 章节一
+2026-09-16 13:06:33.155 | INFO     | main:process_chapter:609 - 当前章节: 章节一
+2026-09-16 13:06:33.156 | INFO     | main:process_chapter:609 - 当前章节: 章节一
+2026-09-16 13:06:33.156 | ERROR    | main:worker_thread:560 - 章节重试耗尽: 章节一
+ok
+test_actual_scheduler_retry_exhaustion_propagates_to_api (tests.test_app.WebAppTests.test_actual_scheduler_retry_exhaustion_propagates_to_api) ... 2026-09-16 13:06:33.162 | INFO     | main:process_course:703 - 开始学习课程: 课程一
+2026-09-16 13:06:33.163 | INFO     | main:process_chapter:609 - 当前章节: 章节一
+2026-09-16 13:06:33.164 | ERROR    | main:worker_thread:532 - 章节处理异常: 章节一 -> job response 503
+2026-09-16 13:06:33.164 | INFO     | main:process_chapter:609 - 当前章节: 章节一
+2026-09-16 13:06:33.164 | ERROR    | main:worker_thread:532 - 章节处理异常: 章节一 -> job response 503
+2026-09-16 13:06:33.166 | INFO     | main:process_chapter:609 - 当前章节: 章节一
+2026-09-16 13:06:33.166 | ERROR    | main:worker_thread:532 - 章节处理异常: 章节一 -> job response 503
+2026-09-16 13:06:33.167 | INFO     | main:process_chapter:609 - 当前章节: 章节一
+2026-09-16 13:06:33.167 | ERROR    | main:worker_thread:532 - 章节处理异常: 章节一 -> job response 503
+2026-09-16 13:06:33.168 | INFO     | main:process_chapter:609 - 当前章节: 章节一
+2026-09-16 13:06:33.168 | ERROR    | main:worker_thread:532 - 章节处理异常: 章节一 -> job response 503
+2026-09-16 13:06:33.169 | ERROR    | main:worker_thread:560 - 章节重试耗尽: 章节一
+ok
+test_cleanup_error_does_not_erase_completed_learning (tests.test_app.WebAppTests.test_cleanup_error_does_not_erase_completed_learning) ... 2026-09-16 13:06:33.176 | WARNING  | app:_close_resource:178 - 清理学习资源失败: cache flush failed
+ok
+test_client_construction_failure_closes_created_tiku (tests.test_app.WebAppTests.test_client_construction_failure_closes_created_tiku) ... 2026-09-16 13:06:33.181 | ERROR    | app:login:207 - 登录错误: constructor failed
+ok
+test_completed_course_and_failed_course_produce_partial_task (tests.test_app.WebAppTests.test_completed_course_and_failed_course_produce_partial_task) ... 2026-09-16 13:06:33.185 | ERROR    | app:_run_study_task:569 - 课程处理失败 课程一: first course failed
+ok
+test_concurrent_config_saves_preserve_both_account_keys (tests.test_app.WebAppTests.test_concurrent_config_saves_preserve_both_account_keys) ... ok
+test_concurrent_tasks_keep_worker_logs_in_their_own_context (tests.test_app.WebAppTests.test_concurrent_tasks_keep_worker_logs_in_their_own_context) ... 2026-09-16 13:06:33.199 | INFO     | main:process_course:703 - 开始学习课程: 课程一
+2026-09-16 13:06:33.202 | INFO     | main:process_course:703 - 开始学习课程: 课程一
+2026-09-16 13:06:33.202 | INFO     | main:process_chapter:609 - 当前章节: 章节一
+2026-09-16 13:06:33.247 | INFO     | main:process_chapter:609 - 当前章节: 章节一
+2026-09-16 13:06:33.248 | INFO     | tests.test_app:get_jobs:382 - bob-worker-marker
+2026-09-16 13:06:33.248 | INFO     | tests.test_app:get_jobs:382 - alice-worker-marker
+ok
+test_config_merges_selections_by_account_and_discards_legacy_selection (tests.test_app.WebAppTests.test_config_merges_selections_by_account_and_discards_legacy_selection) ... ok
+test_cookie_only_login_courses_and_start (tests.test_app.WebAppTests.test_cookie_only_login_courses_and_start) ... ok
+test_course_exception_is_not_reported_as_success (tests.test_app.WebAppTests.test_course_exception_is_not_reported_as_success) ... 2026-09-16 13:06:33.269 | ERROR    | app:_run_study_task:569 - 课程处理失败 课程一: upstream 503
+ok
+test_duplicate_start_returns_existing_id_until_terminal (tests.test_app.WebAppTests.test_duplicate_start_returns_existing_id_until_terminal) ... ok
+test_failed_chapter_list_counts_course_without_inventing_job_counts (tests.test_app.WebAppTests.test_failed_chapter_list_counts_course_without_inventing_job_counts) ... 2026-09-16 13:06:33.280 | ERROR    | app:_run_study_task:569 - 课程处理失败 课程一: chapter list unavailable
+ok
+test_final_logs_include_resource_cleanup_and_notification_tail (tests.test_app.WebAppTests.test_final_logs_include_resource_cleanup_and_notification_tail) ... 2026-09-16 13:06:33.287 | INFO     | tests.test_app:<lambda>:351 - cleanup-tail-marker
+2026-09-16 13:06:33.288 | INFO     | tests.test_app:<lambda>:352 - notification-tail-marker
+ok
+test_invalid_config_shapes_are_rejected (tests.test_app.WebAppTests.test_invalid_config_shapes_are_rejected) ... ok
+test_invalid_start_parameters_are_rejected_before_creating_task (tests.test_app.WebAppTests.test_invalid_start_parameters_are_rejected_before_creating_task) ... ok
+test_log_cursor_validation_and_expiry_apply_to_all_endpoints (tests.test_app.WebAppTests.test_log_cursor_validation_and_expiry_apply_to_all_endpoints) ... ok
+test_login_and_course_requests_close_on_success_failure_and_exception (tests.test_app.WebAppTests.test_login_and_course_requests_close_on_success_failure_and_exception) ... 2026-09-16 13:06:33.317 | ERROR    | app:login:207 - 登录错误: offline error
+2026-09-16 13:06:33.319 | ERROR    | app:get_courses:224 - 获取课程列表错误: offline error
+ok
+2026-09-16 13:06:33.320 | ERROR    | app:get_courses:224 - 获取课程列表错误: list failed
+test_login_and_courses_reject_missing_credentials_without_constructing_client (tests.test_app.WebAppTests.test_login_and_courses_reject_missing_credentials_without_constructing_client) ... ok
+test_login_failure_and_initialization_failure_release_account (tests.test_app.WebAppTests.test_login_failure_and_initialization_failure_release_account) ... 2026-09-16 13:06:33.329 | ERROR    | app:_run_study_task:587 - 任务执行错误: expired session
+2026-09-16 13:06:33.332 | ERROR    | app:_run_study_task:587 - 任务执行错误: cannot initialize
+ok
+test_missing_course_result_fails_instead_of_implicit_success (tests.test_app.WebAppTests.test_missing_course_result_fails_instead_of_implicit_success) ... 2026-09-16 13:06:33.337 | ERROR    | app:_run_study_task:569 - 课程处理失败 课程一: 课程未返回有效学习结果
+ok
+test_notifications_cannot_overwrite_real_learning_result (tests.test_app.WebAppTests.test_notifications_cannot_overwrite_real_learning_result) ... 2026-09-16 13:06:33.342 | WARNING  | app:_run_study_task:526 - 通知初始化失败: notify init
+2026-09-16 13:06:33.347 | WARNING  | app:_run_study_task:601 - 通知发送失败: notify send
+ok
+test_ocr_config_is_explicit_and_never_changes_process_environment (tests.test_app.WebAppTests.test_ocr_config_is_explicit_and_never_changes_process_environment) ... ok
+test_ocr_import_failure_finishes_task_and_releases_account (tests.test_app.WebAppTests.test_ocr_import_failure_finishes_task_and_releases_account) ... 2026-09-16 13:06:33.362 | ERROR    | app:_run_study_task:587 - 任务执行错误: OCR module unavailable
+ok
+test_parameter_boundaries_preserve_speed_clamp (tests.test_app.WebAppTests.test_parameter_boundaries_preserve_speed_clamp) ... ok
+test_partial_chapter_results_override_estimates_and_are_counted_once (tests.test_app.WebAppTests.test_partial_chapter_results_override_estimates_and_are_counted_once) ... ok
+test_success_reuses_chapter_snapshot_and_closes_client (tests.test_app.WebAppTests.test_success_reuses_chapter_snapshot_and_closes_client) ... ok
+test_thread_start_failure_releases_account (tests.test_app.WebAppTests.test_thread_start_failure_releases_account) ... 2026-09-16 13:06:33.387 | ERROR    | app:start_study:741 - 启动任务错误: thread unavailable
+ok
+test_unknown_course_ids_fail_without_selecting_all_courses (tests.test_app.WebAppTests.test_unknown_course_ids_fail_without_selecting_all_courses) ... 2026-09-16 13:06:33.393 | ERROR    | app:_run_study_task:587 - 任务执行错误: 课程选择已失效，请重新选择: unknown
+ok
+test_upstream_value_errors_are_server_errors_and_close_client (tests.test_app.WebAppTests.test_upstream_value_errors_are_server_errors_and_close_client) ... 2026-09-16 13:06:33.398 | ERROR    | app:login:207 - 登录错误: invalid upstream JSON
+2026-09-16 13:06:33.398 | ERROR    | app:get_courses:224 - 获取课程列表错误: invalid upstream JSON
+ok
+
+----------------------------------------------------------------------
+Ran 88 tests in 0.543s
+
+OK

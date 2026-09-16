@@ -1,0 +1,32 @@
+
+> chaoxing-web@1.1.1 test
+> vitest run --environment jsdom
+
+
+ RUN  v3.2.7 E:/Downloads/45/chaoxing-gui/web
+
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+ ✓ src/lib/courseSelection.test.js (3 tests) 4ms
+ ✓ src/lib/taskPolling.test.js (8 tests) 15ms
+ ✓ src/lib/sessionStore.test.js (18 tests) 15ms
+ ✓ src/lib/desktopBridge.test.js (5 tests) 229ms
+ ✓ src/api/tauriAdapter.test.js (79 tests) 137ms
+ ✓ src/api/courseToolsFlow.test.jsx (30 tests) 672ms
+   ✓ course tools over the browser Axios transport > passes the 'visits' recipe through the existing start operation  323ms
+ ✓ src/components/DesktopStartup.test.jsx (14 tests) 198ms
+ ✓ src/components/UserInteractions.test.jsx (6 tests) 472ms
+ ✓ src/components/CourseTools.test.jsx (23 tests) 2469ms
+ ✓ src/components/flows.test.jsx (33 tests) 3478ms
+ ✓ src/api/transportFlow.test.jsx (6 tests) 22571ms
+   ✓ shared task flow over real Axios transports > recovers 409, refreshes, retries final snapshots and clears 404 over browser  4689ms
+   ✓ shared task flow over real Axios transports > recovers 409, refreshes, retries final snapshots and clears 404 over electron  4421ms
+   ✓ shared task flow over real Axios transports > recovers 409, refreshes, retries final snapshots and clears 404 over tauri  4332ms
+   ✓ shared task flow over real Axios transports > stops a running task, retries failures and reopens its result over browser  2439ms
+   ✓ shared task flow over real Axios transports > stops a running task, retries failures and reopens its result over electron  2382ms
+   ✓ shared task flow over real Axios transports > stops a running task, retries failures and reopens its result over tauri  4289ms
+
+ Test Files  11 passed (11)
+      Tests  225 passed (225)
+   Start at  13:23:37
+   Duration  26.79s (transform 754ms, setup 0ms, collect 9.58s, tests 30.26s, environment 16.53s, prepare 1.82s)
+

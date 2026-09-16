@@ -1,0 +1,13 @@
+[codeagent-wrapper]
+  Backend: claude
+  Command: claude -p --dangerously-skip-permissions --setting-sources  --output-format stream-json --verbose -
+  PID: 10756
+  Log: C:\Users\RUD\AppData\Local\Temp\codeagent-wrapper-10756.log
+  Web UI: http://localhost:12190
+  Session-ID: 0e80a077-b094-489e-8c77-dc6d4d5e4ae1
+
+=== Recent Errors ===
+cleanupOldLogs: skipping codeagent-wrapper-25392.log: path resolution failed: CreateFile C:\Users\RUD\AppData\Local\Temp\codeagent-wrapper-25392.log: The system cannot find the file specified.
+Using stdin mode for task due to: piped input, explicit "-", newline, backtick, length>800
+claude execution timeout
+Log file: C:\Users\RUD\AppData\Local\Temp\codeagent-wrapper-10756.log (deleted)

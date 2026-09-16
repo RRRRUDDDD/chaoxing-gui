@@ -1,0 +1,19 @@
+{"role":"账号会话内的资源扫描、学习次数、视频时长、流式下载服务","path":"api/course_tools.py"}
+{"role":"参数校验、任务进度、来源快照、检查点和恢复","path":"api/course_tool_tasks.py"}
+{"role":"课程工具恢复配方与任务持久化","path":"api/task_state.py"}
+{"role":"复用任务启动与恢复，增加打开下载目录接口","path":"app.py"}
+{"role":"执行功能入口","path":"web/src/components/CourseSelection.jsx"}
+{"role":"次数和间隔配置","path":"web/src/components/CourseToolSettings.jsx"}
+{"role":"资源选择、工具进度和结果","path":"web/src/components/CourseToolProgress.jsx"}
+{"role":"沿用现有任务生命周期","path":"web/src/components/StudyProgress.jsx"}
+{"role":"保存工具类型用于任务恢复","path":"web/src/App.jsx"}
+{"role":"打开下载目录的固定传输契约","path":"web/src/api/tauriAdapter.js"}
+{"role":"Rust API 白名单和契约验证","path":"desktop/src-tauri/src/api_proxy.rs"}
+{"role":"平台解析、报告和下载离线测试","path":"tests/test_course_tools.py"}
+{"role":"任务生命周期、恢复和检查点测试","path":"tests/test_course_tool_tasks.py"}
+{"role":"API 校验、归属与打开目录测试","path":"tests/test_course_tool_api.py"}
+{"role":"配置、资源选择、进度和移动端错误反馈测试","path":"web/src/components/CourseTools.test.jsx"}
+{"role":"浏览器、Electron 与 Tauri 传输流程测试","path":"web/src/api/courseToolsFlow.test.jsx"}
+{"role":"新增桌面操作契约测试","path":"web/src/api/tauriAdapter.test.js"}
+{"role":"使用说明和 GPL-3.0 上游来源","path":"README.md"}
+{"role":"只读扫描、非幂等恢复、下载进度和路径规范","path":".ccg/spec/backend/index.md"}

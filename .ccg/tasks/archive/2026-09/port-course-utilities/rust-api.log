@@ -1,0 +1,19 @@
+   Compiling chaoxing-desktop v1.1.1 (E:\Downloads\45\chaoxing-gui\desktop\src-tauri)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.66s
+     Running unittests src\lib.rs (desktop\src-tauri\target\debug\deps\chaoxing_desktop_lib-a921725d0325ece7.exe)
+
+running 11 tests
+test api_proxy::tests::log_cursor_bounds ... ok
+test api_proxy::tests::dto_rejects_unknown_operation ... ok
+test api_proxy::tests::task_id_whitelist ... ok
+test api_proxy::tests::path_building ... ok
+test api_proxy::tests::p2_object_boundary_rejects_positional_api_request_deserialization ... ok
+test api_proxy::tests::dto_rejects_non_string_operation ... ok
+test api_proxy::tests::dto_requires_exact_fields_and_operation_options ... ok
+test api_proxy::tests::dto_accepts_all_camel_case_operations ... ok
+test api_proxy::tests::task_stop_keeps_post_payload_and_task_path_boundaries ... ok
+test api_proxy::tests::task_open_downloads_keeps_post_payload_and_task_path_boundaries ... ok
+test api_proxy::tests::start_keeps_course_tool_payloads ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 63 filtered out; finished in 0.00s
+

@@ -1,0 +1,6 @@
+ROLE_FILE: C:/Users/RUD/.claude/.ccg/prompts/claude/analyzer.md
+<TASK>
+Read-only analysis, no modifications, no subagents. Workspace E:/Downloads/45/chaoxing-gui. User requests porting learning visit counts, video watching duration, and course resource download from local chaoxing_tool into existing GUI. Examine chaoxing_tool/functions/set_log, set_time, media_download and their Course/Media helpers. Read .ccg/spec/backend/index.md, frontend/index.md, app.py, api/base.py, api/task_state.py, api/session.py, api/decode.py, desktop runtime paths, relevant tests.
+Recommend maintainable authenticated upstream methods and task/API integration preserving existing account locks, task cancellation/finalization and recovery. Identify upstream bugs not to port, accurate failure/success reporting, completed-resource inclusion, resource enumeration and signing, duration overrun handling, safe streaming download paths and retrieval, realistic test fixtures. Existing working tree changes must be preserved. Do not make platform requests or read private cookies/configs. Local files only. Propose bounded file ownership and concrete contracts. Do not implement.
+</TASK>
+OUTPUT: concise Chinese structured analysis, exact endpoints/payloads/helper entry points, risks and tests.
