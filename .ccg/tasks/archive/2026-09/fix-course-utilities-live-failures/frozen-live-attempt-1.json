@@ -1,0 +1,59 @@
+{
+  "exe_sha256": "1f818a055e856f4b17a76e1e48218159d730537eaf8b916038051501c879102c",
+  "fixture_only": false,
+  "isolated_data": true,
+  "tasks": [
+    {
+      "type": "catalog",
+      "purpose": "video_time",
+      "state": "completed",
+      "elapsed_seconds": 12.06,
+      "resource_kinds": {
+        "file": 51,
+        "audio": 13,
+        "video": 51,
+        "document": 26
+      },
+      "completed_units": 82,
+      "results": [
+        {
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "type": "video_time",
+      "purpose": "video_time",
+      "state": "completed",
+      "elapsed_seconds": 17.16,
+      "resource_kinds": {
+        "video": 1
+      },
+      "completed_units": 6,
+      "results": [
+        {
+          "status": "completed",
+          "seconds": 6
+        }
+      ]
+    },
+    {
+      "type": "catalog",
+      "purpose": "download",
+      "state": "partial",
+      "elapsed_seconds": 9.22,
+      "resource_kinds": {},
+      "completed_units": 71,
+      "results": [
+        {
+          "status": "error",
+          "error": "课程资源过多，请减少勾选课程后分批读取"
+        }
+      ]
+    }
+  ],
+  "passed": false,
+  "error": "catalog/download did not complete",
+  "backend_exit_code": 0,
+  "copied_cookie_removed": true
+}

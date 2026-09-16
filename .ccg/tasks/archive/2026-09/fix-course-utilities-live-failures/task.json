@@ -1,0 +1,15 @@
+{
+  "id": "fix-course-utilities-live-failures",
+  "title": "修复学习次数、视频时长和资源下载在本地实测中全部失败",
+  "status": "completed",
+  "complexity": "L+",
+  "risk": "high",
+  "domain": "fullstack",
+  "currentPhase": "completed",
+  "nextAction": "已推送产品修复并更新本地安装；平台统计验收边界见 review.md",
+  "createdAt": "2026-09-16T06:18:11.2479605Z",
+  "branch": "main",
+  "completedAt": "2026-09-16T07:19:11.8242560Z",
+  "productCommit": "e8664910176064e00cbd3a5e5728bf89fd7c214a",
+  "publishedCommit": "3c3fb27b437a17502e0195789555f7a62663c5f5"
+}

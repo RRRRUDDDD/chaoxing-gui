@@ -1,0 +1,12 @@
+{
+  "verified_at": "2026-09-16T07:12:35.2110434Z",
+  "installed_directory": "D:\\Chaoxing GUI Tauri",
+  "backend_sha256": "dfe30fda67595011caf2015b691717d8980dcc49ad80baff8238a3d70dc1433a",
+  "verified_artifact_matches": true,
+  "host_sha256": "661f09322305e0b8977ac873dddcf38bb1f5f0bb9d876c0fb07ad14e4ab7c9c6",
+  "host_pid": 18656,
+  "backend_pid": 38896,
+  "backend_ready": true,
+  "main_window_created": true,
+  "original_task_history_unchanged": true
+}

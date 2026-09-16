@@ -1,0 +1,45 @@
+{
+  "status_fields": [
+    "download",
+    "filename",
+    "swf",
+    "pdf",
+    "crc",
+    "thumb",
+    "length",
+    "http",
+    "pagenum",
+    "objectid",
+    "key",
+    "status"
+  ],
+  "urls": {
+    "download": {
+      "scheme": "http",
+      "host": "d0.cldisk.com"
+    },
+    "swf": {
+      "scheme": "http",
+      "host": "s3.cldisk.com"
+    },
+    "pdf": {
+      "scheme": "https",
+      "host": "s3.cldisk.com"
+    },
+    "thumb": {
+      "scheme": "https",
+      "host": "s3.cldisk.com"
+    },
+    "http": {
+      "scheme": "http",
+      "host": "cs.cldisk.com"
+    }
+  },
+  "hops": [
+    {
+      "scheme": "https",
+      "host": "s3.cldisk.com",
+      "rejection": "拒绝非受信任的超星资源地址"
+    }
+  ]
+}

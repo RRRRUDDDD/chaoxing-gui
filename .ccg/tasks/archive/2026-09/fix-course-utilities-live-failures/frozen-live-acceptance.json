@@ -1,0 +1,99 @@
+{
+  "exe_sha256": "dfe30fda67595011caf2015b691717d8980dcc49ad80baff8238a3d70dc1433a",
+  "fixture_only": false,
+  "isolated_data": true,
+  "tasks": [
+    {
+      "type": "catalog",
+      "purpose": "video_time",
+      "state": "completed",
+      "elapsed_seconds": 11.7,
+      "resource_kinds": {
+        "file": 51,
+        "audio": 13,
+        "video": 51,
+        "document": 26
+      },
+      "completed_units": 82,
+      "results": [
+        {
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "type": "video_time",
+      "purpose": "video_time",
+      "state": "completed",
+      "elapsed_seconds": 16.27,
+      "resource_kinds": {
+        "video": 1
+      },
+      "completed_units": 6,
+      "results": [
+        {
+          "status": "completed",
+          "seconds": 6
+        }
+      ]
+    },
+    {
+      "type": "catalog",
+      "purpose": "download",
+      "state": "completed",
+      "elapsed_seconds": 11.27,
+      "resource_kinds": {
+        "video": 68,
+        "file": 331,
+        "document": 17,
+        "audio": 2
+      },
+      "completed_units": 71,
+      "results": [
+        {
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "type": "download",
+      "purpose": "download",
+      "state": "completed",
+      "elapsed_seconds": 13.81,
+      "resource_kinds": {
+        "document": 1
+      },
+      "completed_units": 2528039,
+      "results": [
+        {
+          "status": "completed",
+          "bytes": 2528039
+        }
+      ]
+    },
+    {
+      "type": "visits",
+      "purpose": "visits",
+      "state": "completed",
+      "elapsed_seconds": 2.11,
+      "resource_kinds": {},
+      "completed_units": 1,
+      "results": [
+        {
+          "status": "completed",
+          "submitted": 1,
+          "platform_count_delta": 0
+        }
+      ]
+    }
+  ],
+  "passed": true,
+  "download": {
+    "bytes": 2528039,
+    "sha256": "0bbbe60797ad43b5d6296cedef9211abec64ea9fe569fe52db9fc22fc3c7822e",
+    "extension": ".pdf",
+    "saved": true
+  },
+  "backend_exit_code": 0,
+  "copied_cookie_removed": true
+}

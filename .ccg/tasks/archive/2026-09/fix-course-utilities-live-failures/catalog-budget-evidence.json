@@ -1,0 +1,13 @@
+{
+  "count": 418,
+  "wire_bytes": 162562,
+  "current_fixed_reserve": 1777664,
+  "fits_current_limit": false,
+  "kinds": {
+    "audio": 2,
+    "document": 17,
+    "file": 331,
+    "video": 68
+  },
+  "max_escaped_name_bytes": 213
+}

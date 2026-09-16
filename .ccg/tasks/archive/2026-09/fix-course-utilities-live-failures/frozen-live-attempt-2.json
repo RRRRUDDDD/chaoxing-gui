@@ -1,0 +1,80 @@
+{
+  "exe_sha256": "6a33ea5716de0e0c304f05015d4fdf6584762080ee32c5b3eef1d3a38b81989b",
+  "fixture_only": false,
+  "isolated_data": true,
+  "tasks": [
+    {
+      "type": "catalog",
+      "purpose": "video_time",
+      "state": "completed",
+      "elapsed_seconds": 10.91,
+      "resource_kinds": {
+        "file": 51,
+        "audio": 13,
+        "video": 51,
+        "document": 26
+      },
+      "completed_units": 82,
+      "results": [
+        {
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "type": "video_time",
+      "purpose": "video_time",
+      "state": "completed",
+      "elapsed_seconds": 14.67,
+      "resource_kinds": {
+        "video": 1
+      },
+      "completed_units": 6,
+      "results": [
+        {
+          "status": "completed",
+          "seconds": 6
+        }
+      ]
+    },
+    {
+      "type": "catalog",
+      "purpose": "download",
+      "state": "completed",
+      "elapsed_seconds": 12.05,
+      "resource_kinds": {
+        "video": 68,
+        "file": 331,
+        "document": 17,
+        "audio": 2
+      },
+      "completed_units": 71,
+      "results": [
+        {
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "type": "download",
+      "purpose": "download",
+      "state": "error",
+      "elapsed_seconds": 11.62,
+      "resource_kinds": {
+        "document": 1
+      },
+      "completed_units": 0,
+      "results": [
+        {
+          "status": "error",
+          "bytes": 0,
+          "error": "拒绝非受信任的超星资源地址"
+        }
+      ]
+    }
+  ],
+  "passed": false,
+  "error": "download/ did not complete",
+  "backend_exit_code": 0,
+  "copied_cookie_removed": true
+}

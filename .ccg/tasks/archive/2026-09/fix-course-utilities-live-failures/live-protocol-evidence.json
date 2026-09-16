@@ -1,0 +1,75 @@
+{
+  "credentials_printed": false,
+  "cards": [
+    {
+      "purpose": "video_time",
+      "assignments": [
+        {
+          "type": "str",
+          "value": ""
+        },
+        {
+          "type": "dict",
+          "keys": [
+            "hiddenConfig",
+            "isMirror",
+            "attachments",
+            "coursename",
+            "cutUseNewVeision",
+            "mooc2",
+            "control",
+            "chapterVideoTranslate",
+            "defaults",
+            "knowledgename",
+            "openShowHotMap",
+            "isErya",
+            "ut"
+          ],
+          "defaults_type": "dict",
+          "attachments_type": "list",
+          "attachment_count": 1
+        }
+      ],
+      "current_parser": "章节卡片资源结构无效"
+    },
+    {
+      "purpose": "download",
+      "assignments": [
+        {
+          "type": "str",
+          "value": ""
+        },
+        {
+          "type": "dict",
+          "keys": [
+            "hiddenConfig",
+            "isMirror",
+            "attachments",
+            "coursename",
+            "cutUseNewVeision",
+            "mooc2",
+            "control",
+            "chapterVideoTranslate",
+            "defaults",
+            "knowledgename",
+            "openShowHotMap",
+            "isErya",
+            "ut"
+          ],
+          "defaults_type": "dict",
+          "attachments_type": "list",
+          "attachment_count": 8
+        }
+      ],
+      "current_parser": "章节卡片资源结构无效"
+    }
+  ],
+  "visit_requests": 1,
+  "visit": {
+    "http_status": 200,
+    "content_type": "text/html;charset=UTF-8",
+    "body_bytes": 9,
+    "body_redacted": "'success'",
+    "current_parser": "学习次数上报返回了无效响应，请检查登录状态"
+  }
+}
