@@ -14,6 +14,7 @@ pub enum ApiOperation {
     TaskStatus,
     TaskResume,
     TaskStop,
+    TaskOpenDownloads,
     TaskDetails,
     TaskLogs,
 }
@@ -121,6 +122,7 @@ impl ApiOperation {
             ApiOperation::TaskStatus => ("GET", "/api/task/{id}"),
             ApiOperation::TaskResume => ("POST", "/api/task/{id}/resume"),
             ApiOperation::TaskStop => ("POST", "/api/task/{id}/stop"),
+            ApiOperation::TaskOpenDownloads => ("POST", "/api/task/{id}/open-downloads"),
             ApiOperation::TaskDetails => ("GET", "/api/task/{id}/details"),
             ApiOperation::TaskLogs => ("GET", "/api/logs/{id}"),
         }
@@ -132,6 +134,7 @@ impl ApiOperation {
             ApiOperation::TaskStatus
                 | ApiOperation::TaskResume
                 | ApiOperation::TaskStop
+                | ApiOperation::TaskOpenDownloads
                 | ApiOperation::TaskDetails
                 | ApiOperation::TaskLogs
         )
@@ -324,6 +327,84 @@ mod tests {
     }
 
     #[test]
+    fn task_open_downloads_keeps_post_payload_and_task_path_boundaries() {
+        let raw = serde_json::json!({
+            "operation": "taskOpenDownloads", "requestId": 1,
+            "payload": {"username": "fixture"}, "taskId": "t-1_2"
+        });
+        let request: ApiRequest = serde_json::from_value(raw.clone()).unwrap();
+        request.validate().unwrap();
+        assert_eq!(
+            request.operation.route(),
+            ("POST", "/api/task/{id}/open-downloads")
+        );
+        assert_eq!(
+            build_path(request.operation, request.task_id.as_deref(), None).unwrap(),
+            "/api/task/t-1_2/open-downloads"
+        );
+        for (field, value) in [
+            ("payload", serde_json::Value::Null),
+            ("payload", serde_json::json!([])),
+            ("payload", serde_json::json!("fixture")),
+            ("taskId", serde_json::json!("")),
+            ("taskId", serde_json::json!("../bad")),
+            ("taskId", serde_json::json!("a%2fb")),
+            ("taskId", serde_json::json!("a b")),
+            ("taskId", serde_json::json!("a".repeat(129))),
+            ("taskId", serde_json::json!("t?after=0")),
+            ("after", serde_json::json!(0)),
+        ] {
+            let mut invalid = raw.clone();
+            invalid[field] = value;
+            let request: ApiRequest = serde_json::from_value(invalid).unwrap();
+            assert!(request.validate().is_err(), "accepted invalid {field}");
+        }
+        for (field, value) in [
+            ("taskId", serde_json::Value::Null),
+            ("after", serde_json::Value::Null),
+            ("query", serde_json::json!({"username": "fixture"})),
+            ("url", serde_json::json!("file:///downloads")),
+        ] {
+            let mut invalid = raw.clone();
+            invalid[field] = value;
+            assert!(serde_json::from_value::<ApiRequest>(invalid).is_err());
+        }
+        let mut missing_id = raw;
+        missing_id.as_object_mut().unwrap().remove("taskId");
+        let request: ApiRequest = serde_json::from_value(missing_id).unwrap();
+        assert!(request.validate().is_err());
+    }
+
+    #[test]
+    fn start_keeps_course_tool_payloads() {
+        for (task_type, tool_options) in [
+            ("visits", serde_json::json!({"count": 10, "interval": 30})),
+            ("catalog", serde_json::json!({"purpose": "download"})),
+            (
+                "video_time",
+                serde_json::json!({"source_task_id": "catalog-1", "resource_ids": ["video-1"], "minutes": 0.5}),
+            ),
+            (
+                "download",
+                serde_json::json!({"source_task_id": "catalog-1", "resource_ids": ["file-1"]}),
+            ),
+        ] {
+            let payload = serde_json::json!({
+                "username": "fixture", "password": "", "use_cookies": true,
+                "course_list": ["course-1"], "task_type": task_type,
+                "tool_options": tool_options
+            });
+            let request: ApiRequest = serde_json::from_value(serde_json::json!({
+                "operation": "start", "requestId": 1, "payload": payload
+            }))
+            .unwrap();
+            request.validate().unwrap();
+            assert_eq!(request.operation.route(), ("POST", "/api/start"));
+            assert_eq!(request.payload, payload);
+        }
+    }
+
+    #[test]
     fn dto_accepts_all_camel_case_operations() {
         for operation in [
             "login",
@@ -334,19 +415,31 @@ mod tests {
             "taskStatus",
             "taskResume",
             "taskStop",
+            "taskOpenDownloads",
             "taskDetails",
             "taskLogs",
         ] {
             let mut raw = serde_json::json!({"operation":operation, "requestId":MAX_REQUEST_ID, "payload":null});
             if matches!(
                 operation,
-                "login" | "courses" | "configWrite" | "start" | "taskResume" | "taskStop"
+                "login"
+                    | "courses"
+                    | "configWrite"
+                    | "start"
+                    | "taskResume"
+                    | "taskStop"
+                    | "taskOpenDownloads"
             ) {
                 raw["payload"] = serde_json::json!({"username":"fixture"});
             }
             if matches!(
                 operation,
-                "taskStatus" | "taskResume" | "taskStop" | "taskDetails" | "taskLogs"
+                "taskStatus"
+                    | "taskResume"
+                    | "taskStop"
+                    | "taskOpenDownloads"
+                    | "taskDetails"
+                    | "taskLogs"
             ) {
                 raw["taskId"] = "t-1".into();
             }

@@ -3,6 +3,7 @@ import Button from './ui/Button';
 import Input from './ui/Input';
 import Label from './ui/Label';
 import AdvancedSettings from './AdvancedSettings';
+import CourseToolSettings, { validateVisits } from './CourseToolSettings';
 import RepositoryLink from './RepositoryLink';
 import {
   BookOpen, SlidersHorizontal, LogOut, Play, Save, Loader2,
@@ -23,6 +24,8 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
   const [saveStatus, setSaveStatus] = useState('');
   const [query, setQuery] = useState('');
   const [settings, setSettings] = useState(defaultSettings);
+  const [taskType, setTaskType] = useState('study');
+  const [toolOptions, setToolOptions] = useState({ count: '10', interval: '30' });
   const [loadError, setLoadError] = useState('');
   const [selectionNotice, setSelectionNotice] = useState('');
   const [loadedAccount, setLoadedAccount] = useState(null);
@@ -38,6 +41,8 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
     setCourses([]);
     setSelectedCourses([]);
     setSettings(defaultSettings());
+    setTaskType('study');
+    setToolOptions({ count: '10', interval: '30' });
     setLoadError('');
     setSaveStatus('');
     setSaving(false);
@@ -103,7 +108,9 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
 
   const selectedCount = selectedCourses.length;
   const canSelect = !loading && loadedAccount === username && !loadError && !loggingOut;
-  const canStart = !loading && loadedAccount === username && !loadError && courses.length > 0 && selectedCount > 0 && !starting && !loggingOut && !taskRunning;
+  const validOptions = taskType !== 'visits' || Object.values(validateVisits(toolOptions)).every((error) => !error);
+  const canStart = canSelect && courses.length > 0 && selectedCount > 0 && validOptions && !starting && !taskRunning;
+  const startLabel = { study: '开始学习', visits: '开始提交次数', video_time: '读取视频列表', download: '读取资源列表' }[taskType];
 
   const selectAllVisible = useCallback(() => {
     if (canSelect) setSelectedCourses((selected) => [...new Set([...selected, ...filteredCourses.map((course) => course.courseId)])]);
@@ -123,10 +130,16 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
 
   const handleStartStudy = () => {
     if (!canStart) return;
-    onStartStudy({
-      ...settings,
-      course_list: selectedCourses,
-    });
+    if (taskType === 'study') {
+      onStartStudy({ ...settings, course_list: selectedCourses });
+    } else if (taskType === 'visits') {
+      onStartStudy({
+        task_type: 'visits', course_list: selectedCourses,
+        tool_options: { count: Number(toolOptions.count), interval: Number(toolOptions.interval) },
+      });
+    } else {
+      onStartStudy({ task_type: 'catalog', course_list: selectedCourses, tool_options: { purpose: taskType } });
+    }
   };
 
   const handleSaveConfig = async () => {
@@ -204,7 +217,7 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
 
         {activeTaskId && (
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand/20 bg-brand-soft/60 px-5 py-4">
-            <p className="text-sm text-body">{taskRunning ? '已有学习任务运行中，可继续查看进度' : '上次任务已结束，可查看执行结果'}</p>
+            <p className="text-sm text-body">{taskRunning ? '已有任务运行中，可继续查看进度' : '上次任务已结束，可查看执行结果'}</p>
             <Button size="sm" variant="outline" onClick={onReturnToTask} disabled={loggingOut}>{taskRunning ? '返回运行任务' : '查看上次任务'}</Button>
           </div>
         )}
@@ -314,7 +327,15 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
                 <h2 className="text-[15px] font-semibold">学习配置</h2>
               </div>
 
-              <div className="space-y-5 p-5">
+              <div className="p-5">
+                <CourseToolSettings
+                  taskType={taskType} onTaskTypeChange={setTaskType}
+                  options={toolOptions} onOptionsChange={setToolOptions}
+                  disabled={starting || loggingOut || !!loadError}
+                />
+              </div>
+
+              {taskType === 'study' && <div className="space-y-5 border-t border-line p-5">
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="speed">播放倍速</Label>
@@ -364,7 +385,7 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
                 <div className="border-t border-line pt-5">
                   <AdvancedSettings settings={settings} onChange={setSettings} />
                 </div>
-              </div>
+              </div>}
             </div>
 
             <div className="space-y-2.5 rounded-xl border border-line bg-white p-5 shadow-card">
@@ -377,12 +398,12 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
                 ) : (
                   <>
                     <Play className="h-4 w-4" aria-hidden="true" />
-                    开始学习
+                    {startLabel}
                   </>
                 )}
               </Button>
-              <p className="text-center text-xs text-faint">{taskRunning ? '当前任务结束后可开始新任务' : selectedCount ? `将学习已勾选的 ${selectedCount} 门课程` : '请至少勾选一门课程'}</p>
-              <Button variant="outline" className="w-full" size="sm" onClick={handleSaveConfig} disabled={loggingOut || saving || !!loadError}>
+              <p className="text-center text-xs text-faint">{taskRunning ? '当前任务结束后可开始新任务' : selectedCount ? `将${taskType === 'study' ? '学习' : '处理'}已勾选的 ${selectedCount} 门课程` : '请至少勾选一门课程'}</p>
+              {taskType === 'study' && <Button variant="outline" className="w-full" size="sm" onClick={handleSaveConfig} disabled={loggingOut || saving || !!loadError}>
                 {saving ? (
                   <>
                     <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
@@ -394,7 +415,7 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
                     保存当前配置
                   </>
                 )}
-              </Button>
+              </Button>}
               {startError && (
                 <div
                   role="alert"

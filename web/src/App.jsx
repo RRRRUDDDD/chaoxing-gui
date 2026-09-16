@@ -261,8 +261,14 @@ function App() {
       )}
       {step === 'progress' && taskId && (
         <StudyProgress
+          key={`${userInfo.username}:${taskId}`}
           taskId={taskId}
+          username={userInfo.username}
           notice={currentTaskNotice}
+          onStartStudy={handleStartStudy}
+          starting={starting}
+          startError={startError}
+          actionsDisabled={loggingOut}
           onBack={() => setStep('courses')}
           onStatus={handleTaskStatus}
           onMissing={handleTaskMissing}

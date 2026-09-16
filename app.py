@@ -34,6 +34,7 @@ from api.exceptions import InputFormatError, LoginError
 from api.logger import logger
 from api.notification import Notification
 from api.task_state import TaskAlreadyRunning, TaskNotFound, TaskStore
+from api import course_tool_tasks
 import main as main_module
 
 # === 托盘图标相关导入 ===
@@ -651,10 +652,71 @@ def _study_config(data):
     return common_config, configs
 
 
+def _tool_config(data):
+    username, password, use_cookies = _credentials(data)
+    kind = data.get("task_type")
+    if not isinstance(kind, str) or kind not in course_tool_tasks.TOOL_TYPES:
+        raise ValueError("不支持的执行功能")
+    course_list = _course_ids(data.get("course_list"))
+    if len(course_list) > 100:
+        raise ValueError("请分批选择课程，每次最多 100 门")
+    if any(len(course_id) > 128 for course_id in course_list):
+        raise ValueError("课程 ID 格式错误")
+    return {
+        "username": username, "password": password, "use_cookies": use_cookies,
+        "task_type": kind, "course_list": course_list,
+        "tool_options": course_tool_tasks.parse_options(kind, data.get("tool_options", {})),
+    }
+
+
+def _launch_tool_task(task_id, store, config):
+    context = copy_context()
+    thread = threading.Thread(
+        target=context.run,
+        args=(course_tool_tasks.run_tool_task, task_id, store, config, DATA_DIR, _login_client),
+        name=f"course-tool-{task_id}", daemon=True,
+    )
+    thread.start()
+    return thread
+
+
+def _start_course_tool(data):
+    config = _tool_config(data)
+    store = task_store
+    try:
+        resources = course_tool_tasks.selected_resources(
+            store, config["username"], config["course_list"], config["task_type"], config["tool_options"],
+        ) if config["task_type"] in {"video_time", "download"} else []
+        task_id = store.create(
+            config["username"], course_tool_tasks.initial_status(config),
+            course_tool_tasks.initial_details(config, resources),
+            resume_config=course_tool_tasks.resume_config(config),
+        )
+    except TaskNotFound:
+        return jsonify({"status": False, "msg": "资源列表已过期或不属于当前账号，请重新读取资源"}), 404
+    except TaskAlreadyRunning as exc:
+        return jsonify({"status": False, "msg": str(exc), "data": {"task_id": exc.task_id}}), 409
+    except ValueError:
+        raise
+    except Exception as exc:
+        logger.error(f"创建课程工具任务失败: {exc}")
+        return jsonify({"status": False, "msg": str(exc)}), 500
+    try:
+        _launch_tool_task(task_id, store, config)
+    except Exception as exc:
+        store.finish(task_id, "error", error=str(exc))
+        logger.error(f"启动课程工具失败: {exc}")
+        return jsonify({"status": False, "msg": str(exc), "data": {"task_id": task_id}}), 500
+    return jsonify({"status": True, "data": {"task_id": task_id}})
+
+
 @app.route('/api/start', methods=['POST'])
 def start_study():
     try:
-        common_config, configs = _study_config(_json_body())
+        data = _json_body()
+        if data.get("task_type", "study") != "study":
+            return _start_course_tool(data)
+        common_config, configs = _study_config(data)
     except (ValueError, InputFormatError) as exc:
         return jsonify({"status": False, "msg": str(exc)}), 400
 
@@ -693,6 +755,24 @@ def resume_study(task_id):
             if not result["status"]:
                 return jsonify({"status": False, "msg": result.get("msg", "登录会话已失效，请重新登录")}), 401
         saved = store.get_resume_config(task_id, username)
+        if saved is not None and "task_type" in saved:
+            config = _tool_config({**saved, "username": username, "password": "", "use_cookies": True})
+            if config["task_type"] in {"visits", "video_time"}:
+                # A sent request may have reached Chaoxing before the process
+                # died. Keep the last acknowledgement without replaying it.
+                store.finish(task_id, "partial", error="上次执行被程序退出中断，已保留执行记录。为避免重复累计，请核对平台统计后重新开始。")
+            else:
+                details = course_tool_tasks.restored_details(config, store.get_details(task_id), DATA_DIR, task_id)
+                claimed = store.resume(task_id, username, course_tool_tasks.initial_status(config, details), details)
+                if claimed is not None:
+                    try:
+                        _launch_tool_task(task_id, store, config)
+                    except Exception as exc:
+                        store.interrupt(task_id, str(exc))
+                        raise
+            return jsonify({"status": True, "data": {
+                "task_id": task_id, "status": store.get_status(task_id)["status"],
+            }})
         if saved is not None:
             # Revalidate disk data and use the refreshed account cookies. Login
             # passwords never enter the persisted execution recipe.
@@ -740,6 +820,24 @@ def stop_study(task_id):
     except Exception as exc:
         logger.error(f"停止任务失败: {exc}")
         return jsonify({"status": False, "msg": str(exc)}), 500
+
+
+@app.route('/api/task/<task_id>/open-downloads', methods=['POST'])
+def open_task_downloads(task_id):
+    try:
+        data = _json_body()
+        username = data.get("username")
+        if set(data) != {"username"} or not isinstance(username, str) or not username.strip():
+            raise ValueError("打开下载目录需要当前账号，不能指定文件路径")
+        path = course_tool_tasks.open_download_directory(task_store, username.strip(), task_id, DATA_DIR)
+        return jsonify({"status": True, "data": {"path": path}})
+    except TaskNotFound:
+        return jsonify({"status": False, "msg": "任务不存在或已过期"}), 404
+    except ValueError as exc:
+        return jsonify({"status": False, "msg": str(exc)}), 400
+    except Exception as exc:
+        logger.error(f"打开下载目录失败: {exc}")
+        return jsonify({"status": False, "msg": f"无法打开下载目录：{exc}"}), 500
 
 
 @app.route('/api/task/<task_id>', methods=['GET'])

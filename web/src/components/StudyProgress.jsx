@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import Button from './ui/Button';
 import CountUp from './CountUp';
 import RepositoryLink from './RepositoryLink';
+import CourseToolProgress, { formatToolAmount } from './CourseToolProgress';
+import { courseToolLabels } from './CourseToolSettings';
 import {
   Loader2, ArrowLeft, CheckCircle2, XCircle, AlertCircle,
   Play, Clock, ChevronDown, ChevronRight, BookOpen, MonitorPlay,
@@ -10,7 +12,7 @@ import {
 import api from '../api/axios';
 import { LOG_LIMIT, chapterState, isTerminalStatus, resultLabels, startTaskPolling } from '../lib/taskPolling';
 
-const StudyProgress = ({ taskId, notice = '', onBack, onStatus, onMissing, onStop, recovering = false, recoveryError = '', onRetryRecovery, preview = false }) => {
+const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMissing, onStop, onStartStudy, starting = false, startError = '', actionsDisabled = false, recovering = false, recoveryError = '', onRetryRecovery, preview = false }) => {
   const [taskStatus, setTaskStatus] = useState(preview ? {
     status: 'completed',
     progress: 3,
@@ -52,46 +54,64 @@ const StudyProgress = ({ taskId, notice = '', onBack, onStatus, onMissing, onSto
     { seq: 2, timestamp: Date.now() / 1000 - 30, level: 'info', message: '所有课程均已处理完毕' },
   ] : []);
   const [logsTruncated, setLogsTruncated] = useState(false);
+  const [finalDetailsReady, setFinalDetailsReady] = useState(preview);
   const [pollError, setPollError] = useState('');
   const [missing, setMissing] = useState(false);
   const [stopConfirming, setStopConfirming] = useState(false);
   const [stopping, setStopping] = useState(false);
   const [stopError, setStopError] = useState('');
   const stopConfirmTimer = useRef(null);
+  const actionGeneration = useRef(0);
   const [expandedCourses, setExpandedCourses] = useState(new Set());
   const logsContainerRef = useRef(null);
   const followLogs = useRef(true);
   const callbacks = useRef({ onStatus, onMissing });
   callbacks.current = { onStatus, onMissing };
   const stopPending = stopping || taskStatus?.cancel_requested === true;
+  const isToolTask = ['visits', 'catalog', 'video_time', 'download'].includes(taskStatus?.task_type);
 
   useEffect(() => {
+    actionGeneration.current += 1;
     clearTimeout(stopConfirmTimer.current);
     stopConfirmTimer.current = null;
     setStopConfirming(false);
     setStopping(false);
     setStopError('');
-  }, [taskId]);
+    return () => {
+      actionGeneration.current += 1;
+      clearTimeout(stopConfirmTimer.current);
+    };
+  }, [taskId, username]);
 
   useEffect(() => {
     if (preview || recovering || recoveryError) return undefined;
     setTaskStatus(null);
     setTaskDetails(null);
+    setFinalDetailsReady(false);
     setLogs([]);
     setLogsTruncated(false);
     setPollError('');
     setMissing(false);
     setExpandedCourses(new Set());
     followLogs.current = true;
+    let observedStatus;
     return startTaskPolling({
       api, taskId,
-      onStatus: (status) => { setTaskStatus(status); callbacks.current.onStatus?.(status); },
-      onDetails: setTaskDetails,
+      onStatus: (status) => {
+        observedStatus = status.status;
+        setTaskStatus(status);
+        setFinalDetailsReady(false);
+        callbacks.current.onStatus?.(status);
+      },
+      onDetails: (details) => {
+        setTaskDetails(details);
+        setFinalDetailsReady(isTerminalStatus(observedStatus));
+      },
       onLogs: (state) => { setLogs(state.logs); setLogsTruncated(state.truncated); },
       onError: setPollError,
       onMissing: () => { setMissing(true); setPollError(''); callbacks.current.onMissing?.(); },
     });
-  }, [taskId, preview, recovering, recoveryError]);
+  }, [taskId, username, preview, recovering, recoveryError]);
 
   useEffect(() => {
     const container = logsContainerRef.current;
@@ -122,9 +142,11 @@ const StudyProgress = ({ taskId, notice = '', onBack, onStatus, onMissing, onSto
     clearStopConfirm();
     setStopping(true);
     setStopError('');
+    const generation = actionGeneration.current;
     try {
       await onStop();
     } catch (error) {
+      if (generation !== actionGeneration.current) return;
       setStopError(error?.response?.data?.msg || error?.message || '停止任务失败，请重试');
       setStopping(false);
     }
@@ -152,7 +174,7 @@ const StudyProgress = ({ taskId, notice = '', onBack, onStatus, onMissing, onSto
       case 'running':
         return stopPending
           ? { text: '正在停止', cls: 'text-faint', icon: Loader2 }
-          : { text: '学习中', cls: 'text-brand', icon: Play };
+          : { text: isToolTask ? '执行中' : '学习中', cls: 'text-brand', icon: Play };
       case 'interrupted':
         return { text: '等待恢复', cls: 'text-warning', icon: Clock };
       case 'completed':
@@ -223,7 +245,7 @@ const StudyProgress = ({ taskId, notice = '', onBack, onStatus, onMissing, onSto
 
   const statCards = [
     {
-      label: '已处理课程',
+      label: isToolTask ? '已处理条目' : '已处理课程',
       icon: BookOpen,
       iconCls: 'bg-brand-soft text-brand',
       value: (
@@ -234,10 +256,12 @@ const StudyProgress = ({ taskId, notice = '', onBack, onStatus, onMissing, onSto
       ),
     },
     {
-      label: '章节统计',
+      label: isToolTask ? taskStatus.task_type === 'catalog' ? '已读取资源' : '累计执行量' : '章节统计',
       icon: FileText,
       iconCls: 'bg-success/10 text-success',
-      value: (
+      value: isToolTask ? (
+        <span className="text-xl">{taskStatus.task_type === 'catalog' ? taskDetails?.tool?.resources?.length || 0 : formatToolAmount(taskDetails?.tool?.completed_units ?? 0, taskDetails?.tool?.unit)}</span>
+      ) : (
         <>
           <CountUp value={taskStatus?.stats?.completed_chapters || 0} />
           <span className="ml-1 text-base font-medium text-faint">/ {taskStatus?.stats?.total_chapters || 0}</span>
@@ -273,7 +297,7 @@ const StudyProgress = ({ taskId, notice = '', onBack, onStatus, onMissing, onSto
               <MonitorPlay className="h-5 w-5 text-white" aria-hidden="true" />
             </div>
             <div>
-              <p className="text-[15px] font-semibold leading-tight">学习进度监控</p>
+              <p className="text-[15px] font-semibold leading-tight">{isToolTask ? `${taskStatus.task_label || courseToolLabels[taskStatus.task_type]}进度` : '学习进度监控'}</p>
               <p className="text-xs leading-tight text-faint">实时跟踪任务执行详情</p>
             </div>
           </div>
@@ -321,6 +345,9 @@ const StudyProgress = ({ taskId, notice = '', onBack, onStatus, onMissing, onSto
           <div role="alert" className="mb-5 rounded-xl bg-warning/10 px-5 py-4 text-sm text-body">
             {notice}
           </div>
+        )}
+        {startError && taskStatus?.task_type !== 'catalog' && (
+          <div role="alert" className="mb-5 rounded-xl bg-danger/5 px-5 py-4 text-sm text-danger">{startError}</div>
         )}
         {stopError && (
           <div role="alert" className="mb-5 rounded-xl bg-warning/10 px-5 py-4 text-sm text-body">{stopError}</div>
@@ -370,7 +397,7 @@ const StudyProgress = ({ taskId, notice = '', onBack, onStatus, onMissing, onSto
               <div className="mb-4 flex items-baseline justify-between">
                 <h2 className="text-[15px] font-semibold">当前进度</h2>
                 <span className="text-xs text-faint tnum">
-                  {taskStatus?.progress || 0} / {taskStatus?.total || 0} 课程
+                  {taskStatus?.progress || 0} / {taskStatus?.total || 0} {isToolTask ? '条目' : '课程'}
                 </span>
               </div>
               <div
@@ -379,7 +406,7 @@ const StudyProgress = ({ taskId, notice = '', onBack, onStatus, onMissing, onSto
                 aria-valuenow={Math.round(progress)}
                 aria-valuemin={0}
                 aria-valuemax={100}
-                aria-label="整体学习进度"
+                aria-label={isToolTask ? '整体任务进度' : '整体学习进度'}
               >
                 <div
                   className="h-full rounded-full bg-brand transition-[width] duration-700 ease-out"
@@ -393,7 +420,7 @@ const StudyProgress = ({ taskId, notice = '', onBack, onStatus, onMissing, onSto
                     <Loader2 className="h-4.5 w-4.5 animate-spin text-brand" aria-hidden="true" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-medium text-brand">正在学习</p>
+                    <p className="text-xs font-medium text-brand">{isToolTask ? '正在处理' : '正在学习'}</p>
                     <h3 className="mt-0.5 truncate text-[15px] font-semibold" title={taskStatus.current_course}>
                       {taskStatus.current_course}
                     </h3>
@@ -403,6 +430,7 @@ const StudyProgress = ({ taskId, notice = '', onBack, onStatus, onMissing, onSto
                         <span className="truncate">{taskStatus.current_chapter}</span>
                       </p>
                     )}
+                    {isToolTask && taskStatus.current_task && <p className="mt-1 break-words text-xs text-faint">{taskStatus.current_task}</p>}
                   </div>
                 </div>
               )}
@@ -418,6 +446,15 @@ const StudyProgress = ({ taskId, notice = '', onBack, onStatus, onMissing, onSto
                 </div>
               )}
             </section>
+
+            {isToolTask && (
+              <CourseToolProgress
+                key={`${username || ''}:${taskId}`}
+                taskId={taskId} username={username} taskStatus={taskStatus} tool={taskDetails?.tool}
+                catalogReady={finalDetailsReady} onStartStudy={onStartStudy} starting={starting} startError={startError}
+                disabled={actionsDisabled || recovering || !!recoveryError || missing}
+              />
+            )}
 
             {/* 视频播放进度 */}
             {activeJobs.length > 0 && (
@@ -585,8 +622,8 @@ const StudyProgress = ({ taskId, notice = '', onBack, onStatus, onMissing, onSto
               <div className="flex items-start gap-2.5 rounded-xl border border-success/25 bg-success/5 p-4 animate-fade-in" role="status">
                 <CheckCircle2 className="mt-0.5 h-4.5 w-4.5 shrink-0 text-success" aria-hidden="true" />
                 <div>
-                  <p className="text-sm font-semibold text-success">所有任务已完成</p>
-                  <p className="mt-0.5 text-xs text-body">全部课程已按配置学习完毕</p>
+                  <p className="text-sm font-semibold text-success">{taskStatus.task_type === 'catalog' ? '资源列表已读取' : '所有任务已完成'}</p>
+                  <p className="mt-0.5 text-xs text-body">{isToolTask ? taskStatus.task_type === 'catalog' ? '请勾选资源后执行下一步' : '请查看执行结果和日志' : '全部课程已按配置学习完毕'}</p>
                 </div>
               </div>
             )}
@@ -596,7 +633,7 @@ const StudyProgress = ({ taskId, notice = '', onBack, onStatus, onMissing, onSto
                 <AlertCircle className="mt-0.5 h-4.5 w-4.5 shrink-0 text-warning" aria-hidden="true" />
                 <div>
                   <p className="text-sm font-semibold text-warning">任务已结束，部分内容未完成</p>
-                  <p className="mt-0.5 text-xs text-body">部分章节失败或被跳过，请查看课程明细和日志</p>
+                  <p className="mt-0.5 text-xs text-body">{isToolTask ? '请查看执行结果和日志，核对已完成内容后再开始新任务' : '部分章节失败或被跳过，请查看课程明细和日志'}</p>
                 </div>
               </div>
             )}
@@ -621,7 +658,7 @@ const StudyProgress = ({ taskId, notice = '', onBack, onStatus, onMissing, onSto
               </div>
             )}
 
-            {taskStatus?.stats && (
+            {!isToolTask && taskStatus?.stats && (
               <section className="rounded-xl border border-line bg-white shadow-card">
                 <div className="border-b border-line px-5 py-3.5">
                   <h2 className="text-[15px] font-semibold">详细统计</h2>

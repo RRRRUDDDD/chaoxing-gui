@@ -31,8 +31,11 @@ function requestOperation(config) {
   let operation = routes[`${method} ${path}`];
   let taskId;
   if (!operation && method === 'post') {
-    const task = path.match(new RegExp(`^/task/(${TASK_ID})/(resume|stop)$`));
-    if (task) { operation = task[2] === 'stop' ? 'taskStop' : 'taskResume'; taskId = task[1]; }
+    const task = path.match(new RegExp(`^/task/(${TASK_ID})/(resume|stop|open-downloads)$`));
+    if (task) {
+      operation = { resume: 'taskResume', stop: 'taskStop', 'open-downloads': 'taskOpenDownloads' }[task[2]];
+      taskId = task[1];
+    }
   }
   if (!operation && method === 'get') {
     const task = path.match(new RegExp(`^/task/(${TASK_ID})(/details)?$`));

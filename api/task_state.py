@@ -22,6 +22,7 @@ RESUME_FIELDS = frozenset({
     "course_list", "jobs", "speed", "retry_interval", "notopen_action",
     "tiku_config", "notification_config", "ocr_config",
 })
+TOOL_RESUME_FIELDS = frozenset({"task_type", "course_list", "tool_options"})
 
 
 class TaskAlreadyRunning(Exception):
@@ -122,9 +123,21 @@ class TaskStore:
     def _resume_settings(config):
         if config is None:
             return None
-        if not isinstance(config, dict) or set(config) != RESUME_FIELDS:
+        if not isinstance(config, dict):
             raise ValueError("恢复配置必须仅包含学习参数")
+        if set(config) != RESUME_FIELDS:
+            if (set(config) != TOOL_RESUME_FIELDS
+                    or not isinstance(config.get("task_type"), str)
+                    or config["task_type"] not in {"catalog", "visits", "video_time", "download"}
+                    or not isinstance(config.get("course_list"), list)
+                    or not isinstance(config.get("tool_options"), dict)):
+                raise ValueError("恢复配置必须仅包含学习参数")
         return deepcopy(config)
+
+    def checkpoint(self, task_id: str) -> None:
+        """Persist a utility's acknowledged progress before its next operation."""
+        with self.edit(task_id):
+            self._save_locked()
 
     def get_resume_config(self, task_id: str, account: str) -> dict | None:
         with self.edit(task_id) as task:
