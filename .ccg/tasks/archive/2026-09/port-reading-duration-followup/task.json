@@ -1,0 +1,14 @@
+{
+  "id": "port-reading-duration-followup",
+  "title": "继续完成课程阅读时长功能接入",
+  "status": "completed",
+  "complexity": "L+",
+  "risk": "high",
+  "domain": "fullstack",
+  "currentPhase": "completed",
+  "nextAction": "已完成并归档",
+  "createdAt": "2026-09-17T15:30:00Z",
+  "branch": "main",
+  "parentTask": "port-reading-duration",
+  "completedAt": "2026-09-18T01:42:00+08:00"
+}

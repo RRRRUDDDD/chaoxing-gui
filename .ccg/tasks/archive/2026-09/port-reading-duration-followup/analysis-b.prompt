@@ -1,0 +1,5 @@
+ROLE_FILE: C:/Users/RUD/.claude/.ccg/prompts/claude/architect.md
+<TASK>
+独立审查当前未完成的课程阅读时长接入。结合仓库已有代码与测试，推断阅读任务服务应如何安全实现（扫描、readlog 上报、取消、公开 DTO），并指出状态/API/UI 集成中的关键缺陷。不要修改文件。
+</TASK>
+OUTPUT: 分级架构报告

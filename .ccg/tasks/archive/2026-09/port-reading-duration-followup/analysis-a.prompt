@@ -1,0 +1,5 @@
+ROLE_FILE: C:/Users/RUD/.claude/.ccg/prompts/claude/analyzer.md
+<TASK>
+分析当前仓库继续完成“port-reading-duration”任务所需的实现缺口。重点检查 api/course_tool_tasks.py、api/course_tools.py、app.py、api/task_state.py、现有 tests/test_reading_tasks.py，以及 web 相关改动。请给出：1) 必须修复的功能/协议问题；2) 具体文件和建议；3) 测试风险。不要修改文件。
+</TASK>
+OUTPUT: 分级分析报告
