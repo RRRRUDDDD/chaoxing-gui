@@ -1,0 +1,14 @@
+{
+  "id": "push-reading-duration-github",
+  "title": "推送阅读时长功能到 GitHub",
+  "status": "completed",
+  "complexity": "S",
+  "risk": "medium",
+  "domain": "release",
+  "currentPhase": "completed",
+  "nextAction": "已推送并归档",
+  "createdAt": "2026-09-18T01:50:00+08:00",
+  "branch": "main",
+  "completedAt": "2026-09-18T07:40:00+08:00",
+  "pushedCommit": "9abd08615ef30c706d6cf34015c9445781e53443"
+}
