@@ -1,0 +1,14 @@
+{
+  "id": "port-reading-duration",
+  "title": "将 web-read-tool 的阅读时长功能接入超星 GUI",
+  "status": "completed",
+  "complexity": "L+",
+  "risk": "high",
+  "domain": "fullstack",
+  "currentPhase": "completed",
+  "nextAction": "已由续作任务完成并归档",
+  "createdAt": "2026-09-16T07:19:12.0500216Z",
+  "branch": "main",
+  "completedAt": "2026-09-18T01:44:00+08:00",
+  "completionTask": "port-reading-duration-followup"
+}
