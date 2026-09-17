@@ -686,7 +686,7 @@ def _start_course_tool(data):
     try:
         resources = course_tool_tasks.selected_resources(
             store, config["username"], config["course_list"], config["task_type"], config["tool_options"],
-        ) if config["task_type"] in {"video_time", "download"} else []
+        ) if config["task_type"] in course_tool_tasks.RESOURCE_FLAGS else []
         task_id = store.create(
             config["username"], course_tool_tasks.initial_status(config),
             course_tool_tasks.initial_details(config, resources),
@@ -757,7 +757,7 @@ def resume_study(task_id):
         saved = store.get_resume_config(task_id, username)
         if saved is not None and "task_type" in saved:
             config = _tool_config({**saved, "username": username, "password": "", "use_cookies": True})
-            if config["task_type"] in {"visits", "video_time"}:
+            if config["task_type"] in {"visits", *course_tool_tasks.TIMED_TOOLS}:
                 # A sent request may have reached Chaoxing before the process
                 # died. Keep the last acknowledgement without replaying it.
                 store.finish(task_id, "partial", error="上次执行被程序退出中断，已保留执行记录。为避免重复累计，请核对平台统计后重新开始。")

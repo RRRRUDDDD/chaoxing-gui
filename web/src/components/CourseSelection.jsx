@@ -110,7 +110,7 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
   const canSelect = !loading && loadedAccount === username && !loadError && !loggingOut;
   const validOptions = taskType !== 'visits' || Object.values(validateVisits(toolOptions)).every((error) => !error);
   const canStart = canSelect && courses.length > 0 && selectedCount > 0 && validOptions && !starting && !taskRunning;
-  const startLabel = { study: '开始学习', visits: '开始提交次数', video_time: '读取视频列表', download: '读取资源列表' }[taskType];
+  const startLabel = { study: '开始学习', visits: '开始提交次数', video_time: '读取视频列表', reading_time: '读取阅读任务', download: '读取资源列表' }[taskType];
 
   const selectAllVisible = useCallback(() => {
     if (canSelect) setSelectedCourses((selected) => [...new Set([...selected, ...filteredCourses.map((course) => course.courseId)])]);

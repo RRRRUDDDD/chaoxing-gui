@@ -68,7 +68,8 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
   const callbacks = useRef({ onStatus, onMissing });
   callbacks.current = { onStatus, onMissing };
   const stopPending = stopping || taskStatus?.cancel_requested === true;
-  const isToolTask = ['visits', 'catalog', 'video_time', 'download'].includes(taskStatus?.task_type);
+  const isToolTask = ['visits', 'catalog', 'video_time', 'reading_time', 'download'].includes(taskStatus?.task_type);
+  const isReadingTask = taskStatus?.task_type === 'reading_time';
 
   useEffect(() => {
     actionGeneration.current += 1;
@@ -178,7 +179,7 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
       case 'interrupted':
         return { text: '等待恢复', cls: 'text-warning', icon: Clock };
       case 'completed':
-        return { text: '已完成', cls: 'text-success', icon: CheckCircle2 };
+        return { text: isReadingTask ? '上报完成' : '已完成', cls: 'text-success', icon: CheckCircle2 };
       case 'error':
         return { text: '出现错误', cls: 'text-danger', icon: AlertCircle };
       case 'partial':
@@ -256,7 +257,7 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
       ),
     },
     {
-      label: isToolTask ? taskStatus.task_type === 'catalog' ? '已读取资源' : '累计执行量' : '章节统计',
+      label: isReadingTask ? '已上报时长' : isToolTask ? taskStatus.task_type === 'catalog' ? '已读取资源' : '累计执行量' : '章节统计',
       icon: FileText,
       iconCls: 'bg-success/10 text-success',
       value: isToolTask ? (
@@ -622,8 +623,8 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
               <div className="flex items-start gap-2.5 rounded-xl border border-success/25 bg-success/5 p-4 animate-fade-in" role="status">
                 <CheckCircle2 className="mt-0.5 h-4.5 w-4.5 shrink-0 text-success" aria-hidden="true" />
                 <div>
-                  <p className="text-sm font-semibold text-success">{taskStatus.task_type === 'catalog' ? '资源列表已读取' : '所有任务已完成'}</p>
-                  <p className="mt-0.5 text-xs text-body">{isToolTask ? taskStatus.task_type === 'catalog' ? '请勾选资源后执行下一步' : '请查看执行结果和日志' : '全部课程已按配置学习完毕'}</p>
+                  <p className="text-sm font-semibold text-success">{isReadingTask ? '本次阅读上报已完成' : taskStatus.task_type === 'catalog' ? '资源列表已读取' : '所有任务已完成'}</p>
+                  <p className="mt-0.5 text-xs text-body">{isReadingTask ? '请查看平台统计，当天阅读时长可能次日更新' : isToolTask ? taskStatus.task_type === 'catalog' ? '请勾选资源后执行下一步' : '请查看执行结果和日志' : '全部课程已按配置学习完毕'}</p>
                 </div>
               </div>
             )}
@@ -653,7 +654,7 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
                 <StopCircle className="mt-0.5 h-4.5 w-4.5 shrink-0 text-faint" aria-hidden="true" />
                 <div>
                   <p className="text-sm font-semibold text-body">任务已手动停止</p>
-                  <p className="mt-0.5 text-xs text-body">已完成的进度已保留，可返回首页重新选择课程开始新任务</p>
+                  <p className="mt-0.5 text-xs text-body">{isReadingTask ? '已上报时长已保留，平台统计可能次日更新' : '已完成的进度已保留，可返回首页重新选择课程开始新任务'}</p>
                 </div>
               </div>
             )}

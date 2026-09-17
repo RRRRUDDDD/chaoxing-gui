@@ -128,7 +128,7 @@ class TaskStore:
         if set(config) != RESUME_FIELDS:
             if (set(config) != TOOL_RESUME_FIELDS
                     or not isinstance(config.get("task_type"), str)
-                    or config["task_type"] not in {"catalog", "visits", "video_time", "download"}
+                    or config["task_type"] not in {"catalog", "visits", "video_time", "reading_time", "download"}
                     or not isinstance(config.get("course_list"), list)
                     or not isinstance(config.get("tool_options"), dict)):
                 raise ValueError("恢复配置必须仅包含学习参数")

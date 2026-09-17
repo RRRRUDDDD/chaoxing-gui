@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Download, FileText, FolderOpen, Loader2, MonitorPlay, Search } from 'lucide-react';
+import { BookOpen, Download, FileText, FolderOpen, Loader2, MonitorPlay, Search } from 'lucide-react';
 import api from '../api/axios';
 import { validTaskId } from '../lib/sessionStore';
 import { isTerminalStatus, resultLabels } from '../lib/taskPolling';
@@ -18,7 +18,7 @@ export function formatToolAmount(value, unit = '') {
     const scale = number > 0 ? Math.min(3, Math.floor(Math.log(number) / Math.log(1024))) : 0;
     return `${(number / (1024 ** scale)).toLocaleString('zh-CN', { maximumFractionDigits: 1 })} ${['B', 'KB', 'MB', 'GB'][Math.max(0, scale)]}`;
   }
-  return `${number.toLocaleString('zh-CN', { maximumFractionDigits: 1 })}${unit ? ` ${unit}` : ''}`;
+  return `${number.toLocaleString('zh-CN', { maximumFractionDigits: unit === '分钟' ? 2 : 1 })}${unit ? ` ${unit}` : ''}`;
 }
 
 function UnitProgress({ label, completed, total, unit }) {
@@ -57,6 +57,11 @@ function CourseToolContent({ taskId, username, taskStatus, tool, catalogReady = 
 
   const taskType = taskStatus.task_type;
   const purpose = tool?.purpose;
+  const readingCatalog = purpose === 'reading_time';
+  const durationTask = purpose === 'video_time' || readingCatalog;
+  const readingTask = taskType === 'reading_time';
+  const durationId = readingCatalog ? 'reading-minutes' : 'video-minutes';
+  const StartIcon = readingCatalog ? BookOpen : purpose === 'video_time' ? MonitorPlay : Download;
   const resources = useMemo(() => {
     const items = Array.isArray(tool?.resources) ? tool.resources : [];
     return purpose === 'video_time' ? items.filter((item) => item.kind === 'video') : items;
@@ -65,14 +70,14 @@ function CourseToolContent({ taskId, username, taskStatus, tool, catalogReady = 
   const courseIds = new Set((Array.isArray(tool?.course_ids) ? tool.course_ids : []).map(String));
   const available = (resource) => typeof resource.id === 'string' && !!resource.id
     && courseIds.has(String(resource.course_id))
-    && (purpose === 'video_time' ? resource.watchable === true : purpose === 'download' && resource.downloadable === true);
+    && (readingCatalog ? resource.readable === true : purpose === 'video_time' ? resource.watchable === true : purpose === 'download' && resource.downloadable === true);
   const selected = resources.filter((resource) => selectedIds.includes(resource.id) && available(resource));
   const filtered = resources.filter((resource) => {
     const matchesKind = kind === 'all' || resource.kind === kind;
     const searchText = [resource.name, resource.course_title, resource.chapter_title].filter(Boolean).join(' ').toLowerCase();
     return matchesKind && searchText.includes(query.trim().toLowerCase());
   });
-  const minutesError = purpose === 'video_time' ? validateMinutes(minutes) : '';
+  const minutesError = durationTask ? validateMinutes(minutes) : '';
   const ready = catalogReady && ['completed', 'partial'].includes(taskStatus.status);
   const busy = starting || submitting;
   const canSelect = ready && !busy && !disabled;
@@ -93,7 +98,7 @@ function CourseToolContent({ taskId, username, taskStatus, tool, catalogReady = 
         tool_options: {
           source_task_id: taskId,
           resource_ids: selected.map((resource) => resource.id),
-          ...(purpose === 'video_time' ? { minutes: Number(minutes) } : {}),
+          ...(durationTask ? { minutes: Number(minutes) } : {}),
         },
       });
     } catch (error) {
@@ -134,7 +139,8 @@ function CourseToolContent({ taskId, username, taskStatus, tool, catalogReady = 
     <>
       <section className={sectionCls} aria-label="工具执行进度">
         <h2 className="mb-4 text-[15px] font-semibold">{taskStatus.task_label || courseToolLabels[taskType]}执行进度</h2>
-        <UnitProgress label="累计进度" completed={tool?.completed_units ?? 0} total={tool?.total_units} unit={tool?.unit} />
+        <UnitProgress label={readingTask ? '已上报时长' : '累计进度'} completed={tool?.completed_units ?? 0} total={tool?.total_units} unit={tool?.unit} />
+        {readingTask && <p className="mt-3 text-xs leading-relaxed text-faint">已上报时长表示成功发送的阅读记录覆盖的时长。平台当天统计可能次日更新，请以平台统计为准。</p>}
         {tool?.current && (
           <div className="mt-4 rounded-lg bg-soft/60 p-4">
             <UnitProgress label={tool.current.name || '当前条目'} completed={tool.current.completed ?? 0} total={tool.current.total} unit={tool.current.unit || tool.unit} />
@@ -159,7 +165,7 @@ function CourseToolContent({ taskId, username, taskStatus, tool, catalogReady = 
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <h2 className="flex items-center gap-2 text-[15px] font-semibold">
               <FileText className="h-4 w-4 text-brand" aria-hidden="true" />
-              {purpose === 'video_time' ? '视频列表' : '资源列表'}
+              {readingCatalog ? '阅读任务列表' : purpose === 'video_time' ? '视频列表' : '资源列表'}
             </h2>
             <span className="text-xs text-faint tnum">已选 {selected.length} / 共 {resources.length}</span>
           </div>
@@ -168,6 +174,7 @@ function CourseToolContent({ taskId, username, taskStatus, tool, catalogReady = 
               : ['completed', 'partial'].includes(taskStatus.status) ? '正在获取最终资源列表…'
                 : isTerminalStatus(taskStatus.status) ? '本次读取未完成，请返回课程选择重新读取。' : '正在读取资源，请等待任务结束后选择。'}
           </p>
+          {readingCatalog && <p className="mb-4 text-xs leading-relaxed text-faint">每个勾选任务将读取其关联书籍，按实际时间在应用后台运行，可随时停止。平台当天统计可能次日更新。</p>}
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <div className="relative min-w-40 flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-faint" aria-hidden="true" />
@@ -199,30 +206,37 @@ function CourseToolContent({ taskId, username, taskStatus, tool, catalogReady = 
                     <span className="block break-words text-sm font-medium">{resource.name}</span>
                     <span className="mt-1 block text-xs text-faint">{resource.course_title} · {resource.chapter_title}</span>
                     <span className="mt-1 block text-xs text-faint">
-                      {kinds[resource.kind] || '资源'}
+                      {readingCatalog ? '阅读任务' : kinds[resource.kind] || '资源'}
                       {resource.duration != null && ` · ${formatToolAmount(resource.duration, '秒')}`}
-                      {!available(resource) && (purpose === 'video_time' ? ' · 不可累计时长' : ' · 不可下载')}
+                      {!available(resource) && (readingCatalog ? ' · 不可阅读' : purpose === 'video_time' ? ' · 不可累计时长' : ' · 不可下载')}
                     </span>
+                    {readingCatalog && (
+                      <span className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-body">
+                        <span>平台现有：{formatToolAmount(resource.read_minutes, '分钟')}</span>
+                        <span>要求：{formatToolAmount(resource.required_minutes, '分钟')}</span>
+                        <span>书籍：{formatToolAmount(resource.book_count, '本')}</span>
+                      </span>
+                    )}
                   </span>
                 </label>
               </li>
             ))}
-            {!filtered.length && <li className="p-8 text-center text-sm text-faint">{resources.length ? '没有匹配的资源' : ready ? '未找到可用资源，请查看执行结果或选择其他课程。' : '暂无资源'}</li>}
+            {!filtered.length && <li className="p-8 text-center text-sm text-faint">{resources.length ? '没有匹配的资源' : ready ? readingCatalog ? '未找到阅读任务，请查看执行结果或选择其他课程。' : '未找到可用资源，请查看执行结果或选择其他课程。' : '暂无资源'}</li>}
           </ul>
 
-          {purpose === 'video_time' && (
+          {durationTask && (
             <div className="mt-5 space-y-1.5">
-              <Label htmlFor="video-minutes">每个视频增加时长（分钟）</Label>
-              <Input id="video-minutes" type="number" min="0.1" max="1440" step="any" value={minutes} disabled={!canSelect} onChange={(event) => setMinutes(event.target.value)} aria-invalid={!!minutesError} aria-describedby="video-minutes-hint" />
-              <p id="video-minutes-hint" role={minutesError ? 'alert' : undefined} className={`text-xs ${minutesError ? 'text-danger' : 'text-faint'}`}>
-                {minutesError || '范围 0.1–1440 分钟。按实际时间运行，超出视频长度后从头继续。'}
+              <Label htmlFor={durationId}>{readingCatalog ? '每个阅读任务增加时长（分钟）' : '每个视频增加时长（分钟）'}</Label>
+              <Input id={durationId} type="number" min="0.1" max="1440" step="any" value={minutes} disabled={!canSelect} onChange={(event) => setMinutes(event.target.value)} aria-invalid={!!minutesError} aria-describedby={`${durationId}-hint`} />
+              <p id={`${durationId}-hint`} role={minutesError ? 'alert' : undefined} className={`text-xs ${minutesError ? 'text-danger' : 'text-faint'}`}>
+                {minutesError || (readingCatalog ? '范围 0.1–1440 分钟。按实际时间运行，可随时停止。' : '范围 0.1–1440 分钟。按实际时间运行，超出视频长度后从头继续。')}
               </p>
             </div>
           )}
           <div className="mt-5 flex flex-wrap items-center gap-3">
             <Button onClick={handleStart} disabled={!canStart}>
-              {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : purpose === 'video_time' ? <MonitorPlay className="h-4 w-4" aria-hidden="true" /> : <Download className="h-4 w-4" aria-hidden="true" />}
-              {busy ? '任务启动中' : purpose === 'video_time' ? '开始累计时长' : '下载所选资源'}
+              {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <StartIcon className="h-4 w-4" aria-hidden="true" />}
+              {busy ? '任务启动中' : readingCatalog ? '开始阅读' : purpose === 'video_time' ? '开始累计时长' : '下载所选资源'}
             </Button>
             {!selected.length && <p className="text-xs text-faint">请至少勾选一项可用资源</p>}
           </div>
@@ -241,7 +255,7 @@ function CourseToolContent({ taskId, username, taskStatus, tool, catalogReady = 
                     <p className="break-words text-sm font-medium">{result.name}</p>
                     <p className="mt-0.5 text-xs text-faint">{result.course_title}</p>
                   </div>
-                  <span className={`shrink-0 text-xs ${result.status === 'error' ? 'text-danger' : result.status === 'completed' ? 'text-success' : 'text-warning'}`}>{resultLabels[result.status] || result.status}</span>
+                  <span className={`shrink-0 text-xs ${result.status === 'error' ? 'text-danger' : result.status === 'completed' ? 'text-success' : 'text-warning'}`}>{readingTask && result.status === 'completed' ? '上报完成' : resultLabels[result.status] || result.status}</span>
                 </div>
                 {result.message && <p className={`whitespace-pre-wrap text-xs leading-relaxed ${result.status === 'error' ? 'text-danger' : 'text-body'}`}>{result.message}</p>}
                 {taskType === 'visits' && (
@@ -251,7 +265,13 @@ function CourseToolContent({ taskId, username, taskStatus, tool, catalogReady = 
                     <div><dt className="text-faint">平台次数（结束）</dt><dd className="mt-1 font-medium tnum">{result.after == null ? '不可用' : formatToolAmount(result.after, '次')}</dd></div>
                   </dl>
                 )}
-                {result.seconds != null && <p className="text-xs text-body tnum">已记录时长：{formatToolAmount(result.seconds, '秒')}</p>}
+                {readingTask && (
+                  <dl className="grid gap-2 rounded-lg bg-soft p-3 text-xs sm:grid-cols-2">
+                    <div><dt className="text-faint">平台阅读时长（开始）</dt><dd className="mt-1 font-medium tnum">{result.before == null ? '不可用' : formatToolAmount(result.before, '分钟')}</dd></div>
+                    <div><dt className="text-faint">平台阅读时长（结束）</dt><dd className="mt-1 font-medium tnum">{result.after == null ? '不可用' : formatToolAmount(result.after, '分钟')}</dd></div>
+                  </dl>
+                )}
+                {result.seconds != null && <p className="text-xs text-body tnum">{readingTask ? '已上报时长' : '已记录时长'}：{formatToolAmount(result.seconds, '秒')}</p>}
                 {result.bytes != null && <p className="text-xs text-body tnum">已保存：{formatToolAmount(result.bytes, '字节')}</p>}
                 {result.path && <p className="break-all text-xs text-faint">{result.path}</p>}
               </li>

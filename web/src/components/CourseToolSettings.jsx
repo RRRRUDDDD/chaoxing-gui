@@ -4,7 +4,7 @@ import Label from './ui/Label';
 
 export const courseToolLabels = {
   study: '自动学习', visits: '学习次数', catalog: '资源读取',
-  video_time: '视频时长', download: '资源下载',
+  video_time: '视频时长', reading_time: '阅读时长', download: '资源下载',
 };
 
 export function validateVisits(options) {
@@ -35,7 +35,7 @@ const CourseToolSettings = ({ taskType, onTaskTypeChange, options, onOptionsChan
           onChange={(event) => onTaskTypeChange(event.target.value)}
           className="h-10 w-full cursor-pointer rounded-lg border border-line bg-white px-3 text-sm text-ink focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand/15 disabled:opacity-60"
         >
-          {['study', 'visits', 'video_time', 'download'].map((type) => (
+          {['study', 'visits', 'video_time', 'reading_time', 'download'].map((type) => (
             <option key={type} value={type}>{courseToolLabels[type]}</option>
           ))}
         </select>
@@ -66,6 +66,9 @@ const CourseToolSettings = ({ taskType, onTaskTypeChange, options, onOptionsChan
 
       {taskType === 'video_time' && (
         <p className="text-xs leading-relaxed text-faint">先读取所选课程的视频列表，再勾选视频并设置每个视频增加的时长。执行时可随时停止。</p>
+      )}
+      {taskType === 'reading_time' && (
+        <p className="text-xs leading-relaxed text-faint">先读取课程的阅读任务，再勾选任务并设置新增时长。在应用后台读取关联书籍，无需新窗口或操作鼠标。平台当天统计可能次日更新。</p>
       )}
       {taskType === 'download' && (
         <p className="text-xs leading-relaxed text-faint">先读取所选课程的资源列表，再勾选需要下载的视频、音频或文件。完成后可打开下载目录。</p>

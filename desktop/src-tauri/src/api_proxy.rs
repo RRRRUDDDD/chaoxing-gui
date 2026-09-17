@@ -380,9 +380,14 @@ mod tests {
         for (task_type, tool_options) in [
             ("visits", serde_json::json!({"count": 10, "interval": 30})),
             ("catalog", serde_json::json!({"purpose": "download"})),
+            ("catalog", serde_json::json!({"purpose": "reading_time"})),
             (
                 "video_time",
                 serde_json::json!({"source_task_id": "catalog-1", "resource_ids": ["video-1"], "minutes": 0.5}),
+            ),
+            (
+                "reading_time",
+                serde_json::json!({"source_task_id": "catalog-1", "resource_ids": ["reading-1"], "minutes": 0.1}),
             ),
             (
                 "download",

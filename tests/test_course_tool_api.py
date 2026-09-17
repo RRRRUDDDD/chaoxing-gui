@@ -96,6 +96,73 @@ class CourseToolApiTests(unittest.TestCase):
         self.assertEqual(self.store.get_details(task_id)["tool"]["resources"], [RESOURCE])
         self.launch.assert_called_once()
 
+    def reading_catalog(self):
+        source = self.catalog("reading_time")
+        reading = dict(RESOURCE, id="reading1", name="课程阅读", kind="read", readable=True,
+                       downloadable=False, watchable=False, required_minutes=60, read_minutes=4.3, book_count=3)
+        with self.store.edit(source) as task:
+            task.details["tool"]["resources"] = [reading]
+        self.store.checkpoint(source)
+        return source, reading
+
+    def test_reading_start_uses_own_catalog_and_persists_bounded_minutes(self):
+        source, reading = self.reading_catalog()
+        self.launch.reset_mock()
+        response = self.start("reading_time", {"source_task_id": source, "resource_ids": ["reading1"], "minutes": "0.1"})
+        self.assertEqual(response.status_code, 200, response.get_json())
+        task_id = response.get_json()["data"]["task_id"]
+        details = self.client.get(f"/api/task/{task_id}/details").get_json()["data"]
+        self.assertEqual(details["tool"]["resources"], [reading])
+        self.assertEqual((details["tool"]["unit"], details["tool"]["total_units"]), ("秒", 6))
+        self.launch.assert_called_once()
+        self.assertEqual(self.launch.call_args.args[2]["tool_options"]["minutes"], 0.1)
+        self.assertNotIn("never-store-password", self.state_file.read_text(encoding="utf-8"))
+
+    def test_reading_rejects_other_accounts_wrong_source_and_unreadable_items(self):
+        source, _ = self.reading_catalog()
+        self.launch.reset_mock()
+        options = {"source_task_id": source, "resource_ids": ["reading1"], "minutes": 0.1}
+        self.assertEqual(self.start("reading_time", options, username="bob").status_code, 404)
+        self.assertEqual(self.start("video_time", options).status_code, 400)
+        self.assertEqual(self.start("reading_time", dict(options, url="https://example.com")).status_code, 400)
+        with self.store.edit(source) as task:
+            task.details["tool"]["resources"][0]["readable"] = False
+        self.assertEqual(self.start("reading_time", options).status_code, 400)
+        self.launch.assert_not_called()
+
+    def test_reading_restart_keeps_reports_without_replaying_after_source_expires(self):
+        source, _ = self.reading_catalog()
+        response = self.start("reading_time", {"source_task_id": source, "resource_ids": ["reading1"], "minutes": 0.1})
+        self.assertEqual(response.status_code, 200, response.get_json())
+        task_id = response.get_json()["data"]["task_id"]
+        with self.store.edit(task_id) as task:
+            task.details["tool"]["completed_units"] = 5
+        self.store.checkpoint(task_id)
+        self.now += 11
+        self.restart()
+        self.assertEqual(self.client.get(f"/api/task/{source}").status_code, 404)
+        response = self.resume(task_id)
+        self.assertEqual(response.status_code, 200, response.get_json())
+        self.assertEqual(response.get_json()["data"]["status"], "partial")
+        self.assertEqual(self.store.get_details(task_id)["tool"]["completed_units"], 5)
+        self.launch.assert_not_called()
+        self.assertEqual(self.start().status_code, 200)
+
+    def test_stopped_reading_stays_cancelled_after_restart_and_releases_account(self):
+        source, _ = self.reading_catalog()
+        response = self.start("reading_time", {"source_task_id": source, "resource_ids": ["reading1"], "minutes": 0.1})
+        self.assertEqual(response.status_code, 200, response.get_json())
+        task_id = response.get_json()["data"]["task_id"]
+        self.assertEqual(self.client.post(f"/api/task/{task_id}/stop", json={"username": "bob"}).status_code, 404)
+        self.assertEqual(self.client.post(f"/api/task/{task_id}/stop", json={"username": "alice"}).status_code, 200)
+        self.assertTrue(self.store.is_cancelled(task_id))
+        self.assertEqual(self.start().status_code, 409)
+        self.restart()
+        self.assertEqual(self.store.get_status(task_id)["status"], "cancelled")
+        self.assertEqual(self.resume(task_id).get_json()["data"]["status"], "cancelled")
+        self.launch.assert_not_called()
+        self.assertEqual(self.start().status_code, 200)
+
     def test_other_account_expired_source_unknown_ids_and_wrong_function_are_rejected(self):
         source = self.catalog()
         for username, source_id, ids, kind, expected in [
