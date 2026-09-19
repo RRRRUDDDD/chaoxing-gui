@@ -22,6 +22,10 @@ READ_WORK_URL = "https://mooc1.chaoxing.com/mooc-ans/api/work"
 READ_LOG_URL = "https://mooc1.chaoxing.com/multimedia/readlog"
 READ_WORK_PATH = "/mooc-ans/api/work"
 READ_LOG_PATH = "/multimedia/readlog"
+# Captured from the real book page: courseMainBox is 470px, and logs.js only
+# reports after scrollTop changes. The probe wheel sequence was +380,+380,-280.
+READ_HEIGHT = "470"
+READ_SCROLL_STEPS = (380, 380, -280)
 READ_CARDS_PATH = "/mooc-ans/zt/getcards"
 # Compatibility aliases make the protocol names easy to discover for callers
 # and keep tests independent from the implementation's naming style.
@@ -57,6 +61,15 @@ def _platform_url(value, *, base=None, path=None):
     if path is not None and not path(parts.path):
         raise ValueError("专题阅读地址路径不受支持")
     return urlunsplit(("https", parts.netloc, parts.path, parts.query, ""))
+
+
+def _scroll_after(position, index):
+    """Return the next scroll offset used by the real reading page."""
+    delta = READ_SCROLL_STEPS[index % len(READ_SCROLL_STEPS)]
+    nxt = position + delta
+    if nxt < 0:
+        nxt = position + READ_SCROLL_STEPS[0]
+    return nxt
 
 
 def _text_number(value):
@@ -346,12 +359,22 @@ class ReadingTools(CourseTools):
                 and not cards_soup.get_text(" ", strip=True)):
             raise RuntimeError("专题书籍没有可读内容")
         return {"url": url, "courseid": course_id, "chapterid": chapter_id,
-                "query": query, "height": "470"}
+                "query": query, "height": READ_HEIGHT}
 
-    def _readlog(self, context, height):
+    def _readlog_url(self, context):
+        return _platform_url(READ_LOG_PATH, base=context["url"],
+                             path=lambda p: p == READ_LOG_PATH)
+
+    def _readlog(self, context, h):
+        try:
+            scroll = int(h)
+        except (TypeError, ValueError):
+            raise ValueError("阅读滚动位置无效") from None
+        if scroll < 0 or scroll > 10_000_000:
+            raise ValueError("阅读滚动位置无效")
         params = {"courseid": context["courseid"], "chapterid": context["chapterid"],
-                  "height": str(height), **context["query"], "h": "0"}
-        response_text = self._text("get", READ_LOG_URL, "阅读时长上报", no_retry=True,
+                  "height": str(context["height"]), **context["query"], "h": str(scroll)}
+        response_text = self._text("get", self._readlog_url(context), "阅读时长上报", no_retry=True,
                                    params=params, headers={"Referer": context["url"]})
         try:
             payload = json.loads(response_text)
@@ -388,15 +411,19 @@ class ReadingTools(CourseTools):
         completed = 0.0
         if callable(on_progress):
             on_progress(0, target)
-        # The initial request establishes the server-side reading session. A
-        # period counts only after its following request returns the exact {}
-        # acknowledgement used by the real page.
-        self._readlog(context, context["height"])
+        # logs.js sends h=0 once to open the session, then only reports again
+        # when scrollTop changes. Repeating h=0 is acknowledged as {} but is
+        # not counted as reading time by the platform.
+        position = 0
+        step = 0
+        self._readlog(context, position)
         while completed < target:
             self._check_cancelled()
             interval = min(5.0, target - completed)
             self._wait(interval)
-            self._readlog(context, context["height"])
+            position = _scroll_after(position, step)
+            step += 1
+            self._readlog(context, position)
             completed += interval
             if callable(on_progress):
                 on_progress(completed, target)

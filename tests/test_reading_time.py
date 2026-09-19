@@ -5,7 +5,7 @@ import json
 import unittest
 from unittest.mock import Mock
 
-from api.reading_time import ReadingTools
+from api.reading_time import ReadingTools, _scroll_after
 
 
 COURSE = {"courseId": "course-1", "clazzId": "class-1", "cpi": "enrollment-1", "title": "课程"}
@@ -52,7 +52,8 @@ class ReadingProtocolTests(unittest.TestCase):
         context = {"courseid": "242311696", "chapterid": "847466162", "height": "470",
                    "query": {"_from_": "course-1_class-1_user_sig"}, "url": "https://mooc1.chaoxing.com/mooc-ans/course/242311696.html"}
         self.responses("{}")
-        self.service._readlog(context, "470")
+        self.service._readlog(context, 0)
+        self.assertEqual(self.session.get.call_args.args[0], "https://mooc1.chaoxing.com/multimedia/readlog")
         self.assertEqual(self.session.get.call_args.kwargs["params"]["h"], "0")
         self.assertEqual(self.adapter.max_retries.total, 2)
         self.assertTrue(self.session.get.call_args.kwargs["allow_redirects"] is False)
@@ -60,7 +61,7 @@ class ReadingProtocolTests(unittest.TestCase):
             with self.subTest(payload=payload):
                 self.responses(payload)
                 with self.assertRaises(RuntimeError):
-                    self.service._readlog(context, "470")
+                    self.service._readlog(context, 380)
 
     def test_watch_reading_counts_only_acknowledged_five_second_periods(self):
         self.responses(BOOK_PAGE, CARDS_PAGE, "{}", "{}", "{}", READ_PAGE)
@@ -70,6 +71,30 @@ class ReadingProtocolTests(unittest.TestCase):
         self.assertEqual(result["seconds"], 10)
         self.assertEqual(self.service._wait.call_args_list[0].args, (5.0,))
         self.assertEqual(self.service._wait.call_count, 2)
+        scroll = [call.kwargs["params"]["h"] for call in self.session.get.call_args_list
+                  if call.args and str(call.args[0]).endswith("/multimedia/readlog")]
+        self.assertEqual(scroll, ["0", "380", "760"])
+
+
+    def test_scroll_sequence_matches_captured_page(self):
+        position, seen = 0, [0]
+        for index in range(7):
+            position = _scroll_after(position, index)
+            seen.append(position)
+        self.assertEqual(seen, [0, 380, 760, 480, 860, 1240, 960, 1340])
+
+    def test_readlog_uses_book_origin_and_rejects_static_zero_as_only_input(self):
+        context = {"courseid": "242311696", "chapterid": "847466162", "height": "470",
+                   "query": {"_from_": "course-1_class-1_user_sig"},
+                   "url": "https://mooc2.chaoxing.com/mooc-ans/zt/242311696.html"}
+        self.responses("{}", "{}")
+        self.service._readlog(context, 0)
+        self.service._readlog(context, 380)
+        urls = [call.args[0] for call in self.session.get.call_args_list]
+        self.assertEqual(urls, ["https://mooc2.chaoxing.com/multimedia/readlog"] * 2)
+        self.assertEqual([call.kwargs["params"]["h"] for call in self.session.get.call_args_list], ["0", "380"])
+        with self.assertRaises(ValueError):
+            self.service._readlog(context, -1)
 
     def test_public_resource_excludes_private_protocol_fields(self):
         resource = {**RESOURCE, "readable": True, "required_minutes": 60, "read_minutes": 4.3,
