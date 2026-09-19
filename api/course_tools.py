@@ -603,9 +603,12 @@ class CourseTools:
             for key in ("videoFaceCaptureEnc", "attDuration", "attDurationEnc"):
                 if _scalar(attachment.get(key)):
                     params[key] = attachment[key]
+            # Heartbeats wait up to a minute. A reused keep-alive socket that
+            # the platform already closed becomes ConnectionError, and reports
+            # must not inherit automatic retries.
             text = self._text(
                 "get", url, "视频时长上报", no_retry=True,
-                params=params, headers={"Referer": VIDEO_REFERER},
+                params=params, headers={"Referer": VIDEO_REFERER, "Connection": "close"},
             )
             self._check_report(text, video=True)
 

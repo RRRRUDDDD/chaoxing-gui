@@ -16,7 +16,7 @@ from urllib3.util.retry import Retry
 
 from api.course_tools import (
     CARDS_URL, COURSE_URL, STAT_INDEX_URL, STAT_TIME_URL, STATUS_URL, STUDY_URL,
-    VISITS_URL, CourseTools, ToolCancelled,
+    VIDEO_REFERER, VISITS_URL, CourseTools, ToolCancelled,
 )
 from api.session import HTTP_TIMEOUT, SessionManager
 
@@ -565,7 +565,34 @@ class VideoTests(OfflineToolsCase):
         self.assertEqual(final["courseId"], COURSE["courseId"])
         self.assertEqual([call.args for call in progress.call_args_list], [(0, 6), (6, 6)])
         self.assertTrue(all(call.kwargs["allow_redirects"] is False for call in calls))
+        self.assertTrue(all(call.kwargs["headers"]["Connection"] == "close" for call in calls))
+        self.assertTrue(all(call.kwargs["headers"]["Referer"] == VIDEO_REFERER for call in calls))
         self.assert_closed(status, *reports)
+
+    def test_video_heartbeats_close_idle_connections_and_do_not_retry_connection_errors(self):
+        status = Response({"status": "success", "duration": 12, "dtoken": "signed-token"})
+        original_retries = self.adapter.max_retries
+        retries = []
+        connections = []
+
+        def get(url, **kwargs):
+            if "/multimedia/log/" in url:
+                retries.append(self.adapter.max_retries.total)
+                connections.append(kwargs["headers"].get("Connection"))
+                raise requests.ConnectionError("Remote end closed connection")
+            return status
+
+        self.session.get.side_effect = get
+        clock = self.fake_clock()
+        progress = Mock()
+        with self.assertRaisesRegex(RuntimeError, "网络请求失败（ConnectionError）"):
+            self.tools.watch_video(COURSE, resource(), 6, progress)
+        progress.assert_not_called()
+        self.assertEqual(clock.now, 0)
+        self.assertEqual(retries, [0])
+        self.assertEqual(connections, ["close"])
+        self.assertIs(self.adapter.max_retries, original_retries)
+        self.assert_closed(status)
 
     def test_completed_video_restarts_at_boundaries_for_requested_extra_time(self):
         status, reports = self.setup_video(7, 6)
