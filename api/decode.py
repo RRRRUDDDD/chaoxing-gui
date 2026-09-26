@@ -9,7 +9,6 @@ import hashlib
 import json
 import re
 import os
-import sys
 import tempfile
 import threading
 import time
@@ -85,28 +84,14 @@ def _put_ocr_cache(cache, key, result: OCRResult) -> None:
 
 
 def _import_paddle_ocr_class():
-    """导入 PaddleOCR，优先使用环境中安装的版本。
+    """Import the installed paddleocr package.
 
-    便携版会携带一个 PaddleOCR 源码副本作为兜底，但不应覆盖用户安装的
-    最新版本，否则 PaddleOCR 与 PaddleX 的版本可能不匹配。
+    The vendored PaddleOCR source tree is not a fallback. It is large, mostly
+    documentation, and can disagree with the installed PaddleX version.
     """
-    try:
-        from paddleocr import PaddleOCR  # type: ignore
+    from paddleocr import PaddleOCR  # type: ignore
 
-        return PaddleOCR
-    except (ImportError, ModuleNotFoundError) as installed_exc:
-        project_root = os.path.dirname(os.path.dirname(__file__))
-        paddle_root = os.path.join(project_root, "PaddleOCR")
-        if not os.path.isdir(paddle_root):
-            raise installed_exc
-        if paddle_root not in sys.path:
-            sys.path.insert(0, paddle_root)
-        try:
-            from paddleocr import PaddleOCR  # type: ignore
-
-            return PaddleOCR
-        except (ImportError, ModuleNotFoundError):
-            raise installed_exc
+    return PaddleOCR
 
 
 def _parse_paddle_ocr_result(ocr_result: Any) -> List[str]:
@@ -688,6 +673,14 @@ def _extract_points_from_chapter(chapter_unit) -> List[Dict[str, Any]]:
     return point_list
 
 
+_CARD_ARG = re.compile(r"\bmArg\s*=\s*(?=\{)")
+
+
+def card_page_has_payload(html_text: str) -> bool:
+    """A knowledge card page exists when it carries mArg or a locked-chapter marker."""
+    return "章节未开放" in html_text or _CARD_ARG.search(html_text) is not None
+
+
 def decode_course_card(html_text: str) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
     """
     解析任务点列表页面，提取任务点信息
@@ -706,13 +699,13 @@ def decode_course_card(html_text: str) -> Tuple[List[Dict[str, Any]], Dict[str, 
         job_info["notOpen"] = True
         return [], job_info
 
-    # 提取mArg参数
-    temp = re.findall(r"mArg=\{(.*?)\};", html_text.replace(" ", ""))
-    if not temp:
+    # Match the object assignment. Pages also initialize `mArg = ""` first,
+    # and stripping every space would destroy text inside JSON strings.
+    match = _CARD_ARG.search(html_text)
+    if not match:
         return [], job_info
 
-    # 解析JSON数据
-    cards_data = json.loads("{" + temp[0] + "}")
+    cards_data, _ = json.JSONDecoder().raw_decode(html_text[match.end():].lstrip())
 
     if not cards_data:
         return [], job_info
@@ -980,12 +973,12 @@ def decode_questions_info(html_content: str) -> Dict[str, Any]:
     soup = BeautifulSoup(html_content, "lxml")
     form_data = _extract_form_data(soup)
     
-    # 检查是否存在字体加密
-    has_font_encryption = bool(soup.find("style", id="cxSecretStyle"))
+    # Reuse the soup already built for this page instead of parsing it again.
+    style_tag = soup.find("style", id="cxSecretStyle")
     font_decoder = None
-    
-    if has_font_encryption:
-        font_decoder = FontDecoder(html_content)
+    if style_tag and style_tag.text:
+        font_decoder = FontDecoder()
+        font_decoder.load_style(style_tag.text)
     else:
         logger.warning("未找到字体文件，可能是未加密的题目不进行解密")
     

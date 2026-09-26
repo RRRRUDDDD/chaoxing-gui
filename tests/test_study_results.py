@@ -16,10 +16,10 @@ class StudyResultTests(unittest.TestCase):
         self.client.rate_limiter = Mock()
         self.addCleanup(self.client.close)
 
-    def response(self, status):
+    def response(self, status, body=b'{}'):
         response = requests.Response()
         response.status_code = status
-        response._content = b'{}'
+        response._content = body
         response.url = 'https://example.invalid/cards'
         return response
 
@@ -48,9 +48,13 @@ class StudyResultTests(unittest.TestCase):
         self.assertEqual(result, main.ChapterResult.EMPTY)
 
     def test_passed_jobs_across_cards_are_preserved_without_empty_page_request(self):
-        session = SimpleNamespace(get=Mock(return_value=self.response(200)))
+        session = SimpleNamespace(get=Mock(side_effect=[
+            self.response(200, b'<script>mArg={};</script>'),
+            self.response(200, b'<script>mArg={};</script>'),
+            self.response(200, b'<div></div>'),
+        ]))
         passed = [{'type': 'read', 'jobid': 'j1'}, {'type': 'read', 'jobid': 'j2'}]
-        responses = [( [], {'passed_jobs': [job]}) for job in passed] + [([], {})] * 5
+        responses = [( [], {'passed_jobs': [job]}) for job in passed]
         with patch.object(self.client.session_manager, 'get_session', return_value=session), \
              patch('api.base.decode_course_card', side_effect=responses), \
              patch.object(self.client, 'study_emptypage') as empty:

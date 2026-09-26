@@ -38,7 +38,7 @@ python desktop/scripts/verify-captcha-ocr.py --executable dist/chaoxing-backend/
 python desktop/scripts/verify-captcha-ocr.py --executable dist/chaoxing-gui.exe
 ```
 
-CI 对 48 张生成图片比较新旧预处理张量和识别结果，并在禁止导入 ddddocr/cv2 的独立进程验证识别。冻结检查读取实际 EXE 模块/资源清单，再在空临时目录运行 `--check-captcha-ocr`，不启动 Web 服务或访问账号；独立 exe 也通过报告文件验证结果。此检查证明运行与上游一致性，不代表真实课程验证码准确率已验收。题目图片的云端/HTTP OCR 和源码可选 PaddleOCR 不受这次裁剪影响。
+CI 对 48 张生成图片比较新旧预处理张量和识别结果，并在禁止导入 ddddocr/cv2 的独立进程验证识别。冻结检查读取实际 EXE 模块/资源清单，再在空临时目录运行 `--check-captcha-ocr`，不启动 Web 服务或访问账号；独立 exe 也通过报告文件验证结果。此检查证明运行与上游一致性，不代表真实课程验证码准确率已验收。题目图片的云端/HTTP OCR，以及已安装的 paddleocr 包，不受这次裁剪影响。
 
 ```powershell
 # 本项目已配置的本机工具链环境；标准 rustup/MSVC 开发终端可直接使用。

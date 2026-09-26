@@ -322,7 +322,7 @@ class ChapterDiscoveryStopTests(OfflineStopTests):
         self.addCleanup(self.chaoxing.close)
         self.chaoxing.rate_limiter = Mock()
         self.session = Mock()
-        self.response = Mock(status_code=200, text="<html>offline</html>")
+        self.response = Mock(status_code=200, text="<html>offline mArg={}</html>")
         self.session.get.return_value = self.response
         self.patch("api.session.SessionManager.get_session", return_value=self.session)
         self.empty = Mock(return_value=StudyResult.SUCCESS)

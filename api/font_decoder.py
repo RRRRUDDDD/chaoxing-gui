@@ -47,17 +47,23 @@ class FontDecoder:
             if not style_tag or not style_tag.text:
                 raise FontDecodeError("未找到加密字体样式标签")
 
-            match = re.search(self.FONT_BASE64_PATTERN, style_tag.text)
+            self.load_style(style_tag.text)
+        except Exception as e:
+            logger.warning(f"初始化字体映射失败: {e}")
+            self.__font_map = None
+
+    def load_style(self, style_text: str) -> None:
+        """Build the font map from a style tag that was already parsed."""
+        try:
+            match = re.search(self.FONT_BASE64_PATTERN, style_text or "")
             if not match:
                 raise FontDecodeError("无法从样式标签中提取字体数据")
-
-            font_base64 = match.group(1)
-            font_data_url = self.FONT_DATA_URL_PREFIX + font_base64
+            font_data_url = self.FONT_DATA_URL_PREFIX + match.group(1)
             self.__font_map = cxfont.font2map(font_data_url)
         except Exception as e:
             logger.warning(f"初始化字体映射失败: {e}")
             self.__font_map = None
-    
+
     def decode(self, target_str: str) -> str:
         """解码加密字符串。
         

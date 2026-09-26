@@ -8,7 +8,7 @@ import requests
 
 import main
 from api.base import Account, Chaoxing, StudyResult
-from api.decode import decode_course_card
+from api.decode import card_page_has_payload, decode_course_card
 
 
 def card_page(attachments, **defaults):
@@ -170,6 +170,18 @@ class DecodeJobsTests(unittest.TestCase):
         self.assertEqual(pending, [])
         self.assertEqual(info["passed_jobs"], [])
 
+    def test_card_json_keeps_spaces_and_ignores_the_placeholder_assignment(self):
+        html = (
+            '<script>var mArg = ""; try { mArg = {"attachments":'
+            '[{"type":"document","job":true,"jobid":"doc 1"}],'
+            '"defaults":{"ktoken":"k t"}};}catch (e) {}</script>'
+        )
+        pending, info = decode_course_card(html)
+        self.assertEqual([job["jobid"] for job in pending], ["doc 1"])
+        self.assertEqual(info["ktoken"], "k t")
+        self.assertFalse(card_page_has_payload("<div></div>"))
+        self.assertTrue(card_page_has_payload(html))
+
     def test_empty_and_unopened_cards_always_have_empty_passed_list(self):
         pages = ("<div></div>", "<script>mArg={};</script>", card_page([]), "章节未开放")
         for page in pages:
@@ -230,7 +242,7 @@ class DecodeJobResultIntegrationTests(unittest.TestCase):
             ("document", "shared"), ("workid", "shared"), ("read", "read-id"),
             ("video", "video-object"), ("live", "42"),
         })
-        self.assertEqual(self.session.get.call_count, 7)
+        self.assertEqual(self.session.get.call_count, 4)
         run.assert_not_called()
         self.empty.assert_not_called()
         done.assert_called_once_with(self.course, self.chapter)
@@ -248,18 +260,20 @@ class DecodeJobResultIntegrationTests(unittest.TestCase):
             ],
             [{"type": "document", "property": {"objectid": "document-object"}, "isPassed": True}],
         ]
-        self.set_card_pages([page for cards in snapshots for page in [card_page(cards)] + ["<div></div>"] * 6])
         done = Mock()
         with patch("main.process_job", return_value=StudyResult.ERROR) as run:
+            self.set_card_pages([card_page(snapshots[0]), "<div></div>"])
             result = main.process_chapter(self.client, self.course, self.chapter, 1,
                                           {"chapter_done_callback": done})
             self.assertEqual(result, main.ChapterResult.ERROR)
             self.assertEqual(self.chapter["_task_stats"], {"total": 3, "completed": 0, "failed": 3, "skipped": 0})
+            self.set_card_pages([card_page(snapshots[1]), "<div></div>"])
             result = main.process_chapter(self.client, self.course, self.chapter, 1,
                                           {"chapter_done_callback": done})
             self.assertEqual(result, main.ChapterResult.ERROR)
             self.assertEqual(self.chapter["_task_stats"], {"total": 3, "completed": 2, "failed": 1, "skipped": 0})
             done.assert_not_called()
+            self.set_card_pages([card_page(snapshots[2]), "<div></div>"])
             result = main.process_chapter(self.client, self.course, self.chapter, 1,
                                           {"chapter_done_callback": done})
         self.assertEqual(result, main.ChapterResult.SUCCESS)
@@ -269,22 +283,28 @@ class DecodeJobResultIntegrationTests(unittest.TestCase):
         done.assert_called_once_with(self.course, self.chapter)
 
     def test_missing_failed_task_without_evidence_stays_failed_after_empty_page(self):
-        self.set_card_pages([
-            card_page([{"type": "document", "job": True, "jobid": "failed-job"}]),
-        ] + ["<div></div>"] * 6 + [
-            card_page([
-                {"type": "iframe", "jobid": "failed-job", "isPassed": True},
-                {"type": "read", "property": {"read": True}},
-                {"type": "document", "jobid": "failed-job", "isPassed": "false"},
-            ]),
-        ] + ["<div></div>"] * 6)
         done = Mock()
         with patch("main.process_job", return_value=StudyResult.ERROR) as run:
-            for _ in range(2):
-                result = main.process_chapter(self.client, self.course, self.chapter, 1,
-                                              {"chapter_done_callback": done})
-                self.assertEqual(result, main.ChapterResult.ERROR)
-                self.assertEqual(self.chapter["_task_stats"], {"total": 1, "completed": 0, "failed": 1, "skipped": 0})
+            self.set_card_pages([
+                card_page([{"type": "document", "job": True, "jobid": "failed-job"}]),
+                "<div></div>",
+            ])
+            result = main.process_chapter(self.client, self.course, self.chapter, 1,
+                                          {"chapter_done_callback": done})
+            self.assertEqual(result, main.ChapterResult.ERROR)
+            self.assertEqual(self.chapter["_task_stats"], {"total": 1, "completed": 0, "failed": 1, "skipped": 0})
+            self.set_card_pages([
+                card_page([
+                    {"type": "iframe", "jobid": "failed-job", "isPassed": True},
+                    {"type": "read", "property": {"read": True}},
+                    {"type": "document", "jobid": "failed-job", "isPassed": "false"},
+                ]),
+                "<div></div>",
+            ])
+            result = main.process_chapter(self.client, self.course, self.chapter, 1,
+                                          {"chapter_done_callback": done})
+            self.assertEqual(result, main.ChapterResult.ERROR)
+            self.assertEqual(self.chapter["_task_stats"], {"total": 1, "completed": 0, "failed": 1, "skipped": 0})
         run.assert_called_once()
         self.empty.assert_called_once_with(self.course, self.chapter)
         done.assert_not_called()

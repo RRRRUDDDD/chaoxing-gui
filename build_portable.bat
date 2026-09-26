@@ -128,12 +128,6 @@ REM 复制配置文件模板
 if exist "%SCRIPT_DIR%config.ini" copy "%SCRIPT_DIR%config.ini" "%DIST_DIR%\" >nul
 if exist "%SCRIPT_DIR%web_config.json" copy "%SCRIPT_DIR%web_config.json" "%DIST_DIR%\" >nul
 
-REM 复制 PaddleOCR (如果存在且需要)
-if exist "%SCRIPT_DIR%PaddleOCR" (
-    echo    正在复制 PaddleOCR...
-    xcopy /E /I /Y "%SCRIPT_DIR%PaddleOCR" "%DIST_DIR%\PaddleOCR" >nul
-)
-
 echo    ✅ 文件复制完成
 
 echo [7/7] 创建启动脚本...
@@ -250,7 +244,6 @@ echo ├── python/          # 嵌入式 Python 运行时
 echo ├── api/             # 后端 API 模块
 echo ├── web/dist/        # 前端静态文件
 echo ├── resource/        # 资源文件
-echo ├── PaddleOCR/       # OCR 模块（如果有）
 echo ├── 启动.bat         # 主启动脚本
 echo ├── Web启动.bat      # Web 模式启动
 echo └── 命令行启动.bat   # 命令行模式启动

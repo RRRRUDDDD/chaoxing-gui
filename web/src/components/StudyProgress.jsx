@@ -101,7 +101,7 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
       onStatus: (status) => {
         observedStatus = status.status;
         setTaskStatus(status);
-        setFinalDetailsReady(false);
+        setFinalDetailsReady((current) => (isTerminalStatus(status.status) ? current : false));
         callbacks.current.onStatus?.(status);
       },
       onDetails: (details) => {

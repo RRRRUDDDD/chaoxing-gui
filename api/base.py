@@ -19,6 +19,7 @@ from api.config import GlobalConst as gc
 from api.cookies import save_cookies
 from api.session import HTTP_TIMEOUT, SessionManager
 from api.decode import (
+    card_page_has_payload,
     decode_course_list,
     decode_course_point,
     decode_course_card,
@@ -75,18 +76,16 @@ class RateLimiter:
 
     def limit_rate(self, random_time=False, random_min=0.0, random_max=1.0):
         with self.lock:
-            if random_time:
-                wait_time = random.uniform(random_min, random_max)
-                time.sleep(wait_time)
             now = time.time()
-            time_elapsed = now - self.last_call
-            if time_elapsed <= self.call_interval:
-                time.sleep(self.call_interval - time_elapsed)
-                self.last_call = time.time()
-                return
-
-            self.last_call = now
-            return
+            extra = random.uniform(random_min, random_max) if random_time else 0.0
+            # Reserve the wake time before sleeping so other workers do not
+            # queue on this lock for the whole delay. The random pause counts
+            # toward the interval, matching the previous single-thread timing.
+            wake = max(now + extra, self.last_call + self.call_interval)
+            self.last_call = wake
+            delay = wake - now
+        if delay > 0:
+            time.sleep(delay)
 
 
 class StudyResult(Enum):
@@ -109,11 +108,13 @@ class Chaoxing:
         self.kwargs = kwargs
         self.session_manager = SessionManager(account.username if account else None)
         self._closed = False
+        self._root_course_list_html = None
         self.rollback_times = 0
         self.rate_limiter = RateLimiter(0.5) # 其他接口速率限制比较松
         self.video_log_limiter = RateLimiter(2) # 上报进度极其容易卡验证码，限制2s一次
 
     def login(self, login_with_cookies=False):
+        self._root_course_list_html = None
         if login_with_cookies:
             logger.info("Logging in with cookies")
             self.session_manager.update_cookies()
@@ -189,6 +190,7 @@ class Chaoxing:
         if "passport2.chaoxing.com" in resp.text or "login" in resp.text.lower():
             return False
 
+        self._root_course_list_html = resp.text
         return True
 
     def get_fid(self):
@@ -218,11 +220,15 @@ class Chaoxing:
         _headers = {
             "Referer": "https://mooc2-ans.chaoxing.com/mooc2-ans/visit/interaction?moocDomain=https://mooc1-1.chaoxing.com/mooc-ans",
         }
-        _resp = _session.post(_url, headers=_headers, data=_data)
-        _resp.raise_for_status()
-        # logger.trace(f"原始课程列表内容:\n{_resp.text}")
+        cached = self._root_course_list_html
+        self._root_course_list_html = None
+        if cached is None:
+            _resp = _session.post(_url, headers=_headers, data=_data)
+            _resp.raise_for_status()
+            cached = _resp.text
+        # logger.trace(f"原始课程列表内容:\n{cached}")
         logger.info("课程列表读取完毕...")
-        course_list = decode_course_list(_resp.text)
+        course_list = decode_course_list(cached)
 
         _interaction_url = "https://mooc2-ans.chaoxing.com/mooc2-ans/visit/interaction"
         _interaction_resp = _session.get(_interaction_url)
@@ -268,20 +274,23 @@ class Chaoxing:
             "mooc2": 1
         }
 
-        # 学习界面任务卡片数, 很少有3个的, 但是对于章节解锁任务点少一个都不行, 可以从API /mooc-ans/mycourse/studentstudyAjax获取值, 或者干脆直接加, 但二者都会造成额外的请求
-        for _possible_num in "0123456":
+        # Card indexes are contiguous. Stop at the first page without a card
+        # payload instead of always probing num=0..6. Seven remains the cap.
+        for _possible_num in range(7):
             if _is_cancelled(cancel_check):
                 return [], {}
 
             logger.trace("开始读取章节所有任务点...")
 
-            cards_params.update({"num": _possible_num})
+            cards_params.update({"num": str(_possible_num)})
             _resp = _session.get("https://mooc1.chaoxing.com/mooc-ans/knowledge/cards", params=cards_params)
             if _is_cancelled(cancel_check):
                 return [], {}
             _resp.raise_for_status()
             if _resp.status_code != 200:
                 raise RequestException(f"任务卡片请求失败: HTTP {_resp.status_code}")
+            if not card_page_has_payload(_resp.text):
+                break
 
             _job_list, _job_info = decode_course_card(_resp.text)
             if _job_info.get("notOpen", False):

@@ -331,15 +331,6 @@ if exist "%SCRIPT_DIR%web_config.json" (
     copy "%SCRIPT_DIR%web_config.json" "%DIST_DIR%\web_config.json" >nul
 )
 
-REM 复制 PaddleOCR (如果存在，排除缓存)
-if exist "%SCRIPT_DIR%PaddleOCR" (
-    echo    正在复制 PaddleOCR (排除缓存)...
-    xcopy /E /I /Y "%SCRIPT_DIR%PaddleOCR" "%DIST_DIR%\PaddleOCR" >nul
-    REM 清理复制后的缓存
-    for /d /r "%DIST_DIR%\PaddleOCR" %%d in (__pycache__) do rd /s /q "%%d" 2>nul
-    del /s /q "%DIST_DIR%\PaddleOCR\*.pyc" 2>nul
-)
-
 REM 清理 python 目录中的 __pycache__
 echo    清理便携版中的 __pycache__...
 for /d /r "%DIST_DIR%" %%d in (__pycache__) do (
@@ -493,7 +484,6 @@ echo ├── python/          # 嵌入式 Python 运行时>> "%README_FILE%"
 echo ├── api/             # 后端 API 模块>> "%README_FILE%"
 echo ├── web/dist/        # 前端静态文件（如果有）>> "%README_FILE%"
 echo ├── resource/        # 资源文件>> "%README_FILE%"
-echo ├── PaddleOCR/       # OCR 模块（如果有）>> "%README_FILE%"
 echo ├── 启动.bat         # 主启动脚本>> "%README_FILE%"
 echo ├── Web启动.bat      # Web 模式启动>> "%README_FILE%"
 echo └── 命令行启动.bat   # 命令行模式启动>> "%README_FILE%"
