@@ -11,7 +11,7 @@ import tempfile
 
 from api.reading_browser import (
     CdpSocket, allow_reading_url, browser_executable, cdp_cookies, chrome_command,
-    navigation_ready, scroll_book, scroll_expression, scroll_reading_page,
+    _STATE_JS, navigation_ready, scroll_book, scroll_expression, scroll_reading_page,
 )
 
 
@@ -28,7 +28,8 @@ def cookies():
 
 class Page:
     def __init__(self, state):
-        self.state = state
+        self.states = state if isinstance(state, list) else [state]
+        self.index = 0
         self.urls = []
         self.scripts = []
         self.closed = False
@@ -38,7 +39,10 @@ class Page:
 
     def evaluate(self, expression):
         if "hasBox" in expression:
-            return self.state
+            state = self.states[min(self.index, len(self.states) - 1)]
+            if self.index < len(self.states) - 1:
+                self.index += 1
+            return state
         self.scripts.append(expression)
         return 1
 
@@ -96,11 +100,47 @@ class ReadingBrowserTests(unittest.TestCase):
         self.assertIn("[380, 380, -280][1]", page.scripts[1])
 
     def test_index_without_reading_box_opens_the_chapter(self):
-        page = Page({"hasBox": False, "chapter": CHAPTER})
+        page = Page([
+            {"hasBox": False, "chapter": CHAPTER},
+            {"hasBox": True, "reading": True},
+        ])
         scroll_book(BOOK, cookies(), 5, wait=lambda seconds: None, opener=lambda jar: page)
         self.assertEqual(page.urls, [BOOK, allow_reading_url(CHAPTER)])
         self.assertTrue(page.closed)
         self.assertEqual(len(page.scripts), 1)
+
+    def test_video_task_page_is_not_used_as_the_reading_page(self):
+        video = CHAPTER + "&knowledgeId=1"
+        reading = CHAPTER + "&knowledgeId=2"
+        page = Page([
+            {"hasBox": True, "reading": False, "taskPoint": True, "chapters": [video, reading]},
+            {"hasBox": True, "reading": False, "taskPoint": True},
+            {"hasBox": True, "reading": True, "taskPoint": False},
+        ])
+        scroll_book(BOOK, cookies(), 5, wait=lambda seconds: None, opener=lambda jar: page)
+        self.assertEqual(page.urls, [BOOK, allow_reading_url(video), allow_reading_url(reading)])
+        self.assertEqual(len(page.scripts), 1)
+        self.assertTrue(page.closed)
+
+    def test_only_task_point_pages_are_rejected(self):
+        video = CHAPTER + "&knowledgeId=1"
+        page = Page([
+            {"hasBox": True, "reading": False, "taskPoint": True, "chapter": video},
+            {"hasBox": False, "reading": False, "taskPoint": True},
+        ])
+        with self.assertRaises(RuntimeError) as raised:
+            scroll_book(BOOK, cookies(), 5, opener=lambda jar: page)
+        self.assertIn("不是阅读页", str(raised.exception))
+        self.assertEqual(page.scripts, [])
+        self.assertTrue(page.closed)
+
+    def test_scroll_expression_stays_inside_the_reading_box(self):
+        expression = scroll_expression(0)
+        self.assertIn("#courseMainBox", expression)
+        self.assertNotIn("scrollingElement", expression)
+        self.assertNotIn("documentElement", expression)
+        self.assertIn("insertvideo", _STATE_JS)
+        self.assertIn("logs.js", _STATE_JS)
 
     def test_reading_box_is_not_replaced_by_a_chapter_link(self):
         page = Page({"hasBox": True, "chapter": "https://evil.example/steal"})

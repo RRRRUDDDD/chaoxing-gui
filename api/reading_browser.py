@@ -23,13 +23,33 @@ _BOOK_PATH = re.compile(r"/mooc-ans/(?:course|zt)/\d{1,20}\.html\Z", re.I)
 _NODE_PATH = re.compile(r"/mooc-ans/ztnodedetailcontroller/visitnodedetail\Z", re.I)
 _STATE_JS = (
     "(() => {"
-    "const link = document.querySelector(\".cell.js-cell a[href*='ztnodedetailcontroller/visitnodedetail']\")"
-    " || document.querySelector(\"a[href*='ztnodedetailcontroller/visitnodedetail']\");"
+    "const task = document.querySelector("
+    "\"iframe[module='insertvideo'],iframe[module='insertaudio'],iframe[module='insertdoc'],"
+    "iframe[module='insertwork'],iframe[module='insertlive'],iframe[module='insertbbs'],"
+    "iframe[src*='/ananas/modules/video/'],iframe[src*='/ananas/modules/audio/'],"
+    "iframe[src*='/ananas/modules/pdf/'],iframe[src*='/ananas/modules/ppt/'],"
+    "iframe[src*='/ananas/modules/work/'],iframe[src*='/ananas/modules/live/'],"
+    "iframe[src*='/ananas/modules/read/index'],"
+    ".ans-insertvideo-online,.ans-insertaudio,.insertdoc-online-ppt,.insertdoc-online-pdf,.ans-book\");"
+    "const box = document.querySelector('#courseMainBox');"
+    "const html = document.documentElement ? document.documentElement.innerHTML : '';"
+    "const reporter = !!document.querySelector(\"script[src*='logs.js']\") || html.indexOf('/multimedia/readlog') !== -1;"
+    "const taskPoint = !!task;"
+    "const chapters = [];"
+    "for (const link of document.querySelectorAll(\"a[href*='ztnodedetailcontroller/visitnodedetail']\")) {"
+    "const href = link.href || '';"
+    "if (!href || chapters.indexOf(href) !== -1) continue;"
+    "chapters.push(href);"
+    "if (chapters.length >= 12) break;"
+    "}"
+    "const reading = !!(box && reporter && !taskPoint);"
     "return {ready: document.readyState, href: location.href,"
-    "hasBox: !!document.querySelector('#courseMainBox'),"
-    "chapter: link ? link.href : ''};"
+    "hasBox: !!box, reading: reading, taskPoint: !!(taskPoint && !reading),"
+    "chapter: chapters[0] || '', chapters: chapters};"
     "})()"
 )
+
+
 _MAX_MESSAGE = 2_000_000
 
 
@@ -59,7 +79,8 @@ def scroll_expression(step):
     index = int(step) % 3
     return (
         "(() => {"
-        "const box = document.querySelector('#courseMainBox') || document.scrollingElement || document.documentElement;"
+        "const box = document.querySelector('#courseMainBox');"
+        "if (!box) return null;"
         "const max = Math.max(0, (box.scrollHeight || 0) - (box.clientHeight || 0));"
         f"const delta = [380, 380, -280][{index}];"
         "let top = (box.scrollTop || 0) + delta;"
@@ -142,7 +163,8 @@ def scroll_reading_page(page, seconds, on_progress=None, wait=None, check=None):
         on_progress(0, seconds)
     while completed < seconds:
         check()
-        page.evaluate(scroll_expression(step))
+        if page.evaluate(scroll_expression(step)) is None:
+            raise RuntimeError("阅读页没有可滚动的正文")
         step += 1
         interval = min(5.0, seconds - completed)
         wait(interval)
@@ -152,8 +174,31 @@ def scroll_reading_page(page, seconds, on_progress=None, wait=None, check=None):
     return completed
 
 
+def _is_reading_state(state):
+    """A duration page has its own reporter. Task-point shells do not."""
+    if not isinstance(state, dict) or state.get("taskPoint"):
+        return False
+    if "reading" in state:
+        return bool(state["reading"])
+    return bool(state.get("hasBox"))
+
+
+def _chapter_candidates(state):
+    raw = state.get("chapters") if isinstance(state, dict) else None
+    if not isinstance(raw, list):
+        chapter = state.get("chapter") if isinstance(state, dict) else ""
+        raw = [chapter] if isinstance(chapter, str) and chapter else []
+    found = []
+    for item in raw:
+        if isinstance(item, str) and item and item not in found:
+            found.append(item)
+        if len(found) >= 12:
+            break
+    return found
+
+
 def scroll_book(url, cookies, seconds, on_progress=None, wait=None, check=None, opener=None):
-    """Open the book, enter a chapter when the index has no reading box, then scroll."""
+    """Open the book and scroll a real reading page, never a video or other task point."""
     url = allow_reading_url(url)
     if not cdp_cookies(cookies):
         raise RuntimeError("阅读页缺少登录状态")
@@ -162,11 +207,20 @@ def scroll_book(url, cookies, seconds, on_progress=None, wait=None, check=None, 
     try:
         page.goto(url)
         state = page.evaluate(_STATE_JS) or {}
-        if not state.get("hasBox"):
-            chapter = state.get("chapter") or ""
-            if not chapter:
+        if not _is_reading_state(state):
+            found = False
+            saw_task = bool(isinstance(state, dict) and state.get("taskPoint"))
+            for chapter in _chapter_candidates(state):
+                page.goto(allow_reading_url(chapter))
+                state = page.evaluate(_STATE_JS) or {}
+                if _is_reading_state(state):
+                    found = True
+                    break
+                saw_task = saw_task or bool(isinstance(state, dict) and state.get("taskPoint"))
+            if not found:
+                if saw_task:
+                    raise RuntimeError("当前页面是视频或其他任务点，不是阅读页")
                 raise RuntimeError("阅读页没有可滚动的正文")
-            page.goto(allow_reading_url(chapter))
         return scroll_reading_page(
             page, seconds, on_progress=on_progress, wait=wait, check=check,
         )

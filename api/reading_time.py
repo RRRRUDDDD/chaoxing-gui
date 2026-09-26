@@ -15,6 +15,8 @@ from urllib.parse import parse_qs, urljoin, urlsplit, urlunsplit
 
 from bs4 import BeautifulSoup
 
+from loguru import logger
+
 from api.course_tools import CourseTools, _check_html, _scalar, _number
 from api.reading_browser import scroll_book
 
@@ -39,6 +41,40 @@ READ_CARDS_URL = "https://mooc1.chaoxing.com" + READ_CARDS_PATH
 READ_BOOK_PATH = re.compile(r"/mooc-ans/(?:course|zt)/(\d{1,20})\.html\Z", re.I)
 MOOC_HOST = re.compile(r"mooc\d+(?:-\d+|-ans)?\.chaoxing\.com\Z", re.I)
 READ_KIND = "read"
+
+_TASK_POINT_HTML = re.compile(
+    r"ans-insertvideo-online|ans-insertaudio|insertdoc-online|(?<![\w-])ans-book(?![\w-])|"
+    r"module\s*=\s*['\"]insert(?:video|audio|doc|work|live|bbs)['\"]|"
+    r"/ananas/modules/(?:video|audio|pdf|ppt|work|live)/|"
+    r"/ananas/modules/read/index",
+    re.I,
+)
+
+
+def _task_point_html(value):
+    """Video, document, work and ordinary read-task pages are not duration pages."""
+    return isinstance(value, str) and bool(_TASK_POINT_HTML.search(value))
+
+
+def _cards_page_kind(value):
+    """Classify a chapter payload without treating every attachment shell as text."""
+    if _task_point_html(value):
+        return "task"
+    stripped = value.lstrip()
+    if stripped.startswith(("{", "[")):
+        try:
+            payload = json.loads(stripped)
+        except (TypeError, ValueError):
+            payload = None
+        if isinstance(payload, dict) and payload.get("data") in (None, [], ""):
+            return "empty"
+    soup = _check_html(value, "专题书籍章节")
+    if (soup.select_one("#pageDiv") or soup.select_one("#courseMainBox")
+            or soup.select_one(".ans-cc") or soup.get_text(" ", strip=True)
+            or re.search(r"logs\.js|/multimedia/readlog", value, re.I)):
+        return "reading"
+    return "empty"
+
 
 
 def _platform_url(value, *, base=None, path=None):
@@ -209,6 +245,8 @@ class ReadingTools(CourseTools):
 
     @staticmethod
     def _parse_read_page(text):
+        if _task_point_html(text):
+            raise RuntimeError("当前页面是视频或其他任务点，不是阅读页")
         soup = _check_html(text, "专题阅读任务")
         tips = soup.select(".readTips span")
         values = [_text_number(node.get_text(" ", strip=True)) for node in tips]
@@ -245,7 +283,13 @@ class ReadingTools(CourseTools):
         result = []
         for resource in resources:
             self._check_cancelled()
-            self._read_metadata(course, resource)
+            try:
+                self._read_metadata(course, resource)
+            except RuntimeError as exc:
+                if "不是阅读页" not in str(exc):
+                    raise
+                logger.info("跳过非阅读页面：{}", resource.get("name") or resource.get("id"))
+                continue
             result.append(resource)
         return result
 
@@ -264,6 +308,53 @@ class ReadingTools(CourseTools):
             if value:
                 result[key] = value
         return result
+
+    @staticmethod
+    def _chapter_ids(text, soup):
+        """Collect chapter ids without treating the first shell as the only candidate."""
+        found = []
+
+        def add(value):
+            if isinstance(value, str) and re.fullmatch(r"\d{1,20}", value) and value not in found and len(found) < 12:
+                found.append(value)
+
+        for match in re.finditer(r"\b(?:ctid|courseChapterId|initKid)\s*=\s*['\"]?(\d{1,20})", text):
+            add(match.group(1))
+        for node in soup.select("#nodeIdInput[value], #chapterId[value]"):
+            add(node.get("value") or "")
+        for node in soup.select("[id^='zt_']"):
+            match = re.search(r"zt_(\d{1,20})", node.get("id") or "")
+            if match:
+                add(match.group(1))
+        for match in re.finditer(r"[?&]knowledgeId=(\d{1,20})", text, re.I):
+            add(match.group(1))
+        return found
+
+    def _fetch_chapter_cards(self, page_url, course_id, chapter_id, query):
+        cards_url = _platform_url(
+            urlunsplit((urlsplit(page_url).scheme, urlsplit(page_url).netloc, READ_CARDS_PATH, "", "")),
+            path=lambda item: item == READ_CARDS_PATH,
+        )
+        cards = None
+        for _ in range(6):
+            response = self._request(
+                "get", cards_url, "专题书籍章节", statuses=(200, 301, 302, 303, 307, 308),
+                params={"knowledgeid": chapter_id, "courseid": course_id, **query},
+                headers={"Referer": page_url},
+            )
+            try:
+                if response.status_code == 200:
+                    cards = response.text
+                    break
+                location = response.headers.get("Location")
+                if not location:
+                    raise RuntimeError("专题书籍章节重定向缺少目标地址")
+                cards_url = _platform_url(location, base=cards_url, path=lambda item: item == READ_CARDS_PATH)
+            finally:
+                response.close()
+        if cards is None:
+            raise RuntimeError("专题书籍章节重定向次数过多")
+        return cards
 
     def _book_context(self, book, course=None, chapter=None):
         url = _platform_url(book.get("url"), path=READ_BOOK_PATH.fullmatch)
@@ -297,16 +388,10 @@ class ReadingTools(CourseTools):
         course_match = re.search(r"(?:window\[['\"]courseid['\"]\]|window\.courseid|window\.courseId|var\s+courseid)\s*=\s*['\"]?(\d{1,20})", text)
         if not course_match:
             course_match = re.search(r"/mooc-ans/course/(\d{1,20})\.html", url)
-        chapter_match = re.search(r"\b(?:ctid|courseChapterId|initKid)\s*=\s*['\"]?(\d{1,20})", text)
-        if not chapter_match:
-            node = soup.select_one("#nodeIdInput[value], #chapterId[value], [id^='zt_']")
-            if node and node.get("value"):
-                chapter_match = re.fullmatch(r"(\d{1,20})", node["value"])
-            elif node:
-                chapter_match = re.search(r"zt_(\d{1,20})", node.get("id", ""))
-        if not course_match or not chapter_match:
+        chapter_ids = self._chapter_ids(text, soup)
+        if not course_match or not chapter_ids:
             raise RuntimeError("专题书籍缺少课程或章节内容")
-        course_id, chapter_id = course_match[1], chapter_match[1]
+        course_id = course_match[1]
         path_match = READ_BOOK_PATH.fullmatch(urlsplit(url).path)
         if not path_match or course_id != path_match[1]:
             raise ValueError("专题书籍课程标识不匹配")
@@ -322,45 +407,20 @@ class ReadingTools(CourseTools):
                     attribution[0] != str(course.get("courseId")) or
                     attribution[1] != str(course.get("clazzId"))):
                 raise ValueError("专题书籍归属课程不匹配")
-        cards_url = _platform_url(urlunsplit((urlsplit(url).scheme, urlsplit(url).netloc, READ_CARDS_PATH, "", "")),
-                                  path=lambda p: p == READ_CARDS_PATH)
-        cards = None
-        for _ in range(6):
-            response = self._request(
-                "get", cards_url, "专题书籍章节", statuses=(200, 301, 302, 303, 307, 308),
-                params={"knowledgeid": chapter_id, "courseid": course_id, **query},
-                headers={"Referer": url},
-            )
-            try:
-                if response.status_code == 200:
-                    cards = response.text
-                    break
-                location = response.headers.get("Location")
-                if not location:
-                    raise RuntimeError("专题书籍章节重定向缺少目标地址")
-                cards_url = _platform_url(location, base=cards_url,
-                                          path=lambda p: p == READ_CARDS_PATH)
-            finally:
-                response.close()
-        if cards is None:
-            raise RuntimeError("专题书籍章节重定向次数过多")
-        cards_soup = _check_html(cards, "专题书籍章节")
-        # ``zt/getcards`` is normally a full page.  Keep the marker check for
-        # the real response, while accepting small HTML fixtures and rejecting
-        # the JSON ``data: []`` response used for an unavailable chapter.
-        stripped = cards.lstrip()
-        if stripped.startswith(("{", "[")):
-            try:
-                payload = json.loads(stripped)
-            except (TypeError, ValueError):
-                payload = None
-            if isinstance(payload, dict) and payload.get("data") in (None, [], ""):
-                raise RuntimeError("专题书籍没有可读内容")
-        if (not cards_soup.select_one("#pageDiv") and not cards_soup.select_one(".ans-cc")
-                and not cards_soup.get_text(" ", strip=True)):
-            raise RuntimeError("专题书籍没有可读内容")
-        return {"url": url, "courseid": course_id, "chapterid": chapter_id,
-                "query": query, "height": READ_HEIGHT}
+        saw_task = False
+        for chapter_id in chapter_ids:
+            cards = self._fetch_chapter_cards(url, course_id, chapter_id, query)
+            kind = _cards_page_kind(cards)
+            if kind == "task":
+                saw_task = True
+                continue
+            if kind == "empty":
+                continue
+            return {"url": url, "courseid": course_id, "chapterid": chapter_id,
+                    "query": query, "height": READ_HEIGHT}
+        if saw_task:
+            raise RuntimeError("专题书籍章节是视频或其他任务点，不是阅读页")
+        raise RuntimeError("专题书籍没有可读内容")
 
     def _readlog_url(self, context):
         return _platform_url(READ_LOG_PATH, base=context["url"],
@@ -407,6 +467,8 @@ class ReadingTools(CourseTools):
             except RuntimeError as exc:
                 last_error = exc
         if context is None:
+            if last_error is not None and "不是阅读页" in str(last_error):
+                raise last_error
             raise RuntimeError("没有可读取的专题书籍") from last_error
 
         target = requested
