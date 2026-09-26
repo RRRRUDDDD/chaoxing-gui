@@ -230,7 +230,7 @@ class ScanTests(OfflineToolsCase):
         cases = [
             [Response("<html>new unrecognized layout</html>")],
             [Response('<form action="/login"><input type="password"></form>')],
-            [Response(course_page()), Response("<div>missing count</div>")],
+            [Response(course_page()), Response("<div>missing count</div>"), Response("<div>no resource data</div>")],
             [Response(course_page()), Response('<input id="cardcount" value="-1">')],
             [Response(course_page()), Response('<input id="cardcount" value="10001">')],
             [Response(course_page()), Response('<input id="cardcount" value="1">'), Response("<div>no resource data</div>")],
@@ -245,6 +245,19 @@ class ScanTests(OfflineToolsCase):
                 with self.assertRaises(RuntimeError):
                     self.tools.scan_course(COURSE)
                 self.assert_closed(*responses)
+
+    def test_study_page_interstitial_falls_back_to_contiguous_card_pages(self):
+        face = Response("<div>人脸信息采集 请使用学习通APP采集人脸信息后继续学习</div>")
+        empty = Response('<script>var mArg = ""; uParse(".ans-cc", null, mArg);</script>')
+        responses = [Response(course_page()), face, Response(card_page([VIDEO])), empty]
+        self.session.get.side_effect = responses
+
+        found = self.tools.scan_course(COURSE)
+
+        self.assertEqual([item["kind"] for item in found], ["video"])
+        cards = [call.kwargs["params"]["num"] for call in self.session.get.call_args_list if call.args[0] == CARDS_URL]
+        self.assertEqual(cards, [0, 1])
+        self.assert_closed(*responses)
 
     def test_later_request_failure_does_not_erase_completed_chapter_progress(self):
         responses = [

@@ -29,6 +29,7 @@ from loguru import logger
 import requests
 from urllib3.util.retry import Retry
 
+from api.decode import card_page_has_payload
 from api.session import HTTP_TIMEOUT
 
 
@@ -45,6 +46,10 @@ PUBLIC_FIELDS = (
     "name", "kind", "downloadable", "watchable", "duration",
 )
 _LOCKED = re.compile(r"章节未开放|章节已锁定|该章节尚未开放|请先完成.{0,80}解锁")
+# An empty knowledge card page only initializes ``mArg = ""``. Without a card
+# count from the study page, that placeholder marks the end of the chapter.
+_CARD_PLACEHOLDER = re.compile(r"""\bmArg\s*=\s*(['"])\1""")
+MAX_PROBED_CARD_PAGES = 30
 _REDIRECTS = {301, 302, 303, 307, 308}
 _SUCCESS = {"true", "1", "200", "success", "ok"}
 
@@ -363,10 +368,14 @@ class CourseTools:
                 if count_node is None and _LOCKED.search(soup.get_text()):
                     logger.warning("章节“{}”未开放，已跳过", chapter["title"])
                 else:
-                    raw_count = count_node.get("value", "") if count_node else ""
-                    if not re.fullmatch(r"\d{1,5}", raw_count) or int(raw_count) > 10000:
+                    # The study page may be replaced by an interstitial such as
+                    # face collection while knowledge/cards still works. Probe
+                    # contiguous card pages then, as the study runner does.
+                    probing = count_node is None
+                    raw_count = "" if probing else count_node.get("value", "")
+                    if not probing and (not re.fullmatch(r"\d{1,5}", raw_count) or int(raw_count) > 10000):
                         raise RuntimeError(f"章节“{chapter['title']}”的实际页数无法读取")
-                    for page in range(int(raw_count)):
+                    for page in range(MAX_PROBED_CARD_PAGES if probing else int(raw_count)):
                         self._check_cancelled()
                         params = {
                             **self._course_params(course), "knowledgeid": chapter["id"],
@@ -375,6 +384,9 @@ class CourseTools:
                         text = self._text("get", CARDS_URL, "章节卡片", params=params)
                         if _LOCKED.search(BeautifulSoup(text, "html.parser").get_text()):
                             logger.warning("章节“{}”未开放，已跳过剩余卡片", chapter["title"])
+                            break
+                        if probing and _CARD_PLACEHOLDER.search(text) and not card_page_has_payload(text):
+                            _check_html(text, "章节卡片")
                             break
                         try:
                             data = self._card_data(text)
