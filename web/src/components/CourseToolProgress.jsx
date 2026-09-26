@@ -6,6 +6,7 @@ import { isTerminalStatus, resultLabels } from '../lib/taskPolling';
 import Button from './ui/Button';
 import Input from './ui/Input';
 import Label from './ui/Label';
+import Select from './ui/Select';
 import { courseToolLabels, validateMinutes } from './CourseToolSettings';
 
 const kinds = { video: '视频', audio: '音频', document: '文档', file: '文件' };
@@ -181,10 +182,10 @@ function CourseToolContent({ taskId, username, taskStatus, tool, catalogReady = 
               <Input type="search" aria-label="搜索资源" placeholder="搜索名称、课程或章节" value={query} onChange={(event) => setQuery(event.target.value)} className="pl-9" />
             </div>
             {purpose === 'download' && (
-              <select aria-label="资源类型" value={kind} onChange={(event) => setKind(event.target.value)} className="h-10 rounded-lg border border-line bg-white px-3 text-sm focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand/15">
+              <Select aria-label="资源类型" value={kind} onChange={(event) => setKind(event.target.value)} className="w-auto">
                 <option value="all">全部类型</option>
                 {Object.entries(kinds).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-              </select>
+              </Select>
             )}
           </div>
           <div className="mb-2 flex gap-2">

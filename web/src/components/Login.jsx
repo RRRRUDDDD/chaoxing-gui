@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Button from './ui/Button';
 import Input from './ui/Input';
 import Label from './ui/Label';
-import { LogIn, Loader2, KeyRound, AlertCircle } from 'lucide-react';
+import { LogIn, Loader2, KeyRound, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import api from '../api/axios';
 import { sessionStore } from '../lib/sessionStore';
 
@@ -11,6 +11,7 @@ const Login = ({ onLoginSuccess }) => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const userRef = useRef(null);
   const requestRef = useRef(null);
   const successRef = useRef(onLoginSuccess);
@@ -36,10 +37,10 @@ const Login = ({ onLoginSuccess }) => {
         }
         if (!signal.aborted) await successRef.current({ username: u, password: '', use_cookies: true }, persistenceError);
       } else {
-        setError(response.data.msg || '登录失败,请检查账号信息后重试');
+        setError(response.data.msg || '登录失败，请检查账号信息后重试');
       }
     } catch (err) {
-      if (!signal.aborted) setError(useCookies ? '保存的登录会话不可用，请输入密码重新登录' : err.response?.data?.msg || '网络连接异常,请确认服务已启动后重试');
+      if (!signal.aborted) setError(useCookies ? '保存的登录会话不可用，请输入密码重新登录' : err.response?.data?.msg || '网络连接异常，请确认服务已启动后重试');
     } finally {
       if (!signal.aborted) setLoading(false);
     }
@@ -113,16 +114,32 @@ const Login = ({ onLoginSuccess }) => {
 
             <div className="space-y-1.5">
               <Label htmlFor="password">密码</Label>
-              <Input
-                id="password"
-                type="password"
-                autoComplete="current-password"
-                placeholder="请输入密码"
-                value={password}
-                disabled={loading}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  placeholder="请输入密码"
+                  value={password}
+                  disabled={loading}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pr-10"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((shown) => !shown)}
+                  disabled={loading}
+                  aria-label={showPassword ? '隐藏密码' : '显示密码'}
+                  aria-pressed={showPassword}
+                  title={showPassword ? '隐藏密码' : '显示密码'}
+                  className="absolute inset-y-0 right-0 flex w-10 items-center justify-center rounded-r-lg text-faint transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/20 disabled:pointer-events-none disabled:opacity-45"
+                >
+                  {showPassword
+                    ? <EyeOff className="h-4 w-4" aria-hidden="true" />
+                    : <Eye className="h-4 w-4" aria-hidden="true" />}
+                </button>
+              </div>
             </div>
 
             {error && (

@@ -232,7 +232,7 @@ describe('shared task flow over real Axios transports', () => {
     await screen.findByText('任务已手动停止');
     expect(screen.queryByText(/恢复任务失败/)).toBeNull();
     expect(fixture.status).toBe('cancelled');
-    fireEvent.click(screen.getByRole('button', { name: '返回首页' }));
+    fireEvent.click(screen.getByRole('button', { name: '返回课程选择' }));
     expect((await screen.findByRole('button', { name: '开始学习' })).disabled).toBe(false);
     expect(fixture.calls.filter((call) => call.path === '/api/start')).toHaveLength(1);
     view.unmount();

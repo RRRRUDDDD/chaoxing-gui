@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Button from './ui/Button';
-import Input from './ui/Input';
 import Label from './ui/Label';
+import Select from './ui/Select';
+import NumberInput from './ui/NumberInput';
 import AdvancedSettings from './AdvancedSettings';
 import CourseToolSettings, { validateVisits } from './CourseToolSettings';
 import RepositoryLink from './RepositoryLink';
@@ -11,10 +12,6 @@ import {
 } from 'lucide-react';
 import api from '../api/axios';
 import { defaultSettings, normalizeCourses, restoreCourseSelection, restoreSettings } from '../lib/courseSelection';
-
-const selectCls =
-  'h-10 w-full cursor-pointer rounded-lg border border-line bg-white px-3 text-sm text-ink ' +
-  'transition-shadow focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand/15';
 
 const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOut = false, startError, activeTaskId, taskRunning = false, onReturnToTask, preview = false }) => {
   const [courses, setCourses] = useState([]);
@@ -28,6 +25,16 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
   const [toolOptions, setToolOptions] = useState({ count: '10', interval: '30' });
   const [loadError, setLoadError] = useState('');
   const [selectionNotice, setSelectionNotice] = useState('');
+  const [invalidFields, setInvalidFields] = useState({});
+  const setFieldValid = useCallback((field, valid) => {
+    setInvalidFields((current) => {
+      if (Boolean(current[field]) === !valid) return current;
+      const next = { ...current };
+      if (valid) delete next[field];
+      else next[field] = true;
+      return next;
+    });
+  }, []);
   const [loadedAccount, setLoadedAccount] = useState(null);
   const [loadVersion, setLoadVersion] = useState(0);
   const saveController = useRef(null);
@@ -109,7 +116,7 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
   const selectedCount = selectedCourses.length;
   const canSelect = !loading && loadedAccount === username && !loadError && !loggingOut;
   const validOptions = taskType !== 'visits' || Object.values(validateVisits(toolOptions)).every((error) => !error);
-  const canStart = canSelect && courses.length > 0 && selectedCount > 0 && validOptions && !starting && !taskRunning;
+  const canStart = canSelect && courses.length > 0 && selectedCount > 0 && validOptions && Object.keys(invalidFields).length === 0 && !starting && !taskRunning;
   const startLabel = { study: '开始学习', visits: '开始提交次数', video_time: '读取视频列表', reading_time: '读取阅读任务', download: '读取资源列表' }[taskType];
 
   const selectAllVisible = useCallback(() => {
@@ -154,7 +161,7 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
       const response = await api.post('/config', payload, { signal: controller.signal });
       if (controller.signal.aborted) return;
       if (!response.data.status) {
-        setSaveStatus(response.data.msg || '保存失败,请重试');
+        setSaveStatus(response.data.msg || '保存失败，请重试');
       } else {
         setSaveStatus('配置已保存');
       }
@@ -228,7 +235,7 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_clamp(21.25rem,24vw,30rem)] lg:items-start 2xl:gap-8">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-[minmax(0,1fr)_clamp(18.5rem,30vw,30rem)] md:items-start 2xl:gap-8">
           {/* 左:课程列表 */}
           <section
             aria-label="课程列表"
@@ -267,11 +274,11 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
                 </div>
                 <p className="mt-4 text-[15px] font-medium">暂无课程</p>
                 <p className="mt-1 text-[13px] text-faint">
-                  未能从学习通获取课程,请确认账号后再试
+                  未能从学习通获取课程，请确认账号后再试
                 </p>
               </div>
             ) : (
-              <ul className="max-h-[clamp(32.5rem,65vh,52rem)] divide-y divide-line overflow-y-auto scroll-brutal px-2 py-1.5">
+              <ul className="max-h-[clamp(20rem,calc(100vh-16rem),52rem)] divide-y divide-line overflow-y-auto scroll-brutal px-2 py-1.5">
                 {filteredCourses.map((course) => {
                   const selected = selectedCourses.includes(course.courseId);
                   return (
@@ -285,7 +292,7 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
                         }`}
                       >
                         <span
-                          className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border transition-colors duration-150 ${
+                          className={`flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px] border-[1.5px] transition-colors duration-150 ${
                             selected
                               ? 'border-brand bg-brand text-white'
                               : 'border-faint/40 text-transparent group-hover:border-faint'
@@ -315,80 +322,83 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
             )}
           </section>
 
-          {/* 右:配置面板 */}
+          {/* 右:配置面板，配置区限高滚动，操作卡始终可见 */}
           <aside
             aria-label="学习配置"
-            className="space-y-4 animate-stagger-up lg:sticky lg:top-24"
+            className="flex flex-col gap-4 animate-stagger-up md:sticky md:top-20 md:max-h-[calc(100vh-6rem)]"
             style={{ animationDelay: '160ms' }}
           >
-            <div className="rounded-xl border border-line bg-white shadow-card">
-              <div className="flex items-center gap-2 border-b border-line px-5 py-3.5">
+            <div className="flex min-h-0 flex-col rounded-xl border border-line bg-white shadow-card max-md:pb-60">
+              <div className="flex shrink-0 items-center gap-2 border-b border-line px-5 py-3.5">
                 <SlidersHorizontal className="h-4 w-4 text-brand" aria-hidden="true" />
                 <h2 className="text-[15px] font-semibold">学习配置</h2>
               </div>
 
-              <div className="p-5">
-                <CourseToolSettings
-                  taskType={taskType} onTaskTypeChange={setTaskType}
-                  options={toolOptions} onOptionsChange={setToolOptions}
-                  disabled={starting || loggingOut || !!loadError}
-                />
-              </div>
+              <div className="min-h-0 overflow-y-auto overscroll-contain">
+                <div className="p-5">
+                  <CourseToolSettings
+                    taskType={taskType} onTaskTypeChange={setTaskType}
+                    options={toolOptions} onOptionsChange={setToolOptions}
+                    disabled={starting || loggingOut || !!loadError}
+                  />
+                </div>
 
-              {taskType === 'study' && <div className="space-y-5 border-t border-line p-5">
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="speed">播放倍速</Label>
-                    <span className="font-mono text-xs font-medium text-brand tnum">
-                      {Number(settings.speed).toFixed(1)}x
-                    </span>
+                {taskType === 'study' && <div className="space-y-5 border-t border-line p-5">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="speed">播放倍速</Label>
+                      <span className="font-mono text-xs font-medium text-brand tnum">
+                        {Number(settings.speed).toFixed(1)}x
+                      </span>
+                    </div>
+                    <input
+                      id="speed"
+                      type="range"
+                      min="1"
+                      max="2"
+                      step="0.1"
+                      value={settings.speed}
+                      onChange={(e) => setSettings({ ...settings, speed: parseFloat(e.target.value) })}
+                      className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-line accent-brand focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/15"
+                    />
+                    <p className="text-xs text-faint">范围 1.0–2.0</p>
                   </div>
-                  <input
-                    id="speed"
-                    type="range"
-                    min="1"
-                    max="2"
-                    step="0.1"
-                    value={settings.speed}
-                    onChange={(e) => setSettings({ ...settings, speed: parseFloat(e.target.value) })}
-                    className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-line accent-brand focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/15"
-                  />
-                  <p className="text-xs text-faint">范围 1.0 - 2.0</p>
-                </div>
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="jobs">并发章节数</Label>
-                  <Input
-                    id="jobs"
-                    type="number"
-                    min="1"
-                    max="10"
-                    value={settings.jobs}
-                    onChange={(e) => setSettings({ ...settings, jobs: parseInt(e.target.value) || 1 })}
-                  />
-                  <p className="text-xs text-faint">同时处理的章节数量,默认1，建议最高不超过4</p>
-                </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="jobs">并发章节数</Label>
+                    <NumberInput
+                      id="jobs"
+                      min={1}
+                      max={10}
+                      step="1"
+                      integer
+                      value={settings.jobs}
+                      onValueChange={(jobs) => setSettings({ ...settings, jobs })}
+                      onValidityChange={(valid) => setFieldValid('jobs', valid)}
+                      hint="同时处理的章节数量，默认 1，建议不超过 4"
+                    />
+                  </div>
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="notopen">未开放章节处理</Label>
-                  <select
-                    id="notopen"
-                    value={settings.notopen_action}
-                    onChange={(e) => setSettings({ ...settings, notopen_action: e.target.value })}
-                    className={selectCls}
-                  >
-                    <option value="retry">重试</option>
-                    <option value="continue">跳过</option>
-                  </select>
-                </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="notopen">未开放章节处理</Label>
+                    <Select
+                      id="notopen"
+                      value={settings.notopen_action}
+                      onChange={(e) => setSettings({ ...settings, notopen_action: e.target.value })}
+                    >
+                      <option value="retry">重试</option>
+                      <option value="continue">跳过</option>
+                    </Select>
+                  </div>
 
-                <div className="border-t border-line pt-5">
-                  <AdvancedSettings settings={settings} onChange={setSettings} />
-                </div>
-              </div>}
+                  <div className="border-t border-line pt-5">
+                    <AdvancedSettings settings={settings} onChange={setSettings} onFieldValidity={setFieldValid} />
+                  </div>
+                </div>}
+              </div>
             </div>
 
-            <div className="space-y-2.5 rounded-xl border border-line bg-white p-5 shadow-card">
+            <div className="shrink-0 space-y-2.5 rounded-xl border border-line bg-white p-5 shadow-card max-md:sticky max-md:bottom-3 max-md:shadow-pop">
               <Button className="w-full" size="lg" onClick={handleStartStudy} disabled={!canStart}>
                 {starting ? (
                   <>

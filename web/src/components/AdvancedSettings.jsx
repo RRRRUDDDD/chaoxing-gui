@@ -1,13 +1,21 @@
 import React, { useState } from 'react';
 import Input from './ui/Input';
 import Label from './ui/Label';
+import Select from './ui/Select';
+import NumberInput from './ui/NumberInput';
 import { Settings2, Database, Bell, Eye, ChevronDown } from 'lucide-react';
 
-const selectCls =
-  'h-10 w-full cursor-pointer rounded-lg border border-line bg-white px-3 text-sm text-ink ' +
-  'transition-shadow focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand/15';
+const SectionHeader = ({ icon: Icon, title, description }) => (
+  <div className="mb-4 flex items-start gap-2.5">
+    <Icon className="mt-0.5 h-4 w-4 shrink-0 text-brand" aria-hidden="true" />
+    <div className="min-w-0">
+      <h3 className="text-sm font-semibold leading-tight">{title}</h3>
+      <p className="mt-1 text-xs leading-snug text-faint">{description}</p>
+    </div>
+  </div>
+);
 
-const AdvancedSettings = ({ settings, onChange }) => {
+const AdvancedSettings = ({ settings, onChange, onFieldValidity }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const handleTikuChange = (field, value) => {
@@ -69,17 +77,12 @@ const AdvancedSettings = ({ settings, onChange }) => {
           <div className="space-y-6 pt-5">
             {/* 题库配置 */}
             <section className="rounded-xl border border-line p-4">
-              <div className="mb-4 flex items-center gap-2">
-                <Database className="h-4 w-4 text-brand" aria-hidden="true" />
-                <h3 className="text-sm font-semibold">题库配置</h3>
-                <span className="text-xs text-faint">章节检测自动答题(可选)</span>
-              </div>
+              <SectionHeader icon={Database} title="题库配置" description="章节检测自动答题（可选）" />
               <div className="space-y-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="tiku-provider">题库提供商</Label>
-                  <select
+                  <Select
                     id="tiku-provider"
-                    className={selectCls}
                     value={settings.tiku_config?.provider || ''}
                     onChange={(e) => handleTikuChange('provider', e.target.value)}
                   >
@@ -89,7 +92,7 @@ const AdvancedSettings = ({ settings, onChange }) => {
                     <option value="TikuAdapter">TikuAdapter</option>
                     <option value="AI">AI大模型</option>
                     <option value="SiliconFlow">硅基流动AI</option>
-                  </select>
+                  </Select>
                 </div>
 
                 {settings.tiku_config?.provider && (
@@ -108,42 +111,41 @@ const AdvancedSettings = ({ settings, onChange }) => {
 
                     <div className="space-y-1.5">
                       <Label htmlFor="tiku-submit">自动提交答题</Label>
-                      <select
+                      <Select
                         id="tiku-submit"
-                        className={selectCls}
                         value={settings.tiku_config?.submit || 'false'}
                         onChange={(e) => handleTikuChange('submit', e.target.value)}
                       >
-                        <option value="false">仅保存,不提交</option>
+                        <option value="false">仅保存，不提交</option>
                         <option value="true">达到覆盖率后自动提交</option>
-                      </select>
+                      </Select>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1.5">
                         <Label htmlFor="tiku-cover-rate">最低覆盖率</Label>
-                        <Input
+                        <NumberInput
                           id="tiku-cover-rate"
-                          type="number"
-                          min="0"
-                          max="1"
+                          onValidityChange={(valid) => onFieldValidity?.('tiku-cover-rate', valid)}
+                          min={0}
+                          max={1}
                           step="0.1"
-                          value={settings.tiku_config?.cover_rate || 0.9}
-                          onChange={(e) => handleTikuChange('cover_rate', parseFloat(e.target.value))}
+                          value={settings.tiku_config?.cover_rate ?? 0.9}
+                          onValueChange={(value) => handleTikuChange('cover_rate', value)}
+                          hint="0.0–1.0，推荐 0.9"
                         />
-                        <p className="text-xs text-faint">0.0 - 1.0,推荐 0.9</p>
                       </div>
                       <div className="space-y-1.5">
-                        <Label htmlFor="tiku-delay">查询延迟(秒)</Label>
-                        <Input
+                        <Label htmlFor="tiku-delay">查询延迟（秒）</Label>
+                        <NumberInput
                           id="tiku-delay"
-                          type="number"
-                          min="0"
+                          onValidityChange={(valid) => onFieldValidity?.('tiku-delay', valid)}
+                          min={0}
                           step="0.5"
-                          value={settings.tiku_config?.delay || 1.0}
-                          onChange={(e) => handleTikuChange('delay', parseFloat(e.target.value))}
+                          value={settings.tiku_config?.delay ?? 1.0}
+                          onValueChange={(value) => handleTikuChange('delay', value)}
+                          hint="题库查询间隔"
                         />
-                        <p className="text-xs text-faint">题库查询间隔</p>
                       </div>
                     </div>
 
@@ -182,34 +184,31 @@ const AdvancedSettings = ({ settings, onChange }) => {
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <div className="space-y-1.5">
-                            <Label htmlFor="ai-min-interval">最小间隔(秒)</Label>
-                            <Input
+                            <Label htmlFor="ai-min-interval">最小间隔（秒）</Label>
+                            <NumberInput
                               id="ai-min-interval"
-                              type="number"
-                              min="0"
+                          onValidityChange={(valid) => onFieldValidity?.('ai-min-interval', valid)}
+                              min={0}
                               step="0.1"
                               value={
                                 typeof settings.tiku_config?.min_interval_seconds === 'number'
                                   ? settings.tiku_config.min_interval_seconds
                                   : 3
                               }
-                              onChange={(e) =>
-                                handleTikuChange('min_interval_seconds', parseFloat(e.target.value) || 0)
-                              }
+                              onValueChange={(value) => handleTikuChange('min_interval_seconds', value)}
                             />
                           </div>
                           <div className="space-y-1.5">
                             <Label htmlFor="ai-concurrency">单卷最大并发</Label>
-                            <Input
+                            <NumberInput
                               id="ai-concurrency"
-                              type="number"
-                              min="1"
-                              max="10"
+                          onValidityChange={(valid) => onFieldValidity?.('ai-concurrency', valid)}
+                              min={1}
+                              max={10}
                               step="1"
-                              value={settings.tiku_config?.ai_concurrency || 3}
-                              onChange={(e) =>
-                                handleTikuChange('ai_concurrency', parseInt(e.target.value, 10) || 1)
-                              }
+                              integer
+                              value={settings.tiku_config?.ai_concurrency ?? 3}
+                              onValueChange={(value) => handleTikuChange('ai_concurrency', value)}
                             />
                           </div>
                         </div>
@@ -235,17 +234,12 @@ const AdvancedSettings = ({ settings, onChange }) => {
 
             {/* 通知配置 */}
             <section className="rounded-xl border border-line p-4">
-              <div className="mb-4 flex items-center gap-2">
-                <Bell className="h-4 w-4 text-brand" aria-hidden="true" />
-                <h3 className="text-sm font-semibold">外部通知</h3>
-                <span className="text-xs text-faint">完成或出错时推送(可选)</span>
-              </div>
+              <SectionHeader icon={Bell} title="外部通知" description="完成或出错时推送（可选）" />
               <div className="space-y-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="notification-provider">通知服务</Label>
-                  <select
+                  <Select
                     id="notification-provider"
-                    className={selectCls}
                     value={settings.notification_config?.provider || ''}
                     onChange={(e) => handleNotificationChange('provider', e.target.value)}
                   >
@@ -255,7 +249,7 @@ const AdvancedSettings = ({ settings, onChange }) => {
                     <option value="Qmsg">Qmsg酱</option>
                     <option value="Bark">Bark</option>
                     <option value="Telegram">Telegram</option>
-                  </select>
+                  </Select>
                 </div>
 
                 {settings.notification_config?.provider &&
@@ -297,17 +291,12 @@ const AdvancedSettings = ({ settings, onChange }) => {
 
             {/* OCR 配置 */}
             <section className="rounded-xl border border-line p-4">
-              <div className="mb-4 flex items-center gap-2">
-                <Eye className="h-4 w-4 text-brand" aria-hidden="true" />
-                <h3 className="text-sm font-semibold">图片 OCR</h3>
-                <span className="text-xs text-faint">识别题目图片中的文字与公式(可选)</span>
-              </div>
+              <SectionHeader icon={Eye} title="图片 OCR" description="识别题目图片中的文字与公式（可选）" />
               <div className="space-y-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="ocr-provider">OCR 提供商</Label>
-                  <select
+                  <Select
                     id="ocr-provider"
-                    className={selectCls}
                     value={settings.ocr_config?.provider || ''}
                     onChange={(e) => handleOcrChange('provider', e.target.value)}
                   >
@@ -315,11 +304,11 @@ const AdvancedSettings = ({ settings, onChange }) => {
                     <option value="openai">OpenAI (GPT-4o)</option>
                     <option value="claude">Claude 3 (Anthropic)</option>
                     <option value="qwen">通义千问 VL</option>
-                    <option value="siliconflow">硅基流动(国内推荐)</option>
+                    <option value="siliconflow">硅基流动（国内推荐）</option>
                     <option value="openai_compatible">OpenAI 兼容 API</option>
-                  </select>
+                  </Select>
                   <p className="text-xs text-faint">
-                    用于识别题目中的图片(如数学公式),提升答题准确率
+                    用于识别题目中的图片（如数学公式），提升答题准确率
                   </p>
                 </div>
 
@@ -335,7 +324,7 @@ const AdvancedSettings = ({ settings, onChange }) => {
                         onChange={(e) => handleOcrChange('key', e.target.value)}
                       />
                       <p className="text-xs text-faint">
-                        {settings.ocr_config?.provider === 'siliconflow' && '硅基流动 API Key,可在 siliconflow.cn 获取'}
+                        {settings.ocr_config?.provider === 'siliconflow' && '硅基流动 API Key，可在 siliconflow.cn 获取'}
                         {settings.ocr_config?.provider === 'openai' && 'OpenAI API Key'}
                         {settings.ocr_config?.provider === 'claude' && 'Anthropic API Key'}
                         {settings.ocr_config?.provider === 'qwen' && '阿里云 DashScope API Key'}
@@ -344,7 +333,7 @@ const AdvancedSettings = ({ settings, onChange }) => {
                     </div>
 
                     <div className="space-y-1.5">
-                      <Label htmlFor="ocr-endpoint">API 端点(可选)</Label>
+                      <Label htmlFor="ocr-endpoint">API 端点（可选）</Label>
                       <Input
                         id="ocr-endpoint"
                         type="text"
@@ -358,11 +347,11 @@ const AdvancedSettings = ({ settings, onChange }) => {
                         value={settings.ocr_config?.endpoint || ''}
                         onChange={(e) => handleOcrChange('endpoint', e.target.value)}
                       />
-                      <p className="text-xs text-faint">留空使用默认端点,自定义端点需填写完整 URL</p>
+                      <p className="text-xs text-faint">留空使用默认端点，自定义端点需填写完整 URL</p>
                     </div>
 
                     <div className="space-y-1.5">
-                      <Label htmlFor="ocr-model">模型名称(可选)</Label>
+                      <Label htmlFor="ocr-model">模型名称（可选）</Label>
                       <Input
                         id="ocr-model"
                         type="text"

@@ -1,6 +1,7 @@
 import React from 'react';
 import Input from './ui/Input';
 import Label from './ui/Label';
+import Select from './ui/Select';
 
 export const courseToolLabels = {
   study: '自动学习', visits: '学习次数', catalog: '资源读取',
@@ -28,17 +29,16 @@ const CourseToolSettings = ({ taskType, onTaskTypeChange, options, onOptionsChan
     <div className="space-y-5">
       <div className="space-y-1.5">
         <Label htmlFor="course-task-type">执行功能</Label>
-        <select
+        <Select
           id="course-task-type"
           value={taskType}
           disabled={disabled}
           onChange={(event) => onTaskTypeChange(event.target.value)}
-          className="h-10 w-full cursor-pointer rounded-lg border border-line bg-white px-3 text-sm text-ink focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand/15 disabled:opacity-60"
         >
           {['study', 'visits', 'video_time', 'reading_time', 'download'].map((type) => (
             <option key={type} value={type}>{courseToolLabels[type]}</option>
           ))}
-        </select>
+        </Select>
       </div>
 
       {taskType === 'visits' && (

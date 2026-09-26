@@ -7,7 +7,7 @@ import { courseToolLabels } from './CourseToolSettings';
 import {
   Loader2, ArrowLeft, CheckCircle2, XCircle, AlertCircle,
   Play, Clock, ChevronDown, ChevronRight, BookOpen, MonitorPlay,
-  FileText, Home, StopCircle,
+  FileText, Gauge, StopCircle,
 } from 'lucide-react';
 import api from '../api/axios';
 import { LOG_LIMIT, chapterState, isTerminalStatus, resultLabels, startTaskPolling } from '../lib/taskPolling';
@@ -223,7 +223,10 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
   };
 
   const statusInfo = getStatusInfo();
-  const StatusIcon = statusInfo.icon;
+  const statusIconBg = {
+    'text-brand': 'bg-brand-soft', 'text-success': 'bg-success/10',
+    'text-warning': 'bg-warning/10', 'text-danger': 'bg-danger/10',
+  }[statusInfo.cls] || 'bg-soft';
   const progress = taskStatus ? (taskStatus.progress / (taskStatus.total || 1)) * 100 : 0;
   const terminal = isTerminalStatus(taskStatus?.status) || missing;
   const activeJobs = !terminal && taskDetails?.active_jobs ? Object.values(taskDetails.active_jobs) : [];
@@ -271,20 +274,16 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
     },
     {
       label: '处理进度',
-      icon: Clock,
+      icon: Gauge,
       iconCls: 'bg-warning/10 text-warning',
       value: <CountUp value={Math.round(progress)} suffix="%" />,
     },
     {
       label: '任务状态',
       icon: statusInfo.icon,
-      iconCls: 'bg-soft text-body',
-      value: (
-        <span className={`flex items-center gap-1.5 text-lg font-semibold ${statusInfo.cls}`}>
-          <StatusIcon className={`h-4.5 w-4.5 ${taskStatus?.status === 'running' ? 'animate-pulse' : ''}`} aria-hidden="true" />
-          {statusInfo.text}
-        </span>
-      ),
+      iconCls: `${statusIconBg} ${statusInfo.cls}`,
+      iconMotion: statusInfo.icon === Loader2 ? 'animate-spin' : taskStatus?.status === 'running' ? 'animate-pulse' : '',
+      value: <span className={`text-lg font-semibold ${statusInfo.cls}`}>{statusInfo.text}</span>,
     },
   ];
 
@@ -319,12 +318,10 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
                 {stopPending ? '正在停止' : stopConfirming ? '确认停止' : '停止任务'}
               </Button>
             )}
-            {terminal && (
-              <Button onClick={onBack} size="sm">
-                <Home className="h-3.5 w-3.5" aria-hidden="true" />
-                返回首页
-              </Button>
-            )}
+            <Button onClick={onBack} size="sm" variant={terminal ? 'default' : 'outline'}>
+              <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
+              返回课程选择
+            </Button>
           </div>
         </div>
       </header>
@@ -382,7 +379,7 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
                     </p>
                   </div>
                   <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${card.iconCls}`}>
-                    <Icon className="h-4.5 w-4.5" aria-hidden="true" />
+                    <Icon className={`h-4.5 w-4.5 ${card.iconMotion || ''}`} aria-hidden="true" />
                   </div>
                 </div>
               </div>
@@ -575,7 +572,7 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
                     const container = event.currentTarget;
                     followLogs.current = container.scrollHeight - container.scrollTop - container.clientHeight <= 24;
                   }}
-                  className="h-[clamp(22.5rem,48vh,42rem)] overflow-y-auto overscroll-contain rounded-lg bg-gray-900 p-4 font-mono text-xs leading-relaxed scroll-brutal"
+                  className="min-h-[8rem] max-h-[clamp(22.5rem,48vh,42rem)] overflow-y-auto overscroll-contain rounded-lg bg-gray-900 p-4 font-mono text-xs leading-relaxed scroll-brutal"
                 >
                   {logs.length === 0 ? (
                     <p className="text-gray-500">等待日志输出...</p>
@@ -654,7 +651,7 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
                 <StopCircle className="mt-0.5 h-4.5 w-4.5 shrink-0 text-faint" aria-hidden="true" />
                 <div>
                   <p className="text-sm font-semibold text-body">任务已手动停止</p>
-                  <p className="mt-0.5 text-xs text-body">{isReadingTask ? '已上报时长已保留，平台统计可能次日更新' : '已完成的进度已保留，可返回首页重新选择课程开始新任务'}</p>
+                  <p className="mt-0.5 text-xs text-body">{isReadingTask ? '已上报时长已保留，平台统计可能次日更新' : '已完成的进度已保留，可返回课程选择开始新任务'}</p>
                 </div>
               </div>
             )}
@@ -665,22 +662,19 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
                   <h2 className="text-[15px] font-semibold">详细统计</h2>
                 </div>
                 <dl className="divide-y divide-line px-5">
+                  {/* 汇总项常驻，异常项仅在非零时显示 */}
                   {[
-                    ['总章节数', taskStatus.stats.total_chapters || 0, ''],
-                    ['已完成章节（含无任务）', taskStatus.stats.completed_chapters || 0, 'text-success'],
-                    ['无任务章节', taskStatus.stats.empty_chapters || 0, ''],
-                    ['失败章节', taskStatus.stats.failed_chapters || 0, 'text-danger'],
-                    ['跳过章节', taskStatus.stats.skipped_chapters || 0, 'text-warning'],
-                    ['失败课程', taskStatus.stats.failed_courses || 0, 'text-danger'],
-                    ['总任务数', taskStatus.stats.total_tasks || 0, ''],
-                    ['已完成任务', taskStatus.stats.completed_tasks || 0, 'text-success'],
-                    ...(taskStatus.stats.failed_tasks > 0
-                      ? [['失败任务', taskStatus.stats.failed_tasks, 'text-danger']]
-                      : []),
-                    ...(taskStatus.stats.skipped_tasks > 0
-                      ? [['跳过任务', taskStatus.stats.skipped_tasks, 'text-warning']]
-                      : []),
-                  ].map(([label, value, color]) => (
+                    ['总章节数', taskStatus.stats.total_chapters, '', true],
+                    ['已完成章节（含无任务）', taskStatus.stats.completed_chapters, 'text-success', true],
+                    ['无任务章节', taskStatus.stats.empty_chapters, ''],
+                    ['失败章节', taskStatus.stats.failed_chapters, 'text-danger'],
+                    ['跳过章节', taskStatus.stats.skipped_chapters, 'text-warning'],
+                    ['失败课程', taskStatus.stats.failed_courses, 'text-danger'],
+                    ['总任务数', taskStatus.stats.total_tasks, '', true],
+                    ['已完成任务', taskStatus.stats.completed_tasks, 'text-success', true],
+                    ['失败任务', taskStatus.stats.failed_tasks, 'text-danger'],
+                    ['跳过任务', taskStatus.stats.skipped_tasks, 'text-warning'],
+                  ].filter(([, value, , always]) => always || value > 0).map(([label, value, color]) => (
                     <div key={label} className="flex items-center justify-between py-3">
                       <dt className="text-[13px] text-faint">{label}</dt>
                       <dd className={`text-sm font-semibold tnum ${color}`}>
@@ -691,11 +685,6 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
                 </dl>
               </section>
             )}
-
-            <Button variant="outline" className="w-full" onClick={onBack}>
-              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-              返回课程选择
-            </Button>
           </aside>
         </div>
       </main>

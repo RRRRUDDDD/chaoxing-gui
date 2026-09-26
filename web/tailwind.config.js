@@ -63,6 +63,9 @@ export default {
         focus: '0 0 0 4px hsl(var(--brand) / 0.15)',
         none: '0 0 0 0 transparent',
       },
+      spacing: {
+        '4.5': '1.125rem',
+      },
       borderRadius: {
         xl: '12px',
         '2xl': '16px',
