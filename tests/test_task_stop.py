@@ -6,7 +6,7 @@ import requests
 
 import app as web
 import main
-from api.base import AI, Account, Chaoxing, StudyResult
+from api.base import Account, Chaoxing, StudyResult
 from api.live_process import LiveProcessor
 from api.task_state import TaskAlreadyRunning, TaskStore
 from tests.test_scheduler import COURSE, config, point
@@ -261,14 +261,14 @@ class StudyOperationStopTests(OfflineStopTests):
         self.assertEqual(result, StudyResult.SKIPPED)
         recover.assert_not_called()
 
-    def work(self, *, ai=False):
-        provider = Mock(spec=AI) if ai else Mock()
+    def work(self):
+        provider = Mock()
         provider.DISABLE = False
         provider.COVER_RATE = 0
         provider.get_submit_params.return_value = ""
         provider.query.side_effect = lambda question: (self.cancel.set(), "A")[1]
         self.chaoxing.tiku = provider
-        self.chaoxing.kwargs["ai_concurrency"] = 1
+        self.chaoxing.kwargs["query_delay"] = 0
         self.session.get.return_value = Mock(text="<form>offline</form>", status_code=200)
         self.session.post.return_value = Mock(status_code=200)
         self.session.post.return_value.json.return_value = {"status": True, "msg": "accepted"}
@@ -286,15 +286,13 @@ class StudyOperationStopTests(OfflineStopTests):
         self.session.post.assert_not_called()
 
     def test_work_stop_skips_remaining_questions_and_never_submits(self):
-        for ai in (False, True):
-            with self.subTest(ai=ai):
-                self.cancel.clear()
-                self.session.reset_mock()
-                provider, job, info = self.work(ai=ai)
-                result = main.process_job(self.chaoxing, COURSE, job, info, 1, cancel_check=self.cancel.is_set)
-                self.assertEqual(result, StudyResult.SKIPPED)
-                self.assertEqual(provider.query.call_count, 1)
-                self.session.post.assert_not_called()
+        self.cancel.clear()
+        self.session.reset_mock()
+        provider, job, info = self.work()
+        result = main.process_job(self.chaoxing, COURSE, job, info, 1, cancel_check=self.cancel.is_set)
+        self.assertEqual(result, StudyResult.SKIPPED)
+        self.assertEqual(provider.query.call_count, 1)
+        self.session.post.assert_not_called()
 
     def test_work_fetch_backoff_stops_before_retrying(self):
         provider, job, info = self.work()

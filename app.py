@@ -512,9 +512,12 @@ def _run_study_task(task_id, store, common_config, tiku_config, notification_con
             sink_id = logger.add(capture.write, enqueue=True, filter=lambda record: record["extra"].get("task_id") == task_id)
             if cancelled():
                 return
-            from api.vision_ocr import ocr_context
+            try:
+                from api.vision_ocr import ocr_context
+            except ImportError:
+                from contextlib import nullcontext as ocr_context
 
-            with ocr_context(ocr_config or {}):
+            with ocr_context({}):
                 try:
                     try:
                         configured = Notification()

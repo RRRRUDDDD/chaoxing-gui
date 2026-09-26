@@ -3,8 +3,6 @@ import random
 import re
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor
-from contextvars import copy_context
 from enum import Enum
 from hashlib import md5
 from typing import Optional, Literal
@@ -912,47 +910,15 @@ class Chaoxing:
             q["answerField"][f'answer{q["id"]}'] = answer
             logger.info(f'{q["title"]} 填写答案为 {answer}')
 
-        # 若使用 AI 题库，则在同一张卷内并发搜题，避免单题串行阻塞
-        if isinstance(self.tiku, AI):
-            lock = threading.Lock()
+        def inc_found_seq():
+            nonlocal found_answers
+            found_answers += 1
 
-            def inc_found_concurrent():
-                nonlocal found_answers
-                with lock:
-                    found_answers += 1
-
-            ai_concurrency = self.kwargs.get("ai_concurrency", 3)
-            try:
-                ai_concurrency = int(ai_concurrency)
-            except (TypeError, ValueError):
-                ai_concurrency = 3
-            ai_concurrency = min(16, max(1, ai_concurrency))
-
-            def handle_question_with_session(q):
-                try:
-                    if _is_cancelled(cancel_check):
-                        return
-                    with self.session_manager.context():
-                        return _handle_question(q, inc_found_concurrent)
-                finally:
-                    self.session_manager.close_current_session()
-
-            with ThreadPoolExecutor(max_workers=ai_concurrency) as executor:
-                futures = [executor.submit(copy_context().run, handle_question_with_session, q)
-                           for q in questions["questions"]]
-                # Observe worker failures before deciding whether to submit the form.
-                for future in futures:
-                    future.result()
-        else:
-            def inc_found_seq():
-                nonlocal found_answers
-                found_answers += 1
-
-            for q in questions["questions"]:
-                if _is_cancelled(cancel_check):
-                    return StudyResult.SKIPPED
-                with self.session_manager.context():
-                    _handle_question(q, inc_found_seq)
+        for q in questions["questions"]:
+            if _is_cancelled(cancel_check):
+                return StudyResult.SKIPPED
+            with self.session_manager.context():
+                _handle_question(q, inc_found_seq)
         if _is_cancelled(cancel_check):
             return StudyResult.SKIPPED
         cover_rate = (found_answers / total_questions) * 100

@@ -6,7 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from api.answer import AI, CacheDAO, Tiku
+from api.answer import CacheDAO, Tiku
 
 
 class _PauseReaderAfterUnlock:
@@ -46,7 +46,7 @@ class AnswerCacheTests(unittest.TestCase):
         self.addCleanup(self.shared.stop)
 
     def test_option_order_and_question_type_do_not_share_letter_answers(self):
-        provider = AI()
+        provider = Tiku()
         provider._query = Mock(side_effect=["A", "B", "A\nB"])
         first = {"title": "Which is four?", "type": "single", "options": "A. 4\nB. 5"}
         swapped = dict(first, options="A. 5\nB. 4")
@@ -59,7 +59,7 @@ class AnswerCacheTests(unittest.TestCase):
 
     def test_legacy_title_only_entries_are_not_reused(self):
         self.path.write_text(json.dumps({"Question": "wrong legacy answer"}), encoding="utf8")
-        provider = AI()
+        provider = Tiku()
         provider._query = Mock(return_value="new answer")
         question = {"title": "Question", "type": "shortanswer", "options": ""}
         self.assertEqual(provider.query(question), "new answer")
@@ -69,7 +69,7 @@ class AnswerCacheTests(unittest.TestCase):
         self.assertTrue(any(key.startswith("question:v2:") for key in keys))
 
     def test_key_normalizes_whitespace_and_unicode_without_reordering_options(self):
-        provider = AI()
+        provider = Tiku()
         provider._query = Mock(return_value="A")
         first = {"title": "  cafe\u0301   question  ", "type": "single", "options": [" A.  one ", " B. two"]}
         second = {"title": "café question", "type": "single", "options": "A. one\nB. two"}
@@ -78,7 +78,7 @@ class AnswerCacheTests(unittest.TestCase):
         provider._query.assert_called_once()
 
     def test_significant_leading_numbers_remain_part_of_cache_identity(self):
-        provider = AI()
+        provider = Tiku()
         provider._query = Mock(side_effect=["4", "5"])
         first = {"title": "2+2=?", "type": "completion", "options": ""}
         second = dict(first, title="3+2=?")
@@ -175,7 +175,7 @@ class AnswerCacheTests(unittest.TestCase):
             client.close.assert_called_once()
 
     def test_empty_answer_is_not_cached(self):
-        provider = AI()
+        provider = Tiku()
         provider._query = Mock(side_effect=["  ", "answer"])
         question = {"title": "Question", "type": "completion", "options": ""}
         self.assertIsNone(provider.query(question))

@@ -216,11 +216,9 @@ def init_chaoxing(common_config, tiku_config):
     
     # 获取查询延迟设置
     query_delay = tiku_config.get("delay", 0)
-    # 获取AI题库并发配置（仅在使用AI题库时生效）
-    ai_concurrency = tiku_config.get("ai_concurrency")
-    
+
     # 实例化超星API
-    chaoxing = Chaoxing(account=account, tiku=tiku, query_delay=query_delay, ai_concurrency=ai_concurrency)
+    chaoxing = Chaoxing(account=account, tiku=tiku, query_delay=query_delay)
     
     return chaoxing
 

@@ -29,26 +29,18 @@ retry_interval = 1.0
 
 
 [tiku]
-# 题库类型: ai, disable
-# ai - 使用 AI 大模型答题
-# disable - 禁用题库（不自动答题）
-type = ai
+# OCS 题库配置。留空表示不自动答题。
+# 填写 JSON 数组，或 http(s) 订阅链接。格式见 https://docs.ocsjs.com/docs/work
+config =
 
-# AI 题库配置（当 type=ai 时生效）
-# API 端点
-ai_endpoint = https://api.openai.com/v1
-
-# API 密钥
-ai_key = 
-
-# 模型名称
-ai_model = gpt-4o-mini
-
-# 请求间隔（秒）
-min_interval_seconds = 3
+# 是否达到覆盖率后自动提交。false 为只保存不提交
+submit = false
 
 # 题库覆盖率阈值（0-1），低于此值不提交答案
-cover_rate = 0.6
+cover_rate = 0.9
+
+# 每次搜题前的等待秒数
+delay = 1
 
 
 [notification]

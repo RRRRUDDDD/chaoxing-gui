@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 import requests
 
 import main
-from api.base import AI, Account, Chaoxing, StudyResult
+from api.base import Account, Chaoxing, StudyResult
 from api.live_process import LiveProcessor
 from tests.test_scheduler import COURSE, config, point
 
@@ -87,7 +87,7 @@ class StudyResultTests(unittest.TestCase):
         question = {'id': 'q1', 'title': 'Offline question', 'type': 'single',
                     'options': 'A. first\nB. second', 'answerField': {}}
         questions = {'questions': [question]}
-        provider = AI() if query_error else Mock()
+        provider = Mock()
         provider.DISABLE = False
         provider.COVER_RATE = 0
         provider.get_submit_params = Mock(return_value='1' if save_only else '')

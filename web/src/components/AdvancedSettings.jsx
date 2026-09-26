@@ -3,7 +3,7 @@ import Input from './ui/Input';
 import Label from './ui/Label';
 import Select from './ui/Select';
 import NumberInput from './ui/NumberInput';
-import { Settings2, Database, Bell, Eye, ChevronDown } from 'lucide-react';
+import { Settings2, Database, Bell, ChevronDown } from 'lucide-react';
 
 const SectionHeader = ({ icon: Icon, title, description }) => (
   <div className="mb-4 flex items-start gap-2.5">
@@ -19,12 +19,15 @@ const AdvancedSettings = ({ settings, onChange, onFieldValidity }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const handleTikuChange = (field, value) => {
+    const previous = settings.tiku_config || {};
+    const next = {};
+    for (const key of ['config', 'submit', 'cover_rate', 'delay', 'true_list', 'false_list']) {
+      if (previous[key] !== undefined) next[key] = previous[key];
+    }
+    next[field] = value;
     onChange({
       ...settings,
-      tiku_config: {
-        ...settings.tiku_config,
-        [field]: value,
-      },
+      tiku_config: next,
     });
   };
 
@@ -33,16 +36,6 @@ const AdvancedSettings = ({ settings, onChange, onFieldValidity }) => {
       ...settings,
       notification_config: {
         ...settings.notification_config,
-        [field]: value,
-      },
-    });
-  };
-
-  const handleOcrChange = (field, value) => {
-    onChange({
-      ...settings,
-      ocr_config: {
-        ...(settings.ocr_config || {}),
         [field]: value,
       },
     });
@@ -77,158 +70,61 @@ const AdvancedSettings = ({ settings, onChange, onFieldValidity }) => {
           <div className="space-y-6 pt-5">
             {/* 题库配置 */}
             <section className="rounded-xl border border-line p-4">
-              <SectionHeader icon={Database} title="题库配置" description="章节检测自动答题（可选）" />
+              <SectionHeader icon={Database} title="题库配置" description="粘贴 OCS 题库 JSON，或填写订阅链接" />
               <div className="space-y-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor="tiku-provider">题库提供商</Label>
-                  <Select
-                    id="tiku-provider"
-                    value={settings.tiku_config?.provider || ''}
-                    onChange={(e) => handleTikuChange('provider', e.target.value)}
-                  >
-                    <option value="">不使用题库</option>
-                    <option value="TikuYanxi">言溪题库</option>
-                    <option value="TikuLike">LIKE知识库</option>
-                    <option value="TikuAdapter">TikuAdapter</option>
-                    <option value="AI">AI大模型</option>
-                    <option value="SiliconFlow">硅基流动AI</option>
+                  <Label htmlFor="tiku-config">题库配置</Label>
+                  <textarea
+                    id="tiku-config"
+                    rows={8}
+                    spellCheck={false}
+                    placeholder={'[\n  {\n    "name": "示例题库",\n    "url": "https://example.com/search",\n    "method": "get",\n    "data": { "question": "${title}" },\n    "handler": "return (res)=> res.code === 1 ? [res.question, res.answer] : undefined"\n  }\n]'}
+                    value={settings.tiku_config?.config || ''}
+                    onChange={(e) => handleTikuChange('config', e.target.value)}
+                    className="flex min-h-36 w-full rounded-lg border border-line bg-white px-3 py-2 font-mono text-xs text-ink placeholder:text-faint/70 hover:border-faint/50 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand/15"
+                  />
+                  <p className="text-xs text-faint">
+                    留空则不自动答题。格式与{' '}
+                    <a href="https://docs.ocsjs.com/docs/work" target="_blank" rel="noreferrer" className="text-brand underline-offset-2 hover:underline">
+                      OCS 题库配置
+                    </a>
+                    {' '}相同，可以是 JSON 数组，也可以是订阅链接。占位符为 {'${title}'}、{'${options}'}、{'${type}'}。
+                  </p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="tiku-submit">自动提交答题</Label>
+                  <Select id="tiku-submit" value={settings.tiku_config?.submit || 'false'} onChange={(e) => handleTikuChange('submit', e.target.value)}>
+                    <option value="false">仅保存，不提交</option>
+                    <option value="true">达到覆盖率后自动提交</option>
                   </Select>
                 </div>
-
-                {settings.tiku_config?.provider && (
-                  <>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="tiku-tokens">Token</Label>
-                      <Input
-                        id="tiku-tokens"
-                        type="text"
-                        placeholder="多个 token 用英文逗号分隔"
-                        value={settings.tiku_config?.tokens || ''}
-                        onChange={(e) => handleTikuChange('tokens', e.target.value)}
-                      />
-                      <p className="text-xs text-faint">言溪题库或 LIKE 知识库的 Token</p>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <Label htmlFor="tiku-submit">自动提交答题</Label>
-                      <Select
-                        id="tiku-submit"
-                        value={settings.tiku_config?.submit || 'false'}
-                        onChange={(e) => handleTikuChange('submit', e.target.value)}
-                      >
-                        <option value="false">仅保存，不提交</option>
-                        <option value="true">达到覆盖率后自动提交</option>
-                      </Select>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-1.5">
-                        <Label htmlFor="tiku-cover-rate">最低覆盖率</Label>
-                        <NumberInput
-                          id="tiku-cover-rate"
-                          onValidityChange={(valid) => onFieldValidity?.('tiku-cover-rate', valid)}
-                          min={0}
-                          max={1}
-                          step="0.1"
-                          value={settings.tiku_config?.cover_rate ?? 0.9}
-                          onValueChange={(value) => handleTikuChange('cover_rate', value)}
-                          hint="0.0–1.0，推荐 0.9"
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label htmlFor="tiku-delay">查询延迟（秒）</Label>
-                        <NumberInput
-                          id="tiku-delay"
-                          onValidityChange={(valid) => onFieldValidity?.('tiku-delay', valid)}
-                          min={0}
-                          step="0.5"
-                          value={settings.tiku_config?.delay ?? 1.0}
-                          onValueChange={(value) => handleTikuChange('delay', value)}
-                          hint="题库查询间隔"
-                        />
-                      </div>
-                    </div>
-
-                    {(settings.tiku_config?.provider === 'AI' || settings.tiku_config?.provider === 'SiliconFlow') && (
-                      <div className="space-y-4 border-t border-line pt-4">
-                        <p className="text-xs font-semibold text-brand">AI 配置</p>
-                        <div className="space-y-1.5">
-                          <Label htmlFor="ai-endpoint">API Endpoint</Label>
-                          <Input
-                            id="ai-endpoint"
-                            type="text"
-                            placeholder="https://api.example.com/v1"
-                            value={settings.tiku_config?.endpoint || ''}
-                            onChange={(e) => handleTikuChange('endpoint', e.target.value)}
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label htmlFor="ai-key">API Key</Label>
-                          <Input
-                            id="ai-key"
-                            type="password"
-                            placeholder="your-api-key"
-                            value={settings.tiku_config?.key || ''}
-                            onChange={(e) => handleTikuChange('key', e.target.value)}
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label htmlFor="ai-model">模型名称</Label>
-                          <Input
-                            id="ai-model"
-                            type="text"
-                            placeholder="gpt-3.5-turbo"
-                            value={settings.tiku_config?.model || ''}
-                            onChange={(e) => handleTikuChange('model', e.target.value)}
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="space-y-1.5">
-                            <Label htmlFor="ai-min-interval">最小间隔（秒）</Label>
-                            <NumberInput
-                              id="ai-min-interval"
-                          onValidityChange={(valid) => onFieldValidity?.('ai-min-interval', valid)}
-                              min={0}
-                              step="0.1"
-                              value={
-                                typeof settings.tiku_config?.min_interval_seconds === 'number'
-                                  ? settings.tiku_config.min_interval_seconds
-                                  : 3
-                              }
-                              onValueChange={(value) => handleTikuChange('min_interval_seconds', value)}
-                            />
-                          </div>
-                          <div className="space-y-1.5">
-                            <Label htmlFor="ai-concurrency">单卷最大并发</Label>
-                            <NumberInput
-                              id="ai-concurrency"
-                          onValidityChange={(valid) => onFieldValidity?.('ai-concurrency', valid)}
-                              min={1}
-                              max={10}
-                              step="1"
-                              integer
-                              value={settings.tiku_config?.ai_concurrency ?? 3}
-                              onValueChange={(value) => handleTikuChange('ai_concurrency', value)}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {settings.tiku_config?.provider === 'TikuAdapter' && (
-                      <div className="space-y-1.5">
-                        <Label htmlFor="adapter-url">TikuAdapter URL</Label>
-                        <Input
-                          id="adapter-url"
-                          type="text"
-                          placeholder="http://localhost:8080"
-                          value={settings.tiku_config?.url || ''}
-                          onChange={(e) => handleTikuChange('url', e.target.value)}
-                        />
-                      </div>
-                    )}
-                  </>
-                )}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="tiku-cover-rate">最低覆盖率</Label>
+                    <NumberInput
+                      id="tiku-cover-rate"
+                      onValidityChange={(valid) => onFieldValidity?.('tiku-cover-rate', valid)}
+                      min={0}
+                      max={1}
+                      step="0.1"
+                      value={settings.tiku_config?.cover_rate ?? 0.9}
+                      onValueChange={(value) => handleTikuChange('cover_rate', value)}
+                      hint="0.0–1.0，推荐 0.9"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="tiku-delay">查询延迟（秒）</Label>
+                    <NumberInput
+                      id="tiku-delay"
+                      onValidityChange={(valid) => onFieldValidity?.('tiku-delay', valid)}
+                      min={0}
+                      step="0.5"
+                      value={settings.tiku_config?.delay ?? 1.0}
+                      onValueChange={(value) => handleTikuChange('delay', value)}
+                      hint="题库查询间隔"
+                    />
+                  </div>
+                </div>
               </div>
             </section>
 
@@ -289,88 +185,6 @@ const AdvancedSettings = ({ settings, onChange, onFieldValidity }) => {
               </div>
             </section>
 
-            {/* OCR 配置 */}
-            <section className="rounded-xl border border-line p-4">
-              <SectionHeader icon={Eye} title="图片 OCR" description="识别题目图片中的文字与公式（可选）" />
-              <div className="space-y-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="ocr-provider">OCR 提供商</Label>
-                  <Select
-                    id="ocr-provider"
-                    value={settings.ocr_config?.provider || ''}
-                    onChange={(e) => handleOcrChange('provider', e.target.value)}
-                  >
-                    <option value="">不使用图片 OCR</option>
-                    <option value="openai">OpenAI (GPT-4o)</option>
-                    <option value="claude">Claude 3 (Anthropic)</option>
-                    <option value="qwen">通义千问 VL</option>
-                    <option value="siliconflow">硅基流动（国内推荐）</option>
-                    <option value="openai_compatible">OpenAI 兼容 API</option>
-                  </Select>
-                  <p className="text-xs text-faint">
-                    用于识别题目中的图片（如数学公式），提升答题准确率
-                  </p>
-                </div>
-
-                {settings.ocr_config?.provider && (
-                  <>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="ocr-key">API Key</Label>
-                      <Input
-                        id="ocr-key"
-                        type="password"
-                        placeholder="sk-..."
-                        value={settings.ocr_config?.key || ''}
-                        onChange={(e) => handleOcrChange('key', e.target.value)}
-                      />
-                      <p className="text-xs text-faint">
-                        {settings.ocr_config?.provider === 'siliconflow' && '硅基流动 API Key，可在 siliconflow.cn 获取'}
-                        {settings.ocr_config?.provider === 'openai' && 'OpenAI API Key'}
-                        {settings.ocr_config?.provider === 'claude' && 'Anthropic API Key'}
-                        {settings.ocr_config?.provider === 'qwen' && '阿里云 DashScope API Key'}
-                        {settings.ocr_config?.provider === 'openai_compatible' && '兼容 API 的密钥'}
-                      </p>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <Label htmlFor="ocr-endpoint">API 端点（可选）</Label>
-                      <Input
-                        id="ocr-endpoint"
-                        type="text"
-                        placeholder={
-                          settings.ocr_config?.provider === 'openai' ? 'https://api.openai.com/v1/chat/completions' :
-                          settings.ocr_config?.provider === 'claude' ? 'https://api.anthropic.com/v1/messages' :
-                          settings.ocr_config?.provider === 'qwen' ? 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions' :
-                          settings.ocr_config?.provider === 'siliconflow' ? 'https://api.siliconflow.cn/v1/chat/completions' :
-                          'https://your-api-endpoint/v1/chat/completions'
-                        }
-                        value={settings.ocr_config?.endpoint || ''}
-                        onChange={(e) => handleOcrChange('endpoint', e.target.value)}
-                      />
-                      <p className="text-xs text-faint">留空使用默认端点，自定义端点需填写完整 URL</p>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <Label htmlFor="ocr-model">模型名称（可选）</Label>
-                      <Input
-                        id="ocr-model"
-                        type="text"
-                        placeholder={
-                          settings.ocr_config?.provider === 'openai' ? 'gpt-4o' :
-                          settings.ocr_config?.provider === 'claude' ? 'claude-3-5-sonnet-20241022' :
-                          settings.ocr_config?.provider === 'qwen' ? 'qwen-vl-plus' :
-                          settings.ocr_config?.provider === 'siliconflow' ? 'Qwen/Qwen2-VL-72B-Instruct' :
-                          'gpt-4o'
-                        }
-                        value={settings.ocr_config?.model || ''}
-                        onChange={(e) => handleOcrChange('model', e.target.value)}
-                      />
-                      <p className="text-xs text-faint">留空使用默认模型</p>
-                    </div>
-                  </>
-                )}
-              </div>
-            </section>
           </div>
         </div>
       </div>

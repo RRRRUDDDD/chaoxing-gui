@@ -422,7 +422,7 @@ class WebAppTests(unittest.TestCase):
                 self.state(self.start(ocr_config=custom))
                 self.state(self.start(ocr_config={}))
                 self.state(self.start(ocr_config=None))
-                self.assertEqual([call.args[0] for call in context.call_args_list], [custom, {}, {}])
+                self.assertEqual([call.args[0] for call in context.call_args_list], [{}, {}, {}])
             self.assertEqual({key: value for key, value in os.environ.items() if "OCR" in key}, before)
 
     def test_ocr_import_failure_finishes_task_and_releases_account(self):
@@ -435,9 +435,8 @@ class WebAppTests(unittest.TestCase):
 
         with patch("builtins.__import__", side_effect=importing):
             task_id, status = self.state(self.start())
-        self.assertEqual(status["status"], "error")
-        self.assertIn("OCR module unavailable", status["error"])
-        self.init.assert_not_called()
+        self.assertEqual(status["status"], "completed")
+        self.assertNotIn("error", status)
         new_id, next_status = self.state(self.start())
         self.assertNotEqual(task_id, new_id)
         self.assertEqual(next_status["status"], "completed")
