@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import random
 import re
+import sys
 import threading
 import time
 from enum import Enum
@@ -55,6 +56,45 @@ def _wait_for_cancel(seconds, cancel_check):
 
 def get_timestamp():
     return str(int(time.time() * 1000))
+
+
+class _SilentProgress:
+    """Fallback when a console progress bar cannot be drawn."""
+
+    def __init__(self, initial=0):
+        self.n = initial
+
+    def refresh(self):
+        return None
+
+    def close(self):
+        return None
+
+
+def _progress_disabled():
+    """Desktop hosts pipe stderr; drawing a bar there raises Errno 22."""
+    stream = sys.stderr
+    if stream is None:
+        return True
+    try:
+        return not stream.isatty()
+    except OSError:
+        return True
+
+
+def _open_progress(total, initial, desc):
+    try:
+        return tqdm(
+            total=total,
+            initial=initial,
+            desc=desc,
+            unit_scale=True,
+            bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}",
+            disable=_progress_disabled(),
+        )
+    except OSError as exc:
+        logger.debug("进度条不可用，改为静默执行: {}", exc)
+        return _SilentProgress(initial)
 
 
 class Account:
@@ -524,8 +564,7 @@ class Chaoxing:
             except Exception as exc:
                 logger.debug(f"视频进度回调执行失败(初始): {exc}")
 
-        pbar = tqdm(total=duration, initial=play_time, desc=_job["name"],
-                    unit_scale=True, bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
+        pbar = _open_progress(duration, play_time, _job["name"])
 
         try:
             forbidden_retry = 0
@@ -586,7 +625,10 @@ class Chaoxing:
                 play_time = min(duration, play_time+dt)
 
                 pbar.n = int(play_time)
-                pbar.refresh()
+                try:
+                    pbar.refresh()
+                except OSError as exc:
+                    logger.debug("进度条刷新失败: {}", exc)
 
                 # 实时上报进度给外部（如 Web 前端）
                 if callable(progress_callback):
@@ -602,7 +644,10 @@ class Chaoxing:
             logger.info("任务完成: {}", _job['name'])
             return StudyResult.SUCCESS
         finally:
-            pbar.close()
+            try:
+                pbar.close()
+            except OSError as exc:
+                logger.debug("进度条关闭失败: {}", exc)
 
     def study_document(self, _course, _job) -> StudyResult:
         """

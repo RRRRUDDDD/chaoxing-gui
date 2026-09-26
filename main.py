@@ -675,7 +675,7 @@ def process_chapter(chaoxing: Chaoxing, course: dict[str, Any], point: dict[str,
                 try:
                     outcomes[key] = future.result()
                 except BaseException as exc:
-                    logger.error('任务点执行失败: {}', exc)
+                    logger.exception('任务点执行失败: {}', exc)
                     point['_error'] = str(exc)
                     outcomes[key] = StudyResult.ERROR
     _record_job_counts(point)

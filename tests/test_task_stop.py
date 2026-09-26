@@ -261,6 +261,13 @@ class StudyOperationStopTests(OfflineStopTests):
         self.assertEqual(result, StudyResult.SKIPPED)
         recover.assert_not_called()
 
+    def test_progress_bar_errno_does_not_fail_video(self):
+        self.patch('api.base.tqdm', side_effect=OSError(22, 'Invalid argument'))
+        with patch.object(self.chaoxing, 'video_progress_log', return_value=(True, 200)) as reports:
+            result = self.chaoxing.study_video(COURSE, self.video(), {}, cancel_check=self.cancel.is_set)
+        self.assertEqual(result, StudyResult.SUCCESS)
+        self.assertEqual(reports.call_count, 2)
+
     def work(self):
         provider = Mock()
         provider.DISABLE = False
