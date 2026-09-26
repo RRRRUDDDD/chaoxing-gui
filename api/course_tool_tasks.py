@@ -492,7 +492,7 @@ def _run_resources(task_id, store, config, service, courses, progress, cancelled
                     message = f"已提交 {result['seconds']} 秒观看记录，平台统计可能延迟更新"
                 elif kind == "reading_time":
                     result = service.watch_reading(course, resource, seconds, on_progress=progress.update)
-                    message = f"已上报 {result['seconds']} 秒阅读记录，平台统计可能次日更新"
+                    message = f"已滚动阅读页 {result['seconds']} 秒，由页面脚本上报，平台统计可能次日更新"
                     if result.get("warning"):
                         message += f"；{result['warning']}"
                 else:

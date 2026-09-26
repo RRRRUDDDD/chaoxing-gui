@@ -16,6 +16,7 @@ from urllib.parse import parse_qs, urljoin, urlsplit, urlunsplit
 from bs4 import BeautifulSoup
 
 from api.course_tools import CourseTools, _check_html, _scalar, _number
+from api.reading_browser import scroll_book
 
 
 READ_WORK_URL = "https://mooc1.chaoxing.com/mooc-ans/api/work"
@@ -366,6 +367,7 @@ class ReadingTools(CourseTools):
                              path=lambda p: p == READ_LOG_PATH)
 
     def _readlog(self, context, h):
+        """Parse one legacy heartbeat. An empty object is not platform credit."""
         try:
             scroll = int(h)
         except (TypeError, ValueError):
@@ -408,25 +410,14 @@ class ReadingTools(CourseTools):
             raise RuntimeError("没有可读取的专题书籍") from last_error
 
         target = requested
-        completed = 0.0
-        if callable(on_progress):
-            on_progress(0, target)
-        # logs.js sends h=0 once to open the session, then only reports again
-        # when scrollTop changes. Repeating h=0 is acknowledged as {} but is
-        # not counted as reading time by the platform.
-        position = 0
-        step = 0
-        self._readlog(context, position)
-        while completed < target:
-            self._check_cancelled()
-            interval = min(5.0, target - completed)
-            self._wait(interval)
-            position = _scroll_after(position, step)
-            step += 1
-            self._readlog(context, position)
-            completed += interval
-            if callable(on_progress):
-                on_progress(completed, target)
+        # An empty readlog body is not evidence that the platform stored the
+        # time. Open the book page and scroll it, which is what makes the
+        # page's own reporter run.
+        completed = scroll_book(
+            context["url"], self.chaoxing.session_manager.get_session().cookies,
+            target, on_progress=on_progress, wait=self._wait,
+            check=self._check_cancelled,
+        )
         # Refreshing the page is part of the authenticated protocol and also
         # gives the caller the platform's end counter.  Invalid, empty or
         # rejected responses are surfaced instead of being mistaken for a

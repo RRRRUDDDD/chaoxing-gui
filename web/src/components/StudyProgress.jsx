@@ -260,7 +260,7 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
       ),
     },
     {
-      label: isReadingTask ? '已上报时长' : isToolTask ? taskStatus.task_type === 'catalog' ? '已读取资源' : '累计执行量' : '章节统计',
+      label: isReadingTask ? '已滚动时长' : isToolTask ? taskStatus.task_type === 'catalog' ? '已读取资源' : '累计执行量' : '章节统计',
       icon: FileText,
       iconCls: 'bg-success/10 text-success',
       value: isToolTask ? (
@@ -651,7 +651,7 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
                 <StopCircle className="mt-0.5 h-4.5 w-4.5 shrink-0 text-faint" aria-hidden="true" />
                 <div>
                   <p className="text-sm font-semibold text-body">任务已手动停止</p>
-                  <p className="mt-0.5 text-xs text-body">{isReadingTask ? '已上报时长已保留，平台统计可能次日更新' : '已完成的进度已保留，可返回课程选择开始新任务'}</p>
+                  <p className="mt-0.5 text-xs text-body">{isReadingTask ? '已滚动时长已保留，平台统计可能次日更新' : '已完成的进度已保留，可返回课程选择开始新任务'}</p>
                 </div>
               </div>
             )}

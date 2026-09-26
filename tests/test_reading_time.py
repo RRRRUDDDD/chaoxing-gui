@@ -63,17 +63,21 @@ class ReadingProtocolTests(unittest.TestCase):
                 with self.assertRaises(RuntimeError):
                     self.service._readlog(context, 380)
 
-    def test_watch_reading_counts_only_acknowledged_five_second_periods(self):
-        self.responses(BOOK_PAGE, CARDS_PAGE, "{}", "{}", "{}", READ_PAGE)
-        result = self.service.watch_reading(COURSE, {**RESOURCE, "_books": [{
-            "url": "https://mooc1.chaoxing.com/mooc-ans/course/242311696.html?_from_=course-1_class-1_user_sig",
-            "title": "专题书", "author": "作者"}]}, 10)
+    def test_watch_reading_scrolls_the_book_page_instead_of_trusting_readlog(self):
+        self.responses(BOOK_PAGE, CARDS_PAGE, READ_PAGE)
+        self.session.cookies = []
+        with unittest.mock.patch("api.reading_time.scroll_book", return_value=10) as scrolled:
+            result = self.service.watch_reading(COURSE, {**RESOURCE, "_books": [{
+                "url": "https://mooc1.chaoxing.com/mooc-ans/course/242311696.html?_from_=course-1_class-1_user_sig",
+                "title": "专题书", "author": "作者"}]}, 10)
         self.assertEqual(result["seconds"], 10)
-        self.assertEqual(self.service._wait.call_args_list[0].args, (5.0,))
-        self.assertEqual(self.service._wait.call_count, 2)
-        scroll = [call.kwargs["params"]["h"] for call in self.session.get.call_args_list
-                  if call.args and str(call.args[0]).endswith("/multimedia/readlog")]
-        self.assertEqual(scroll, ["0", "380", "760"])
+        self.assertEqual(result["after"], 4.3)
+        book = scrolled.call_args.args[0]
+        self.assertTrue(book.startswith("https://mooc1.chaoxing.com/mooc-ans/course/242311696.html"))
+        self.assertEqual(scrolled.call_args.args[2], 10)
+        readlogs = [call for call in self.session.get.call_args_list
+                    if call.args and str(call.args[0]).endswith("/multimedia/readlog")]
+        self.assertEqual(readlogs, [])
 
 
     def test_scroll_sequence_matches_captured_page(self):

@@ -68,7 +68,7 @@ const CourseToolSettings = ({ taskType, onTaskTypeChange, options, onOptionsChan
         <p className="text-xs leading-relaxed text-faint">先读取所选课程的视频列表，再勾选视频并设置每个视频增加的时长。执行时可随时停止。</p>
       )}
       {taskType === 'reading_time' && (
-        <p className="text-xs leading-relaxed text-faint">先读取课程的阅读任务，再勾选任务并设置新增时长。在应用后台读取关联书籍，无需新窗口或操作鼠标。平台当天统计可能次日更新。</p>
+        <p className="text-xs leading-relaxed text-faint">先读取课程的阅读任务，再勾选任务并设置新增时长。执行时会打开浏览器窗口滚动阅读页，请不要关闭该窗口，也不会占用鼠标。平台当天统计可能次日更新。</p>
       )}
       {taskType === 'download' && (
         <p className="text-xs leading-relaxed text-faint">先读取所选课程的资源列表，再勾选需要下载的视频、音频或文件。完成后可打开下载目录。</p>

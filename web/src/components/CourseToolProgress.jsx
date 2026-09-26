@@ -140,8 +140,8 @@ function CourseToolContent({ taskId, username, taskStatus, tool, catalogReady = 
     <>
       <section className={sectionCls} aria-label="工具执行进度">
         <h2 className="mb-4 text-[15px] font-semibold">{taskStatus.task_label || courseToolLabels[taskType]}执行进度</h2>
-        <UnitProgress label={readingTask ? '已上报时长' : '累计进度'} completed={tool?.completed_units ?? 0} total={tool?.total_units} unit={tool?.unit} />
-        {readingTask && <p className="mt-3 text-xs leading-relaxed text-faint">已上报时长表示成功发送的阅读记录覆盖的时长。平台当天统计可能次日更新，请以平台统计为准。</p>}
+        <UnitProgress label={readingTask ? '已滚动时长' : '累计进度'} completed={tool?.completed_units ?? 0} total={tool?.total_units} unit={tool?.unit} />
+        {readingTask && <p className="mt-3 text-xs leading-relaxed text-faint">已滚动时长是阅读页实际滚动的时长。页面脚本负责向平台上报，统计可能次日更新，请以平台为准。</p>}
         {tool?.current && (
           <div className="mt-4 rounded-lg bg-soft/60 p-4">
             <UnitProgress label={tool.current.name || '当前条目'} completed={tool.current.completed ?? 0} total={tool.current.total} unit={tool.current.unit || tool.unit} />
@@ -175,7 +175,7 @@ function CourseToolContent({ taskId, username, taskStatus, tool, catalogReady = 
               : ['completed', 'partial'].includes(taskStatus.status) ? '正在获取最终资源列表…'
                 : isTerminalStatus(taskStatus.status) ? '本次读取未完成，请返回课程选择重新读取。' : '正在读取资源，请等待任务结束后选择。'}
           </p>
-          {readingCatalog && <p className="mb-4 text-xs leading-relaxed text-faint">每个勾选任务将读取其关联书籍，按实际时间在应用后台运行，可随时停止。平台当天统计可能次日更新。</p>}
+          {readingCatalog && <p className="mb-4 text-xs leading-relaxed text-faint">每个勾选任务会打开阅读页并滚动相应时长，可随时停止。请不要关闭自动打开的浏览器窗口。平台当天统计可能次日更新。</p>}
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <div className="relative min-w-40 flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-faint" aria-hidden="true" />
@@ -272,7 +272,7 @@ function CourseToolContent({ taskId, username, taskStatus, tool, catalogReady = 
                     <div><dt className="text-faint">平台阅读时长（结束）</dt><dd className="mt-1 font-medium tnum">{result.after == null ? '不可用' : formatToolAmount(result.after, '分钟')}</dd></div>
                   </dl>
                 )}
-                {result.seconds != null && <p className="text-xs text-body tnum">{readingTask ? '已上报时长' : '已记录时长'}：{formatToolAmount(result.seconds, '秒')}</p>}
+                {result.seconds != null && <p className="text-xs text-body tnum">{readingTask ? '已滚动时长' : '已记录时长'}：{formatToolAmount(result.seconds, '秒')}</p>}
                 {result.bytes != null && <p className="text-xs text-body tnum">已保存：{formatToolAmount(result.bytes, '字节')}</p>}
                 {result.path && <p className="break-all text-xs text-faint">{result.path}</p>}
               </li>
