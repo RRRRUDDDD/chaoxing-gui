@@ -180,7 +180,7 @@ web/node_modules/
 web/dist/
 web/.vite/
 
-# Desktop (Electron)
+# Desktop
 desktop/node_modules/
 desktop/backend/
 desktop/release/

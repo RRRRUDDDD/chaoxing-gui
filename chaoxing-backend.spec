@@ -1,5 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
-# Electron 后端专用 spec (独立 exe 版本见 chaoxing.spec，注意同步 datas/hiddenimports)
+# 桌面后端专用 spec (独立 exe 版本见 chaoxing.spec，注意同步 datas/hiddenimports)
 # 主要差异：console=True (支持 stdin/stdout 管道), 移除 pystray, name=chaoxing-backend
 from importlib.metadata import distribution
 from PyInstaller.utils.hooks import collect_submodules, copy_metadata
@@ -37,7 +37,7 @@ hiddenimports = [
     "fontTools",
     "requests",
     "urllib3",
-    # 移除 pystray - Electron 无头模式不需要托盘图标
+    # 移除 pystray - 无头模式不需要托盘图标
 ]
 hiddenimports += collect_submodules("api")
 

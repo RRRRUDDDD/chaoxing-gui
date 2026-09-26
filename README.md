@@ -35,17 +35,15 @@ start.bat  # Windows 双击或命令行运行
 
 ```bash
 # 构建桌面版（只需一次）
-build_desktop.bat
+build_tauri.bat
 
-# 双击安装
-desktop/release/chaoxing-gui-desktop-Setup-*.exe
+# 安装包在 desktop/release/tauri/
+# 默认安装目录：D:\chaoxing_gui（D: 不是固定磁盘时改为 %LOCALAPPDATA%\chaoxing_gui）
 ```
 
-安装后通过开始菜单或桌面快捷方式启动。
+安装后通过开始菜单或桌面快捷方式启动「超星学习通·自动化学习助手」。
 
-Windows 发布包可从 [GitHub Releases](https://github.com/RRRRUDDDD/chaoxing-fanya/releases/latest) 直接下载。
-
-Tauri 2 桌面版正在独立验收，可用 `build_tauri.bat` 构建 Windows x64 NSIS 和便携 ZIP，输出在 `desktop/release/tauri/`。它使用独立程序目录，保留 Electron 与原数据；当前默认桌面构建入口仍为 Electron。安装、WebView2 离线准备、版本校验和验收边界见 [桌面版指南](desktop/README.md)。
+Windows 发布包可从 [GitHub Releases](https://github.com/RRRRUDDDD/chaoxing-fanya/releases/latest) 直接下载。安装、WebView2 离线准备、版本校验和验收边界见 [桌面版指南](desktop/README.md)。
 
 ### 方式三：命令行模式
 

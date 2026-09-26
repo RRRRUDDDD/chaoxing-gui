@@ -77,7 +77,7 @@ it('opens the repository through the fixed Tauri command and reports browser err
   expect((await screen.findByRole('alert')).textContent).toContain('无法打开浏览器');
 });
 
-it('keeps native browser and Electron link navigation', () => {
+it('keeps native browser link navigation', () => {
   render(<RepositoryLink />);
   const link = screen.getByRole('link');
   // Observe the component decision, then prevent jsdom from navigating.

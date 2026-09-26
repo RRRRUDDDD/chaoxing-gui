@@ -1,7 +1,7 @@
-// Real Chromium / original Electron / Tauri P2 smoke with synthetic accounts.
+// Real Chromium / Tauri P2 smoke with synthetic accounts.
 // Prerequisites: web build; cargo build -j1 --features custom-protocol; the
 // p2_backend.py fixture frozen as target/p2-fixture/dist/p2-backend/; and
-// playwright-core + Electron in P2_TOOLS_DIR (kept outside the repository).
+// playwright-core in P2_TOOLS_DIR (kept outside the repository).
 import assert from 'node:assert/strict';
 import { spawn, execFile } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -15,7 +15,7 @@ import { promisify } from 'node:util';
 const exec = promisify(execFile);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const requireTools = createRequire(path.join(process.env.P2_TOOLS_DIR || path.join(os.tmpdir(), 'chaoxing-p2-tools'), 'package.json'));
-const { chromium, _electron } = requireTools('playwright-core');
+const { chromium } = requireTools('playwright-core');
 const evidence = path.resolve(process.env.P2_EVIDENCE_DIR || path.join(repo, 'desktop/src-tauri/target/p2-smoke-evidence'));
 const root = await mkdtemp(path.join(os.tmpdir(), 'chaoxing-p2-smoke-'));
 const fixture = path.join(repo, 'desktop/tests/fixtures/p2_backend.py');
@@ -97,39 +97,6 @@ async function launch(kind, options = {}) {
       throw error;
     }
   }
-  if (kind === 'electron') {
-    env.P2_ELECTRON_PROFILE = path.join(profile, 'electron-data');
-    let electron;
-    let child;
-    const stop = async () => {
-      // The original Electron shell owns the stdin pipe. Even if Playwright
-      // setup fails, closing its captured process releases the fixture watchdog.
-      try { await electron?.close(); }
-      finally {
-        try {
-          if (child) await until(() => exited(child), 'Electron host exit', 5000);
-        } finally {
-          if (child && !exited(child)) child.kill();
-          if (child) await until(() => !alive(child.pid), 'Electron host cleanup', 5000);
-          const runtime = await json(path.join(backendProfile, 'pid.json')).catch(() => null);
-          if (runtime) await until(() => !alive(runtime.pid), 'Electron backend exit', 6000);
-        }
-      }
-    };
-    try {
-      electron = await _electron.launch({ executablePath: requireTools('electron'),
-        args: [path.join(repo, 'desktop/tests/fixtures/p2-electron.cjs')], env, timeout: 30000 });
-      child = electron.process();
-      const page = await electron.firstWindow();
-      await page.waitForURL((url) => url.hostname === '127.0.0.1', { timeout: 30000 });
-      await page.waitForLoadState('domcontentloaded');
-      return { kind, profile, backendProfile, page, data: env.P2_ELECTRON_PROFILE, electron, pid: child.pid, stop };
-    } catch (error) {
-      try { await stop(); }
-      catch (cleanup) { throw new Error(`${error.message}; Electron cleanup failed: ${cleanup.message}`); }
-      throw error;
-    }
-  }
   const port = await freePort();
   Object.assign(env, { CHAOXING_TAURI_DEV_ROOT: profile, CHAOXING_TAURI_DEV_HIDDEN: process.env.P2_HIDE_WINDOW || '0',
     CHAOXING_TAURI_DEV_BACKEND: options.backend || fakeExe,
@@ -187,7 +154,6 @@ async function launch(kind, options = {}) {
 async function savedSession(app) {
   return app.page.evaluate(async (kind) => {
     if (kind === 'tauri') return window.__TAURI__.core.invoke('session_read');
-    if (kind === 'electron') return window.chaoxingSession.read();
     return JSON.parse(localStorage.getItem('chaoxing_session_v1')) || { version: 1, login: null, activeTask: null };
   }, app.kind);
 }
@@ -272,16 +238,6 @@ async function business(kind) {
       await popup.waitForLoadState();
       assert.equal(popup.url(), repository);
       await popup.close();
-    } else if (kind === 'electron') {
-      // Observe the real main-process handoff without opening a user's browser.
-      await app.electron.evaluate(({ shell }) => {
-        globalThis.p2RepositoryLinks = [];
-        shell.openExternal = async (url) => { globalThis.p2RepositoryLinks.push(url); };
-      });
-      await activate(link);
-      await until(async () => (await app.electron.evaluate(() => globalThis.p2RepositoryLinks)).length === 1, 'repository browser handoff');
-      assert.deepEqual(await app.electron.evaluate(() => globalThis.p2RepositoryLinks), [repository]);
-      assert.equal(app.electron.windows().length, 1);
     }
     await activate(page.getByRole('button', { name: '退出登录', exact: true }));
     await page.getByRole('button', { name: '登录', exact: true }).waitFor();
@@ -319,48 +275,27 @@ async function startupFailures() {
 }
 
 async function migrationRollback() {
-  const legacy = await launch('electron');
-  let target;
+  const legacyData = path.join(root, 'legacy-data');
+  await mkdir(legacyData, { recursive: true });
+  const session = {
+    version: 1,
+    login: { username: 'p2-fixture', use_cookies: true },
+    activeTask: { username: 'p2-fixture', taskId: 'p2-existing-task' },
+  };
+  const sessionPath = path.join(legacyData, 'renderer-session.json');
+  const before = Buffer.from(JSON.stringify(session));
+  await writeFile(sessionPath, before);
+  await writeFile(path.join(legacyData, 'web_config.json'), JSON.stringify({ selectedCoursesByAccount: { 'p2-fixture': ['course-1'] } }));
+  const imported = await launch('tauri', { legacy: legacyData });
   try {
-    await legacy.page.evaluate(async () => {
-      await window.chaoxingSession.rememberLogin('p2-fixture');
-      await window.chaoxingSession.rememberTask({ username: 'p2-fixture', taskId: 'p2-existing-task' });
-    });
-    await writeFile(path.join(legacy.data, 'web_config.json'), JSON.stringify({ selectedCoursesByAccount: { 'p2-fixture': ['course-1'] } }));
-    const before = await readFile(path.join(legacy.data, 'renderer-session.json'));
-    target = await launch('tauri', { legacy: legacy.data });
-    await target.page.getByRole('button', { name: '重新检查' }).waitFor();
-    const status = await target.page.evaluate(() => window.__TAURI__.core.invoke('backend_status'));
-    assert.equal(status.phase, 'failed');
-    assert.match(status.error, /关闭旧版/);
-    await assert.rejects(stat(path.join(target.backendProfile, 'pid.json')), { code: 'ENOENT' });
-    await target.stop(); target = null;
-    await legacy.stop();
-    const imported = await launch('tauri', { legacy: legacy.data });
-    try {
-      await imported.page.getByText('p2-existing-task', { exact: true }).waitFor();
-      assert.equal((await savedSession(imported)).login.username, 'p2-fixture');
-      assert.deepEqual(await json(path.join(imported.data, 'web_config.json')), { selectedCoursesByAccount: { 'p2-fixture': ['course-1'] } });
-      assert.deepEqual(await readFile(path.join(legacy.data, 'renderer-session.json')), before);
-      const nodeStore = createRequire(path.join(repo, 'desktop/package.json'))('./session-store.js');
-      assert.equal(new nodeStore.SessionStore(imported.data).read().login.username, 'p2-fixture');
-      assert.equal(new nodeStore.SessionStore(legacy.data).read().activeTask.taskId, 'p2-existing-task');
-      assert.ok((await stat(path.join(imported.data, 'migration-v1.done'))).isFile());
-    } finally { await imported.stop(); }
-    // Exercise the original shell again against the preserved original profile.
-    const rollback = await launch('electron', { profile: legacy.profile });
-    try {
-      await rollback.page.getByText('p2-existing-task', { exact: true }).waitFor();
-      assert.equal((await savedSession(rollback)).login.username, 'p2-fixture');
-      assert.deepEqual(await readFile(path.join(legacy.data, 'renderer-session.json')), before);
-      record('old-electron-import-and-rollback', { runningLegacyDeferred: true, sourceUnchanged: true,
-        nodeReadsRustSession: true, originalElectronRelaunched: true,
-        sourceSha256: createHash('sha256').update(before).digest('hex') });
-    } finally { await rollback.stop(); }
-  } finally {
-    if (target) await target.stop();
-    if (alive(legacy.pid)) await legacy.stop();
-  }
+    await imported.page.getByText('p2-existing-task', { exact: true }).waitFor();
+    assert.equal((await savedSession(imported)).login.username, 'p2-fixture');
+    assert.deepEqual(await json(path.join(imported.data, 'web_config.json')), { selectedCoursesByAccount: { 'p2-fixture': ['course-1'] } });
+    assert.deepEqual(await readFile(sessionPath), before);
+    assert.ok((await stat(path.join(imported.data, 'migration-v1.done'))).isFile());
+    record('legacy-data-import', { sourceUnchanged: true,
+      sourceSha256: createHash('sha256').update(before).digest('hex') });
+  } finally { await imported.stop(); }
 }
 
 async function nativeContracts() {
@@ -520,8 +455,8 @@ async function realFrozenBackend() {
 
 const selection = process.argv[2] || 'all';
 try {
-  assert.ok(['all', 'browser', 'electron', 'tauri', 'failures', 'migration', 'native', 'frozen'].includes(selection), `Unknown smoke selection: ${selection}`);
-  for (const kind of ['browser', 'electron', 'tauri']) {
+  assert.ok(['all', 'browser', 'tauri', 'failures', 'migration', 'native', 'frozen'].includes(selection), `Unknown smoke selection: ${selection}`);
+  for (const kind of ['browser', 'tauri']) {
     if (selection === 'all' || selection === kind) await business(kind);
   }
   if (selection === 'all' || selection === 'failures') await startupFailures();

@@ -27,7 +27,7 @@ try {
     $info.WindowStyle = [Diagnostics.ProcessWindowStyle]::Normal
     $info.RedirectStandardInput = $true
     $process = [Diagnostics.Process]::Start($info)
-    if ($null -eq $process) { throw 'Could not start Chaoxing GUI Tauri.' }
+    if ($null -eq $process) { throw 'Could not start 超星学习通·自动化学习助手.' }
     try {
         $process.StandardInput.Close()
         # Surface immediate native startup errors while keeping the launcher bounded.

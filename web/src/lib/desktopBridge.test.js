@@ -7,15 +7,12 @@ import { desktopBridge, getSessionBridge, isTauriDesktop } from './desktopBridge
 const empty = () => ({ version: 1, login: null, activeTask: null });
 
 beforeEach(() => { core.isTauri.mockReset().mockReturnValue(false); core.invoke.mockReset().mockResolvedValue(empty()); });
-afterEach(() => { delete window.chaoxingSession; vi.restoreAllMocks(); });
+afterEach(() => { vi.restoreAllMocks(); });
 
 describe('desktop bridge', () => {
-  it('uses the official runtime detection and preserves the Electron session bridge', () => {
+  it('uses the official runtime detection and only exposes the Tauri session bridge', () => {
     expect(isTauriDesktop()).toBe(false);
     expect(getSessionBridge()).toBeNull();
-    const electron = { read: vi.fn() };
-    window.chaoxingSession = electron;
-    expect(getSessionBridge()).toBe(electron);
     core.isTauri.mockReturnValue(true);
     expect(getSessionBridge()).toBe(desktopBridge);
     expect(core.isTauri).toHaveBeenCalled();

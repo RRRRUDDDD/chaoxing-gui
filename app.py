@@ -53,8 +53,8 @@ if os.path.exists(STATIC_DIR):
 else:
     app = Flask(__name__)
 
-# === 环境变量：支持 Electron 无头模式 ===
-HEADLESS = os.environ.get("CHAOXING_HEADLESS") == "1" or os.environ.get("CHAOXING_ELECTRON") == "1"
+# === 环境变量：桌面版无头模式 ===
+HEADLESS = os.environ.get("CHAOXING_HEADLESS") == "1"
 TAURI_MODE = os.environ.get("CHAOXING_TAURI") == "1"
 PORT = 0 if TAURI_MODE else int(os.environ.get("CHAOXING_PORT", "5000"))
 # 仅限本机访问时也绑定回环地址, 避免局域网内其他设备访问控制台/配置接口
@@ -971,7 +971,7 @@ def setup_tray_icon():
 
 
 def watch_parent_stdin():
-    """stdin 守护线程：监测父进程（Electron）退出，防止孤儿进程"""
+    """stdin 守护线程：监测父进程退出，防止孤儿进程"""
     try:
         # 阻塞读取，父进程关闭管道时触发 EOF
         while sys.stdin.buffer.read(1):
@@ -1040,13 +1040,13 @@ if __name__ == "__main__":
         base_path = os.path.dirname(sys.executable)
         os.chdir(base_path)
     elif HEADLESS:
-        # Electron 无头模式：cookies.txt / chaoxing.log 等运行时文件写入数据目录
+        # 无头模式：cookies.txt / chaoxing.log 等运行时文件写入数据目录
         try:
             os.makedirs(DATA_DIR, exist_ok=True)
             os.chdir(DATA_DIR)
         except Exception as e:
             logger.warning(f"切换数据目录失败，沿用当前目录: {e}")
-        logger.info(f"Electron 无头模式启动，工作目录: {os.getcwd()}")
+        logger.info(f"无头模式启动，工作目录: {os.getcwd()}")
 
     # 检测是否存在前端构建
     if os.path.exists(STATIC_DIR):

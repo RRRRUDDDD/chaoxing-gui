@@ -71,13 +71,13 @@ jobs:
         run: |
           npm --prefix web test
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Test Electron sessions and Tauri packaging/smoke contracts
+      - name: Test desktop packaging and smoke contracts
         run: |
           npm --prefix desktop test
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Check desktop JavaScript
         run: |
-          foreach ($source in @('desktop/main.js', 'desktop/preload.js', 'desktop/session-store.js', 'desktop/scripts/p3-smoke.mjs', 'desktop/scripts/p3-installation.mjs')) {
+          foreach ($source in @('desktop/scripts/p2-smoke.mjs', 'desktop/scripts/p3-smoke.mjs', 'desktop/scripts/p3-installation.mjs')) {
             node --check $source
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           }
@@ -130,16 +130,6 @@ jobs:
         with:
           workspaces: desktop/src-tauri -> target
           shared-key: windows-x64-tauri-rust-1.95.0
-
-      - name: Cache Electron binaries
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~\AppData\Local\electron\Cache
-            ~\AppData\Local\electron-builder\Cache
-          key: ${{ runner.os }}-electron-${{ hashFiles('desktop/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-electron-
 
       - name: Validate source, lock and release versions
         env:
@@ -204,7 +194,7 @@ jobs:
           Copy-Item -LiteralPath dist/chaoxing-gui.exe -Destination release/python/chaoxing-gui.exe
           Copy-Item -LiteralPath README.md -Destination release/python/README.md
           @{ version=$env:APP_VERSION; platform='windows-x64'; kind='independent-python' } | ConvertTo-Json | Set-Content release/python/version.json -Encoding utf8
-          Compress-Archive -Path release/python/* -DestinationPath "release/chaoxing-gui-no-electron-$env:APP_VERSION-windows-x64.zip" -Force
+          Compress-Archive -Path release/python/* -DestinationPath "release/chaoxing-gui-python-$env:APP_VERSION-windows-x64.zip" -Force
 
       - name: Build desktop backend executable
         run: |
@@ -219,13 +209,6 @@ jobs:
       - name: Smoke test frozen desktop backend
         run: |
           pwsh -NoProfile -File desktop/scripts/smoke-python.ps1 -ExecutablePath dist/chaoxing-backend/chaoxing-backend.exe -Mode Backend -EvidenceDirectory desktop/release/verification/python-backend
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-      - name: Build Electron desktop app (coexistence and rollback)
-        run: |
-          pwsh -NoProfile -File desktop/scripts/prepare-backend.ps1 -DestinationDirectory desktop/backend/chaoxing-backend
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          npm --prefix desktop exec -- electron-builder --win --publish never --projectDir desktop
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Import optional signing certificate
@@ -338,15 +321,8 @@ jobs:
       - name: Upload independent Python artifact
         uses: actions/upload-artifact@v4
         with:
-          name: chaoxing-gui-no-electron-${{ env.APP_VERSION }}-windows-x64
-          path: release/chaoxing-gui-no-electron-${{ env.APP_VERSION }}-windows-x64.zip
-          if-no-files-found: error
-
-      - name: Upload Electron artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: chaoxing-gui-desktop-${{ env.APP_VERSION }}
-          path: desktop/release/*.exe
+          name: chaoxing-gui-python-${{ env.APP_VERSION }}-windows-x64
+          path: release/chaoxing-gui-python-${{ env.APP_VERSION }}-windows-x64.zip
           if-no-files-found: error
 
       - name: Upload Tauri artifacts
@@ -365,8 +341,7 @@ jobs:
           target_commitish: ${{ github.sha }}
           generate_release_notes: true
           files: |
-            release/chaoxing-gui-no-electron-${{ env.APP_VERSION }}-windows-x64.zip
-            desktop/release/*.exe
+            release/chaoxing-gui-python-${{ env.APP_VERSION }}-windows-x64.zip
             desktop/release/tauri/chaoxing-gui-tauri-setup-${{ env.APP_VERSION }}-windows-x64.exe
             desktop/release/tauri/chaoxing-gui-tauri-setup-${{ env.APP_VERSION }}-windows-x64.exe.manifest.json
             desktop/release/tauri/chaoxing-gui-tauri-portable-${{ env.APP_VERSION }}-windows-x64.zip

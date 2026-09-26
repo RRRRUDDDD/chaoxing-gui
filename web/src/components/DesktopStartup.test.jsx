@@ -21,7 +21,7 @@ beforeEach(() => { vi.useFakeTimers(); isTauriDesktop.mockReset().mockReturnValu
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); });
 
 describe('desktop startup', () => {
-  it('renders the browser and Electron app immediately without querying desktop status', async () => {
+  it('renders the browser app immediately without querying desktop status', async () => {
     isTauriDesktop.mockReturnValue(false);
     show();
     expect(screen.getByText('业务界面')).toBeTruthy();
@@ -120,7 +120,7 @@ describe('desktop startup', () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
-  it('shows a host failure reason as text, including the instruction to close legacy Electron', async () => {
+  it('shows a host failure reason as text, including a host failure instruction', async () => {
     const error = '请先关闭旧版桌面应用，再重新打开。<img src=x onerror=alert(1)>';
     desktopBridge.backendStatus.mockResolvedValue({ phase: 'failed', error });
     show();

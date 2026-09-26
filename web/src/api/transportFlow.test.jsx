@@ -102,7 +102,6 @@ afterEach(async () => {
   await sessionStore.clear();
   core.isTauri.mockReturnValue(false);
   core.invoke.mockReset();
-  delete window.chaoxingSession;
   localStorage.clear();
   api.defaults.adapter = originalAdapter;
   api.defaults.baseURL = '/api';
@@ -138,19 +137,11 @@ function configureTransport(transport, options = {}) {
   } else {
     api.defaults.adapter = originalAdapter;
     api.defaults.baseURL = `${origin}/api`;
-    if (transport === 'electron') {
-      window.chaoxingSession = {
-        read: async () => sessionCommand('session_read'),
-        rememberLogin: async (username) => sessionCommand('session_remember_login', { username }),
-        rememberTask: async (task) => sessionCommand('session_remember_task', { task }),
-        clear: async () => sessionCommand('session_clear'),
-      };
-    }
   }
 }
 
 describe('shared task flow over real Axios transports', () => {
-  it.each(['browser', 'electron', 'tauri'])('recovers 409, refreshes, retries final snapshots and clears 404 over %s', async (transport) => {
+  it.each(['browser', 'tauri'])('recovers 409, refreshes, retries final snapshots and clears 404 over %s', async (transport) => {
     configureTransport(transport);
     await sessionStore.rememberLogin('alice');
     const mount = () => render(<React.StrictMode><DesktopStartup intervalMs={100}><App /></DesktopStartup></React.StrictMode>);
@@ -194,7 +185,7 @@ describe('shared task flow over real Axios transports', () => {
     view.unmount();
   }, 15000);
 
-  it.each(['browser', 'electron', 'tauri'])('stops a running task, retries failures and reopens its result over %s', async (transport) => {
+  it.each(['browser', 'tauri'])('stops a running task, retries failures and reopens its result over %s', async (transport) => {
     configureTransport(transport, { startSucceeds: true, stopFailsOnce: true });
     await sessionStore.rememberLogin('alice');
     const mount = () => render(<React.StrictMode><DesktopStartup intervalMs={100}><App /></DesktopStartup></React.StrictMode>);

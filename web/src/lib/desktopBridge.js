@@ -16,5 +16,5 @@ export const desktopBridge = Object.freeze({
 
 export function getSessionBridge() {
   if (isTauriDesktop()) return desktopBridge;
-  return globalThis.window?.chaoxingSession ?? null;
+  return null;
 }

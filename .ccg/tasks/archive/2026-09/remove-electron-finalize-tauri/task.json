@@ -1,0 +1,13 @@
+{
+  "id": "remove-electron-finalize-tauri",
+  "title": "删除 Electron 相关内容，将 Tauri 安装包输出目录设为 chaoxing_gui，软件名改为超星学习通·自动化学习助手",
+  "status": "completed",
+  "complexity": "M",
+  "risk": "medium",
+  "domain": "desktop",
+  "currentPhase": "completed",
+  "nextAction": "archived",
+  "createdAt": "2026-09-26T00:00:00Z",
+  "branch": "main",
+  "completedAt": "2026-09-26T08:16:44Z"
+}

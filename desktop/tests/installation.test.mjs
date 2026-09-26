@@ -148,12 +148,12 @@ test('NSIS directory tails preserve Unicode/spaces and are never general raw arg
 test('Registry acceptance requires the owned install path and exact expected uninstaller', () => {
   const directory = 'C:\\Smoke 用户\\安装';
   const good = [{ hive: 'CurrentUser', view: 'Registry64', kind: 'uninstall',
-    key: 'Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Chaoxing GUI Tauri',
+    key: 'Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\超星学习通·自动化学习助手',
     installLocation: `"${directory}"`, uninstallString: `"${directory}\\uninstall.exe"` }];
   assert.doesNotThrow(() => assertInstallRegistry(good, directory));
   assert.throws(() => assertInstallRegistry([], directory), /registry|uninstall/i);
   assert.throws(() => assertInstallRegistry([{ ...good[0], hive: 'LocalMachine' }], directory), /CurrentUser|current.user/i);
-  assert.throws(() => assertInstallRegistry([{ ...good[0], installLocation: 'C:\\Users\\real\\AppData\\Local\\Chaoxing GUI Tauri' }], directory), /location|directory/i);
+  assert.throws(() => assertInstallRegistry([{ ...good[0], installLocation: 'C:\\Users\\real\\AppData\\Local\\chaoxing_gui' }], directory), /location|directory/i);
   assert.throws(() => assertInstallRegistry([{ ...good[0], uninstallString: 'C:\\other\\uninstall.exe /S' }], directory), /uninstaller/i);
 });
 

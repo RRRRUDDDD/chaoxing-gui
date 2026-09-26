@@ -53,7 +53,6 @@ beforeAll(async () => {
 afterEach(() => {
   core.isTauri.mockReturnValue(false);
   core.invoke.mockReset();
-  delete window.chaoxingSession;
   vi.restoreAllMocks();
 });
 
@@ -76,9 +75,6 @@ async function configureTransport(transport) {
     if (!routes[operation]) throw new Error(`Unexpected operation: ${operation}`);
     return fixtureResponse(...routes[operation], payload ?? null);
   });
-  if (transport === 'electron') {
-    window.chaoxingSession = { read: vi.fn(), rememberLogin: vi.fn(), rememberTask: vi.fn(), clear: vi.fn() };
-  }
   // Let the real entry point choose its adapter at startup for each runtime.
   vi.resetModules();
   const { default: api } = await import('./axios');
@@ -95,13 +91,10 @@ function expectTransport(transport, operation, payload, taskId) {
   } else {
     expect(fixture.httpCalls).toBe(1);
     expect(core.invoke).not.toHaveBeenCalled();
-    if (transport === 'electron') {
-      for (const method of Object.values(window.chaoxingSession)) expect(method).not.toHaveBeenCalled();
-    }
   }
 }
 
-describe.each(['browser', 'electron', 'tauri'])('course tools over the %s Axios transport', (transport) => {
+describe.each(['browser', 'tauri'])('course tools over the %s Axios transport', (transport) => {
   it.each(recipes)('passes the $name recipe through the existing start operation', async ({ task_type, tool_options }) => {
     const api = await configureTransport(transport);
     const payload = { ...credentials, course_list: ['course-1'], task_type, tool_options };

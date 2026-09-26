@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Chaoxing GUI Tauri",
+  "productName": "超星学习通·自动化学习助手",
   "mainBinaryName": "chaoxing-gui-tauri",
   "version": "1.1.1",
   "identifier": "com.chaoxing.gui",
@@ -13,7 +13,7 @@
     "windows": [
       {
         "create": false,
-        "title": "超星学习通 · 自动化学习助手",
+        "title": "超星学习通·自动化学习助手",
         "width": 1200,
         "height": 800,
         "minWidth": 900,
@@ -27,10 +27,17 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis"],
+    "targets": [
+      "nsis"
+    ],
     "publisher": "chaoxing-gui",
     "licenseFile": "../../LICENSE",
-    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.ico"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico"
+    ],
     "resources": {
       "resources/backend/": "backend/",
       "resources/backend-manifest.json": "backend-manifest.json",
@@ -39,14 +46,20 @@
       "windows/LICENSE_MIT": "TAURI-LICENSE.txt"
     },
     "windows": {
-      "webviewInstallMode": {"type": "downloadBootstrapper", "silent": true},
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper",
+        "silent": true
+      },
       "nsis": {
         "installMode": "currentUser",
-        "languages": ["SimpChinese", "English"],
+        "languages": [
+          "SimpChinese",
+          "English"
+        ],
         "displayLanguageSelector": true,
         "installerIcon": "icons/icon.ico",
         "uninstallerIcon": "icons/icon.ico",
-        "startMenuFolder": "Chaoxing GUI Tauri",
+        "startMenuFolder": "超星学习通·自动化学习助手",
         "template": "windows/installer.nsi",
         "installerHooks": "windows/installer-hooks.nsh"
       }

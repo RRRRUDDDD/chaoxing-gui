@@ -64,7 +64,6 @@ async function manualLogin(username) {
 }
 
 beforeEach(async () => {
-  delete window.chaoxingSession;
   await sessionStore.clear();
   localStorage.clear();
   window.history.replaceState({}, '', '/');
