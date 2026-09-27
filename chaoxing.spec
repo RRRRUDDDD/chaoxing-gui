@@ -26,8 +26,6 @@ hiddenimports = [
     "pyaes",
     "bs4",
     "lxml",
-    "openai",
-    "httpx",
     "onnxruntime",
     "PIL",
     "numpy",
@@ -48,7 +46,9 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=["ddddocr", "cv2", "paddle", "paddleocr", "paddlepaddle", "paddlex", "PaddleOCR", "celery"],
+    excludes=["ddddocr", "cv2", "paddle", "paddleocr", "paddlepaddle", "paddlex", "PaddleOCR", "celery",
+              # Keep a build machine's global packages out of the bundle.
+              "openai", "httpx", "pydantic", "pydantic_core", "anyio", "jiter", "pygments", "websockets"],
     noarchive=False,
 )
 pyz = PYZ(a.pure)
