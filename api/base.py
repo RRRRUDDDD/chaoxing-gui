@@ -882,7 +882,8 @@ class Chaoxing:
                     return
             if _is_cancelled(cancel_check):
                 return
-            res = self.tiku.query(q)
+            # An undecodable encrypted font goes straight to the no-answer path.
+            res = None if q.get("undecodable") else self.tiku.query(q)
             if _is_cancelled(cancel_check):
                 return
             answer = ""

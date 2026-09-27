@@ -19,6 +19,7 @@ from typing import List, Dict, Tuple, Any, Optional, Union
 
 from bs4 import BeautifulSoup, NavigableString
 
+from api.exceptions import FontDecodeError
 from api.font_decoder import FontDecoder
 from api.logger import logger
 from api.config import GlobalConst as gc
@@ -984,10 +985,20 @@ def decode_questions_info(html_content: str) -> Dict[str, Any]:
     
     # 处理所有问题
     questions = []
+    undecodable = None
     for div_tag in soup.find("form").find_all("div", class_="singleQuesId"):
-        question = _process_question(div_tag, font_decoder)
+        try:
+            question = _process_question(div_tag, font_decoder)
+        except FontDecodeError as exc:
+            # Undecoded glyphs would only mislead the question bank; keep the
+            # raw text for logging and let the question take the no-answer path.
+            undecodable = exc
+            question = _process_question(div_tag)
+            question["undecodable"] = True
         if question:
             questions.append(question)
+    if undecodable is not None:
+        logger.warning("加密字体无法解码，相关题目按无答案处理: {}", undecodable)
     
     # 更新表单数据
     form_data["questions"] = questions
