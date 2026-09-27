@@ -322,42 +322,23 @@ class CdpSocket:
         self._sock.sendall(bytes(header) + masked)
 
     def _recv(self, deadline):
-        fragments = []
-        opcode = None
-        while True:
+        """Return the next complete text message, or None once the deadline passes."""
+        if deadline <= time.monotonic():
+            return None
+        try:
+            return self._read_frame(deadline)
+        except socket.timeout:
+            # A timed-out read may leave half a frame buffered, so the
+            # connection cannot be reused.
+            self.close()
+            raise RuntimeError("阅读浏览器指令超时") from None
+
+    def _read_exact(self, size, deadline):
+        while len(self._buf) < size:
             remaining = deadline - time.monotonic()
             if remaining <= 0:
-                return None
-            self._sock.settimeout(min(1, remaining))
-            try:
-                frame = self._read_frame()
-            except socket.timeout:
-                self.close()
-                raise RuntimeError("阅读浏览器指令超时") from None
-            kind, payload = frame
-            if kind == 8:
-                raise RuntimeError("阅读浏览器调试连接已关闭")
-            if kind == 9:
-                self._send(10, payload)
-                continue
-            if kind == 10:
-                continue
-            if kind in {0, 1}:
-                if kind == 1:
-                    opcode = 1
-                    fragments = [payload]
-                else:
-                    fragments.append(payload)
-                if sum(len(item) for item in fragments) > _MAX_MESSAGE:
-                    raise RuntimeError("阅读浏览器返回了过大的响应")
-                # The first frame is the whole message unless FIN was absent.
-                # ``_read_frame`` returns only complete messages.
-                if opcode == 1:
-                    return b"".join(fragments)
-            raise RuntimeError("阅读浏览器返回了无法识别的数据")
-
-    def _read_exact(self, size):
-        while len(self._buf) < size:
+                raise socket.timeout()
+            self._sock.settimeout(remaining)
             chunk = self._sock.recv(65536)
             if not chunk:
                 raise RuntimeError("阅读浏览器调试连接已关闭")
@@ -365,24 +346,24 @@ class CdpSocket:
         data, self._buf = self._buf[:size], self._buf[size:]
         return data
 
-    def _read_frame(self):
+    def _read_frame(self, deadline):
         """Read one complete text message, joining continuation frames."""
         pieces = []
         text = False
         while True:
-            header = self._read_exact(2)
+            header = self._read_exact(2, deadline)
             fin = header[0] & 0x80
             kind = header[0] & 0x0F
             masked = header[1] & 0x80
             length = header[1] & 0x7F
             if length == 126:
-                length = int.from_bytes(self._read_exact(2), "big")
+                length = int.from_bytes(self._read_exact(2, deadline), "big")
             elif length == 127:
-                length = int.from_bytes(self._read_exact(8), "big")
+                length = int.from_bytes(self._read_exact(8, deadline), "big")
             if length > _MAX_MESSAGE:
                 raise RuntimeError("阅读浏览器返回了过大的响应")
-            mask = self._read_exact(4) if masked else b""
-            payload = self._read_exact(length)
+            mask = self._read_exact(4, deadline) if masked else b""
+            payload = self._read_exact(length, deadline)
             if mask:
                 payload = bytes(byte ^ mask[index % 4] for index, byte in enumerate(payload))
             if kind == 8 and fin:
@@ -403,7 +384,7 @@ class CdpSocket:
                 if sum(len(item) for item in pieces) > _MAX_MESSAGE:
                     raise RuntimeError("阅读浏览器返回了过大的响应")
                 if fin:
-                    return 1, b"".join(pieces)
+                    return b"".join(pieces)
                 continue
             raise RuntimeError("阅读浏览器返回了无法识别的数据")
 
