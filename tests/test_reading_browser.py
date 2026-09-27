@@ -134,11 +134,14 @@ class ReadingBrowserTests(unittest.TestCase):
         self.assertEqual(page.scripts, [])
         self.assertTrue(page.closed)
 
-    def test_scroll_expression_stays_inside_the_reading_box(self):
+    def test_scroll_expression_scrolls_the_book_body_without_page_globals(self):
         expression = scroll_expression(0)
+        # The box only gates the page; body#outerBody is what logs.js reads.
         self.assertIn("#courseMainBox", expression)
-        self.assertNotIn("scrollingElement", expression)
-        self.assertNotIn("documentElement", expression)
+        self.assertIn("document.body", expression)
+        self.assertNotIn("box = document.querySelector('#courseMainBox')", expression)
+        # MooTools on the book page replaces window.Event.
+        self.assertNotIn("new Event", expression)
         self.assertIn("insertvideo", _STATE_JS)
         self.assertIn("logs.js", _STATE_JS)
 

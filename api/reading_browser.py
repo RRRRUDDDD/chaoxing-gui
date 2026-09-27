@@ -75,11 +75,25 @@ def allow_reading_url(value):
 
 
 def scroll_expression(step):
-    """Move the reading container the same way a person scrolls the page."""
+    """Move the page scroller the same way a person scrolls the book.
+
+    ``#courseMainBox`` only proves this is a book page; it grows with its
+    content and never scrolls. The book page makes ``body#outerBody`` the
+    scroller, and logs.js reports ``body.scrollTop``. Native scroll events fire
+    on their own; the page's MooTools replaces ``window.Event``, so none is
+    constructed here.
+    """
     index = int(step) % 3
     return (
         "(() => {"
-        "const box = document.querySelector('#courseMainBox');"
+        "if (!document.querySelector('#courseMainBox')) return null;"
+        "const candidates = [document.body, document.scrollingElement];"
+        "let box = null;"
+        "for (let i = 0; i < candidates.length; i++) {"
+        "const el = candidates[i];"
+        "if (el && el.scrollHeight - el.clientHeight > 1) { box = el; break; }"
+        "}"
+        "box = box || document.body;"
         "if (!box) return null;"
         "const max = Math.max(0, (box.scrollHeight || 0) - (box.clientHeight || 0));"
         f"const delta = [380, 380, -280][{index}];"
@@ -89,7 +103,6 @@ def scroll_expression(step):
         "if (top < 0) top = Math.min(max, 380);"
         "} else { top = Math.max(0, top); }"
         "box.scrollTop = top;"
-        "box.dispatchEvent(new Event('scroll', {bubbles: true}));"
         "return top;"
         "})()"
     )
