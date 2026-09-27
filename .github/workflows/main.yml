@@ -177,6 +177,8 @@ jobs:
         run: |
           python -m PyInstaller --clean --noconfirm chaoxing.spec
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          # A missing hidden import only warns; the tray must really be bundled.
+          if ((Get-Content -Raw -LiteralPath build/chaoxing/PYZ-00.toc) -notmatch "\('pystray',") { throw 'pystray is missing from the single-file executable' }
 
       - name: Verify single-file OCR assets and real inference
         run: |
@@ -200,6 +202,7 @@ jobs:
         run: |
           python -m PyInstaller --clean --noconfirm chaoxing-backend.spec
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ((Get-Content -Raw -LiteralPath build/chaoxing-backend/PYZ-00.toc) -match "\('pystray',") { throw 'pystray leaked into the desktop backend' }
 
       - name: Verify desktop backend OCR assets and real inference
         run: |

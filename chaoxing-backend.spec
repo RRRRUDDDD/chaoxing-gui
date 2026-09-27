@@ -1,6 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 # 桌面后端专用 spec (独立 exe 版本见 chaoxing.spec，注意同步 datas/hiddenimports)
-# 主要差异：console=True (支持 stdin/stdout 管道), 移除 pystray, name=chaoxing-backend
+# 主要差异：console=True (支持 stdin/stdout 管道), 排除 pystray, name=chaoxing-backend
 from importlib.metadata import distribution
 from PyInstaller.utils.hooks import collect_submodules, copy_metadata
 
@@ -35,7 +35,6 @@ hiddenimports = [
     "fontTools",
     "requests",
     "urllib3",
-    # 移除 pystray - 无头模式不需要托盘图标
 ]
 hiddenimports += collect_submodules("api")
 
@@ -50,7 +49,9 @@ a = Analysis(
     runtime_hooks=[],
     excludes=["ddddocr", "cv2", "paddle", "paddleocr", "paddlepaddle", "paddlex", "PaddleOCR", "celery",
               # Keep a build machine's global packages out of the bundle.
-              "openai", "httpx", "pydantic", "pydantic_core", "anyio", "jiter", "pygments", "websockets"],
+              "openai", "httpx", "pydantic", "pydantic_core", "anyio", "jiter", "pygments", "websockets",
+              # The Tauri host owns the tray; app.py only tries this import.
+              "pystray"],
     noarchive=False,
 )
 pyz = PYZ(a.pure)

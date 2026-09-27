@@ -13,6 +13,8 @@ numpy>=1.26.4
 onnxruntime>=1.20.0
 Pillow>=10.1.0
 tqdm>=4.67.1
+# Tray icon of the standalone exe (chaoxing.spec); the desktop backend excludes it.
+pystray==0.19.5; sys_platform == "win32"
 urllib3>=2.5.0
 # paddlex pulls chardet 7.x; requests 2.32.x rejects chardet >= 6.
 chardet>=3.0.2,<6.0.0

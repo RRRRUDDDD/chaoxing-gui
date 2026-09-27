@@ -962,6 +962,35 @@ def open_browser():
     webbrowser.open(f"http://localhost:{PORT}")
 
 
+def _confirm_exit_with_running_tasks() -> bool:
+    """pystray has no dialogs; ask with a native message box on Windows."""
+    running = task_store.running_count()
+    if not running or sys.platform != "win32":
+        return True
+    import ctypes
+    MB_YESNO, MB_ICONWARNING, MB_TOPMOST, IDYES = 0x4, 0x30, 0x40000, 6
+    answer = ctypes.windll.user32.MessageBoxW(
+        None,
+        f"还有 {running} 个任务正在运行，退出会中断它们，下次启动可恢复。确定退出吗？",
+        "超星学习通 · 自动化学习助手",
+        MB_YESNO | MB_ICONWARNING | MB_TOPMOST,
+    )
+    return answer == IDYES
+
+
+def tray_exit(icon, _item=None):
+    """Close the task store so interrupted work can resume, then exit."""
+    if not _confirm_exit_with_running_tasks():
+        return
+    icon.stop()
+    try:
+        task_store.close()
+        logger.complete()
+    finally:
+        # Workers and Flask are daemon threads blocked in I/O.
+        os._exit(0)
+
+
 def setup_tray_icon():
     """设置托盘图标"""
     if not TRAY_AVAILABLE:
@@ -969,7 +998,7 @@ def setup_tray_icon():
 
     menu = Menu(
         MenuItem("打开控制台", lambda: open_browser()),
-        MenuItem("退出", lambda icon, item: (icon.stop(), os._exit(0)))
+        MenuItem("退出", tray_exit),
     )
 
     icon = Icon("chaoxing-gui", create_tray_icon(), "超星学习通 · 自动化学习助手", menu)

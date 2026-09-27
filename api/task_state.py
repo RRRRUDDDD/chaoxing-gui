@@ -211,6 +211,12 @@ class TaskStore:
                 task.status["recovery_error"] = "已请求停止，但保存任务状态失败，请检查数据目录"
             return "stopping"
 
+    def running_count(self) -> int:
+        """Tasks with a live worker; interrupted ones have none to lose."""
+        with self._lock:
+            self._cleanup_locked()
+            return sum(task.status.get("status") == "running" for task in self._tasks.values())
+
     def is_cancelled(self, task_id: str) -> bool:
         """Report the stop signal for workers; a vanished task must also stop."""
         with self._lock:
