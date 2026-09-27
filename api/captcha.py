@@ -1,155 +1,117 @@
+"""Chaoxing "please verify" captcha, solved with the bundled OCR.
+
+When requests are throttled the platform can answer with a verification page
+that loads ``/processVerifyPng.ac`` and submits to ``/html/processVerify.ac``.
+The image and the submission use the account's own session so that any cookie
+the platform issues on success reaches every worker.
+
+Detection is deliberately narrow: only a response that points at those two
+endpoints (a redirect Location or a page body) counts. A plain 403 stays a
+plain 403. No real throttled sample has been captured yet, so the rule is not
+validated against the live platform; widen it only with captured evidence.
 """
-Captcha API for Chaoxing
 
-本模块用于通过CX验证码，提供包括验证码获取、识别、验证等接口。
-使用开源 DdddOcr 的默认模型与字符表，通过轻量 CPU 适配进行文字识别。
-
-Author: skreon
-Email: 1340554713@qq.com
-Date: 2025-06-05
-Version: 1.1.0
-"""
-
-__author__ = "skreon 1340554713@qq.com"
-__version__ = "1.1.0"
-
+import threading
+import time
 from random import randint
 from typing import Optional
 
 from loguru import logger
-from requests import session
 
 from api.captcha_ocr import CaptchaOcr
+from api.cookies import save_cookies
+
+HOST = "https://mooc1.chaoxing.com"
+IMAGE_PATH = "/processVerifyPng.ac"
+SUBMIT_PATH = "/html/processVerify.ac"
+_MARKERS = ("processverifypng.ac", "processverify.ac")
+_PEEK_BYTES = 64 * 1024
+
+_OCR_RETRY_SECONDS = 60.0
+_ocr_lock = threading.Lock()
+_ocr_engine: Optional[CaptchaOcr] = None
+_ocr_retry_at = 0.0
 
 
-def ocr_init() -> Optional[CaptchaOcr]:
-    """
-    初始化OCR对象
+def captcha_ocr() -> Optional[CaptchaOcr]:
+    """Process-wide OCR engine; a failed start is retried after 60 seconds."""
+    global _ocr_engine, _ocr_retry_at
+    with _ocr_lock:
+        if _ocr_engine is not None:
+            return _ocr_engine
+        if time.monotonic() < _ocr_retry_at:
+            return None
+        try:
+            _ocr_engine = CaptchaOcr()
+        except Exception as exc:
+            _ocr_retry_at = time.monotonic() + _OCR_RETRY_SECONDS
+            logger.warning("验证码 OCR 初始化失败: {}", exc)
+        return _ocr_engine
 
-    Returns: 验证码文字识别对象；缺少依赖或模型时返回 None。
-    """
+
+def is_captcha_response(response) -> bool:
+    """True only when the response sends the user to the verification page."""
+    if response is None:
+        return False
+    location = str(response.headers.get("Location") or "").lower()
+    if any(marker in location for marker in _MARKERS):
+        return True
+    if response.status_code not in (200, 403):
+        return False
+    content_type = str(response.headers.get("Content-Type") or "").lower()
+    if content_type and "html" not in content_type:
+        return False
     try:
-        return CaptchaOcr()
-    except Exception as e:
-        logger.warning(f"验证码 OCR 初始化失败: {e}，如遇403限制请在浏览器端手动完成验证。")
-        return None
-
-
-_MISSING = object()
+        body = response.text[:_PEEK_BYTES].lower()
+    except Exception:
+        return False
+    return any(marker in body for marker in _MARKERS)
 
 
 class CxCaptcha:
-    """
-    CxCaptcha 类用于处理学习任务中出现的验证码
+    """Fetch, recognize and submit one verification image for an account."""
 
-    该类提供了获取、识别和提交验证码的方法，使用 requests 库进行 HTTP 请求，
-    并利用 DdddOcr 的默认模型进行验证码识别。
+    def __init__(self, session_manager, account=None, ocr=None):
+        self.session_manager = session_manager
+        self.account = account
+        self.ocr = ocr
 
-    Attributes:
-        host (str): 超星平台的主机地址。
-        api (dict): 包含获取和提交验证码的 API 路径。
-        user_agent (str): 用户代理字符串。
-        cookies (str): 会话 cookies。
-        s (requests.Session): 用于管理会话的请求对象。
-    """
-
-    host = 'https://mooc1.chaoxing.com'
-    api = {
-        'get': '/processVerifyPng.ac',
-        'submit': '/html/processVerify.ac'
-    }
-
-    def __init__(self, user_agent: str, cookies: str, ocr: Optional[CaptchaOcr] = _MISSING):
-        """
-        初始化 CxCaptcha 实例。
-
-        Args:
-            user_agent (str): 用户代理字符串。
-            cookies (str): 会话 cookies。
-            ocr (optional): 提供 classification 方法的对象。如果显式传入 None 则禁用 OCR。
-        """
-
-        self.user_agent = user_agent
-        self.cookies = cookies
-        self.s = session()
-        self.s.headers.update({
-            'User-Agent': self.user_agent,
-            'Cookie': self.cookies,
-            'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8'
-        })
-        self.s.verify = False
-
-        self.ocr = ocr_init() if ocr is _MISSING else ocr
-
-    def getCaptcha(self) -> Optional[bytes]:
-        """
-        获取验证码图片。
-
-        Returns:
-            Optional[bytes]: 返回验证码图片的二进制数据，如果获取失败则返回 None。
-        """
-        api = self.host + self.api['get']
-        random_t = randint(0, 2147483647)
-
-        res = self.s.get(api, params={'t': random_t})
-        if res.status_code == 200 and res.headers['Content-Type'] == 'image/png':
-            return res.content
-        else:
-            # 提供的Cookies或UA存在问题，导致未能正常获取验证码内容
-            return None
-
-    def submitCaptcha(self, cap_token: str) -> bool:
-        """
-        提交验证码以完成验证。
-
-        Args:
-            cap_token (str): 验证码 token。
-
-        Returns:
-            bool: 如果提交成功并重定向，则返回 True；否则返回 False。
-        """
-        api = self.host + self.api['submit']
-        params = {
-            'ucode': cap_token,
-            'app': 0
-        }
-        res = self.s.get(api, params=params)
-        if res.status_code == 302:
-            return True
-        else:
-            return False
-
-    def recognition(self, img: bytes) -> str:
-        """
-        使用 DdddOcr 对验证码图片进行识别。
-
-        Args:
-            img (bytes): 验证码图片的二进制数据。
-
-        Returns:
-            str: 返回识别出的验证码字符串。
-        """
-        if not self.ocr:
-            logger.error("ddddocr 实例未成功初始化，无法执行验证码识别")
-            raise RuntimeError("ddddocr is not available")
-        res = self.ocr.classification(img)
-        return res
-
-    def try_pass(self) -> bool:
-        """
-        尝试通过验证码验证流程。
-
-        该方法会自动获取验证码、识别并提交。
-
-        Returns:
-            bool: 如果验证码成功通过验证，则返回 True；否则返回 False。
-        """
+    def fetch_image(self, session) -> Optional[bytes]:
+        response = session.get(HOST + IMAGE_PATH, params={"t": randint(0, 2147483647)},
+                               allow_redirects=False)
         try:
-            cap_img = self.getCaptcha()
-            if not cap_img:
-                return False
-            cap_token = self.recognition(cap_img)
-            return self.submitCaptcha(cap_token)
-        except Exception as e:
-            logger.error(f"验证码自动验证时发生异常: {e}")
+            content_type = str(response.headers.get("Content-Type") or "").lower()
+            if response.status_code == 200 and content_type.startswith("image/"):
+                return response.content
+            return None
+        finally:
+            response.close()
+
+    def submit(self, session, code: str) -> bool:
+        response = session.get(HOST + SUBMIT_PATH, params={"ucode": code, "app": 0},
+                               allow_redirects=False)
+        try:
+            # A passed check redirects back; a failed one redraws the page.
+            return response.status_code in (301, 302, 303) and not is_captcha_response(response)
+        finally:
+            response.close()
+
+    def attempt(self) -> bool:
+        """One fetch-recognize-submit round; publishes cookies on success."""
+        engine = self.ocr or captcha_ocr()
+        if engine is None:
             return False
+        session = self.session_manager.get_session()
+        image = self.fetch_image(session)
+        if not image:
+            return False
+        code = engine.classification(image)
+        if not code or not self.submit(session, code):
+            return False
+        # Any cookie issued with the pass must reach the other worker threads.
+        self.session_manager.set_cookies(session.cookies)
+        try:
+            save_cookies(session, self.account)
+        except OSError as exc:
+            logger.warning("验证码通过后保存 Cookie 失败: {}", exc)
+        return True

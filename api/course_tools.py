@@ -29,6 +29,7 @@ from loguru import logger
 import requests
 from urllib3.util.retry import Retry
 
+from api.captcha import is_captcha_response
 from api.decode import card_page_has_payload
 from api.session import HTTP_TIMEOUT
 
@@ -181,6 +182,21 @@ class CourseTools:
                 response = getattr(session, method)(
                     url, timeout=HTTP_TIMEOUT, allow_redirects=False, **kwargs,
                 )
+            if is_captcha_response(response):
+                response.close()
+                response = None
+                # A verification page means the request was refused, so
+                # sending it once more after the pass cannot double-count.
+                if not self.chaoxing.solve_captcha(self.cancel_check):
+                    self._check_cancelled()
+                    raise RuntimeError(f"{label}需要验证码，自动识别未通过，请在浏览器中手动完成验证")
+                self._check_cancelled()
+                with self._without_retries(session, url, no_retry):
+                    response = getattr(session, method)(
+                        url, timeout=HTTP_TIMEOUT, allow_redirects=False, **kwargs,
+                    )
+                if is_captcha_response(response):
+                    raise RuntimeError(f"{label}需要验证码，自动识别未通过，请在浏览器中手动完成验证")
             if response.status_code not in statuses:
                 if response.status_code in {401, 403}:
                     raise RuntimeError(f"{label}访问受限或登录已失效（HTTP {response.status_code}）")
