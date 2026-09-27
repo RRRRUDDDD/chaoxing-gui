@@ -35,6 +35,8 @@ const MAX_HEALTH_BODY: usize = 64 * 1024;
 const MAX_INFLIGHT_REQUESTS: usize = 64;
 const MAX_RECENT_REQUESTS: usize = 1024;
 const RECENT_REQUEST_TTL: Duration = Duration::from_secs(60);
+/// host.log/backend.log rotate to `<name>.1` (one copy kept) past this size.
+const MAX_LOG_BYTES: u64 = 5 * 1024 * 1024;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -67,6 +69,8 @@ pub struct BackendState {
     requests: Mutex<RequestRegistry>,
     pub data_dir: std::path::PathBuf,
     pub log_dir: std::path::PathBuf,
+    host_log: LogFile,
+    backend_log: Arc<LogFile>,
     next_request_id: AtomicU64,
     start_claimed: AtomicBool,
     /// Only short transitions/spawn registration; never held during HTTP or grace.
@@ -200,6 +204,8 @@ impl BackendState {
             next_request_id: AtomicU64::new(1),
             start_claimed: AtomicBool::new(false),
             data_dir,
+            host_log: LogFile::new(log_dir.join("host.log")),
+            backend_log: Arc::new(LogFile::new(log_dir.join("backend.log"))),
             log_dir,
             lifecycle_lock: Mutex::new(()),
             stop_lock: Mutex::new(()),
@@ -257,7 +263,7 @@ impl BackendState {
             let _ = child.kill();
             let _ = child.try_wait();
         }
-        host_log(&self.log_dir, &format!("[backend] FAILED: {msg}"));
+        self.host_log(&format!("[backend] FAILED: {msg}"));
     }
 
     fn observe_exit(&self) {
@@ -284,19 +290,76 @@ impl BackendState {
     }
 }
 
-pub fn host_log(log_dir: &std::path::Path, line: &str) {
-    let _ = std::fs::create_dir_all(log_dir);
-    let path = log_dir.join("host.log");
-    if let Ok(mut f) = std::fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(&path)
-    {
+impl BackendState {
+    pub fn host_log(&self, line: &str) {
+        self.host_log.append(line);
+    }
+}
+
+/// Append-only log opened once and shared by writer threads. Past the size
+/// limit it is renamed to `<name>.1`, replacing the previous copy.
+pub struct LogFile {
+    path: PathBuf,
+    max_bytes: u64,
+    file: Mutex<Option<(std::fs::File, u64)>>,
+}
+
+impl LogFile {
+    pub fn new(path: PathBuf) -> Self {
+        Self::with_limit(path, MAX_LOG_BYTES)
+    }
+
+    fn with_limit(path: PathBuf, max_bytes: u64) -> Self {
+        LogFile {
+            path,
+            max_bytes,
+            file: Mutex::new(None),
+        }
+    }
+
+    fn open(&self) -> Option<(std::fs::File, u64)> {
+        if let Some(parent) = self.path.parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+        let file = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&self.path)
+            .ok()?;
+        let size = file.metadata().map(|m| m.len()).unwrap_or(0);
+        Some((file, size))
+    }
+
+    pub fn append(&self, line: &str) {
         let ts = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map(|d| d.as_secs())
             .unwrap_or(0);
-        let _ = writeln!(f, "[{ts}] {line}");
+        let entry = format!(
+            "[{ts}] {line}
+"
+        );
+        let mut current = self.file.lock().unwrap_or_else(|e| e.into_inner());
+        // Opening is retried on the next line if the directory is unavailable.
+        if current.is_none() {
+            *current = self.open();
+        }
+        if current
+            .as_ref()
+            .is_some_and(|(_, size)| *size >= self.max_bytes)
+        {
+            // Windows cannot rename a file this process still holds open.
+            *current = None;
+            let mut rotated = self.path.clone().into_os_string();
+            rotated.push(".1");
+            let _ = std::fs::rename(&self.path, PathBuf::from(rotated));
+            *current = self.open();
+        }
+        if let Some((file, size)) = current.as_mut() {
+            if file.write_all(entry.as_bytes()).is_ok() {
+                *size += entry.len() as u64;
+            }
+        }
     }
 }
 
@@ -328,7 +391,7 @@ enum Handshake {
 fn read_handshake(
     stdout: std::process::ChildStdout,
     expected_instance: String,
-    log_dir: PathBuf,
+    log: Arc<LogFile>,
 ) -> (
     std::sync::mpsc::Receiver<Handshake>,
     std::thread::JoinHandle<()>,
@@ -343,10 +406,7 @@ fn read_handshake(
                 Err(_) => break,
             };
             if line.len() > MAX_HANDSHAKE_LINE {
-                append_backend_log(
-                    &log_dir,
-                    &format!("[oversized line dropped: {} bytes]", line.len()),
-                );
+                log.append(&format!("[oversized line dropped: {} bytes]", line.len()));
                 continue;
             }
             if let Ok(r) = serde_json::from_str::<ReadyLine>(&line) {
@@ -357,45 +417,29 @@ fn read_handshake(
                     let _ = tx.send(Handshake::Ready(r));
                     // Keep draining stdout to EOF so the pipe doesn't fill.
                     for rest in lines.by_ref().flatten() {
-                        append_backend_log(&log_dir, &format!("[stdout] {rest}"));
+                        log.append(&format!("[stdout] {rest}"));
                     }
                     return;
                 }
-                append_backend_log(&log_dir, &format!("[stdout] invalid ready line: {line}"));
+                log.append(&format!("[stdout] invalid ready line: {line}"));
                 continue;
             }
-            append_backend_log(&log_dir, &format!("[stdout] {line}"));
+            log.append(&format!("[stdout] {line}"));
         }
         let _ = tx.send(Handshake::Eof);
     });
     (rx, handle)
 }
 
-fn append_backend_log(log_dir: &std::path::Path, line: &str) {
-    let _ = std::fs::create_dir_all(log_dir);
-    let path = log_dir.join("backend.log");
-    if let Ok(mut f) = std::fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(&path)
-    {
-        let ts = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map(|d| d.as_secs())
-            .unwrap_or(0);
-        let _ = writeln!(f, "[{ts}] {line}");
-    }
-}
-
 /// Drain stderr into backend.log on a background thread (never let the pipe fill).
 fn drain_stderr(
     stderr: std::process::ChildStderr,
-    log_dir: PathBuf,
+    log: Arc<LogFile>,
 ) -> std::thread::JoinHandle<()> {
     std::thread::spawn(move || {
         let reader = BufReader::new(stderr);
         for line in reader.lines().map_while(Result::ok) {
-            append_backend_log(&log_dir, &format!("[stderr] {line}"));
+            log.append(&format!("[stderr] {line}"));
         }
     })
 }
@@ -533,10 +577,9 @@ pub fn start_backend(state: &Arc<BackendState>, launch: BackendLaunch) -> Result
         }
         (stdout, stderr)
     };
-    let log_dir = state.log_dir.clone();
     let (handshake_rx, _stdout_thread) =
-        read_handshake(stdout, instance_id.clone(), log_dir.clone());
-    let _stderr_thread = drain_stderr(stderr, log_dir.clone());
+        read_handshake(stdout, instance_id.clone(), state.backend_log.clone());
+    let _stderr_thread = drain_stderr(stderr, state.backend_log.clone());
 
     let result: Result<(), String> = (|| {
         let ready = await_handshake(state, &handshake_rx, deadline)?;
@@ -549,7 +592,7 @@ pub fn start_backend(state: &Arc<BackendState>, launch: BackendLaunch) -> Result
         check_starting_child(state)?;
         *state.port.lock().unwrap_or_else(|e| e.into_inner()) = Some(ready.port);
         *state.phase.lock().unwrap_or_else(|e| e.into_inner()) = BackendPhase::Ready;
-        host_log(&log_dir, &format!("[backend] ready on port {}", ready.port));
+        state.host_log(&format!("[backend] ready on port {}", ready.port));
         Ok(())
     })();
     if let Err(message) = &result {
@@ -720,7 +763,7 @@ pub fn stop_backend(state: &Arc<BackendState>) {
             .unwrap_or_else(|e| e.into_inner());
         *state.phase.lock().unwrap_or_else(|e| e.into_inner()) = BackendPhase::Stopped;
     }
-    host_log(&state.log_dir, "[backend] stopped");
+    state.host_log("[backend] stopped");
 }
 
 /// Non-Ready guard for business requests.
@@ -948,6 +991,37 @@ mod tests {
         assert!(requests.recent.is_empty());
         assert!(!requests.cancel(123));
         assert!(requests.recent.is_empty());
+    }
+
+    #[test]
+    fn log_file_rotates_once_past_the_limit_and_keeps_one_copy() {
+        let dir = std::env::temp_dir().join(format!("chaoxing-log-{}", random_hex(8)));
+        let path = dir.join("nested").join("backend.log");
+        let log = LogFile::with_limit(path.clone(), 64);
+        log.append("first line that fills most of the limit ........");
+        log.append("second line crosses the limit");
+        let rotated = dir.join("nested").join("backend.log.1");
+        assert!(!rotated.exists(), "rotated before the limit was reached");
+        log.append("third line starts a new file");
+        let old = std::fs::read_to_string(&rotated).unwrap();
+        assert!(old.contains("first line") && old.contains("second line"));
+        assert!(std::fs::read_to_string(&path)
+            .unwrap()
+            .contains("third line"));
+        for index in 0..8 {
+            log.append(&format!(
+                "filler {index} ....................................."
+            ));
+        }
+        let current = std::fs::read_to_string(&path).unwrap();
+        let previous = std::fs::read_to_string(&rotated).unwrap();
+        assert!(
+            !previous.contains("first line"),
+            "more than one old copy kept"
+        );
+        assert!(current.len() as u64 <= 64 + 80 && previous.len() as u64 <= 64 + 80);
+        drop(log);
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]

@@ -31,7 +31,7 @@ pub fn run() {
                 Some(root) => root.join("logs"),
                 None => app.path().app_log_dir()?,
             };
-            let state = Arc::new(BackendState::new(data_dir.clone(), log_dir.clone()));
+            let state = Arc::new(BackendState::new(data_dir.clone(), log_dir));
             app.manage(state.clone());
             app.manage(session_store::SessionStore::new(&data_dir));
             let notice = Arc::new(Mutex::new(None));
@@ -53,7 +53,7 @@ pub fn run() {
 
             let handle = app.handle().clone();
             std::thread::spawn(move || {
-                backend::host_log(&log_dir, "[host] starting");
+                state.host_log("[host] starting");
                 // Never read a real Electron profile implicitly in development.
                 let import_legacy = !cfg!(debug_assertions)
                     || std::env::var_os(migration::LEGACY_DIR_ENV).is_some();
@@ -65,11 +65,11 @@ pub fn run() {
                         }
                         Ok(migration::MigrationOutcome::ImportedButSessionInvalid(reason)) => {
                             *notice.lock().unwrap_or_else(|e| e.into_inner()) = Some("旧账号记录无法导入，请重新登录。其他有效数据已导入，原文件已保留。".into());
-                            backend::host_log(&log_dir, &format!("[migration] session skipped: {reason}"));
+                            state.host_log(&format!("[migration] session skipped: {reason}"));
                         }
-                        Ok(outcome) => backend::host_log(&log_dir, &format!("[migration] {outcome:?}")),
+                        Ok(outcome) => state.host_log(&format!("[migration] {outcome:?}")),
                         Err(error) => {
-                            backend::host_log(&log_dir, &format!("[migration] failed: {error}"));
+                            state.host_log(&format!("[migration] failed: {error}"));
                             state_phase_fail(&state, "旧数据导入失败，原有数据已保留。请检查数据目录权限后重新打开应用。".into());
                             return;
                         }
@@ -78,7 +78,7 @@ pub fn run() {
                 match launch_backend(&handle) {
                     Ok(launch) => {
                         if let Err(error) = backend::start_backend(&state, launch) {
-                            backend::host_log(&log_dir, &format!("[host] backend start failed: {error}"));
+                            state.host_log(&format!("[host] backend start failed: {error}"));
                         }
                     }
                     Err(error) => state_phase_fail(&state, error),
@@ -143,7 +143,7 @@ fn state_phase_fail(state: &Arc<BackendState>, message: String) {
     }
     *state.error.lock().unwrap_or_else(|e| e.into_inner()) = Some(message.clone());
     *phase = backend::BackendPhase::Failed;
-    backend::host_log(&state.log_dir, &format!("[host] failed: {message}"));
+    state.host_log(&format!("[host] failed: {message}"));
 }
 
 fn allowed_navigation(url: &tauri::Url) -> bool {

@@ -14,6 +14,7 @@ from flask_cors import CORS
 import threading
 import time
 import json
+import logging
 import atexit
 import math
 from contextlib import contextmanager
@@ -57,6 +58,10 @@ else:
 HEADLESS = os.environ.get("CHAOXING_HEADLESS") == "1"
 TAURI_MODE = os.environ.get("CHAOXING_TAURI") == "1"
 PORT = 0 if TAURI_MODE else int(os.environ.get("CHAOXING_PORT", "5000"))
+if TAURI_MODE or HEADLESS:
+    # The desktop host polls several times a second; one access line per poll
+    # would fill backend.log.
+    logging.getLogger("werkzeug").setLevel(logging.WARNING)
 # 仅限本机访问时也绑定回环地址, 避免局域网内其他设备访问控制台/配置接口
 HOST = "127.0.0.1"
 # CORS 限定为本机来源, 防止用户浏览器中打开的任意网页跨域读取配置接口
