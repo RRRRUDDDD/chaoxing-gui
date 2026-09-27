@@ -15,7 +15,7 @@ from requests.structures import CaseInsensitiveDict
 from urllib3.util.retry import Retry
 
 from api.course_tools import (
-    CARDS_URL, COURSE_URL, STAT_INDEX_URL, STAT_TIME_URL, STATUS_URL, STUDY_URL,
+    CARDS_URL, STAT_INDEX_URL, STAT_TIME_URL, STUDY_URL,
     VIDEO_REFERER, VISITS_URL, CourseTools, ToolCancelled,
 )
 from api.session import HTTP_TIMEOUT, SessionManager

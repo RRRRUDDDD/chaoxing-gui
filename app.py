@@ -500,7 +500,7 @@ def _notification_message(store, task_id, outcome, error):
     return f"{message}\n{error}" if error else message
 
 
-def _run_study_task(task_id, store, common_config, tiku_config, notification_config, ocr_config):
+def _run_study_task(task_id, store, common_config, tiku_config, notification_config):
     progress = _StudyProgress(store, task_id)
 
     def cancelled():
@@ -645,13 +645,14 @@ def _study_config(data):
     if notopen_action not in ("retry", "continue"):
         raise ValueError("Web 任务仅支持 retry 或 continue，不能交互询问")
     configs = []
-    for key in ("tiku_config", "notification_config", "ocr_config"):
+    for key in ("tiku_config", "notification_config"):
         config = data.get(key, {})
-        if config is None and key == "ocr_config":
-            config = {}
         if not isinstance(config, dict):
             raise ValueError(f"{key} 必须为对象")
         configs.append(config)
+    # Older front ends and recovery records still send it; tasks never use it.
+    if not isinstance(data.get("ocr_config", {}), (dict, type(None))):
+        raise ValueError("ocr_config 必须为对象")
     common_config = {
         "username": username, "password": password, "use_cookies": use_cookies,
         "course_list": course_list, "jobs": jobs, "speed": min(2.0, max(1.0, speed)),
@@ -734,7 +735,7 @@ def start_study():
             key: common_config[key]
             for key in ("course_list", "jobs", "speed", "retry_interval", "notopen_action")
         }
-        resume_config.update(zip(("tiku_config", "notification_config", "ocr_config"), configs))
+        resume_config.update(zip(("tiku_config", "notification_config"), configs))
         task_id = store.create(
             common_config["username"], _initial_status(), {"courses": [], "active_jobs": {}},
             resume_config=resume_config,

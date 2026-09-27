@@ -5,7 +5,6 @@ import enum
 import math
 import sys
 import threading
-import time
 import traceback
 from concurrent.futures.thread import ThreadPoolExecutor
 from contextlib import nullcontext
@@ -14,12 +13,10 @@ from dataclasses import dataclass, field
 from queue import PriorityQueue
 from typing import Any
 
-from tqdm import tqdm
-
 from api.answer import Tiku
 from api.base import Chaoxing, Account, StudyResult, _is_cancelled
 from api.exceptions import LoginError, InputFormatError
-from api.logger import logger
+from api.logger import logger, set_console_level
 from api.notification import Notification
 from api.live import Live
 from api.live_process import LiveProcessor
@@ -31,18 +28,6 @@ class ChapterResult(enum.Enum):
     PENDING=3
     EMPTY=4
     SKIPPED=5
-
-
-def log_error(func):
-    def wrapper(*args, **kwargs):
-        try:
-            func(*args, **kwargs)
-        except BaseException as e:
-            logger.error(f"Error in thread {threading.current_thread().name}: {e}")
-            traceback.print_exception(type(e), e, e.__traceback__)
-            raise
-
-    return wrapper
 
 
 def str_to_bool(value):
@@ -179,7 +164,9 @@ def build_config_from_args(args):
 def init_config():
     """初始化配置"""
     args = parse_args()
-    
+    if args.verbose:
+        set_console_level("DEBUG")
+
     if args.config:
         return load_config_from_file(args.config)
     else:
@@ -307,10 +294,6 @@ class CourseResult:
     @property
     def completed(self):
         return [task for task in self.tasks if task.result == ChapterResult.SUCCESS]
-
-    @property
-    def empty(self):
-        return [task for task in self.tasks if task.result == ChapterResult.EMPTY]
 
     @property
     def skipped(self):
@@ -746,18 +729,6 @@ def filter_courses(all_course, course_list, *, interactive=False):
     if not course_task:
         raise InputFormatError('没有可学习的课程')
     return course_task
-
-
-def format_time(num, suffix='', divisor=''):
-    total_time = round(num)
-    sec = total_time % 60
-    mins = (total_time % 3600) // 60
-    hrs = total_time // 3600
-
-    if hrs > 0:
-        return f"{hrs:02d}:{mins:02d}:{sec:02d}"
-
-    return f"{mins:02d}:{sec:02d}"
 
 
 def main():

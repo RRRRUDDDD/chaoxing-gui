@@ -13,8 +13,6 @@ import json
 import re
 from urllib.parse import parse_qs, urljoin, urlsplit, urlunsplit
 
-from bs4 import BeautifulSoup
-
 from loguru import logger
 
 from api.course_tools import CourseTools, _check_html, _scalar, _number
@@ -22,18 +20,7 @@ from api.reading_browser import scroll_book
 
 
 READ_WORK_URL = "https://mooc1.chaoxing.com/mooc-ans/api/work"
-READ_LOG_URL = "https://mooc1.chaoxing.com/multimedia/readlog"
-READ_WORK_PATH = "/mooc-ans/api/work"
-READ_LOG_PATH = "/multimedia/readlog"
-# Captured from the real book page: courseMainBox is 470px, and logs.js only
-# reports after scrollTop changes. The probe wheel sequence was +380,+380,-280.
-READ_HEIGHT = "470"
-READ_SCROLL_STEPS = (380, 380, -280)
 READ_CARDS_PATH = "/mooc-ans/zt/getcards"
-# Compatibility aliases make the protocol names easy to discover for callers
-# and keep tests independent from the implementation's naming style.
-READLOG_URL = READ_LOG_URL
-READ_CARDS_URL = "https://mooc1.chaoxing.com" + READ_CARDS_PATH
 # The link emitted by the reading task starts at ``/course/<id>.html`` and
 # the platform redirects it to the canonical ``/zt/<id>.html`` page.  Both
 # forms carry the same book identity and must be accepted while validating
@@ -98,15 +85,6 @@ def _platform_url(value, *, base=None, path=None):
     if path is not None and not path(parts.path):
         raise ValueError("专题阅读地址路径不受支持")
     return urlunsplit(("https", parts.netloc, parts.path, parts.query, ""))
-
-
-def _scroll_after(position, index):
-    """Return the next scroll offset used by the real reading page."""
-    delta = READ_SCROLL_STEPS[index % len(READ_SCROLL_STEPS)]
-    nxt = position + delta
-    if nxt < 0:
-        nxt = position + READ_SCROLL_STEPS[0]
-    return nxt
 
 
 def _text_number(value):
@@ -417,33 +395,10 @@ class ReadingTools(CourseTools):
             if kind == "empty":
                 continue
             return {"url": url, "courseid": course_id, "chapterid": chapter_id,
-                    "query": query, "height": READ_HEIGHT}
+                    "query": query}
         if saw_task:
             raise RuntimeError("专题书籍章节是视频或其他任务点，不是阅读页")
         raise RuntimeError("专题书籍没有可读内容")
-
-    def _readlog_url(self, context):
-        return _platform_url(READ_LOG_PATH, base=context["url"],
-                             path=lambda p: p == READ_LOG_PATH)
-
-    def _readlog(self, context, h):
-        """Parse one legacy heartbeat. An empty object is not platform credit."""
-        try:
-            scroll = int(h)
-        except (TypeError, ValueError):
-            raise ValueError("阅读滚动位置无效") from None
-        if scroll < 0 or scroll > 10_000_000:
-            raise ValueError("阅读滚动位置无效")
-        params = {"courseid": context["courseid"], "chapterid": context["chapterid"],
-                  "height": str(context["height"]), **context["query"], "h": str(scroll)}
-        response_text = self._text("get", self._readlog_url(context), "阅读时长上报", no_retry=True,
-                                   params=params, headers={"Referer": context["url"]})
-        try:
-            payload = json.loads(response_text)
-        except (TypeError, ValueError):
-            raise RuntimeError("阅读时长上报返回了无效响应") from None
-        if payload != {}:
-            raise RuntimeError("阅读时长上报未确认成功")
 
     def watch_reading(self, course, resource, seconds, on_progress=None):
         self._check_cancelled()

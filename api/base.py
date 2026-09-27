@@ -13,7 +13,7 @@ from loguru import logger
 from requests import RequestException
 from tqdm import tqdm
 
-from api.answer import *
+from api.answer import Tiku
 from api.answer_check import cut
 from api.cipher import AESCipher
 from api.config import GlobalConst as gc
@@ -100,8 +100,6 @@ def _open_progress(total, initial, desc):
 class Account:
     username = None
     password = None
-    last_login = None
-    isSuccess = None
 
     def __init__(self, _username, _password):
         self.username = _username
@@ -132,11 +130,8 @@ class StudyResult(Enum):
     SUCCESS = 0
     FORBIDDEN = 1  # 403
     ERROR = 2
-    TIMEOUT = 3
     SKIPPED = 4
 
-    def is_success(self):
-        return self == StudyResult.SUCCESS
     def is_failure(self):
         return self not in {StudyResult.SUCCESS, StudyResult.SKIPPED}
 
@@ -149,7 +144,6 @@ class Chaoxing:
         self.session_manager = SessionManager(account.username if account else None)
         self._closed = False
         self._root_course_list_html = None
-        self.rollback_times = 0
         self.rate_limiter = RateLimiter(0.5) # 其他接口速率限制比较松
         self.video_log_limiter = RateLimiter(2) # 上报进度极其容易卡验证码，限制2s一次
 
@@ -543,9 +537,6 @@ class Chaoxing:
 
         _dtoken = _video_info["dtoken"]
 
-        _crc = _video_info["crc"]
-        _key = _video_info["key"]
-
         # Time in the real world: last_iter, gc.THRESHOLD
         # Time in the video (can be scaled with the speed factor): duration, play_time, last_log_time, wait_time
 
@@ -870,23 +861,24 @@ class Chaoxing:
         total_questions = len(questions["questions"])
         found_answers = 0
 
-        def _handle_question(q, inc_found):
-            nonlocal found_answers
+        def _handle_question(q) -> bool:
+            """Fill one answer; True only when it came from the question bank."""
             if _is_cancelled(cancel_check):
-                return
+                return False
             logger.debug(f"当前题目信息 -> {q}")
             # 添加搜题延迟 #428 - 默认0s延迟
             query_delay = self.kwargs.get("query_delay", 0)
             if query_delay:
                 if _wait_for_cancel(query_delay, cancel_check):
-                    return
+                    return False
             if _is_cancelled(cancel_check):
-                return
+                return False
             # An undecodable encrypted font goes straight to the no-answer path.
             res = None if q.get("undecodable") else self.tiku.query(q)
             if _is_cancelled(cancel_check):
-                return
+                return False
             answer = ""
+            found = False
             if not res:
                 # 随机答题
                 answer = random_answer(q, q["options"])
@@ -960,20 +952,17 @@ class Chaoxing:
                 else:
                     logger.info(f"成功获取到答案：{answer}")
                     q[f'answerSource{q["id"]}'] = "cover"
-                    inc_found()
+                    found = True
             # 填充答案
             q["answerField"][f'answer{q["id"]}'] = answer
             logger.info(f'{q["title"]} 填写答案为 {answer}')
-
-        def inc_found_seq():
-            nonlocal found_answers
-            found_answers += 1
+            return found
 
         for q in questions["questions"]:
             if _is_cancelled(cancel_check):
                 return StudyResult.SKIPPED
             with self.session_manager.context():
-                _handle_question(q, inc_found_seq)
+                found_answers += _handle_question(q)
         if _is_cancelled(cancel_check):
             return StudyResult.SKIPPED
         cover_rate = (found_answers / total_questions) * 100
@@ -982,7 +971,7 @@ class Chaoxing:
         # 提交模式  现在与题库绑定,留空直接提交, 1保存但不提交
         if self.tiku.get_submit_params() == "1":
             questions["pyFlag"] = "1"
-        elif cover_rate >= self.tiku.COVER_RATE * 100 or self.rollback_times >= 1:
+        elif cover_rate >= self.tiku.COVER_RATE * 100:
             questions["pyFlag"] = ""
         else:
             questions["pyFlag"] = "1"

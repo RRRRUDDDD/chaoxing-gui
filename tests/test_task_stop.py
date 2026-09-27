@@ -92,7 +92,7 @@ class StudyTaskStopTests(OfflineStopTests):
 
     def run_task(self):
         common = config(username="offline", password="unused", use_cookies=False, course_list=[COURSE["courseId"]])
-        web._run_study_task(self.task_id, self.store, common, {}, {}, {})
+        web._run_study_task(self.task_id, self.store, common, {}, {})
 
     def assert_cancelled(self):
         status = self.store.get_status(self.task_id)
@@ -385,7 +385,7 @@ class LiveStopTests(OfflineStopTests):
     def test_stop_interrupts_live_sleep_and_job_is_skipped(self):
         client = Mock()
         with patch("main.Live", return_value=self.live), \
-             patch("api.live_process.time.sleep", side_effect=lambda delay: self.cancel.set()) as sleep:
+             patch("api.base.time.sleep", side_effect=lambda delay: self.cancel.set()) as sleep:
             result = main.process_job(client, COURSE, {"type": "live", "jobid": "live-1"}, {}, 1,
                                       cancel_check=self.cancel.is_set)
         self.assertEqual(result, StudyResult.SKIPPED)
@@ -394,7 +394,7 @@ class LiveStopTests(OfflineStopTests):
 
     def test_stop_interrupts_live_retry_without_another_submission(self):
         self.live.do_finish.return_value = False
-        with patch("api.live_process.time.sleep", side_effect=lambda delay: self.cancel.set()):
+        with patch("api.base.time.sleep", side_effect=lambda delay: self.cancel.set()):
             self.assertFalse(LiveProcessor.run_live(self.live, cancel_check=self.cancel.is_set))
         self.live.do_finish.assert_called_once_with()
 

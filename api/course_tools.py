@@ -424,6 +424,11 @@ class CourseTools:
         return int(total)
 
     def get_statistics(self, course):
+        """Visits and watched minutes for one course.
+
+        Not wired to any task or route yet; kept for a planned statistics view
+        and covered by tests.
+        """
         self._check_cancelled()
         params = self._course_params(course)
         result = {"visits": None, "watched_minutes": None, "total_minutes": None, "warnings": []}

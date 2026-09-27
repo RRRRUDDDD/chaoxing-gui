@@ -20,8 +20,10 @@ from uuid import uuid4
 TERMINAL_STATES = frozenset({"completed", "error", "partial", "cancelled"})
 RESUME_FIELDS = frozenset({
     "course_list", "jobs", "speed", "retry_interval", "notopen_action",
-    "tiku_config", "notification_config", "ocr_config",
+    "tiku_config", "notification_config",
 })
+# Records written before question-image OCR was removed still carry this key.
+LEGACY_RESUME_FIELDS = RESUME_FIELDS | {"ocr_config"}
 TOOL_RESUME_FIELDS = frozenset({"task_type", "course_list", "tool_options"})
 
 
@@ -125,6 +127,8 @@ class TaskStore:
             return None
         if not isinstance(config, dict):
             raise ValueError("恢复配置必须仅包含学习参数")
+        if set(config) == LEGACY_RESUME_FIELDS:
+            config = {key: value for key, value in config.items() if key != "ocr_config"}
         if set(config) != RESUME_FIELDS:
             if (set(config) != TOOL_RESUME_FIELDS
                     or not isinstance(config.get("task_type"), str)

@@ -145,7 +145,7 @@ class StudyResultTests(unittest.TestCase):
         live = Mock(name='offline-live')
         live.get_status.return_value = {'temp': {'data': {'duration': 59}}}
         live.do_finish.return_value = False
-        with patch('api.live_process.time.sleep'):
+        with patch('api.base.time.sleep'):
             self.assertFalse(LiveProcessor.run_live(live))
         self.assertEqual(live.do_finish.call_count, 2)
 

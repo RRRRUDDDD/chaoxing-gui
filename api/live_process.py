@@ -1,5 +1,3 @@
-import time
-
 from api.live import Live
 from api.logger import logger
 from api.base import _is_cancelled, _wait_for_cancel

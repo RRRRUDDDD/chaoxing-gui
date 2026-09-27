@@ -13,31 +13,11 @@ from pathlib import Path
 from re import sub
 from typing import Optional
 
-import requests
 from urllib3 import disable_warnings, exceptions
 
-from api.answer_check import *
+from api.answer_check import check_answer
 from api.logger import logger
 from api.decode import _ocr_image_to_text
-
-
-def _strip_json_block(md_str: str) -> str:
-    """去掉Markdown代码块包裹，返回纯JSON字符串"""
-    if not isinstance(md_str, str):
-        return ""
-    pattern = r'^\s*```(?:json)?\s*(.*?)\s*```\s*$'
-    match = re.search(pattern, md_str, re.DOTALL)
-    return match.group(1).strip() if match else md_str.strip()
-
-
-def _ensure_answer_list(value) -> list[str]:
-    """确保返回答案列表，兼容字符串、列表等多种格式"""
-    if value is None:
-        return []
-    if isinstance(value, (list, tuple, set)):
-        return [str(item).strip() for item in value if str(item).strip()]
-    text = str(value).strip()
-    return [text] if text else []
 
 
 def _prepare_option_lines(options) -> list[str]:
@@ -56,9 +36,6 @@ def _prepare_option_lines(options) -> list[str]:
             cleaned.append(item_str)
     return cleaned
 
-
-def _clean_option_prefix(option: str) -> str:
-    return re.sub(r"^[A-Za-z]\.?,?、?\s*", "", option).strip()
 
 # 关闭警告
 disable_warnings(exceptions.InsecureRequestWarning)
@@ -196,10 +173,6 @@ class CacheDAO:
             self._memory_cache = data
             return self._memory_cache
 
-    def _read_cache_locked(self) -> dict:
-        """兼容旧调用方；读取和发布仍由同一把可重入锁保护。"""
-        return self._read_cache()
-
     def _write_cache(self, data: dict) -> bool:
         """锁内写入临时文件并原子替换，失败不影响已有文件及待写内存。"""
         with self._lock:
@@ -274,7 +247,6 @@ class Tiku:
     false_list = []
     def __init__(self) -> None:
         self._name = None
-        self._api = None
         self._conf = None
         self._cache_dao: Optional[CacheDAO] = None
         self._close_lock = threading.Lock()
@@ -289,7 +261,7 @@ class Tiku:
                 logger.warning(f"关闭题库时缓存 flush 失败: {exc}")
                 flushed = False
             closed = set()
-            for name in ("client", "_httpx_client", "_session"):
+            for name in ("_session",):
                 resource = getattr(self, name, None)
                 if resource is None:
                     continue
@@ -310,22 +282,6 @@ class Tiku:
     @name.setter
     def name(self, value):
         self._name = value
-
-    @property
-    def api(self):
-        return self._api
-
-    @api.setter
-    def api(self, value):
-        self._api = value
-
-    @property
-    def token(self):
-        return self._token
-
-    @token.setter
-    def token(self, value):
-        self._token = value
 
     def init_tiku(self):
         # 仅用于题库初始化, 应该在题库载入后作初始化调用, 随后才可以使用题库

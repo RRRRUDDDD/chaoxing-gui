@@ -160,19 +160,17 @@ class AnswerCacheTests(unittest.TestCase):
         self.assertTrue(self.cache.flush())
         self.assertEqual(len(json.loads(self.path.read_text(encoding="utf8"))), 96)
 
-    def test_tiku_close_flushes_and_closes_owned_resources_once(self):
+    def test_tiku_close_flushes_and_closes_its_session_once(self):
         provider = Tiku()
         provider._cache_dao = self.cache
-        provider.client = Mock()
-        provider._httpx_client = Mock()
         provider._session = Mock()
-        clients = [provider.client, provider._httpx_client, provider._session]
+        session = provider._session
         self.cache.add_cache("question", "answer")
         provider.close()
         provider.close()
         self.assertEqual(json.loads(self.path.read_text(encoding="utf8")), {"question": "answer"})
-        for client in clients:
-            client.close.assert_called_once()
+        session.close.assert_called_once()
+        self.assertIsNone(provider._session)
 
     def test_empty_answer_is_not_cached(self):
         provider = Tiku()

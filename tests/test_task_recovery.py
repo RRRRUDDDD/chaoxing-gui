@@ -15,7 +15,7 @@ from api.task_state import TaskAlreadyRunning, TaskStore
 SETTINGS = {
     "course_list": ["course-1"], "jobs": 1, "speed": 1.4,
     "retry_interval": 0, "notopen_action": "continue",
-    "tiku_config": {}, "notification_config": {"provider": ""}, "ocr_config": {},
+    "tiku_config": {}, "notification_config": {"provider": ""},
 }
 
 
@@ -34,6 +34,22 @@ class TaskRecoveryTests(unittest.TestCase):
         )
         self.addCleanup(store.close)
         return store
+
+    def test_legacy_record_with_ocr_config_loads_and_resumes(self):
+        task_id = "legacy-task"
+        self.state_file.write_text(json.dumps({"version": 1, "tasks": {task_id: {
+            "account": "alice", "status": {**web._initial_status(), "status": "running"},
+            "details": {"courses": [], "active_jobs": {}},
+            "resume_config": {**SETTINGS, "ocr_config": {"provider": "openai"}},
+            "sequence": 0, "logs": [],
+        }}}), encoding="utf-8")
+        store = self.new_store()
+        self.assertEqual(store.get_status(task_id)["status"], "interrupted")
+        self.assertEqual(store.get_resume_config(task_id, "alice"), SETTINGS)
+        claimed = store.resume(task_id, "alice", web._initial_status(), {"courses": [], "active_jobs": {}})
+        self.assertNotIn("ocr_config", claimed)
+        saved = json.loads(self.state_file.read_text(encoding="utf-8"))
+        self.assertNotIn("ocr_config", saved["tasks"][task_id]["resume_config"])
 
     def create(self, account="alice"):
         return self.store.create(account, web._initial_status(), {"courses": [], "active_jobs": {}}, resume_config=SETTINGS)

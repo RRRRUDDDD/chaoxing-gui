@@ -39,7 +39,6 @@ try:
 except ImportError:
     PIL_AVAILABLE = False
 
-ENABLE_LOCAL_OCR = os.environ.get("CHAOXING_ENABLE_OCR", "0").strip().lower() in {"1", "true", "yes", "y", "on"}
 _PADDLE_OCR_ENGINE = None
 _PADDLE_OCR_INITIALIZED = False
 _PADDLE_OCR_DEVICE = None  # 记录当前 OCR 引擎运行的设备（gpu / cpu）
@@ -168,8 +167,7 @@ def _parse_paddle_ocr_result(ocr_result: Any) -> List[str]:
 def _init_paddle_ocr(preferred_device: Optional[str] = None):
     """延迟初始化 PaddleOCR 引擎。
 
-    - 优先使用环境中安装的 PaddleOCR 3.x（与 PaddleX 版本保持一致）；
-    - 未安装时回退到项目根目录下的源码副本；
+    - 只使用环境中安装的 paddleocr 包（与 PaddleX 版本保持一致），不回退到源码副本；
     - 初始化失败后 60 秒内不重复导入或构建引擎，不影响主流程。
     """
     global _PADDLE_OCR_ENGINE, _PADDLE_OCR_INITIALIZED, _PADDLE_OCR_DEVICE
@@ -425,7 +423,6 @@ def _local_ocr_result(image_bytes: bytes, img_url: str) -> OCRResult:
                             final_texts = _parse_paddle_ocr_result(ocr_result)
                         break
                     except Exception as exc:
-                        global _PADDLE_OCR_DEVICE
                         if (
                             device_attempt == 0
                             and isinstance(_PADDLE_OCR_DEVICE, str)
