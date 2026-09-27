@@ -21,7 +21,7 @@ const AdvancedSettings = ({ settings, onChange, onFieldValidity }) => {
   const handleTikuChange = (field, value) => {
     const previous = settings.tiku_config || {};
     const next = {};
-    for (const key of ['config', 'submit', 'cover_rate', 'delay', 'true_list', 'false_list']) {
+    for (const key of ['config', 'submit', 'cover_rate', 'delay', 'true_list', 'false_list', 'verify_ssl']) {
       if (previous[key] !== undefined) next[key] = previous[key];
     }
     next[field] = value;
@@ -90,6 +90,23 @@ const AdvancedSettings = ({ settings, onChange, onFieldValidity }) => {
                     </a>
                     {' '}相同，可以是 JSON 数组，也可以是订阅链接。占位符为 {'${title}'}、{'${options}'}、{'${type}'}。
                   </p>
+                </div>
+                <div className="space-y-1.5">
+                  <label htmlFor="tiku-verify-ssl" className="flex items-center gap-2 text-[13px] font-medium text-body">
+                    <input
+                      id="tiku-verify-ssl"
+                      type="checkbox"
+                      className="h-4 w-4 accent-brand"
+                      checked={settings.tiku_config?.verify_ssl !== false}
+                      onChange={(e) => handleTikuChange('verify_ssl', e.target.checked)}
+                    />
+                    校验题库 HTTPS 证书
+                  </label>
+                  {settings.tiku_config?.verify_ssl === false && (
+                    <p role="alert" className="text-xs text-danger">
+                      已关闭证书校验：题库请求可能被中间人窃听或篡改，仅在确认题库地址可信时使用。
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="tiku-submit">自动提交答题</Label>

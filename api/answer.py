@@ -13,8 +13,6 @@ from pathlib import Path
 from re import sub
 from typing import Optional
 
-from urllib3 import disable_warnings, exceptions
-
 from api.answer_check import check_answer
 from api.logger import logger
 from api.decode import _ocr_image_to_text
@@ -36,9 +34,6 @@ def _prepare_option_lines(options) -> list[str]:
             cleaned.append(item_str)
     return cleaned
 
-
-# 关闭警告
-disable_warnings(exceptions.InsecureRequestWarning)
 
 __all__ = ["CacheDAO", "Tiku"]
 

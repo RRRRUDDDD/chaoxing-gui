@@ -1,8 +1,10 @@
 import json
 import unittest
+import warnings
 from unittest.mock import Mock, patch
 
 import requests
+from urllib3.exceptions import InsecureRequestWarning
 
 from api.answer import Tiku
 from api.ocs_tiku import (
@@ -79,7 +81,7 @@ class TikuOcsTests(unittest.TestCase):
         self.assertIsInstance(loaded, TikuOcs)
         loaded.init_tiku()
 
-        def fake_get(url, params=None, headers=None, timeout=None, verify=None):
+        def fake_get(method, url, params=None, headers=None, timeout=None):
             response = Mock()
             response.raise_for_status.return_value = None
             if url.startswith("https://empty.test"):
@@ -90,7 +92,7 @@ class TikuOcsTests(unittest.TestCase):
                 response.json.return_value = {"code": 1, "question": "中国梦是什么", "answer": "复兴"}
             return response
 
-        with patch("api.ocs_tiku.requests.get", side_effect=fake_get):
+        with patch.object(loaded._session, "request", side_effect=fake_get):
             answer = loaded._query({"title": "中国梦是什么", "type": "single", "options": "A. 复兴"})
         self.assertEqual(answer, "复兴")
 
@@ -100,10 +102,12 @@ class TikuOcsTests(unittest.TestCase):
         response.raise_for_status.return_value = None
         response.content = b"[]"
         response.json.return_value = payload
-        with patch("api.ocs_tiku.requests.get", return_value=response) as get:
-            wrappers = load_wrappers({"subscription": "https://bank.test/ocs.json"})
+        session = requests.Session()
+        with patch.object(session, "request", return_value=response) as get:
+            wrappers = load_wrappers({"subscription": "https://bank.test/ocs.json"}, session)
         self.assertEqual(wrappers[0]["name"], "示例题库")
         get.assert_called_once()
+        session.close()
 
         broken = TikuOcs()
         broken.config_set({"config": "{not json"})
@@ -126,7 +130,7 @@ class TikuOcsTests(unittest.TestCase):
         ]})
         tiku.init_tiku()
 
-        def fake_get(url, params=None, headers=None, timeout=None, verify=None):
+        def fake_get(method, url, params=None, headers=None, timeout=None):
             if "down.test" in url:
                 raise requests.ConnectionError("offline")
             response = Mock()
@@ -134,8 +138,73 @@ class TikuOcsTests(unittest.TestCase):
             response.json.return_value = {"code": 1, "question": None, "answer": "B"}
             return response
 
-        with patch("api.ocs_tiku.requests.get", side_effect=fake_get):
+        with patch.object(tiku._session, "request", side_effect=fake_get):
             self.assertEqual(tiku._query({"title": "题目", "type": "single", "options": ["A. 一", "B. 二"]}), "B")
+
+
+class CertificateTests(unittest.TestCase):
+    def bank(self, **conf):
+        tiku = TikuOcs()
+        tiku.config_set({"wrappers": [_wrapper()], **conf})
+        tiku.init_tiku()
+        self.addCleanup(tiku.close)
+        return tiku
+
+    def answer(self):
+        response = Mock()
+        response.raise_for_status.return_value = None
+        response.json.return_value = {"code": 1, "question": "题", "answer": "A"}
+        return response
+
+    def test_certificates_are_checked_by_default_and_one_session_is_reused(self):
+        tiku = self.bank()
+        self.assertFalse(tiku.DISABLE)
+        self.assertTrue(tiku._session.verify)
+        session = tiku._session
+        with patch.object(session, "request", return_value=self.answer()) as send:
+            tiku._query({"title": "题", "type": "single", "options": ""})
+            tiku._query({"title": "题", "type": "single", "options": ""})
+        self.assertEqual(send.call_count, 2)
+        self.assertNotIn("verify", send.call_args.kwargs)
+        self.assertIs(tiku._session, session)
+
+    def test_explicit_opt_out_and_invalid_values(self):
+        for value in (False, "false", " FALSE "):
+            with self.subTest(value=value):
+                self.assertFalse(self.bank(verify_ssl=value)._session.verify)
+        self.assertTrue(self.bank(verify_ssl="true")._session.verify)
+        for value in ("no", 0, None, "1"):
+            with self.subTest(value=value):
+                self.assertTrue(self.bank(verify_ssl=value).DISABLE)
+
+    def test_opt_out_silences_only_its_own_requests(self):
+        tiku = self.bank(verify_ssl=False)
+
+        def insecure(*args, **kwargs):
+            warnings.warn("unverified", InsecureRequestWarning)
+            return self.answer()
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            with patch.object(tiku._session, "request", side_effect=insecure):
+                tiku._query({"title": "题", "type": "single", "options": ""})
+            warnings.warn("other request", InsecureRequestWarning)
+        self.assertEqual([str(item.message) for item in caught], ["other request"])
+
+    def test_certificate_failure_names_the_bank(self):
+        tiku = self.bank()
+        with patch.object(tiku._session, "request", side_effect=requests.exceptions.SSLError("bad cert")),                 patch("api.ocs_tiku.logger") as log:
+            self.assertIsNone(tiku._query({"title": "题", "type": "single", "options": ""}))
+        message = log.error.call_args.args[0]
+        self.assertIn("示例题库", message)
+        self.assertIn("关闭证书校验", message)
+
+    def test_close_releases_the_session(self):
+        tiku = self.bank()
+        session = tiku._session
+        with patch.object(session, "close") as close:
+            tiku.close()
+        close.assert_called_once()
 
 
 if __name__ == "__main__":

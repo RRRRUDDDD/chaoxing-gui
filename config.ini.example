@@ -42,6 +42,9 @@ cover_rate = 0.9
 # 每次搜题前的等待秒数
 delay = 1
 
+# 是否校验题库 HTTPS 证书（true/false）。仅在确认题库可信且使用自签名证书时改为 false
+verify_ssl = true
+
 
 [notification]
 # 通知类型: disable, pushplus, bark, dingtalk, feishu, wechat
