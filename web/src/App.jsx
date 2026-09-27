@@ -5,6 +5,7 @@ import StudyProgress from './components/StudyProgress';
 import api from './api/axios';
 import { sessionStore, validTaskId } from './lib/sessionStore';
 import { isTerminalStatus, startTaskPolling } from './lib/taskPolling';
+import { useReportTaskRunning } from './components/CloseChoiceDialog';
 
 function App() {
   const previewMode = new URLSearchParams(window.location.search).get('preview');
@@ -28,6 +29,7 @@ function App() {
   const taskRunning = !!taskId && !isTerminalStatus(taskStatus) && taskStatus !== 'missing';
   const currentTaskNotice = taskNotice?.username === userInfo?.username && taskNotice?.taskId === taskId ? taskNotice.message : '';
   const currentRecovery = recovery?.username === userInfo?.username && recovery?.taskId === taskId ? recovery : null;
+  useReportTaskRunning(taskRunning);
 
   useEffect(() => () => {
     sessionGeneration.current += 1;

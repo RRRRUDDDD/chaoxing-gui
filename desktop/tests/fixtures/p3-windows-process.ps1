@@ -34,6 +34,7 @@ try {
                 'snapshot' { $p3Owner.Inspect() }
                 'stdin-eof' { $p3Owner.CloseStdin(); $true }
                 'close-window' { $p3Owner.CloseWindow([string]$p3Request.title) }
+                'visible-windows' { $p3Owner.VisibleWindows([string]$p3Request.title) }
                 'kill-host' { $p3Owner.KillHost(); $true }
                 'kill-member' { $p3Owner.KillMember([uint32]$p3Request.pid, [string]$p3Request.createdAtFileTime); $true }
                 'tcp-listener' {

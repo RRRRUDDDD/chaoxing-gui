@@ -436,7 +436,7 @@ async function runTauri(options, context, evidence, result, record) {
   if (roots.length) await assertOwnedOrAbsent(roots, runId, context.sid);
   let index = 0;
 
-  async function launch(name, kind, fault) {
+  async function launch(name, kind, fault, closeAction = 'exit') {
     const scenarioRoot = path.join(work, `${++index}-${name}`);
     const scenarioEvidence = path.join(evidence, `${index}-${name}`);
     const packageRoot = options.usePackagedLayout ? path.dirname(options.hostPath) : path.join(scenarioRoot, 'package');
@@ -476,6 +476,10 @@ async function runTauri(options, context, evidence, result, record) {
     app.installLogBaseline = await Promise.all(app.installLogs.map(fingerprint));
     try {
       if (roots.length) await claimProfileRoots(roots, runId, context.sid);
+      // Without a saved choice the close button asks the page. Lifecycle
+      // scenarios expect WM_CLOSE to exit, so preset it beside the data dir.
+      item.closeAction = closeAction;
+      await writeClosePreference(path.dirname(app.data), closeAction);
       item.hostIdentity = await owner.start({ executable: host, args: [], cwd: packageRoot, env });
       item.outerJobAssignedBeforeResume = true;
       assert.equal(canonical(item.hostIdentity.executable), canonical(host));
@@ -549,8 +553,8 @@ async function runTauri(options, context, evidence, result, record) {
     assert.equal(app.item.cleanup.fallbackUsed, false, 'Fallback tree kill cannot satisfy the normal/forced lifecycle assertion');
   }
 
-  async function use(name, kind, action, { fault, force = false, ready = true } = {}) {
-    const app = await launch(name, kind, fault);
+  async function use(name, kind, action, { fault, force = false, ready = true, closeAction } = {}) {
+    const app = await launch(name, kind, fault, closeAction);
     await withCleanup(app, async () => {
       if (ready) await captureReady(app);
       try { await bounded(() => action(app), options.timeoutSeconds * 1000, `${name} assertions`); }
@@ -595,11 +599,37 @@ async function runTauri(options, context, evidence, result, record) {
       record('ready-backend-death-does-not-restart', { status });
     });
     await use('fake-force-host', 'fake', async () => {}, { force: true });
+    await use('fake-close-to-tray', 'fake', (app) => closeToTray(app, windowTitle, record), { closeAction: 'tray' });
   }
   if (options.scenario !== 'Fake') {
     await use('frozen-contracts', 'frozen', (app) => frozenContracts(app, record));
     if (options.nestedJob) await use('frozen-force-host', 'frozen', async () => {}, { force: true });
   }
+}
+
+export async function writeClosePreference(directory, closeAction) {
+  await mkdir(directory, { recursive: true });
+  assert.ok(await checkNoLinks(directory), 'Close preference directory must exist without links');
+  await writeFile(path.join(directory, 'desktop-preferences.json'), JSON.stringify({ version: 1, closeAction }));
+}
+
+// WM_CLOSE hides the window into the tray; the host and backend keep running.
+// The shared close() then switches to "exit" and proves the tree still ends.
+async function closeToTray(app, windowTitle, record) {
+  // Debug smoke starts the window hidden; Release starts it visible.
+  const visibleBefore = await app.owner.command('visible-windows', { title: windowTitle });
+  assert.equal(await app.owner.command('close-window', { title: windowTitle }), 1);
+  await until(async () => await app.owner.command('visible-windows', { title: windowTitle }) === 0, 'main window hidden to the tray');
+  const snapshot = await app.owner.snapshot();
+  assert.equal(snapshot.host.alive, true, 'Closing to the tray must keep the host');
+  for (const identity of app.backendIdentities) {
+    assert.ok(snapshot.active.some((entry) => entry.pid === identity.pid), 'Closing to the tray must keep the backend');
+  }
+  const status = await app.page.evaluate(() => window.__TAURI__.core.invoke('backend_status'));
+  assert.equal(status.phase, 'ready');
+  const saved = await app.page.evaluate(() => window.__TAURI__.core.invoke('preferences_write', { closeAction: 'exit' }));
+  assert.equal(saved.closeAction, 'exit');
+  record('close-to-tray-keeps-host-and-backend', { hostPid: snapshot.host.pid, visibleBefore, backends: app.backendIdentities.map((identity) => identity.pid) });
 }
 
 async function activate(locator) {

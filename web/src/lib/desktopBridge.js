@@ -1,4 +1,5 @@
 import { invoke, isTauri } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 
 export const isTauriDesktop = () => isTauri();
 
@@ -12,6 +13,12 @@ export const desktopBridge = Object.freeze({
   rememberLogin: (username) => invoke('session_remember_login', { username }),
   rememberTask: (task) => invoke('session_remember_task', { task }),
   clear: () => invoke('session_clear'),
+  // Resolves to an unlisten function.
+  onCloseRequested: (handler) => listen('close-requested', (event) => handler(event.payload)),
+  closePromptShown: (promptId) => invoke('close_prompt_shown', { promptId }),
+  closeChoice: (action, remember) => invoke('close_choice', { action, remember }),
+  readPreferences: () => invoke('preferences_read'),
+  writePreferences: (closeAction) => invoke('preferences_write', { closeAction }),
 });
 
 export function getSessionBridge() {

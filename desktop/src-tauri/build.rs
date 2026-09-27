@@ -9,6 +9,10 @@ fn main() {
             "session_remember_login",
             "session_remember_task",
             "session_clear",
+            "close_prompt_shown",
+            "close_choice",
+            "preferences_read",
+            "preferences_write",
         ]),
     ))
     .unwrap();

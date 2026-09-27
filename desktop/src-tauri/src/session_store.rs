@@ -333,7 +333,12 @@ fn tmp_path(path: &std::path::Path) -> std::path::PathBuf {
     path.with_file_name(name)
 }
 
-fn write_atomic(path: &std::path::Path, data: &SessionData) -> Result<(), std::io::Error> {
+/// Write JSON through a synced temporary file, then rename it into place.
+/// Shared by the session and desktop preference stores.
+pub(crate) fn write_atomic<T: Serialize>(
+    path: &std::path::Path,
+    data: &T,
+) -> Result<(), std::io::Error> {
     let tmp = tmp_path(path);
     let bytes = serde_json::to_vec(data).map_err(std::io::Error::other)?;
     if let Some(parent) = path.parent() {

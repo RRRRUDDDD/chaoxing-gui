@@ -11,7 +11,7 @@ import test from 'node:test';
 import {
   parseArguments, assertReleasePermission, assertOwnedOrAbsent, claimProfileRoots,
   releaseProfileRoots, removeProfilesAfterVerifiedCleanup, sanitizedEnvironment, validateInputs, until, withCleanup,
-  NativeSupervisor, windowsContext, assertBuildProfile, freePort,
+  NativeSupervisor, windowsContext, assertBuildProfile, freePort, writeClosePreference,
 } from '../scripts/p3-smoke.mjs';
 
 const exec = promisify(execFile);
@@ -471,5 +471,18 @@ test('Chinese title crosses the supervisor pipe and WM_CLOSE reaches only the ca
     assert.equal((await other.dispose()).fallbackUsed, false);
   } finally {
     try { await target.dispose(); } finally { await other.dispose(); }
+  }
+});
+
+test('smoke launches preset the close action beside the data directory', async () => {
+  const root = await realpath(await mkdtemp(path.join(os.tmpdir(), 'chaoxing-p3-close-')));
+  try {
+    const profile = path.join(root, 'profile');
+    await writeClosePreference(profile, 'exit');
+    assert.deepEqual(JSON.parse(await readFile(path.join(profile, 'desktop-preferences.json'), 'utf8')), { version: 1, closeAction: 'exit' });
+    // The data directory itself stays empty so legacy migration still runs.
+    assert.deepEqual(await readdir(profile), ['desktop-preferences.json']);
+  } finally {
+    await rm(root, { recursive: true, force: true });
   }
 });
