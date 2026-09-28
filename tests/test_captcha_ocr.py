@@ -155,6 +155,16 @@ class CaptchaLifecycleTests(unittest.TestCase):
                 self.assertIs(captcha.captcha_ocr(), engine)
                 self.assertEqual(start.call_count, 2)
 
+    def test_self_check_uses_the_application_engine(self):
+        # Only the recognizer is faked; the lookup path is the real one.
+        engine = Mock()
+        engine.classification.return_value = "1234"
+        engine.charset = ("", "1")
+        engine._session.get_providers.return_value = ["CPUExecutionProvider"]
+        with patch.object(captcha, "_ocr_engine", None), patch.object(captcha, "_ocr_retry_at", 0.0),                 patch.object(captcha, "CaptchaOcr", return_value=engine),                 patch("sys.stdout", io.StringIO()):
+            self.assertEqual(ocr.check_captcha_ocr(), 0)
+        engine.classification.assert_called_once()
+
     def test_self_check_runs_before_web_imports_and_business_initialization(self):
         entry = str(Path(__file__).resolve().parents[1] / "app.py")
         for code in (0, 1):

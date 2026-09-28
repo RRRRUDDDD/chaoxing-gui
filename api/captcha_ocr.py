@@ -112,9 +112,9 @@ def check_captcha_ocr(report_path: str | None = None) -> int:
     """Offline diagnostic for both actual executables; no Web or account IO."""
     try:
         from PIL import Image, ImageDraw, ImageFont
-        from api.captcha import ocr_init
+        from api.captcha import captcha_ocr
 
-        engine = ocr_init()
+        engine = captcha_ocr()
         if engine is None:
             raise RuntimeError("The application's captcha engine could not initialize")
         image = Image.new("RGB", (160, 60), "white")
