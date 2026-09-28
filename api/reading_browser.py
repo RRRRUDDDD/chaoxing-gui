@@ -13,9 +13,11 @@ import socket
 import subprocess
 import tempfile
 import time
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import urlsplit
 import urllib.request
 import re
+
+from api.url_policy import UrlMessages, canonical_https_url
 
 
 _HOST = re.compile(r"mooc\d+(?:-\d+|-ans)?\.chaoxing\.com\Z", re.I)
@@ -53,25 +55,22 @@ _STATE_JS = (
 _MAX_MESSAGE = 2_000_000
 
 
+READING_URL_MESSAGES = UrlMessages(
+    invalid="阅读资源地址无效", untrusted="拒绝非受信任的专题阅读地址", path="专题阅读地址路径不受支持",
+)
+
+
 def allow_reading_url(value):
-    """Return a canonical reading-page URL, or reject anything else."""
-    if not isinstance(value, str) or not value or len(value) > 16384:
-        raise ValueError("阅读资源地址无效")
-    if re.search(r"[\x00-\x20\x7f\\]", value):
-        raise ValueError("阅读资源地址无效")
-    try:
-        parts = urlsplit(value)
-        port = parts.port
-    except ValueError:
-        raise ValueError("阅读资源地址无效") from None
-    host = (parts.hostname or "").lower()
-    if (parts.scheme != "https" or not _HOST.fullmatch(host)
-            or parts.username is not None or parts.password is not None
-            or port not in (None, 443) or parts.fragment):
-        raise ValueError("拒绝非受信任的专题阅读地址")
-    if not (_BOOK_PATH.fullmatch(parts.path) or _NODE_PATH.fullmatch(parts.path)):
-        raise ValueError("专题阅读地址路径不受支持")
-    return urlunsplit(("https", parts.netloc, parts.path, parts.query, ""))
+    """Return a canonical reading-page URL, or reject anything else.
+
+    Unlike request-side checks this takes the browser's own URL, so it is
+    neither HTML-unescaped nor allowed to be http.
+    """
+    return canonical_https_url(
+        value, messages=READING_URL_MESSAGES, unescape=False, allow_http=False,
+        allowed=lambda host, parts: bool(_HOST.fullmatch(host)),
+        path=lambda path: bool(_BOOK_PATH.fullmatch(path) or _NODE_PATH.fullmatch(path)),
+    )
 
 
 def scroll_expression(step):

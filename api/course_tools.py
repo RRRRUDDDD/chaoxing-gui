@@ -22,7 +22,7 @@ import stat
 import tempfile
 import time
 import unicodedata
-from urllib.parse import quote, urljoin, urlsplit, urlunsplit
+from urllib.parse import quote, urlsplit
 
 from bs4 import BeautifulSoup
 from loguru import logger
@@ -31,6 +31,7 @@ from urllib3.util.retry import Retry
 
 from api.captcha import is_captcha_response
 from api.decode import card_page_has_payload
+from api.url_policy import UrlMessages, canonical_https_url
 from api.session import HTTP_TIMEOUT
 
 
@@ -78,41 +79,30 @@ def _seconds(milliseconds):
     return milliseconds // 1000 if milliseconds % 1000 == 0 else milliseconds / 1000
 
 
+_TRUSTED_MESSAGES = UrlMessages(invalid="上游资源地址无效", untrusted="上游资源地址不受支持")
+_MOOC_HOST = re.compile(r"mooc\d+(?:-\d+|-ans)?\.chaoxing\.com")
+_VIDEO_LOG_PATH = re.compile(r"/(?:mooc-ans/)?multimedia/log/[a-z]/[^?#]+")
+
+
 def _trusted_url(value, *, purpose="download", base=None):
     """Validate before issuing a request, including each redirect destination."""
-    if not isinstance(value, str) or not value or len(value) > 16384:
-        raise ValueError("上游资源地址无效")
-    value = html.unescape(value)
-    if re.search(r"[\x00-\x20\x7f\\]", value):
-        raise ValueError("上游资源地址无效")
-    if base:
-        value = urljoin(base, value)
-    try:
-        parts = urlsplit(value)
-        port = parts.port
-    except ValueError:
-        raise ValueError("上游资源地址无效") from None
-    host = (parts.hostname or "").lower()
-    if (parts.scheme not in {"https", "http"} or parts.username is not None
-            or parts.password is not None or port not in {None, 443}
-            or parts.fragment or not re.fullmatch(r"[a-z0-9.-]+", host)):
-        raise ValueError("上游资源地址不受支持")
-    if purpose == "visit":
-        allowed = host == "fystat-ans.chaoxing.com" and parts.path == "/log/setlog"
-    elif purpose == "video":
-        allowed = (
-            re.fullmatch(r"mooc\d+(?:-\d+|-ans)?\.chaoxing\.com", host)
-            and re.fullmatch(r"/(?:mooc-ans/)?multimedia/log/[a-z]/[^?#]+", parts.path)
-            and not parts.query
-        )
-    else:
-        # Authenticated media metadata also uses the cldisk CDN for documents.
-        allowed = host in {"chaoxing.com", "cldisk.com"} or host.endswith((".chaoxing.com", ".cldisk.com"))
-    if not allowed:
-        raise ValueError("拒绝非受信任的超星资源地址")
-    # Some status endpoints still label CDN links http. Never send the account's
-    # cookies or a signed URL over cleartext HTTP.
-    return urlunsplit(("https", parts.netloc, parts.path, parts.query, ""))
+    def allowed(host, parts):
+        if not re.fullmatch(r"[a-z0-9.-]+", host):
+            return False
+        if purpose == "visit":
+            trusted = host == "fystat-ans.chaoxing.com" and parts.path == "/log/setlog"
+        elif purpose == "video":
+            trusted = bool(_MOOC_HOST.fullmatch(host) and _VIDEO_LOG_PATH.fullmatch(parts.path)
+                           and not parts.query)
+        else:
+            # Authenticated media metadata also uses the cldisk CDN for documents.
+            trusted = host in {"chaoxing.com", "cldisk.com"} or host.endswith((".chaoxing.com", ".cldisk.com"))
+        if not trusted:
+            raise ValueError("拒绝非受信任的超星资源地址")
+        return True
+
+    # Some status endpoints still label CDN links http; the result is HTTPS.
+    return canonical_https_url(value, messages=_TRUSTED_MESSAGES, allowed=allowed, base=base)
 
 
 def _check_business(data, label):

@@ -8,15 +8,15 @@ the same account-owned session used by :mod:`api.course_tools`.
 
 from copy import deepcopy
 import hashlib
-import html
 import json
 import re
-from urllib.parse import parse_qs, urljoin, urlsplit, urlunsplit
+from urllib.parse import parse_qs, urlsplit, urlunsplit
 
 from loguru import logger
 
 from api.course_tools import CourseTools, _check_html, _scalar, _number
-from api.reading_browser import scroll_book
+from api.reading_browser import READING_URL_MESSAGES, scroll_book
+from api.url_policy import canonical_https_url
 
 
 READ_WORK_URL = "https://mooc1.chaoxing.com/mooc-ans/api/work"
@@ -66,25 +66,10 @@ def _cards_page_kind(value):
 
 def _platform_url(value, *, base=None, path=None):
     """Return a canonical HTTPS URL for the small set of reading endpoints."""
-    if not isinstance(value, str) or not value or len(value) > 16384:
-        raise ValueError("阅读资源地址无效")
-    value = html.unescape(value)
-    if re.search(r"[\x00-\x20\x7f\\]", value):
-        raise ValueError("阅读资源地址无效")
-    value = urljoin(base, value) if base else value
-    try:
-        parts = urlsplit(value)
-        port = parts.port
-    except ValueError:
-        raise ValueError("阅读资源地址无效") from None
-    host = (parts.hostname or "").lower()
-    if (parts.scheme not in {"http", "https"} or not MOOC_HOST.fullmatch(host)
-            or parts.username is not None or parts.password is not None
-            or port not in {None, 443} or parts.fragment):
-        raise ValueError("拒绝非受信任的专题阅读地址")
-    if path is not None and not path(parts.path):
-        raise ValueError("专题阅读地址路径不受支持")
-    return urlunsplit(("https", parts.netloc, parts.path, parts.query, ""))
+    return canonical_https_url(
+        value, messages=READING_URL_MESSAGES, base=base, path=path,
+        allowed=lambda host, parts: bool(MOOC_HOST.fullmatch(host)),
+    )
 
 
 def _text_number(value):
