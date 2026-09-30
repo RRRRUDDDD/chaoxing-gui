@@ -5,6 +5,7 @@ import importlib
 import os
 import tempfile
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 from unittest.mock import patch
 
 import api.cxsecret_font as cxfont
@@ -63,6 +64,23 @@ class FontMapTests(unittest.TestCase):
             with patch.object(cxfont, "FontHashDAO", side_effect=AssertionError("reloaded")):
                 with self.assertRaises(FontDecodeError):
                     cxfont.decrypt({}, "text")
+
+    def test_corrupt_mapping_shapes_raise_font_decode_errors(self):
+        for raw in ("[]", "{}", '{"uni4E00": []}'):
+            with self.subTest(raw=raw), tempfile.TemporaryDirectory() as root:
+                from pathlib import Path
+                path = Path(root) / "map.json"
+                path.write_text(raw, encoding="utf-8")
+                with self.assertRaises(FontDecodeError):
+                    cxfont.FontHashDAO(str(path))
+
+    def test_concurrent_first_use_loads_once(self):
+        dao = object()
+        with patch.object(cxfont, "FontHashDAO", return_value=dao) as initialize:
+            with ThreadPoolExecutor(max_workers=8) as workers:
+                results = list(workers.map(lambda _: cxfont.font_hash_dao(), range(24)))
+        initialize.assert_called_once()
+        self.assertTrue(all(result is dao for result in results))
 
     def test_undecodable_questions_are_marked_for_the_no_answer_path(self):
         cxfont._dao_error = "missing"

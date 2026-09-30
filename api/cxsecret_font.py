@@ -62,6 +62,9 @@ class FontHashDAO:
         try:
             with open(full_path, "r", encoding="utf-8") as fp:
                 self.char_map = json.load(fp)
+                if (not isinstance(self.char_map, dict) or not self.char_map
+                        or any(not isinstance(value, str) for value in self.char_map.values())):
+                    raise ValueError("字体映射表内容无效")
                 self.hash_map = {hash_val: char for char, hash_val in self.char_map.items()}
         except (OSError, ValueError) as e:
             raise FontDecodeError(f"加载字体映射表失败: {full_path} - {e}") from e
