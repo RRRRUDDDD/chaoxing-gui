@@ -18,18 +18,20 @@ import math
 import os
 from pathlib import Path
 import re
-import stat
 import tempfile
 import time
 import unicodedata
-from urllib.parse import quote, urljoin, urlsplit, urlunsplit
+from urllib.parse import quote, urlsplit
 
 from bs4 import BeautifulSoup
 from loguru import logger
 import requests
 from urllib3.util.retry import Retry
 
-from api.decode import card_page_has_payload
+from api.captcha import is_captcha_response
+from api.decode import card_page_has_payload, is_live_card
+from api.fs_policy import reject_links
+from api.url_policy import UrlMessages, canonical_https_url
 from api.session import HTTP_TIMEOUT
 
 
@@ -77,41 +79,30 @@ def _seconds(milliseconds):
     return milliseconds // 1000 if milliseconds % 1000 == 0 else milliseconds / 1000
 
 
+_TRUSTED_MESSAGES = UrlMessages(invalid="上游资源地址无效", untrusted="上游资源地址不受支持")
+_MOOC_HOST = re.compile(r"mooc\d+(?:-\d+|-ans)?\.chaoxing\.com")
+_VIDEO_LOG_PATH = re.compile(r"/(?:mooc-ans/)?multimedia/log/[a-z]/[^?#]+")
+
+
 def _trusted_url(value, *, purpose="download", base=None):
     """Validate before issuing a request, including each redirect destination."""
-    if not isinstance(value, str) or not value or len(value) > 16384:
-        raise ValueError("上游资源地址无效")
-    value = html.unescape(value)
-    if re.search(r"[\x00-\x20\x7f\\]", value):
-        raise ValueError("上游资源地址无效")
-    if base:
-        value = urljoin(base, value)
-    try:
-        parts = urlsplit(value)
-        port = parts.port
-    except ValueError:
-        raise ValueError("上游资源地址无效") from None
-    host = (parts.hostname or "").lower()
-    if (parts.scheme not in {"https", "http"} or parts.username is not None
-            or parts.password is not None or port not in {None, 443}
-            or parts.fragment or not re.fullmatch(r"[a-z0-9.-]+", host)):
-        raise ValueError("上游资源地址不受支持")
-    if purpose == "visit":
-        allowed = host == "fystat-ans.chaoxing.com" and parts.path == "/log/setlog"
-    elif purpose == "video":
-        allowed = (
-            re.fullmatch(r"mooc\d+(?:-\d+|-ans)?\.chaoxing\.com", host)
-            and re.fullmatch(r"/(?:mooc-ans/)?multimedia/log/[a-z]/[^?#]+", parts.path)
-            and not parts.query
-        )
-    else:
-        # Authenticated media metadata also uses the cldisk CDN for documents.
-        allowed = host in {"chaoxing.com", "cldisk.com"} or host.endswith((".chaoxing.com", ".cldisk.com"))
-    if not allowed:
-        raise ValueError("拒绝非受信任的超星资源地址")
-    # Some status endpoints still label CDN links http. Never send the account's
-    # cookies or a signed URL over cleartext HTTP.
-    return urlunsplit(("https", parts.netloc, parts.path, parts.query, ""))
+    def allowed(host, parts):
+        if not re.fullmatch(r"[a-z0-9.-]+", host):
+            return False
+        if purpose == "visit":
+            trusted = host == "fystat-ans.chaoxing.com" and parts.path == "/log/setlog"
+        elif purpose == "video":
+            trusted = bool(_MOOC_HOST.fullmatch(host) and _VIDEO_LOG_PATH.fullmatch(parts.path)
+                           and not parts.query)
+        else:
+            # Authenticated media metadata also uses the cldisk CDN for documents.
+            trusted = host in {"chaoxing.com", "cldisk.com"} or host.endswith((".chaoxing.com", ".cldisk.com"))
+        if not trusted:
+            raise ValueError("拒绝非受信任的超星资源地址")
+        return True
+
+    # Some status endpoints still label CDN links http; the result is HTTPS.
+    return canonical_https_url(value, messages=_TRUSTED_MESSAGES, allowed=allowed, base=base)
 
 
 def _check_business(data, label):
@@ -181,6 +172,21 @@ class CourseTools:
                 response = getattr(session, method)(
                     url, timeout=HTTP_TIMEOUT, allow_redirects=False, **kwargs,
                 )
+            if is_captcha_response(response, inspect_body=not kwargs.get("stream", False)):
+                response.close()
+                response = None
+                # A verification page means the request was refused, so
+                # sending it once more after the pass cannot double-count.
+                if not self.chaoxing.solve_captcha(self.cancel_check):
+                    self._check_cancelled()
+                    raise RuntimeError(f"{label}需要验证码，自动识别未通过，请在浏览器中手动完成验证")
+                self._check_cancelled()
+                with self._without_retries(session, url, no_retry):
+                    response = getattr(session, method)(
+                        url, timeout=HTTP_TIMEOUT, allow_redirects=False, **kwargs,
+                    )
+                if is_captcha_response(response, inspect_body=not kwargs.get("stream", False)):
+                    raise RuntimeError(f"{label}需要验证码，自动识别未通过，请在浏览器中手动完成验证")
             if response.status_code not in statuses:
                 if response.status_code in {401, 403}:
                     raise RuntimeError(f"{label}访问受限或登录已失效（HTTP {response.status_code}）")
@@ -269,8 +275,8 @@ class CourseTools:
         return chapters
 
     @staticmethod
-    def _card_data(text):
-        _check_html(text, "章节卡片")
+    def _card_data(soup):
+        text = " ".join(script.get_text() for script in soup.find_all("script"))
         # The platform initializes mArg to "" before assigning the resource
         # object inside try/catch. Match that object, not the placeholder.
         match = re.search(r"\bmArg\s*=\s*(?=\{)", text)
@@ -311,7 +317,7 @@ class CourseTools:
             raise RuntimeError("章节附件属性格式无效")
         kind = _scalar(attachment.get("type")).lower()
         module = _scalar(prop.get("module")).lower()
-        if "live" in kind or any(prop.get(key) for key in ("liveId", "streamName", "vdoid")):
+        if is_live_card(attachment):
             return None
         object_id = self._object_id(attachment)
         if kind == "audio" or module == "insertaudio":
@@ -382,14 +388,14 @@ class CourseTools:
                             "num": page, "v": "20160407-1", "mooc2": 1,
                         }
                         text = self._text("get", CARDS_URL, "章节卡片", params=params)
-                        if _LOCKED.search(BeautifulSoup(text, "html.parser").get_text()):
+                        soup = _check_html(text, "章节卡片")
+                        if _LOCKED.search(soup.get_text()):
                             logger.warning("章节“{}”未开放，已跳过剩余卡片", chapter["title"])
                             break
                         if probing and _CARD_PLACEHOLDER.search(text) and not card_page_has_payload(text):
-                            _check_html(text, "章节卡片")
                             break
                         try:
-                            data = self._card_data(text)
+                            data = self._card_data(soup)
                             for index, attachment in enumerate(data.get("attachments", [])):
                                 self._check_cancelled()
                                 resource = self._resource(
@@ -424,6 +430,11 @@ class CourseTools:
         return int(total)
 
     def get_statistics(self, course):
+        """Visits and watched minutes for one course.
+
+        Not wired to any task or route yet; kept for a planned statistics view
+        and covered by tests.
+        """
         self._check_cancelled()
         params = self._course_params(course)
         result = {"visits": None, "watched_minutes": None, "total_minutes": None, "warnings": []}
@@ -669,16 +680,7 @@ class CourseTools:
 
     @staticmethod
     def _download_directory(directory):
-        path = Path(directory).absolute()
-        for candidate in (path, *path.parents):
-            try:
-                info = candidate.lstat()
-            except FileNotFoundError:
-                continue
-            if stat.S_ISLNK(info.st_mode) or (
-                getattr(info, "st_file_attributes", 0) & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
-            ):
-                raise ValueError("下载目录不能包含链接或重解析点")
+        path = reject_links(directory)
         path.mkdir(parents=True, exist_ok=True)
         return path.resolve(strict=True)
 

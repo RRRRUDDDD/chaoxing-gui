@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Input from './ui/Input';
 import Label from './ui/Label';
 import Select from './ui/Select';
 import NumberInput from './ui/NumberInput';
-import { Settings2, Database, Bell, ChevronDown } from 'lucide-react';
+import { Settings2, Database, Bell, ChevronDown, AppWindow } from 'lucide-react';
+import { desktopBridge, isTauriDesktop } from '../lib/desktopBridge';
 
 const SectionHeader = ({ icon: Icon, title, description }) => (
   <div className="mb-4 flex items-start gap-2.5">
@@ -15,13 +16,56 @@ const SectionHeader = ({ icon: Icon, title, description }) => (
   </div>
 );
 
+// Desktop-only: what the window close button does, stored by the host.
+export const CloseActionSetting = () => {
+  const [value, setValue] = useState('');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    desktopBridge.readPreferences()
+      .then((preferences) => { if (active) setValue(preferences.closeAction); })
+      .catch(() => { if (active) setError('无法读取关闭方式'); });
+    return () => { active = false; };
+  }, []);
+
+  const change = async (next) => {
+    const previous = value;
+    setValue(next);
+    setError('');
+    try {
+      setValue((await desktopBridge.writePreferences(next)).closeAction);
+    } catch {
+      setValue(previous);
+      setError('无法保存关闭方式，请重试');
+    }
+  };
+
+  return (
+    <section className="rounded-xl border border-line p-4">
+      <SectionHeader icon={AppWindow} title="桌面窗口" description="点击窗口右上角关闭按钮时的操作" />
+      <div className="space-y-1.5">
+        <Label htmlFor="close-action">关闭窗口时</Label>
+        <Select id="close-action" value={value} disabled={!value} onChange={(e) => void change(e.target.value)}>
+          {!value && <option value="">读取中…</option>}
+          <option value="ask">每次询问</option>
+          <option value="minimize">最小化</option>
+          <option value="tray">最小化到托盘</option>
+          <option value="exit">直接退出</option>
+        </Select>
+        {error && <p role="alert" className="text-xs text-danger">{error}</p>}
+      </div>
+    </section>
+  );
+};
+
 const AdvancedSettings = ({ settings, onChange, onFieldValidity }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const handleTikuChange = (field, value) => {
     const previous = settings.tiku_config || {};
     const next = {};
-    for (const key of ['config', 'submit', 'cover_rate', 'delay', 'true_list', 'false_list']) {
+    for (const key of ['config', 'submit', 'cover_rate', 'delay', 'true_list', 'false_list', 'verify_ssl']) {
       if (previous[key] !== undefined) next[key] = previous[key];
     }
     next[field] = value;
@@ -90,6 +134,23 @@ const AdvancedSettings = ({ settings, onChange, onFieldValidity }) => {
                     </a>
                     {' '}相同，可以是 JSON 数组，也可以是订阅链接。占位符为 {'${title}'}、{'${options}'}、{'${type}'}。
                   </p>
+                </div>
+                <div className="space-y-1.5">
+                  <label htmlFor="tiku-verify-ssl" className="flex items-center gap-2 text-[13px] font-medium text-body">
+                    <input
+                      id="tiku-verify-ssl"
+                      type="checkbox"
+                      className="h-4 w-4 accent-brand"
+                      checked={settings.tiku_config?.verify_ssl !== false}
+                      onChange={(e) => handleTikuChange('verify_ssl', e.target.checked)}
+                    />
+                    校验题库 HTTPS 证书
+                  </label>
+                  {settings.tiku_config?.verify_ssl === false && (
+                    <p role="alert" className="text-xs text-danger">
+                      已关闭证书校验：题库请求可能被中间人窃听或篡改，仅在确认题库地址可信时使用。
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="tiku-submit">自动提交答题</Label>
@@ -185,6 +246,7 @@ const AdvancedSettings = ({ settings, onChange, onFieldValidity }) => {
               </div>
             </section>
 
+            {isTauriDesktop() && <CloseActionSetting />}
           </div>
         </div>
       </div>

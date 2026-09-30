@@ -10,6 +10,12 @@
     "allow-session-read",
     "allow-session-remember-login",
     "allow-session-remember-task",
-    "allow-session-clear"
+    "allow-session-clear",
+    "allow-close-prompt-shown",
+    "allow-close-choice",
+    "allow-preferences-read",
+    "allow-preferences-write",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten"
   ]
 }

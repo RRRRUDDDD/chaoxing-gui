@@ -6,10 +6,6 @@ import pyaes
 from api.config import GlobalConst as gc
 
 
-def pkcs7_unpadding(string):
-    return string[0 : -ord(string[-1])]
-
-
 def pkcs7_padding(s, block_size=16):
     bs = block_size
     return s + (bs - len(s) % bs) * chr(bs - len(s) % bs).encode()
@@ -44,12 +40,3 @@ class AESCipher:
             ciphertext = ciphertext + cbc.encrypt(b)
         base64_text = base64.b64encode(ciphertext).decode("utf8")
         return base64_text
-
-    # def decrypt(self, ciphertext: str):
-    #     cbc = pyaes.AESModeOfOperationCBC(self.key, self.iv)
-    #     ciphertext.encode('utf8')
-    #     ciphertext = base64.b64decode(ciphertext)
-    #     ptext = b""
-    #     for b in split_to_data_blocks(ciphertext):
-    #         ptext = ptext + cbc.decrypt(b)
-    #     return pkcs7_unpadding(ptext.decode())

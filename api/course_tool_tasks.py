@@ -12,7 +12,9 @@ import sys
 import time
 
 from api.exceptions import LoginError
+from api.fs_policy import reject_links
 from api.logger import logger
+from api.task_logging import task_log_sink
 from api.task_state import TaskNotFound
 
 
@@ -160,25 +162,15 @@ def selected_resources(store, account, course_ids, task_type, options):
         return selected
 
 
-def _reject_links(path):
-    for candidate in (path, *path.parents):
-        try:
-            info = candidate.lstat()
-        except FileNotFoundError:
-            continue
-        if stat.S_ISLNK(info.st_mode) or getattr(info, "st_file_attributes", 0) & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400):
-            raise ValueError("下载目录不能包含符号链接或目录联接")
-
-
 def download_directory(data_dir, task_id, *, create=False):
     if not isinstance(task_id, str) or not SAFE_ID.fullmatch(task_id):
         raise ValueError("任务 ID 格式错误")
     base = Path(os.path.abspath(data_dir))
     directory = base / "downloads" / task_id
-    _reject_links(directory)
+    reject_links(directory)
     if create:
         directory.mkdir(parents=True, exist_ok=True)
-        _reject_links(directory)
+        reject_links(directory)
     resolved = directory.resolve()
     if not resolved.is_relative_to(base.resolve()):
         raise ValueError("下载目录超出允许范围")
@@ -194,7 +186,7 @@ def _valid_download(result, directory):
             path = directory / path
         if not path.is_relative_to(directory):
             return False
-        _reject_links(path)
+        reject_links(path)
         info = path.stat()
         return stat.S_ISREG(info.st_mode) and type(result.get("bytes")) is int and result["bytes"] == info.st_size
     except (KeyError, TypeError, ValueError, OSError):
@@ -357,60 +349,49 @@ def run_tool_task(task_id, store, config, data_dir, client_factory):
     """Run only authenticated, bounded operations; publish terminal state last."""
     progress = _Progress(store, task_id, config)
     cancelled = lambda: store.is_cancelled(task_id)
-    outcome, error, sink_id = "error", None, None
+    outcome, error = "error", None
 
-    def capture(message):
-        record = message.record
-        if record["extra"].get("task_id") == task_id:
-            store.append_log(task_id, str(message), level=record["level"].name.lower(), timestamp=record["time"].timestamp())
-
-    with logger.contextualize(task_id=task_id):
-        try:
-            sink_id = logger.add(capture, enqueue=True, filter=lambda record: record["extra"].get("task_id") == task_id)
-            if cancelled():
-                return
-            with client_factory(config["username"], config["password"]) as client:
-                result = client.login(login_with_cookies=config["use_cookies"])
-                if not result["status"]:
-                    raise LoginError(result.get("msg", "登录失败"))
+    try:
+        with task_log_sink(store, task_id):
+            try:
                 if cancelled():
                     return
-                enrolled = {str(course["courseId"]): course for course in client.get_course_list()}
-                if any(course_id not in enrolled for course_id in config["course_list"]):
-                    raise ValueError("部分课程已不属于当前账号，请重新获取课程列表")
-                courses = [{**enrolled[course_id], "title": str(enrolled[course_id].get("title", ""))[:120]}
-                           for course_id in config["course_list"]]
-                service = create_service(client, cancelled, config["tool_options"].get("purpose", config["task_type"]))
-                with store.edit(task_id) as task:
-                    task.details["courses"] = [{"id": course["courseId"], "title": course["title"], "chapters": []} for course in courses]
-                if config["task_type"] in {"catalog", "visits"}:
-                    _run_courses(task_id, store, config, service, courses, progress, cancelled)
-                else:
-                    _run_resources(task_id, store, config, service, courses, progress, cancelled, data_dir)
-                outcome = _outcome(store, task_id)
-                if outcome != "completed":
-                    error = "部分操作未完成，请查看执行结果后重试"
-                if config["task_type"] == "download" and outcome == "completed":
+                with client_factory(config["username"], config["password"]) as client:
+                    result = client.login(login_with_cookies=config["use_cookies"])
+                    if not result["status"]:
+                        raise LoginError(result.get("msg", "登录失败"))
+                    if cancelled():
+                        return
+                    enrolled = {str(course["courseId"]): course for course in client.get_course_list()}
+                    if any(course_id not in enrolled for course_id in config["course_list"]):
+                        raise ValueError("部分课程已不属于当前账号，请重新获取课程列表")
+                    courses = [{**enrolled[course_id], "title": str(enrolled[course_id].get("title", ""))[:120]}
+                               for course_id in config["course_list"]]
+                    service = create_service(client, cancelled, config["tool_options"].get("purpose", config["task_type"]))
                     with store.edit(task_id) as task:
-                        task.details["tool"]["total_units"] = task.details["tool"]["completed_units"]
-                logger.info("{}执行结束", TASK_LABELS[config["task_type"]])
-        except Exception as exc:
-            error = str(exc)
-            outcome = _outcome(store, task_id, fatal=True)
-            if not cancelled():
-                logger.error("课程工具执行失败：{}", exc)
-        finally:
-            if cancelled():
-                outcome, error = "cancelled", None
-                logger.info("课程工具已停止，已完成的记录和下载文件已保留")
-            try:
-                logger.complete()
+                        task.details["courses"] = [{"id": course["courseId"], "title": course["title"], "chapters": []} for course in courses]
+                    if config["task_type"] in {"catalog", "visits"}:
+                        _run_courses(task_id, store, config, service, courses, progress, cancelled)
+                    else:
+                        _run_resources(task_id, store, config, service, courses, progress, cancelled, data_dir)
+                    outcome = _outcome(store, task_id)
+                    if outcome != "completed":
+                        error = "部分操作未完成，请查看执行结果后重试"
+                    if config["task_type"] == "download" and outcome == "completed":
+                        with store.edit(task_id) as task:
+                            task.details["tool"]["total_units"] = task.details["tool"]["completed_units"]
+                    logger.info("{}执行结束", TASK_LABELS[config["task_type"]])
+            except Exception as exc:
+                error = str(exc)
+                outcome = _outcome(store, task_id, fatal=True)
+                if not cancelled():
+                    logger.error("课程工具执行失败：{}", exc)
             finally:
-                try:
-                    if sink_id is not None:
-                        logger.remove(sink_id)
-                finally:
-                    store.finish(task_id, outcome, error=error)
+                if cancelled():
+                    outcome, error = "cancelled", None
+                    logger.info("课程工具已停止，已完成的记录和下载文件已保留")
+    finally:
+        store.finish(task_id, outcome, error=error)
 
 
 def _run_courses(task_id, store, config, service, courses, progress, cancelled):

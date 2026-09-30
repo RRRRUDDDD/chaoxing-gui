@@ -87,9 +87,11 @@ class StudyResultTests(unittest.TestCase):
     def test_disabled_question_provider_is_a_skip(self):
         self.assertEqual(self.client.study_work(COURSE, {}, {}), StudyResult.SKIPPED)
 
-    def exercise_work(self, *, save_only=False, expired=False, query_error=False):
+    def exercise_work(self, *, save_only=False, expired=False, query_error=False, undecodable=False):
         question = {'id': 'q1', 'title': 'Offline question', 'type': 'single',
                     'options': 'A. first\nB. second', 'answerField': {}}
+        if undecodable:
+            question['undecodable'] = True
         questions = {'questions': [question]}
         provider = Mock()
         provider.DISABLE = False
@@ -112,6 +114,8 @@ class StudyResultTests(unittest.TestCase):
                 session.post.assert_not_called()
                 return None
             result = self.client.study_work(COURSE, job, info)
+        self.provider = provider
+        self.question = question
         return result
 
     def test_saved_but_unsubmitted_work_is_skipped(self):
@@ -122,6 +126,11 @@ class StudyResultTests(unittest.TestCase):
 
     def test_submitted_work_is_completed(self):
         self.assertEqual(self.exercise_work(), StudyResult.SUCCESS)
+
+    def test_undecodable_question_skips_the_question_bank(self):
+        self.exercise_work(undecodable=True)
+        self.provider.query.assert_not_called()
+        self.assertEqual(self.question['answerSourceq1'], 'random')
 
     def test_ai_worker_failure_prevents_form_submission(self):
         self.exercise_work(query_error=True)
@@ -136,7 +145,7 @@ class StudyResultTests(unittest.TestCase):
         live = Mock(name='offline-live')
         live.get_status.return_value = {'temp': {'data': {'duration': 59}}}
         live.do_finish.return_value = False
-        with patch('api.live_process.time.sleep'):
+        with patch('api.base.time.sleep'):
             self.assertFalse(LiveProcessor.run_live(live))
         self.assertEqual(live.do_finish.call_count, 2)
 

@@ -51,7 +51,7 @@ echo ║  前端已构建到: web/dist                                      ║
 echo ║                                                              ║
 echo ║  现在可以:                                                   ║
 echo ║    1. 运行 start.bat 启动程序                                ║
-echo ║    2. 运行 build_portable.bat 创建完整便携版                 ║
+echo ║    2. 运行 clean_and_build_portable.bat 创建完整便携版                 ║
 echo ╚══════════════════════════════════════════════════════════════╝
 echo.
 pause

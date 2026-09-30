@@ -7,10 +7,13 @@ handler 只支持文档中的常见表达式，不执行任意脚本。
 from __future__ import annotations
 
 import json
+import sys
+import warnings
 from typing import Any, Callable, Mapping
 from urllib.parse import urlsplit
 
 import requests
+from urllib3.exceptions import InsecureRequestWarning
 
 from api.logger import logger
 
@@ -18,6 +21,7 @@ _MAX_WRAPPERS = 20
 _MAX_HANDLER_LENGTH = 8000
 _MAX_SUBSCRIPTION_BYTES = 512_000
 _PLACEHOLDERS = ("title", "options", "type")
+_CONTEXT_AWARE_WARNINGS = bool(getattr(sys.flags, "context_aware_warnings", False))
 
 
 class HandlerSyntaxError(ValueError):
@@ -57,31 +61,59 @@ def _check_http_url(url: str) -> str:
     return cleaned
 
 
-def fetch_subscription(url: str) -> Any:
+def verify_ssl_setting(conf: Mapping[str, Any]) -> bool:
+    """Certificate checks default to on; only an explicit boolean turns them off."""
+    value = conf.get("verify_ssl", True)
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str) and value.strip().lower() in ("true", "false"):
+        return value.strip().lower() == "true"
+    raise ValueError("verify_ssl 只能是 true 或 false")
+
+
+def ssl_error_message(name: str) -> str:
+    return f"题库 {name} 证书校验失败，如确认可信可在高级设置中关闭证书校验"
+
+
+def _send(session: requests.Session, method: str, url: str, **kwargs) -> requests.Response:
+    if session.verify or not _CONTEXT_AWARE_WARNINGS:
+        # Python 3.11/3.13 catch_warnings changes global filters. Keep urllib3's
+        # default warning rather than silencing unrelated concurrent requests.
+        return session.request(method, url, **kwargs)
+    # Newer context-aware runtimes can safely silence just this request.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", InsecureRequestWarning)
+        return session.request(method, url, **kwargs)
+
+
+def fetch_subscription(url: str, session: requests.Session) -> Any:
     checked = _check_http_url(url)
-    response = requests.get(checked, timeout=20, verify=False)
-    response.raise_for_status()
-    if len(response.content) > _MAX_SUBSCRIPTION_BYTES:
-        raise ValueError("题库订阅内容过大")
-    return response.json()
+    response = _send(session, "get", checked, timeout=20)
+    try:
+        response.raise_for_status()
+        if len(response.content) > _MAX_SUBSCRIPTION_BYTES:
+            raise ValueError("题库订阅内容过大")
+        return response.json()
+    finally:
+        response.close()
 
 
-def parse_config_text(text: str) -> Any:
+def parse_config_text(text: str, session: requests.Session) -> Any:
     cleaned = text.strip()
     if not cleaned:
         return []
     if cleaned.startswith(("http://", "https://")):
-        return fetch_subscription(cleaned)
+        return fetch_subscription(cleaned, session)
     return json.loads(cleaned)
 
 
-def load_wrappers(conf: Mapping[str, Any]) -> list[dict[str, Any]]:
+def load_wrappers(conf: Mapping[str, Any], session: requests.Session) -> list[dict[str, Any]]:
     if isinstance(conf.get("wrappers"), list):
         raw = conf.get("wrappers")
     elif isinstance(conf.get("subscription"), str) and conf.get("subscription").strip():
-        raw = fetch_subscription(conf["subscription"])
+        raw = fetch_subscription(conf["subscription"], session)
     elif isinstance(conf.get("config"), str) and conf.get("config").strip():
-        raw = parse_config_text(conf["config"])
+        raw = parse_config_text(conf["config"], session)
     else:
         return []
     if not isinstance(raw, list):
@@ -112,6 +144,15 @@ def normalize_wrapper(item: Any) -> dict[str, Any]:
     data = item.get("data") or {}
     if not isinstance(data, dict):
         raise ValueError(f"{name} 的 data 必须是对象")
+    compiled_data = {}
+    for key, value in data.items():
+        if isinstance(value, dict) and "handler" in value:
+            source = value["handler"]
+            if not isinstance(source, str):
+                raise ValueError(f"{key} 的 handler 必须是字符串")
+            compiled_data[key] = compile_handler(source)
+        else:
+            compiled_data[key] = value
     headers = item.get("headers") or {}
     if not isinstance(headers, dict) or any(not isinstance(key, str) or not isinstance(value, str) for key, value in headers.items()):
         raise ValueError(f"{name} 的 headers 必须是字符串字段")
@@ -123,7 +164,7 @@ def normalize_wrapper(item: Any) -> dict[str, Any]:
         "method": method,
         "content_type": content_type,
         "headers": dict(headers),
-        "data": data,
+        "data": compiled_data,
         "run": compile_handler(handler),
     }
 
@@ -131,11 +172,8 @@ def normalize_wrapper(item: Any) -> dict[str, Any]:
 def resolve_data(data: Mapping[str, Any], env: Mapping[str, str]) -> dict[str, Any]:
     resolved = {}
     for key, value in data.items():
-        if isinstance(value, dict) and "handler" in value:
-            source = value.get("handler")
-            if not isinstance(source, str):
-                raise ValueError(f"{key} 的 handler 必须是字符串")
-            resolved[key] = compile_handler(source)(env)
+        if callable(value):
+            resolved[key] = value(env)
         elif isinstance(value, str):
             resolved[key] = substitute(value, env)
         else:
@@ -143,21 +181,24 @@ def resolve_data(data: Mapping[str, Any], env: Mapping[str, str]) -> dict[str, A
     return resolved
 
 
-def request_wrapper(wrapper: Mapping[str, Any], env: Mapping[str, str]) -> Any:
+def request_wrapper(wrapper: Mapping[str, Any], env: Mapping[str, str], session: requests.Session) -> Any:
     headers = {key: substitute(value, env) for key, value in wrapper["headers"].items()}
     data = resolve_data(wrapper["data"], env)
     url = substitute(wrapper["url"], env)
     _check_http_url(url)
     if wrapper["method"] == "get":
-        response = requests.get(url, params=data or None, headers=headers, timeout=30, verify=False)
+        response = _send(session, "get", url, params=data or None, headers=headers, timeout=30)
     elif wrapper["content_type"] == "json":
-        response = requests.post(url, json=data, headers=headers, timeout=30, verify=False)
+        response = _send(session, "post", url, json=data, headers=headers, timeout=30)
     else:
-        response = requests.post(url, data=data, headers=headers, timeout=30, verify=False)
-    response.raise_for_status()
-    if wrapper["content_type"] == "json":
-        return response.json()
-    return response.text
+        response = _send(session, "post", url, data=data, headers=headers, timeout=30)
+    try:
+        response.raise_for_status()
+        if wrapper["content_type"] == "json":
+            return response.json()
+        return response.text
+    finally:
+        response.close()
 
 
 def _pairs(result: Any) -> list[tuple[Any, Any]]:
@@ -545,10 +586,21 @@ class TikuOcs(Tiku):
         super().__init__()
         self.name = "OCS题库"
         self.wrappers: list[dict[str, Any]] = []
+        # One session reuses connections across questions; Tiku.close() closes it.
+        self._session = requests.Session()
 
     def _init_tiku(self) -> None:
+        conf = self._conf or {}
         try:
-            self.wrappers = load_wrappers(self._conf or {})
+            self._session.verify = verify_ssl_setting(conf)
+            if not self._session.verify:
+                logger.warning("已关闭题库 HTTPS 证书校验，请确认题库地址可信")
+            self.wrappers = load_wrappers(conf, self._session)
+        except requests.exceptions.SSLError:
+            logger.error(f"{ssl_error_message('订阅')}，已忽略题库功能")
+            self.wrappers = []
+            self.DISABLE = True
+            return
         except (ValueError, requests.RequestException, json.JSONDecodeError) as exc:
             logger.error(f"题库配置无效，已忽略题库功能: {exc}")
             self.wrappers = []
@@ -562,8 +614,11 @@ class TikuOcs(Tiku):
         env = question_env(q_info)
         for wrapper in self.wrappers:
             try:
-                payload = request_wrapper(wrapper, env)
+                payload = request_wrapper(wrapper, env, self._session)
                 answer = select_answer(wrapper["run"](payload), env["title"])
+            except requests.exceptions.SSLError:
+                logger.error(ssl_error_message(wrapper["name"]))
+                continue
             except Exception as exc:
                 logger.error(f"{wrapper['name']} 搜题失败: {exc}")
                 continue

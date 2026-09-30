@@ -23,7 +23,6 @@ from api.desktop_runtime import (
     TauriEnvError,
     emit_ready_line,
     parse_ready_env,
-    register_token_guard,
     run_tauri_server,
 )
 

@@ -2,13 +2,10 @@ requests>=2.32.5
 pyaes>=1.6.1
 beautifulsoup4>=4.14.2
 lxml
-argparse>=1.4.0
 loguru>=0.7.3
-celery>=5.5.3
 flask>=3.1.2
 flask-cors>=5.0.0
 fonttools>=4.60.1
-openai>=1.109.1
 # Supplies the verified default captcha model/table; the runtime adapter uses
 # Pillow/NumPy/ONNX Runtime directly. Revalidate assets before changing this pin.
 ddddocr==1.6.1
@@ -16,10 +13,11 @@ numpy>=1.26.4
 onnxruntime>=1.20.0
 Pillow>=10.1.0
 tqdm>=4.67.1
-httpx[socks]>=0.28.1
+# Tray icon of the standalone exe (chaoxing.spec); the desktop backend excludes it.
+pystray==0.19.5; sys_platform == "win32"
 urllib3>=2.5.0
+# paddlex pulls chardet 7.x; requests 2.32.x rejects chardet >= 6.
 chardet>=3.0.2,<6.0.0
-tenacity>=8.2.0
 
 # Optional local OCR (PaddlePaddle itself is installed by the platform-specific
 # startup/build scripts because CPU/GPU wheels use different package indexes).

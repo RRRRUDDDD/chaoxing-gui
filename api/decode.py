@@ -19,6 +19,7 @@ from typing import List, Dict, Tuple, Any, Optional, Union
 
 from bs4 import BeautifulSoup, NavigableString
 
+from api.exceptions import FontDecodeError
 from api.font_decoder import FontDecoder
 from api.logger import logger
 from api.config import GlobalConst as gc
@@ -38,7 +39,6 @@ try:
 except ImportError:
     PIL_AVAILABLE = False
 
-ENABLE_LOCAL_OCR = os.environ.get("CHAOXING_ENABLE_OCR", "0").strip().lower() in {"1", "true", "yes", "y", "on"}
 _PADDLE_OCR_ENGINE = None
 _PADDLE_OCR_INITIALIZED = False
 _PADDLE_OCR_DEVICE = None  # 记录当前 OCR 引擎运行的设备（gpu / cpu）
@@ -167,8 +167,7 @@ def _parse_paddle_ocr_result(ocr_result: Any) -> List[str]:
 def _init_paddle_ocr(preferred_device: Optional[str] = None):
     """延迟初始化 PaddleOCR 引擎。
 
-    - 优先使用环境中安装的 PaddleOCR 3.x（与 PaddleX 版本保持一致）；
-    - 未安装时回退到项目根目录下的源码副本；
+    - 只使用环境中安装的 paddleocr 包（与 PaddleX 版本保持一致），不回退到源码副本；
     - 初始化失败后 60 秒内不重复导入或构建引擎，不影响主流程。
     """
     global _PADDLE_OCR_ENGINE, _PADDLE_OCR_INITIALIZED, _PADDLE_OCR_DEVICE
@@ -424,7 +423,6 @@ def _local_ocr_result(image_bytes: bytes, img_url: str) -> OCRResult:
                             final_texts = _parse_paddle_ocr_result(ocr_result)
                         break
                     except Exception as exc:
-                        global _PADDLE_OCR_DEVICE
                         if (
                             device_attempt == 0
                             and isinstance(_PADDLE_OCR_DEVICE, str)
@@ -739,13 +737,7 @@ def _extract_passed_jobs(cards: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         if is_read and card.get("job") is None:
             job_type = "read"
         else:
-            type_fields = (card_type, property_data.get("type", ""),
-                           property_data.get("resourceType", ""))
-            is_live = any(isinstance(value, str) and "live" in value.lower()
-                          for value in type_fields) or any(
-                property_data.get(key) is not None for key in ("liveId", "streamName", "vdoid")
-            )
-            job_type = "live" if is_live else card_type.lower()
+            job_type = "live" if is_live_card(card) else card_type.lower()
         if job_type not in {"video", "document", "workid", "read", "live"}:
             continue
 
@@ -797,6 +789,16 @@ def _extract_job_info(cards_data: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def is_live_card(card: Dict[str, Any]) -> bool:
+    """Use the same live markers for pending, passed and resource cards."""
+    prop = card.get("property") or {}
+    if not isinstance(prop, dict):
+        return False
+    types = (card.get("type"), prop.get("type"), prop.get("resourceType"))
+    return (any(isinstance(value, str) and "live" in value.lower() for value in types)
+            or any(prop.get(key) is not None for key in ("liveId", "streamName", "vdoid")))
+
+
 def _process_attachment_cards(cards: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
     处理所有附件任务卡片，强化直播任务识别逻辑
@@ -831,26 +833,8 @@ def _process_attachment_cards(cards: List[Dict[str, Any]]) -> List[Dict[str, Any
             card["otherInfo"] = card["otherInfo"].split("&")[0]
             logger.trace(f"New info: {card['otherInfo']}")
 
-        # 多维度判断是否为直播任务
         card_type = card.get("type", "").lower()
-        property_data = card.get("property", {})
-        prop_type = property_data.get("type", "").lower()
-        resource_type = property_data.get("resourceType", "").lower()
-        
-        # 直播任务特征：包含liveId、streamName等字段，
-        # 或类型标识包含live（因为live和video有点类似，怕超星又搞出什么幺蛾子就加了一些关键字识别）
-        is_live = (
-            "live" in card_type 
-            or "live" in prop_type
-            or "live" in resource_type
-            or "livestream" in card_type
-            or property_data.get("liveId") is not None
-            or property_data.get("streamName") is not None
-            or property_data.get("vdoid") is not None
-        )
-
-        # 根据任务类型处理
-        if is_live:
+        if is_live_card(card):
             live_job = _process_live_task(card)
             if live_job:
                 job_list.append(live_job)
@@ -984,10 +968,20 @@ def decode_questions_info(html_content: str) -> Dict[str, Any]:
     
     # 处理所有问题
     questions = []
+    undecodable = None
     for div_tag in soup.find("form").find_all("div", class_="singleQuesId"):
-        question = _process_question(div_tag, font_decoder)
+        try:
+            question = _process_question(div_tag, font_decoder)
+        except FontDecodeError as exc:
+            # Undecoded glyphs would only mislead the question bank; keep the
+            # raw text for logging and let the question take the no-answer path.
+            undecodable = exc
+            question = _process_question(div_tag)
+            question["undecodable"] = True
         if question:
             questions.append(question)
+    if undecodable is not None:
+        logger.warning("加密字体无法解码，相关题目按无答案处理: {}", undecodable)
     
     # 更新表单数据
     form_data["questions"] = questions

@@ -338,22 +338,6 @@ def vision_ocr_result(image_bytes: bytes, config: Optional[Dict[str, Any]] = Non
     return _call_openai_compatible(current, image_bytes)
 
 
-def vision_ocr(image_bytes: bytes) -> str:
-    """使用外部 AI 视觉模型进行 OCR 识别
-
-    Args:
-        image_bytes: 图片的二进制数据
-
-    Returns:
-        识别出的文字内容，失败时返回空字符串
-    """
-    return vision_ocr_result(image_bytes).text
-
-
 def is_vision_ocr_enabled(config: Optional[Dict[str, Any]] = None) -> bool:
     """检查外部 AI 视觉 OCR 是否已启用"""
     return _load_vision_ocr_config(config) is not None
-
-
-def reset_vision_ocr_config():
-    """兼容旧调用方。CLI 默认值按需读取，显式任务快照无需全局重置。"""

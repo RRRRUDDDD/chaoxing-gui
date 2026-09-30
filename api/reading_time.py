@@ -8,32 +8,18 @@ the same account-owned session used by :mod:`api.course_tools`.
 
 from copy import deepcopy
 import hashlib
-import html
 import json
 import re
-from urllib.parse import parse_qs, urljoin, urlsplit, urlunsplit
-
-from bs4 import BeautifulSoup
+from urllib.parse import parse_qs, urlsplit
 
 from loguru import logger
 
 from api.course_tools import CourseTools, _check_html, _scalar, _number
-from api.reading_browser import scroll_book
+from api.reading_browser import NotReadingPage, READING_URL_MESSAGES, scroll_book
+from api.url_policy import canonical_https_url
 
 
 READ_WORK_URL = "https://mooc1.chaoxing.com/mooc-ans/api/work"
-READ_LOG_URL = "https://mooc1.chaoxing.com/multimedia/readlog"
-READ_WORK_PATH = "/mooc-ans/api/work"
-READ_LOG_PATH = "/multimedia/readlog"
-# Captured from the real book page: courseMainBox is 470px, and logs.js only
-# reports after scrollTop changes. The probe wheel sequence was +380,+380,-280.
-READ_HEIGHT = "470"
-READ_SCROLL_STEPS = (380, 380, -280)
-READ_CARDS_PATH = "/mooc-ans/zt/getcards"
-# Compatibility aliases make the protocol names easy to discover for callers
-# and keep tests independent from the implementation's naming style.
-READLOG_URL = READ_LOG_URL
-READ_CARDS_URL = "https://mooc1.chaoxing.com" + READ_CARDS_PATH
 # The link emitted by the reading task starts at ``/course/<id>.html`` and
 # the platform redirects it to the canonical ``/zt/<id>.html`` page.  Both
 # forms carry the same book identity and must be accepted while validating
@@ -56,57 +42,12 @@ def _task_point_html(value):
     return isinstance(value, str) and bool(_TASK_POINT_HTML.search(value))
 
 
-def _cards_page_kind(value):
-    """Classify a chapter payload without treating every attachment shell as text."""
-    if _task_point_html(value):
-        return "task"
-    stripped = value.lstrip()
-    if stripped.startswith(("{", "[")):
-        try:
-            payload = json.loads(stripped)
-        except (TypeError, ValueError):
-            payload = None
-        if isinstance(payload, dict) and payload.get("data") in (None, [], ""):
-            return "empty"
-    soup = _check_html(value, "专题书籍章节")
-    if (soup.select_one("#pageDiv") or soup.select_one("#courseMainBox")
-            or soup.select_one(".ans-cc") or soup.get_text(" ", strip=True)
-            or re.search(r"logs\.js|/multimedia/readlog", value, re.I)):
-        return "reading"
-    return "empty"
-
-
-
 def _platform_url(value, *, base=None, path=None):
     """Return a canonical HTTPS URL for the small set of reading endpoints."""
-    if not isinstance(value, str) or not value or len(value) > 16384:
-        raise ValueError("阅读资源地址无效")
-    value = html.unescape(value)
-    if re.search(r"[\x00-\x20\x7f\\]", value):
-        raise ValueError("阅读资源地址无效")
-    value = urljoin(base, value) if base else value
-    try:
-        parts = urlsplit(value)
-        port = parts.port
-    except ValueError:
-        raise ValueError("阅读资源地址无效") from None
-    host = (parts.hostname or "").lower()
-    if (parts.scheme not in {"http", "https"} or not MOOC_HOST.fullmatch(host)
-            or parts.username is not None or parts.password is not None
-            or port not in {None, 443} or parts.fragment):
-        raise ValueError("拒绝非受信任的专题阅读地址")
-    if path is not None and not path(parts.path):
-        raise ValueError("专题阅读地址路径不受支持")
-    return urlunsplit(("https", parts.netloc, parts.path, parts.query, ""))
-
-
-def _scroll_after(position, index):
-    """Return the next scroll offset used by the real reading page."""
-    delta = READ_SCROLL_STEPS[index % len(READ_SCROLL_STEPS)]
-    nxt = position + delta
-    if nxt < 0:
-        nxt = position + READ_SCROLL_STEPS[0]
-    return nxt
+    return canonical_https_url(
+        value, messages=READING_URL_MESSAGES, base=base, path=path,
+        allowed=lambda host, parts: bool(MOOC_HOST.fullmatch(host)),
+    )
 
 
 def _text_number(value):
@@ -309,54 +250,7 @@ class ReadingTools(CourseTools):
                 result[key] = value
         return result
 
-    @staticmethod
-    def _chapter_ids(text, soup):
-        """Collect chapter ids without treating the first shell as the only candidate."""
-        found = []
-
-        def add(value):
-            if isinstance(value, str) and re.fullmatch(r"\d{1,20}", value) and value not in found and len(found) < 12:
-                found.append(value)
-
-        for match in re.finditer(r"\b(?:ctid|courseChapterId|initKid)\s*=\s*['\"]?(\d{1,20})", text):
-            add(match.group(1))
-        for node in soup.select("#nodeIdInput[value], #chapterId[value]"):
-            add(node.get("value") or "")
-        for node in soup.select("[id^='zt_']"):
-            match = re.search(r"zt_(\d{1,20})", node.get("id") or "")
-            if match:
-                add(match.group(1))
-        for match in re.finditer(r"[?&]knowledgeId=(\d{1,20})", text, re.I):
-            add(match.group(1))
-        return found
-
-    def _fetch_chapter_cards(self, page_url, course_id, chapter_id, query):
-        cards_url = _platform_url(
-            urlunsplit((urlsplit(page_url).scheme, urlsplit(page_url).netloc, READ_CARDS_PATH, "", "")),
-            path=lambda item: item == READ_CARDS_PATH,
-        )
-        cards = None
-        for _ in range(6):
-            response = self._request(
-                "get", cards_url, "专题书籍章节", statuses=(200, 301, 302, 303, 307, 308),
-                params={"knowledgeid": chapter_id, "courseid": course_id, **query},
-                headers={"Referer": page_url},
-            )
-            try:
-                if response.status_code == 200:
-                    cards = response.text
-                    break
-                location = response.headers.get("Location")
-                if not location:
-                    raise RuntimeError("专题书籍章节重定向缺少目标地址")
-                cards_url = _platform_url(location, base=cards_url, path=lambda item: item == READ_CARDS_PATH)
-            finally:
-                response.close()
-        if cards is None:
-            raise RuntimeError("专题书籍章节重定向次数过多")
-        return cards
-
-    def _book_context(self, book, course=None, chapter=None):
+    def _book_context(self, book, course=None):
         url = _platform_url(book.get("url"), path=READ_BOOK_PATH.fullmatch)
         initial_path = READ_BOOK_PATH.fullmatch(urlsplit(url).path)
         expected_course = initial_path[1] if initial_path else ""
@@ -384,13 +278,12 @@ class ReadingTools(CourseTools):
                 response.close()
         if text is None:
             raise RuntimeError("专题书籍重定向次数过多")
-        soup = _check_html(text, "专题书籍")
+        _check_html(text, "专题书籍")
         course_match = re.search(r"(?:window\[['\"]courseid['\"]\]|window\.courseid|window\.courseId|var\s+courseid)\s*=\s*['\"]?(\d{1,20})", text)
         if not course_match:
-            course_match = re.search(r"/mooc-ans/course/(\d{1,20})\.html", url)
-        chapter_ids = self._chapter_ids(text, soup)
-        if not course_match or not chapter_ids:
-            raise RuntimeError("专题书籍缺少课程或章节内容")
+            course_match = READ_BOOK_PATH.fullmatch(urlsplit(url).path)
+        if not course_match:
+            raise RuntimeError("专题书籍缺少课程标识")
         course_id = course_match[1]
         path_match = READ_BOOK_PATH.fullmatch(urlsplit(url).path)
         if not path_match or course_id != path_match[1]:
@@ -407,43 +300,7 @@ class ReadingTools(CourseTools):
                     attribution[0] != str(course.get("courseId")) or
                     attribution[1] != str(course.get("clazzId"))):
                 raise ValueError("专题书籍归属课程不匹配")
-        saw_task = False
-        for chapter_id in chapter_ids:
-            cards = self._fetch_chapter_cards(url, course_id, chapter_id, query)
-            kind = _cards_page_kind(cards)
-            if kind == "task":
-                saw_task = True
-                continue
-            if kind == "empty":
-                continue
-            return {"url": url, "courseid": course_id, "chapterid": chapter_id,
-                    "query": query, "height": READ_HEIGHT}
-        if saw_task:
-            raise RuntimeError("专题书籍章节是视频或其他任务点，不是阅读页")
-        raise RuntimeError("专题书籍没有可读内容")
-
-    def _readlog_url(self, context):
-        return _platform_url(READ_LOG_PATH, base=context["url"],
-                             path=lambda p: p == READ_LOG_PATH)
-
-    def _readlog(self, context, h):
-        """Parse one legacy heartbeat. An empty object is not platform credit."""
-        try:
-            scroll = int(h)
-        except (TypeError, ValueError):
-            raise ValueError("阅读滚动位置无效") from None
-        if scroll < 0 or scroll > 10_000_000:
-            raise ValueError("阅读滚动位置无效")
-        params = {"courseid": context["courseid"], "chapterid": context["chapterid"],
-                  "height": str(context["height"]), **context["query"], "h": str(scroll)}
-        response_text = self._text("get", self._readlog_url(context), "阅读时长上报", no_retry=True,
-                                   params=params, headers={"Referer": context["url"]})
-        try:
-            payload = json.loads(response_text)
-        except (TypeError, ValueError):
-            raise RuntimeError("阅读时长上报返回了无效响应") from None
-        if payload != {}:
-            raise RuntimeError("阅读时长上报未确认成功")
+        return url
 
     def watch_reading(self, course, resource, seconds, on_progress=None):
         self._check_cancelled()
@@ -458,28 +315,26 @@ class ReadingTools(CourseTools):
         }
         if not metadata["books"]:
             raise ValueError("专题阅读没有可读书籍")
-        context = None
         last_error = None
         for book in metadata["books"]:
+            self._check_cancelled()
+            url = self._book_context(book, course=course)
             try:
-                context = self._book_context(book, course=course)
+                completed = scroll_book(
+                    url, self.chaoxing.session_manager.get_session().cookies,
+                    requested, on_progress=on_progress, wait=self._wait,
+                    check=self._check_cancelled,
+                )
                 break
-            except RuntimeError as exc:
+            except NotReadingPage as exc:
+                # Only unreadable content permits another book. Network,
+                # cancellation and post-progress failures must not be replayed.
                 last_error = exc
-        if context is None:
+        else:
             if last_error is not None and "不是阅读页" in str(last_error):
                 raise last_error
             raise RuntimeError("没有可读取的专题书籍") from last_error
 
-        target = requested
-        # An empty readlog body is not evidence that the platform stored the
-        # time. Open the book page and scroll it, which is what makes the
-        # page's own reporter run.
-        completed = scroll_book(
-            context["url"], self.chaoxing.session_manager.get_session().cookies,
-            target, on_progress=on_progress, wait=self._wait,
-            check=self._check_cancelled,
-        )
         # Refreshing the page is part of the authenticated protocol and also
         # gives the caller the platform's end counter.  Invalid, empty or
         # rejected responses are surfaced instead of being mistaken for a

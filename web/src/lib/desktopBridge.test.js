@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const core = vi.hoisted(() => ({ isTauri: vi.fn(), invoke: vi.fn() }));
 vi.mock('@tauri-apps/api/core', () => core);
+const events = vi.hoisted(() => ({ listen: vi.fn() }));
+vi.mock('@tauri-apps/api/event', () => events);
 import { desktopBridge, getSessionBridge, isTauriDesktop } from './desktopBridge';
 
 const empty = () => ({ version: 1, login: null, activeTask: null });
@@ -60,5 +62,23 @@ describe('desktop bridge', () => {
       expect(api.defaults.adapter).toEqual(expect.arrayContaining(['xhr', 'http']));
       expect(core.invoke).not.toHaveBeenCalled();
     }
+  });
+
+  it('sends close and preference commands with exact envelopes', async () => {
+    const stop = vi.fn();
+    events.listen.mockReset().mockResolvedValue(stop);
+    const seen = [];
+    expect(await desktopBridge.onCloseRequested((id) => seen.push(id))).toBe(stop);
+    expect(events.listen.mock.calls[0][0]).toBe('close-requested');
+    events.listen.mock.calls[0][1]({ payload: 5 });
+    expect(seen).toEqual([5]);
+    await desktopBridge.closePromptShown(5);
+    await desktopBridge.closeChoice('tray', true);
+    await desktopBridge.readPreferences();
+    await desktopBridge.writePreferences('exit');
+    expect(core.invoke.mock.calls).toEqual([
+      ['close_prompt_shown', { promptId: 5 }], ['close_choice', { action: 'tray', remember: true }],
+      ['preferences_read'], ['preferences_write', { closeAction: 'exit' }],
+    ]);
   });
 });

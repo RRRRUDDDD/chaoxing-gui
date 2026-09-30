@@ -4,13 +4,15 @@ import json
 import os
 import socket
 import threading
+import time
 import unittest
+from unittest.mock import Mock
 from requests.cookies import RequestsCookieJar
 
 import tempfile
 
 from api.reading_browser import (
-    CdpSocket, allow_reading_url, browser_executable, cdp_cookies, chrome_command,
+    CdpSocket, NotReadingPage, allow_reading_url, browser_executable, cdp_cookies, chrome_command,
     _STATE_JS, navigation_ready, scroll_book, scroll_expression, scroll_reading_page,
 )
 
@@ -146,7 +148,7 @@ class ReadingBrowserTests(unittest.TestCase):
         self.assertIn("logs.js", _STATE_JS)
 
     def test_reading_box_is_not_replaced_by_a_chapter_link(self):
-        page = Page({"hasBox": True, "chapter": "https://evil.example/steal"})
+        page = Page({"hasBox": True, "reading": True, "chapter": "https://evil.example/steal"})
         scroll_book(BOOK, cookies(), 5, wait=lambda seconds: None, opener=lambda jar: page)
         self.assertEqual(page.urls, [BOOK])
         self.assertTrue(page.closed)
@@ -202,48 +204,110 @@ class ReadingBrowserTests(unittest.TestCase):
             else:
                 os.environ["CHAOXING_BROWSER"] = previous
 
-    def test_cdp_call_roundtrip_on_localhost(self):
+    def _serve_cdp(self, delay=0.0, reply=True):
+        """Accept one DevTools client, answer its first command after ``delay``."""
         received = []
+        ready = []
+        done = threading.Event()
 
-        def serve(port_ready):
+        def serve():
             server = socket.socket()
             server.bind(("127.0.0.1", 0))
             server.listen(1)
-            port_ready.append(server.getsockname()[1])
+            ready.append(server.getsockname()[1])
             connection, _ = server.accept()
-            header = b""
-            while b"\r\n\r\n" not in header:
-                header += connection.recv(4096)
-            connection.sendall(b"HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n\r\n")
-            frame = b""
-            while len(frame) < 2:
-                frame += connection.recv(4096)
-            length = frame[1] & 0x7F
-            mask_and_body = frame[2:]
-            while len(mask_and_body) < 4 + length:
-                mask_and_body += connection.recv(4096)
-            mask, body = mask_and_body[:4], mask_and_body[4:4 + length]
-            payload = bytes(item ^ mask[index % 4] for index, item in enumerate(body))
-            received.append(json.loads(payload))
-            reply = json.dumps({"id": received[0]["id"], "result": {"success": True}}).encode()
-            connection.sendall(bytes([0x81, len(reply)]) + reply)
-            connection.close()
-            server.close()
+            try:
+                header = b""
+                while b"\r\n\r\n" not in header:
+                    header += connection.recv(4096)
+                connection.sendall(b"HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n\r\n")
+                frame = b""
+                while len(frame) < 2:
+                    frame += connection.recv(4096)
+                length = frame[1] & 0x7F
+                mask_and_body = frame[2:]
+                while len(mask_and_body) < 4 + length:
+                    mask_and_body += connection.recv(4096)
+                mask, body = mask_and_body[:4], mask_and_body[4:4 + length]
+                payload = bytes(item ^ mask[index % 4] for index, item in enumerate(body))
+                received.append(json.loads(payload))
+                if done.wait(delay) or not reply:
+                    done.wait(5)
+                    return
+                message = json.dumps({"id": received[0]["id"], "result": {"success": True}}).encode()
+                connection.sendall(bytes([0x81, len(message)]) + message)
+                done.wait(5)
+            finally:
+                connection.close()
+                server.close()
 
-        ready = []
-        thread = threading.Thread(target=serve, args=(ready,))
+        thread = threading.Thread(target=serve)
         thread.start()
         while not ready:
             thread.join(0.01)
-        client = CdpSocket(f"ws://127.0.0.1:{ready[0]}/devtools/page/1", ready[0])
+
+        def stop():
+            done.set()
+            thread.join(5)
+
+        self.addCleanup(stop)
+        return ready[0], received, stop
+
+    def test_cdp_call_roundtrip_on_localhost(self):
+        port, received, stop = self._serve_cdp()
+        client = CdpSocket(f"ws://127.0.0.1:{port}/devtools/page/1", port)
         try:
             result = client.call("Network.setCookie", {"name": "UID", "value": "student"})
         finally:
             client.close()
-            thread.join(2)
+            stop()
         self.assertEqual(result, {"success": True})
         self.assertEqual(received[0]["method"], "Network.setCookie")
         self.assertEqual(received[0]["params"]["name"], "UID")
+
+    def test_cdp_call_waits_past_one_second_of_silence(self):
+        port, _, stop = self._serve_cdp(delay=1.5)
+        client = CdpSocket(f"ws://127.0.0.1:{port}/devtools/page/1", port)
+        try:
+            self.assertEqual(client.call("Runtime.evaluate", timeout=5), {"success": True})
+        finally:
+            client.close()
+            stop()
+
+    def test_cdp_call_still_times_out_at_its_deadline(self):
+        port, _, stop = self._serve_cdp(reply=False)
+        client = CdpSocket(f"ws://127.0.0.1:{port}/devtools/page/1", port)
+        started = time.monotonic()
+        try:
+            with self.assertRaises(RuntimeError) as raised:
+                client.call("Runtime.evaluate", timeout=0.6)
+        finally:
+            client.close()
+            stop()
+        elapsed = time.monotonic() - started
+        self.assertIn("超时", str(raised.exception))
+        self.assertGreaterEqual(elapsed, 0.55)
+        self.assertLess(elapsed, 3)
+
+    def test_box_without_reporter_is_not_reading(self):
+        page = Page({"hasBox": True})
+        with self.assertRaises(NotReadingPage):
+            scroll_book(BOOK, cookies(), 5, opener=lambda jar: page)
+        self.assertEqual(page.scripts, [])
+        self.assertTrue(page.closed)
+
+    def test_lost_body_after_progress_is_not_a_reason_to_restart_on_another_book(self):
+        page = Mock()
+        page.evaluate.side_effect = [380, None]
+        progress = []
+        with self.assertRaises(RuntimeError) as raised:
+            scroll_reading_page(page, 10, wait=lambda seconds: None,
+                                on_progress=lambda done, total: progress.append(done))
+        self.assertNotIsInstance(raised.exception, NotReadingPage)
+        self.assertEqual(progress, [0, 5])
+        page.evaluate.side_effect = [None]
+        with self.assertRaises(NotReadingPage):
+            scroll_reading_page(page, 10, wait=lambda seconds: None)
 
     def test_cdp_rejects_a_remote_debugger(self):
         with self.assertRaises(RuntimeError):

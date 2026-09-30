@@ -201,14 +201,6 @@ if errorlevel 1 (
     set "HAS_ERRORS=1"
 )
 
-REM 安装 Flask-CORS
-echo    安装 Flask-CORS...
-"%PYTHON_EXE%" -m pip install --no-warn-script-location flask-cors
-if errorlevel 1 (
-    echo    ⚠️  Flask-CORS 安装失败，Web 模式可能无法正常工作
-    set "HAS_ERRORS=1"
-)
-
 REM 安装 OCR 依赖（完整版默认安装）
 echo    安装 OCR 依赖 paddlepaddle...
 "%PYTHON_EXE%" -m pip install --no-warn-script-location paddlepaddle -i https://www.paddlepaddle.org.cn/packages/stable/cpu/
@@ -323,7 +315,6 @@ copy "%SCRIPT_DIR%requirements.txt" "%DIST_DIR%\" >nul
 REM 复制配置文件模板 (不复制实际配置)
 echo    复制配置模板...
 if exist "%SCRIPT_DIR%config.ini.example" copy "%SCRIPT_DIR%config.ini.example" "%DIST_DIR%\config.ini.example" >nul
-if exist "%SCRIPT_DIR%config_template.ini" copy "%SCRIPT_DIR%config_template.ini" "%DIST_DIR%\config.ini.example" >nul
 
 REM 复制 web_config.json (清空敏感信息)
 if exist "%SCRIPT_DIR%web_config.json" (

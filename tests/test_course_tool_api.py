@@ -3,6 +3,7 @@
 from pathlib import Path
 import tempfile
 import unittest
+from tests.storage_fixtures import saved_tasks_text
 from unittest.mock import MagicMock, patch
 
 import app as web
@@ -76,7 +77,7 @@ class CourseToolApiTests(unittest.TestCase):
         conflict = self.client.post("/api/start", json={"username": "alice", "password": "pw", "course_list": ["course1"]})
         self.assertEqual(conflict.status_code, 409)
         self.assertEqual(conflict.get_json()["data"]["task_id"], task_id)
-        self.assertNotIn("never-store-password", self.state_file.read_text(encoding="utf-8"))
+        self.assertNotIn("never-store-password", saved_tasks_text(self.state_file))
         self.study_launch.assert_not_called()
 
     def test_unsupported_types_and_invalid_options_do_not_launch(self):
@@ -116,7 +117,7 @@ class CourseToolApiTests(unittest.TestCase):
         self.assertEqual((details["tool"]["unit"], details["tool"]["total_units"]), ("秒", 6))
         self.launch.assert_called_once()
         self.assertEqual(self.launch.call_args.args[2]["tool_options"]["minutes"], 0.1)
-        self.assertNotIn("never-store-password", self.state_file.read_text(encoding="utf-8"))
+        self.assertNotIn("never-store-password", saved_tasks_text(self.state_file))
 
     def test_reading_rejects_other_accounts_wrong_source_and_unreadable_items(self):
         source, _ = self.reading_catalog()

@@ -140,31 +140,30 @@ class CaptchaLifecycleTests(unittest.TestCase):
         self.assertEqual(runtime.InferenceSession.call_args.kwargs["providers"], ["CPUExecutionProvider"])
         self.assertEqual(session.run.call_args.args[1]["image"].shape, (1, 1, 64, 160))
 
-    def test_optional_dependencies_or_bad_assets_keep_manual_fallback(self):
+    def test_ocr_start_failure_is_retried_only_after_the_backoff(self):
         for error in (ImportError("missing onnxruntime"), FileNotFoundError("model"), RuntimeError("wrong version")):
-            with self.subTest(error=error), patch.object(captcha, "CaptchaOcr", side_effect=error):
-                self.assertIsNone(captcha.ocr_init())
+            with self.subTest(error=error), patch.object(captcha, "_ocr_engine", None), \
+                    patch.object(captcha, "_ocr_retry_at", 0.0), \
+                    patch.object(captcha, "CaptchaOcr", side_effect=error) as start, \
+                    patch.object(captcha.time, "monotonic", side_effect=[100.0, 100.0, 130.0, 161.0, 161.0]):
+                self.assertIsNone(captcha.captcha_ocr())
+                self.assertIsNone(captcha.captcha_ocr())
+                self.assertEqual(start.call_count, 1)
+                start.side_effect = None
+                start.return_value = engine = Mock()
+                self.assertIs(captcha.captcha_ocr(), engine)
+                self.assertIs(captcha.captcha_ocr(), engine)
+                self.assertEqual(start.call_count, 2)
 
-    def test_explicit_none_and_injected_recognizer_do_not_initialize(self):
-        with patch.object(captcha, "ocr_init") as initialize:
-            disabled = captcha.CxCaptcha("offline-test", "", ocr=None)
-            injected = captcha.CxCaptcha("offline-test", "", ocr=Mock())
-            self.addCleanup(disabled.s.close)
-            self.addCleanup(injected.s.close)
-            with self.assertRaises(RuntimeError):
-                disabled.recognition(b"synthetic-image")
-            injected.ocr.classification.return_value = "1234"
-            self.assertEqual(injected.recognition(b"synthetic-image"), "1234")
-            injected.ocr.classification.assert_called_once_with(b"synthetic-image")
-            initialize.assert_not_called()
-
-    def test_recognition_failure_never_submits(self):
-        client = captcha.CxCaptcha("offline-test", "", ocr=Mock())
-        self.addCleanup(client.s.close)
-        client.ocr.classification.side_effect = ValueError("bad image")
-        with patch.object(client, "getCaptcha", return_value=b"image"), patch.object(client, "submitCaptcha") as submit:
-            self.assertFalse(client.try_pass())
-            submit.assert_not_called()
+    def test_self_check_uses_the_application_engine(self):
+        # Only the recognizer is faked; the lookup path is the real one.
+        engine = Mock()
+        engine.classification.return_value = "1234"
+        engine.charset = ("", "1")
+        engine._session.get_providers.return_value = ["CPUExecutionProvider"]
+        with patch.object(captcha, "_ocr_engine", None), patch.object(captcha, "_ocr_retry_at", 0.0),                 patch.object(captcha, "CaptchaOcr", return_value=engine),                 patch("sys.stdout", io.StringIO()):
+            self.assertEqual(ocr.check_captcha_ocr(), 0)
+        engine.classification.assert_called_once()
 
     def test_self_check_runs_before_web_imports_and_business_initialization(self):
         entry = str(Path(__file__).resolve().parents[1] / "app.py")

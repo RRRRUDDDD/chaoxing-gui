@@ -13,9 +13,11 @@ import socket
 import subprocess
 import tempfile
 import time
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import urlsplit
 import urllib.request
 import re
+
+from api.url_policy import UrlMessages, canonical_https_url
 
 
 _HOST = re.compile(r"mooc\d+(?:-\d+|-ans)?\.chaoxing\.com\Z", re.I)
@@ -53,25 +55,26 @@ _STATE_JS = (
 _MAX_MESSAGE = 2_000_000
 
 
+READING_URL_MESSAGES = UrlMessages(
+    invalid="阅读资源地址无效", untrusted="拒绝非受信任的专题阅读地址", path="专题阅读地址路径不受支持",
+)
+
+
+class NotReadingPage(RuntimeError):
+    """A book has no readable body; no reading progress has been reported."""
+
+
 def allow_reading_url(value):
-    """Return a canonical reading-page URL, or reject anything else."""
-    if not isinstance(value, str) or not value or len(value) > 16384:
-        raise ValueError("阅读资源地址无效")
-    if re.search(r"[\x00-\x20\x7f\\]", value):
-        raise ValueError("阅读资源地址无效")
-    try:
-        parts = urlsplit(value)
-        port = parts.port
-    except ValueError:
-        raise ValueError("阅读资源地址无效") from None
-    host = (parts.hostname or "").lower()
-    if (parts.scheme != "https" or not _HOST.fullmatch(host)
-            or parts.username is not None or parts.password is not None
-            or port not in (None, 443) or parts.fragment):
-        raise ValueError("拒绝非受信任的专题阅读地址")
-    if not (_BOOK_PATH.fullmatch(parts.path) or _NODE_PATH.fullmatch(parts.path)):
-        raise ValueError("专题阅读地址路径不受支持")
-    return urlunsplit(("https", parts.netloc, parts.path, parts.query, ""))
+    """Return a canonical reading-page URL, or reject anything else.
+
+    Unlike request-side checks this takes the browser's own URL, so it is
+    neither HTML-unescaped nor allowed to be http.
+    """
+    return canonical_https_url(
+        value, messages=READING_URL_MESSAGES, unescape=False, allow_http=False,
+        allowed=lambda host, parts: bool(_HOST.fullmatch(host)),
+        path=lambda path: bool(_BOOK_PATH.fullmatch(path) or _NODE_PATH.fullmatch(path)),
+    )
 
 
 def scroll_expression(step):
@@ -93,7 +96,6 @@ def scroll_expression(step):
         "const el = candidates[i];"
         "if (el && el.scrollHeight - el.clientHeight > 1) { box = el; break; }"
         "}"
-        "box = box || document.body;"
         "if (!box) return null;"
         "const max = Math.max(0, (box.scrollHeight || 0) - (box.clientHeight || 0));"
         f"const delta = [380, 380, -280][{index}];"
@@ -177,7 +179,9 @@ def scroll_reading_page(page, seconds, on_progress=None, wait=None, check=None):
     while completed < seconds:
         check()
         if page.evaluate(scroll_expression(step)) is None:
-            raise RuntimeError("阅读页没有可滚动的正文")
+            if completed == 0:
+                raise NotReadingPage("阅读页没有可滚动的正文")
+            raise RuntimeError("阅读过程中正文已不可滚动，停止计时")
         step += 1
         interval = min(5.0, seconds - completed)
         wait(interval)
@@ -191,9 +195,7 @@ def _is_reading_state(state):
     """A duration page has its own reporter. Task-point shells do not."""
     if not isinstance(state, dict) or state.get("taskPoint"):
         return False
-    if "reading" in state:
-        return bool(state["reading"])
-    return bool(state.get("hasBox"))
+    return state.get("reading") is True
 
 
 def _chapter_candidates(state):
@@ -232,8 +234,8 @@ def scroll_book(url, cookies, seconds, on_progress=None, wait=None, check=None, 
                 saw_task = saw_task or bool(isinstance(state, dict) and state.get("taskPoint"))
             if not found:
                 if saw_task:
-                    raise RuntimeError("当前页面是视频或其他任务点，不是阅读页")
-                raise RuntimeError("阅读页没有可滚动的正文")
+                    raise NotReadingPage("当前页面是视频或其他任务点，不是阅读页")
+                raise NotReadingPage("阅读页没有可滚动的正文")
         return scroll_reading_page(
             page, seconds, on_progress=on_progress, wait=wait, check=check,
         )
@@ -322,42 +324,23 @@ class CdpSocket:
         self._sock.sendall(bytes(header) + masked)
 
     def _recv(self, deadline):
-        fragments = []
-        opcode = None
-        while True:
+        """Return the next complete text message, or None once the deadline passes."""
+        if deadline <= time.monotonic():
+            return None
+        try:
+            return self._read_frame(deadline)
+        except socket.timeout:
+            # A timed-out read may leave half a frame buffered, so the
+            # connection cannot be reused.
+            self.close()
+            raise RuntimeError("阅读浏览器指令超时") from None
+
+    def _read_exact(self, size, deadline):
+        while len(self._buf) < size:
             remaining = deadline - time.monotonic()
             if remaining <= 0:
-                return None
-            self._sock.settimeout(min(1, remaining))
-            try:
-                frame = self._read_frame()
-            except socket.timeout:
-                self.close()
-                raise RuntimeError("阅读浏览器指令超时") from None
-            kind, payload = frame
-            if kind == 8:
-                raise RuntimeError("阅读浏览器调试连接已关闭")
-            if kind == 9:
-                self._send(10, payload)
-                continue
-            if kind == 10:
-                continue
-            if kind in {0, 1}:
-                if kind == 1:
-                    opcode = 1
-                    fragments = [payload]
-                else:
-                    fragments.append(payload)
-                if sum(len(item) for item in fragments) > _MAX_MESSAGE:
-                    raise RuntimeError("阅读浏览器返回了过大的响应")
-                # The first frame is the whole message unless FIN was absent.
-                # ``_read_frame`` returns only complete messages.
-                if opcode == 1:
-                    return b"".join(fragments)
-            raise RuntimeError("阅读浏览器返回了无法识别的数据")
-
-    def _read_exact(self, size):
-        while len(self._buf) < size:
+                raise socket.timeout()
+            self._sock.settimeout(remaining)
             chunk = self._sock.recv(65536)
             if not chunk:
                 raise RuntimeError("阅读浏览器调试连接已关闭")
@@ -365,24 +348,24 @@ class CdpSocket:
         data, self._buf = self._buf[:size], self._buf[size:]
         return data
 
-    def _read_frame(self):
+    def _read_frame(self, deadline):
         """Read one complete text message, joining continuation frames."""
         pieces = []
         text = False
         while True:
-            header = self._read_exact(2)
+            header = self._read_exact(2, deadline)
             fin = header[0] & 0x80
             kind = header[0] & 0x0F
             masked = header[1] & 0x80
             length = header[1] & 0x7F
             if length == 126:
-                length = int.from_bytes(self._read_exact(2), "big")
+                length = int.from_bytes(self._read_exact(2, deadline), "big")
             elif length == 127:
-                length = int.from_bytes(self._read_exact(8), "big")
+                length = int.from_bytes(self._read_exact(8, deadline), "big")
             if length > _MAX_MESSAGE:
                 raise RuntimeError("阅读浏览器返回了过大的响应")
-            mask = self._read_exact(4) if masked else b""
-            payload = self._read_exact(length)
+            mask = self._read_exact(4, deadline) if masked else b""
+            payload = self._read_exact(length, deadline)
             if mask:
                 payload = bytes(byte ^ mask[index % 4] for index, byte in enumerate(payload))
             if kind == 8 and fin:
@@ -403,7 +386,7 @@ class CdpSocket:
                 if sum(len(item) for item in pieces) > _MAX_MESSAGE:
                     raise RuntimeError("阅读浏览器返回了过大的响应")
                 if fin:
-                    return 1, b"".join(pieces)
+                    return b"".join(pieces)
                 continue
             raise RuntimeError("阅读浏览器返回了无法识别的数据")
 

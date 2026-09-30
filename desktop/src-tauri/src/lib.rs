@@ -1,7 +1,9 @@
 pub mod api_proxy;
 pub mod backend;
 pub mod migration;
+pub mod preferences;
 pub mod session_store;
+pub mod window_close;
 pub mod windows_job;
 
 use backend::BackendState;
@@ -9,17 +11,16 @@ use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-use tauri::Manager;
+use tauri::{Emitter, Manager};
+use window_close::{CloseDecision, CloseGate};
 
 /// State is registered before the webview loads. Migration and backend startup
 /// run off the event loop, so status, cancellation and window close stay usable.
 pub fn run() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
-            if let Some(window) = app.get_webview_window("main") {
-                let _ = window.unminimize();
-                let _ = window.set_focus();
-            }
+            // The window may be hidden in the tray.
+            show_main_window(app);
         }))
         .setup(|app| {
             let dev_root = development_root(app.handle())?;
@@ -31,9 +32,12 @@ pub fn run() {
                 Some(root) => root.join("logs"),
                 None => app.path().app_log_dir()?,
             };
-            let state = Arc::new(BackendState::new(data_dir.clone(), log_dir.clone()));
+            let state = Arc::new(BackendState::new(data_dir.clone(), log_dir));
             app.manage(state.clone());
             app.manage(session_store::SessionStore::new(&data_dir));
+            let preferences_dir = data_dir.parent().ok_or("data directory has no parent")?;
+            app.manage(preferences::PreferencesStore::new(preferences_dir));
+            app.manage(CloseGate::default());
             let notice = Arc::new(Mutex::new(None));
             app.manage(StartupNotice(notice.clone()));
 
@@ -49,11 +53,19 @@ pub fn run() {
             if std::env::var("CHAOXING_TAURI_DEV_HIDDEN").as_deref() == Ok("1") {
                 window = window.visible(false);
             }
-            window.build()?;
+            let main_window = window.build()?;
+            let close_app = app.handle().clone();
+            let close_window = main_window.clone();
+            main_window.on_window_event(move |event| {
+                if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                    on_close_requested(&close_app, &close_window, api);
+                }
+            });
+            build_tray(app)?;
 
             let handle = app.handle().clone();
             std::thread::spawn(move || {
-                backend::host_log(&log_dir, "[host] starting");
+                state.host_log("[host] starting");
                 // Never read a real Electron profile implicitly in development.
                 let import_legacy = !cfg!(debug_assertions)
                     || std::env::var_os(migration::LEGACY_DIR_ENV).is_some();
@@ -65,11 +77,11 @@ pub fn run() {
                         }
                         Ok(migration::MigrationOutcome::ImportedButSessionInvalid(reason)) => {
                             *notice.lock().unwrap_or_else(|e| e.into_inner()) = Some("旧账号记录无法导入，请重新登录。其他有效数据已导入，原文件已保留。".into());
-                            backend::host_log(&log_dir, &format!("[migration] session skipped: {reason}"));
+                            state.host_log(&format!("[migration] session skipped: {reason}"));
                         }
-                        Ok(outcome) => backend::host_log(&log_dir, &format!("[migration] {outcome:?}")),
+                        Ok(outcome) => state.host_log(&format!("[migration] {outcome:?}")),
                         Err(error) => {
-                            backend::host_log(&log_dir, &format!("[migration] failed: {error}"));
+                            state.host_log(&format!("[migration] failed: {error}"));
                             state_phase_fail(&state, "旧数据导入失败，原有数据已保留。请检查数据目录权限后重新打开应用。".into());
                             return;
                         }
@@ -78,7 +90,7 @@ pub fn run() {
                 match launch_backend(&handle) {
                     Ok(launch) => {
                         if let Err(error) = backend::start_backend(&state, launch) {
-                            backend::host_log(&log_dir, &format!("[host] backend start failed: {error}"));
+                            state.host_log(&format!("[host] backend start failed: {error}"));
                         }
                     }
                     Err(error) => state_phase_fail(&state, error),
@@ -88,7 +100,8 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             backend_status, open_repository, api_request, api_cancel, session_read,
-            session_remember_login, session_remember_task, session_clear
+            session_remember_login, session_remember_task, session_clear,
+            close_prompt_shown, close_choice, preferences_read, preferences_write
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");
@@ -100,6 +113,80 @@ pub fn run() {
             }
         }
     });
+}
+
+fn show_main_window<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.unminimize();
+        let _ = window.show();
+        let _ = window.set_focus();
+    }
+}
+
+fn build_tray(app: &tauri::App) -> tauri::Result<()> {
+    use tauri::menu::{MenuBuilder, MenuItemBuilder};
+    use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
+
+    let show = MenuItemBuilder::with_id("show", "显示主窗口").build(app)?;
+    let quit = MenuItemBuilder::with_id("quit", "退出").build(app)?;
+    let menu = MenuBuilder::new(app).items(&[&show, &quit]).build()?;
+    let mut tray = TrayIconBuilder::with_id("main")
+        .tooltip("超星学习通·自动化学习助手")
+        .menu(&menu)
+        .show_menu_on_left_click(false)
+        .on_menu_event(|app, event| match event.id().as_ref() {
+            "show" => show_main_window(app),
+            // Runs the normal ExitRequested path, which stops the backend.
+            "quit" => app.exit(0),
+            _ => {}
+        })
+        .on_tray_icon_event(|tray, event| {
+            if let TrayIconEvent::Click {
+                button: MouseButton::Left,
+                button_state: MouseButtonState::Up,
+                ..
+            } = event
+            {
+                show_main_window(tray.app_handle());
+            }
+        });
+    if let Some(icon) = app.default_window_icon() {
+        tray = tray.icon(icon.clone());
+    }
+    tray.build(app)?;
+    Ok(())
+}
+
+fn on_close_requested(
+    app: &tauri::AppHandle,
+    window: &tauri::WebviewWindow,
+    api: &tauri::CloseRequestApi,
+) {
+    let action = app.state::<preferences::PreferencesStore>().close_action();
+    match app.state::<CloseGate>().on_close_requested(action) {
+        CloseDecision::Allow => {}
+        CloseDecision::Minimize => {
+            api.prevent_close();
+            let _ = window.minimize();
+        }
+        CloseDecision::Hide => {
+            api.prevent_close();
+            let _ = window.hide();
+        }
+        CloseDecision::Prompt(id) => {
+            api.prevent_close();
+            let _ = window.emit_to("main", window_close::PROMPT_EVENT, id);
+            let app = app.clone();
+            std::thread::spawn(move || {
+                std::thread::sleep(window_close::PROMPT_ACK_TIMEOUT);
+                if app.state::<CloseGate>().expire(id) {
+                    app.state::<Arc<BackendState>>()
+                        .host_log("[host] close prompt not acknowledged; exiting");
+                    app.exit(0);
+                }
+            });
+        }
+    }
 }
 
 fn development_root(app: &tauri::AppHandle) -> Result<Option<PathBuf>, Box<dyn std::error::Error>> {
@@ -143,7 +230,7 @@ fn state_phase_fail(state: &Arc<BackendState>, message: String) {
     }
     *state.error.lock().unwrap_or_else(|e| e.into_inner()) = Some(message.clone());
     *phase = backend::BackendPhase::Failed;
-    backend::host_log(&state.log_dir, &format!("[host] failed: {message}"));
+    state.host_log(&format!("[host] failed: {message}"));
 }
 
 fn allowed_navigation(url: &tauri::Url) -> bool {
@@ -233,6 +320,31 @@ struct TaskArgs {
     // The key is required; null explicitly clears only the task.
     #[serde(deserialize_with = "session_store::required_nullable")]
     task: Option<session_store::SessionActiveTask>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct PromptArgs {
+    prompt_id: u64,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CloseChoiceArgs {
+    action: String,
+    remember: bool,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct PreferencesArgs {
+    close_action: String,
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct PreferencesView {
+    close_action: &'static str,
 }
 
 struct StartupNotice(Arc<Mutex<Option<String>>>);
@@ -384,6 +496,82 @@ fn session_clear(
         .map_err(|_| "无法清除保存的账号，请重试".into())
 }
 
+#[tauri::command]
+fn close_prompt_shown(
+    window: tauri::WebviewWindow,
+    gate: tauri::State<'_, CloseGate>,
+    ipc: tauri::ipc::Request<'_>,
+) -> Result<bool, String> {
+    let args: PromptArgs = command_args(&window, &ipc)?;
+    Ok(gate.acknowledge(args.prompt_id))
+}
+
+#[tauri::command]
+fn close_choice(
+    window: tauri::WebviewWindow,
+    gate: tauri::State<'_, CloseGate>,
+    store: tauri::State<'_, preferences::PreferencesStore>,
+    state: tauri::State<'_, Arc<BackendState>>,
+    ipc: tauri::ipc::Request<'_>,
+) -> Result<(), String> {
+    let args: CloseChoiceArgs = command_args(&window, &ipc)?;
+    let action = match args.action.as_str() {
+        "cancel" if !args.remember => None,
+        "minimize" | "tray" | "exit" => preferences::CloseAction::parse(&args.action),
+        _ => return Err("关闭方式无效".into()),
+    };
+    gate.resolve();
+    let Some(action) = action else {
+        return Ok(());
+    };
+    let saved = if args.remember {
+        store.set_close_action(action).map_err(|error| {
+            state.host_log(&format!("[host] close preference not saved: {error}"));
+            "无法保存关闭方式，请重试".to_string()
+        })
+    } else {
+        Ok(())
+    };
+    match action {
+        preferences::CloseAction::Minimize => {
+            let _ = window.minimize();
+        }
+        preferences::CloseAction::Tray => {
+            let _ = window.hide();
+        }
+        _ => window.app_handle().exit(0),
+    }
+    saved
+}
+
+#[tauri::command]
+fn preferences_read(
+    window: tauri::WebviewWindow,
+    store: tauri::State<'_, preferences::PreferencesStore>,
+    ipc: tauri::ipc::Request<'_>,
+) -> Result<PreferencesView, String> {
+    let _: EmptyArgs = command_args(&window, &ipc)?;
+    Ok(PreferencesView {
+        close_action: store.close_action().as_str(),
+    })
+}
+
+#[tauri::command]
+fn preferences_write(
+    window: tauri::WebviewWindow,
+    store: tauri::State<'_, preferences::PreferencesStore>,
+    ipc: tauri::ipc::Request<'_>,
+) -> Result<PreferencesView, String> {
+    let args: PreferencesArgs = command_args(&window, &ipc)?;
+    let action = preferences::CloseAction::parse(&args.close_action).ok_or("关闭方式无效")?;
+    store
+        .set_close_action(action)
+        .map_err(|_| "无法保存关闭方式，请重试")?;
+    Ok(PreferencesView {
+        close_action: action.as_str(),
+    })
+}
+
 #[cfg(test)]
 mod command_tests {
     use super::*;
@@ -459,6 +647,33 @@ mod command_tests {
         ))
         .is_err());
         assert!(decode_args::<EmptyArgs>(&tauri::ipc::InvokeBody::Raw(vec![])).is_err());
+    }
+
+    #[test]
+    fn close_and_preference_envelopes_are_exact_objects() {
+        let body = tauri::ipc::InvokeBody::Json;
+        assert!(decode_args::<PromptArgs>(&body(json!({"promptId": 3}))).is_ok());
+        assert!(decode_args::<PromptArgs>(&body(json!([3]))).is_err());
+        assert!(decode_args::<PromptArgs>(&body(json!({"promptId": "3"}))).is_err());
+        assert!(
+            decode_args::<CloseChoiceArgs>(&body(json!({"action": "tray", "remember": true})))
+                .is_ok()
+        );
+        for rejected in [
+            json!(["tray", true]),
+            json!({"action": "tray"}),
+            json!({"action": {"tray": null}, "remember": false}),
+            json!({"action": "tray", "remember": "yes"}),
+            json!({"action": "tray", "remember": false, "path": "C:/"}),
+        ] {
+            assert!(
+                decode_args::<CloseChoiceArgs>(&body(rejected.clone())).is_err(),
+                "accepted {rejected}"
+            );
+        }
+        assert!(decode_args::<PreferencesArgs>(&body(json!({"closeAction": "ask"}))).is_ok());
+        assert!(decode_args::<PreferencesArgs>(&body(json!({"closeAction": ["ask"]}))).is_err());
+        assert!(decode_args::<PreferencesArgs>(&body(json!({}))).is_err());
     }
 
     #[test]

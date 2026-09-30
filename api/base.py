@@ -13,8 +13,9 @@ from loguru import logger
 from requests import RequestException
 from tqdm import tqdm
 
-from api.answer import *
+from api.answer import Tiku
 from api.answer_check import cut
+from api.captcha import CAPTCHA_PROTOCOL_VERIFIED, CxCaptcha, is_captcha_response
 from api.cipher import AESCipher
 from api.config import GlobalConst as gc
 from api.cookies import save_cookies
@@ -100,8 +101,6 @@ def _open_progress(total, initial, desc):
 class Account:
     username = None
     password = None
-    last_login = None
-    isSuccess = None
 
     def __init__(self, _username, _password):
         self.username = _username
@@ -132,11 +131,8 @@ class StudyResult(Enum):
     SUCCESS = 0
     FORBIDDEN = 1  # 403
     ERROR = 2
-    TIMEOUT = 3
     SKIPPED = 4
 
-    def is_success(self):
-        return self == StudyResult.SUCCESS
     def is_failure(self):
         return self not in {StudyResult.SUCCESS, StudyResult.SKIPPED}
 
@@ -149,9 +145,59 @@ class Chaoxing:
         self.session_manager = SessionManager(account.username if account else None)
         self._closed = False
         self._root_course_list_html = None
-        self.rollback_times = 0
         self.rate_limiter = RateLimiter(0.5) # 其他接口速率限制比较松
         self.video_log_limiter = RateLimiter(2) # 上报进度极其容易卡验证码，限制2s一次
+        self._captcha_lock = threading.Lock()
+        self._captcha_generation = 0
+        self._captcha_passed = False
+
+    CAPTCHA_ATTEMPTS = 3
+
+    def solve_captcha(self, cancel_check=None) -> bool:
+        """Pass the platform's verification page once for all worker threads.
+
+        Threads that hit the page while another thread is solving it wait and
+        reuse that result instead of submitting their own attempt.
+        """
+        if _is_cancelled(cancel_check):
+            return False
+        if not CAPTCHA_PROTOCOL_VERIFIED:
+            logger.warning("验证码自动处理尚待真实样本验证，请在浏览器中手动完成验证")
+            return False
+        seen = self._captcha_generation
+        while not self._captcha_lock.acquire(timeout=0.1):
+            if _is_cancelled(cancel_check):
+                return False
+        try:
+            if _is_cancelled(cancel_check):
+                return False
+            if self._captcha_generation != seen:
+                if self._captcha_passed:
+                    self.session_manager.get_session()  # Refresh this worker's cookie snapshot.
+                return self._captcha_passed
+            passed = False
+            try:
+                solver = CxCaptcha(self.session_manager, self.account.username if self.account else None)
+                for attempt in range(1, self.CAPTCHA_ATTEMPTS + 1):
+                    if _is_cancelled(cancel_check):
+                        break
+                    try:
+                        passed = solver.attempt(cancel_check=lambda: _is_cancelled(cancel_check))
+                    except Exception as exc:
+                        logger.warning("验证码第 {} 次识别失败: {}", attempt, exc)
+                    if passed:
+                        logger.info("验证码已自动通过")
+                        break
+                    if attempt < self.CAPTCHA_ATTEMPTS and _wait_for_cancel(1, cancel_check):
+                        break
+                if not passed and not _is_cancelled(cancel_check):
+                    logger.error("验证码自动识别失败，请在浏览器中打开学习通手动完成验证后重试")
+            finally:
+                self._captcha_passed = passed
+                self._captcha_generation += 1
+            return passed and not _is_cancelled(cancel_check)
+        finally:
+            self._captcha_lock.release()
 
     def login(self, login_with_cookies=False):
         self._root_course_list_html = None
@@ -323,7 +369,8 @@ class Chaoxing:
             logger.trace("开始读取章节所有任务点...")
 
             cards_params.update({"num": str(_possible_num)})
-            _resp = _session.get("https://mooc1.chaoxing.com/mooc-ans/knowledge/cards", params=cards_params)
+            _resp = self._get_past_captcha(_session, "https://mooc1.chaoxing.com/mooc-ans/knowledge/cards",
+                                           cancel_check, params=cards_params)
             if _is_cancelled(cancel_check):
                 return [], {}
             _resp.raise_for_status()
@@ -355,6 +402,24 @@ class Chaoxing:
 
         return job_list, job_info
 
+    def _get_past_captcha(self, session, url, cancel_check=None, **kwargs):
+        """GET a page; after a verification page, pass it and read again.
+
+        Reads here have no side effects, so a second attempt is safe. A page
+        that is still a verification page raises: it is never page content.
+        """
+        response = session.get(url, **kwargs)
+        if not is_captcha_response(response):
+            return response
+        logger.warning("请求触发验证码")
+        if self.solve_captcha(cancel_check) and not _is_cancelled(cancel_check):
+            response.close()
+            response = session.get(url, **kwargs)
+            if not is_captcha_response(response):
+                return response
+        response.close()
+        raise RequestException("验证码未通过，请在浏览器中手动完成验证后重试")
+
     def get_enc(self, clazzId, jobid, objectId, playingTime, duration, userid):
         return md5(
             f"[{clazzId}][{userid}][{jobid}][{objectId}][{playingTime * 1000}][d_yHJ!$pdA~5][{duration * 1000}][0_{duration}]".encode()
@@ -371,6 +436,7 @@ class Chaoxing:
             _playingTime,
             _type: str = "Video",
             headers: Optional[dict] = None,
+            cancel_check=None,
     ) -> tuple[bool, int]:
 
         if headers is None:
@@ -419,6 +485,22 @@ class Chaoxing:
         if att_duration_enc:
             params["attDurationEnc"] = att_duration_enc
 
+        def send():
+            resp = _session.get(_url, params=params, headers=headers)
+            if not is_captcha_response(resp):
+                return resp
+            # A verification page means this report was rejected, not counted.
+            # Replaying it once after the pass is not the connection-failure
+            # replay that reports must avoid: nothing reached the counter.
+            logger.warning("视频进度上报触发验证码")
+            if not self.solve_captcha(cancel_check):
+                return resp
+            if _is_cancelled(cancel_check):
+                return resp
+            resp.close()
+            params["_t"] = get_timestamp()
+            return _session.get(_url, params=params, headers=headers)
+
         rt = _job['rt']
         if not rt:
             rt_search = re.search(r"-rt_([1d])", _job['otherinfo'])
@@ -431,19 +513,18 @@ class Chaoxing:
             logger.trace(f"Got rt: {rt}")
             params.update({"rt": rt,
                            "_t": get_timestamp()})
-            resp = _session.get(_url, params=params, headers=headers)
+            resp = send()
         else:
             logger.warning("Failed to get rt")
             for rt in [0.9, 1]:
                 params.update({"rt": rt,
                                "_t": get_timestamp()})
-                resp = _session.get(_url, params=params, headers=headers)
+                resp = send()
+                if is_captcha_response(resp):
+                    break
                 if resp.status_code == 200:
                     logger.trace(resp.text)
                     return resp.json()["isPassed"], 200
-                #elif resp.ok:
-                #    # TODO: 处理验证码
-                #    pass
                 elif resp.status_code == 403:
                     logger.warning("出现403报错, 正常尝试切换rt")
 
@@ -454,6 +535,10 @@ class Chaoxing:
                                    resp.text[:200]
                     )
                     break
+
+        if is_captcha_response(resp):
+            logger.error("验证码未通过，跳过当前任务点；请在浏览器中手动完成验证")
+            return False, 403
 
         if resp.status_code == 200:
             logger.trace(resp.text)
@@ -543,9 +628,6 @@ class Chaoxing:
 
         _dtoken = _video_info["dtoken"]
 
-        _crc = _video_info["crc"]
-        _key = _video_info["key"]
-
         # Time in the real world: last_iter, gc.THRESHOLD
         # Time in the video (can be scaled with the speed factor): duration, play_time, last_log_time, wait_time
 
@@ -572,10 +654,12 @@ class Chaoxing:
             if _is_cancelled(cancel_check):
                 return StudyResult.SKIPPED
 
-            passed, state = self.video_progress_log(_session, _course, _job, _job_info, _dtoken, duration, play_time, _type, headers=headers)
+            passed, state = self.video_progress_log(_session, _course, _job, _job_info, _dtoken, duration, play_time, _type,
+                                                    headers=headers, cancel_check=cancel_check)
             if _is_cancelled(cancel_check):
                 return StudyResult.SKIPPED
-            passed, state = self.video_progress_log(_session, _course, _job, _job_info, _dtoken, duration, duration, _type, headers=headers)
+            passed, state = self.video_progress_log(_session, _course, _job, _job_info, _dtoken, duration, duration, _type,
+                                                    headers=headers, cancel_check=cancel_check)
             if _is_cancelled(cancel_check):
                 return StudyResult.SKIPPED
 
@@ -589,7 +673,8 @@ class Chaoxing:
                 # Sometimes the last request needs to be sent several times to complete the task
                 if play_time - last_log_time >= wait_time or play_time == duration:
                     passed, state = self.video_progress_log(_session, _course, _job, _job_info, _dtoken, duration,
-                                                            int(play_time), _type, headers=headers)
+                                                            int(play_time), _type, headers=headers,
+                                                            cancel_check=cancel_check)
                     if _is_cancelled(cancel_check):
                         return StudyResult.SKIPPED
 
@@ -830,8 +915,8 @@ class Chaoxing:
 
         @with_retry(max_retries=3, delay=1)
         def fetch_response():
-            return _session.get(
-                _url,
+            return self._get_past_captcha(
+                _session, _url, cancel_check,
                 params={
                     "api": "1",
                     "workId": _job["jobid"].replace("work-", ""),
@@ -870,22 +955,24 @@ class Chaoxing:
         total_questions = len(questions["questions"])
         found_answers = 0
 
-        def _handle_question(q, inc_found):
-            nonlocal found_answers
+        def _handle_question(q) -> bool:
+            """Fill one answer; True only when it came from the question bank."""
             if _is_cancelled(cancel_check):
-                return
+                return False
             logger.debug(f"当前题目信息 -> {q}")
             # 添加搜题延迟 #428 - 默认0s延迟
             query_delay = self.kwargs.get("query_delay", 0)
             if query_delay:
                 if _wait_for_cancel(query_delay, cancel_check):
-                    return
+                    return False
             if _is_cancelled(cancel_check):
-                return
-            res = self.tiku.query(q)
+                return False
+            # An undecodable encrypted font goes straight to the no-answer path.
+            res = None if q.get("undecodable") else self.tiku.query(q)
             if _is_cancelled(cancel_check):
-                return
+                return False
             answer = ""
+            found = False
             if not res:
                 # 随机答题
                 answer = random_answer(q, q["options"])
@@ -959,20 +1046,17 @@ class Chaoxing:
                 else:
                     logger.info(f"成功获取到答案：{answer}")
                     q[f'answerSource{q["id"]}'] = "cover"
-                    inc_found()
+                    found = True
             # 填充答案
             q["answerField"][f'answer{q["id"]}'] = answer
             logger.info(f'{q["title"]} 填写答案为 {answer}')
-
-        def inc_found_seq():
-            nonlocal found_answers
-            found_answers += 1
+            return found
 
         for q in questions["questions"]:
             if _is_cancelled(cancel_check):
                 return StudyResult.SKIPPED
             with self.session_manager.context():
-                _handle_question(q, inc_found_seq)
+                found_answers += _handle_question(q)
         if _is_cancelled(cancel_check):
             return StudyResult.SKIPPED
         cover_rate = (found_answers / total_questions) * 100
@@ -981,7 +1065,7 @@ class Chaoxing:
         # 提交模式  现在与题库绑定,留空直接提交, 1保存但不提交
         if self.tiku.get_submit_params() == "1":
             questions["pyFlag"] = "1"
-        elif cover_rate >= self.tiku.COVER_RATE * 100 or self.rollback_times >= 1:
+        elif cover_rate >= self.tiku.COVER_RATE * 100:
             questions["pyFlag"] = ""
         else:
             questions["pyFlag"] = "1"

@@ -90,6 +90,7 @@ namespace Chaoxing.P3Smoke {
         [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr window, out uint process);
         [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetWindowText(IntPtr window, StringBuilder text, int max);
         [DllImport("user32.dll", SetLastError = true)] private static extern bool PostMessage(IntPtr window, uint message, IntPtr wparam, IntPtr lparam);
+        [DllImport("user32.dll")] private static extern bool IsWindowVisible(IntPtr window);
 
         private static void Check(bool ok, string operation) {
             if (!ok) throw new Win32Exception(Marshal.GetLastWin32Error(), operation);
@@ -264,6 +265,21 @@ namespace Chaoxing.P3Smoke {
                 if (pid == hostPid) {
                     var text = new StringBuilder(1024); GetWindowText(window, text, text.Capacity);
                     if (text.ToString() == title && PostMessage(window, 0x0010, IntPtr.Zero, IntPtr.Zero)) count++;
+                }
+                return true;
+            }, IntPtr.Zero);
+            return count;
+        }
+        // Read-only: counts the captured host's visible windows with this exact title.
+        public int VisibleWindows(string title) {
+            if (string.IsNullOrEmpty(title)) throw new ArgumentException("An exact title is required");
+            if (host == IntPtr.Zero || WaitForSingleObject(host, 0) != WaitTimeout) return 0;
+            int count = 0;
+            EnumWindows((window, extra) => {
+                uint pid; GetWindowThreadProcessId(window, out pid);
+                if (pid == hostPid && IsWindowVisible(window)) {
+                    var text = new StringBuilder(1024); GetWindowText(window, text, text.Capacity);
+                    if (text.ToString() == title) count++;
                 }
                 return true;
             }, IntPtr.Zero);

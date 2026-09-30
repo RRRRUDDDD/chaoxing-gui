@@ -9,6 +9,7 @@ import hashlib
 import json
 import os
 import sys
+import threading
 from io import BytesIO
 from pathlib import Path
 from typing import Dict, IO, Optional, Union
@@ -29,22 +30,12 @@ KX_RADICALS_TAB = str.maketrans(
 
 
 def resource_path(relative_path: str) -> str:
-    """
-    获取资源文件的路径，兼容PyInstaller打包后的环境
+    """Resolve a bundled resource independently of the working directory.
 
-    Args:
-        relative_path: 相对路径
-
-    Returns:
-        资源文件的绝对路径
+    The Tauri host runs the backend with the data directory as cwd, and the
+    CLI may be started anywhere, so never resolve against ``"."``.
     """
-    try:
-        # PyInstaller创建临时文件夹，定位路径
-        base_path = sys._MEIPASS
-    except Exception:
-        # 非打包环境，使用当前目录
-        base_path = os.path.abspath(".")
-    
+    base_path = getattr(sys, "_MEIPASS", None) or Path(__file__).resolve().parent.parent
     return os.path.join(base_path, relative_path)
 
 
@@ -71,8 +62,11 @@ class FontHashDAO:
         try:
             with open(full_path, "r", encoding="utf-8") as fp:
                 self.char_map = json.load(fp)
+                if (not isinstance(self.char_map, dict) or not self.char_map
+                        or any(not isinstance(value, str) for value in self.char_map.values())):
+                    raise ValueError("字体映射表内容无效")
                 self.hash_map = {hash_val: char for char, hash_val in self.char_map.items()}
-        except (FileNotFoundError, json.JSONDecodeError) as e:
+        except (OSError, ValueError) as e:
             raise FontDecodeError(f"加载字体映射表失败: {full_path} - {e}") from e
 
     def find_char(self, font_hash: str) -> Optional[str]:
@@ -100,14 +94,26 @@ class FontHashDAO:
         return self.char_map.get(char)
 
 
-# 初始化字体哈希DAO单例
-try:
-    fonthash_dao = FontHashDAO()
-except Exception as e:
-    logger.warning(f"初始化字体哈希数据失败 - {e}")
-    fonthash_dao = FontHashDAO.__new__(FontHashDAO)
-    fonthash_dao.char_map = {}
-    fonthash_dao.hash_map = {}
+# The 1.6 MB table is only needed for encrypted questions, so it is read on
+# first use. A failure is cached too: the packaged file will not appear later.
+_dao: Optional[FontHashDAO] = None
+_dao_error: Optional[str] = None
+_dao_lock = threading.Lock()
+
+
+def font_hash_dao() -> FontHashDAO:
+    """Load the font hash table once; raise FontDecodeError when it is missing."""
+    global _dao, _dao_error
+    with _dao_lock:
+        if _dao is None and _dao_error is None:
+            try:
+                _dao = FontHashDAO()
+            except FontDecodeError as exc:
+                _dao_error = str(exc)
+                logger.error("字体映射表缺失，加密字体题目无法解码: {}", exc)
+        if _dao is None:
+            raise FontDecodeError(f"字体映射表缺失，加密字体题目无法解码: {_dao_error}")
+        return _dao
 
 
 def hash_glyph(glyph: Glyph) -> str:
@@ -184,9 +190,13 @@ def decrypt(dst_fontmap: Dict[str, str], encrypted_text: str) -> str:
     
     Returns:
         解密后的文本
+
+    Raises:
+        FontDecodeError: 字体映射表缺失时
     """
+    dao = font_hash_dao()
     result = []
-    
+
     for char in encrypted_text:
         # 构造Unicode字符名称 (如 "uni4E00")
         char_code = f"uni{ord(char):X}"
@@ -195,7 +205,7 @@ def decrypt(dst_fontmap: Dict[str, str], encrypted_text: str) -> str:
         if char_code in dst_fontmap:
             dst_hash = dst_fontmap[char_code]
             # 通过哈希值找回原始字符
-            original_char_code = fonthash_dao.find_char(dst_hash)
+            original_char_code = dao.find_char(dst_hash)
             if original_char_code:
                 # 将Unicode编码转换为字符
                 try:

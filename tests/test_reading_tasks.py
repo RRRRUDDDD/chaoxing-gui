@@ -4,6 +4,7 @@ from contextlib import contextmanager
 from pathlib import Path
 import tempfile
 import unittest
+from tests.storage_fixtures import saved_tasks_text
 from unittest.mock import MagicMock, patch
 
 from api import course_tool_tasks as tasks
@@ -70,7 +71,7 @@ class ReadingTaskTests(unittest.TestCase):
         self.assertEqual(self.store.get_status(task_id)["status"], "completed")
         self.assertEqual(self.store.get_status(task_id)["task_label"], "读取阅读任务")
         self.assertEqual(self.store.get_details(task_id)["tool"]["resources"], [READING])
-        stored = (self.directory / "tasks.json").read_text(encoding="utf-8")
+        stored = saved_tasks_text(self.directory / "tasks.json")
         for secret in ("private-fresh-token", "https://", "never-store-password"):
             self.assertNotIn(secret, stored)
         self.service.watch_reading.assert_not_called()
