@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import tempfile
 import unittest
+from tests.storage_fixtures import saved_tasks_text
 from unittest.mock import MagicMock, patch
 
 from flask import Flask, jsonify
@@ -78,13 +79,13 @@ class CourseToolTaskTests(unittest.TestCase):
         self.assertEqual(self.store.get_status(task_id)["status"], "completed")
         result = self.store.get_details(task_id)["tool"]["results"][0]
         self.assertEqual((result["before"], result["after"], result["submitted"]), (12, 14, 2))
-        self.assertNotIn("secret", self.state_file.read_text(encoding="utf-8"))
+        self.assertNotIn("secret", saved_tasks_text(self.state_file))
 
     def test_catalog_does_not_publish_private_attachment_parameters(self):
         task_id = self.run_task("catalog", {"purpose": "download"})
         self.assertEqual(self.store.get_status(task_id)["status"], "completed")
         self.assertEqual(self.store.get_details(task_id)["tool"]["resources"], [RESOURCE])
-        self.assertNotIn("private-token", self.state_file.read_text(encoding="utf-8"))
+        self.assertNotIn("private-token", saved_tasks_text(self.state_file))
 
     def test_single_course_catalog_with_418_resources_fits_complete_response_budget(self):
         resources = [

@@ -6,6 +6,7 @@ import subprocess
 import sys
 import threading
 import unittest
+from tests.storage_fixtures import saved_tasks_text, task_path
 from unittest.mock import MagicMock, patch
 
 import app as web
@@ -48,7 +49,7 @@ class TaskRecoveryTests(unittest.TestCase):
         self.assertEqual(store.get_resume_config(task_id, "alice"), SETTINGS)
         claimed = store.resume(task_id, "alice", web._initial_status(), {"courses": [], "active_jobs": {}})
         self.assertNotIn("ocr_config", claimed)
-        saved = json.loads(self.state_file.read_text(encoding="utf-8"))
+        saved = json.loads(saved_tasks_text(self.state_file))
         self.assertNotIn("ocr_config", saved["tasks"][task_id]["resume_config"])
 
     def create(self, account="alice"):
@@ -77,7 +78,7 @@ os._exit(0)
             [sys.executable, "-c", script, str(self.state_file), json.dumps(SETTINGS)],
             cwd=Path(__file__).resolve().parents[1], check=True, timeout=15,
         )
-        task_id = next(iter(json.loads(self.state_file.read_text(encoding="utf-8"))["tasks"]))
+        task_id = next(iter(json.loads(saved_tasks_text(self.state_file))["tasks"]))
         self.assertEqual(self.new_store().get_status(task_id)["status"], "interrupted")
 
     def test_only_one_concurrent_resume_claim_succeeds(self):
@@ -125,11 +126,11 @@ os._exit(0)
 
     def test_failed_initial_write_rolls_back_reservation_and_keeps_previous_file(self):
         previous = self.create("bob")
-        original = self.state_file.read_bytes()
+        original = task_path(self.state_file, previous).read_bytes()
         with patch("api.task_state.os.replace", side_effect=OSError("disk full")):
             with self.assertRaises(OSError):
                 self.create()
-        self.assertEqual(self.state_file.read_bytes(), original)
+        self.assertEqual(task_path(self.state_file, previous).read_bytes(), original)
         self.assertEqual(self.new_store().get_status(previous)["status"], "interrupted")
         self.create()
 
@@ -146,7 +147,7 @@ os._exit(0)
         self.state_file.write_text('{"version":', encoding="utf-8")
         with self.assertRaises(OSError):
             self.create()
-        self.assertEqual(self.state_file.read_text(encoding="utf-8"), '{"version":')
+        self.assertEqual(saved_tasks_text(self.state_file), '{"version":')
 
     def test_finish_write_failure_is_visible_and_terminal_in_memory(self):
         task_id = self.create()
@@ -198,7 +199,7 @@ class TaskRecoveryApiTests(unittest.TestCase):
 
     def test_start_restart_resume_uses_saved_parameters_and_cookie_login(self):
         task_id = self.start()
-        serialized = self.state_file.read_text(encoding="utf-8")
+        serialized = saved_tasks_text(self.state_file)
         self.assertNotIn("never-persist-this-password", serialized)
         self.assertNotIn('"password"', serialized)
         self.restart()
@@ -280,9 +281,10 @@ class TaskRecoveryApiTests(unittest.TestCase):
 
     def test_persisted_settings_are_validated_before_launch(self):
         task_id = self.start()
-        data = json.loads(self.state_file.read_text(encoding="utf-8"))
-        data["tasks"][task_id]["resume_config"]["course_list"] = []
-        self.state_file.write_text(json.dumps(data), encoding="utf-8")
+        target = task_path(self.state_file, task_id)
+        data = json.loads(target.read_text(encoding="utf-8"))
+        data["task"]["resume_config"]["course_list"] = []
+        target.write_text(json.dumps(data), encoding="utf-8")
         self.restart()
         self.assertEqual(self.resume(task_id).status_code, 400)
         self.launch.assert_not_called()
