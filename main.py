@@ -344,6 +344,15 @@ def _record_job_counts(point):
     }
 
 
+def _skip_unfinished_jobs(point):
+    if point.get('_job_results'):
+        point['_job_results'] = {
+            key: StudyResult.SKIPPED if result.is_failure() else result
+            for key, result in point['_job_results'].items()
+        }
+        _record_job_counts(point)
+
+
 def _cancel_chapter(point):
     """Keep proven completions and mark the remaining work as skipped."""
     point.pop('_error', None)
@@ -351,11 +360,7 @@ def _cancel_chapter(point):
         _chapter_counts(point, ChapterResult.SUCCESS)
         return ChapterResult.SUCCESS
     if point.get('_job_results'):
-        point['_job_results'] = {
-            key: StudyResult.SKIPPED if result.is_failure() else result
-            for key, result in point['_job_results'].items()
-        }
-        _record_job_counts(point)
+        _skip_unfinished_jobs(point)
         return ChapterResult.SKIPPED if point['_task_stats']['skipped'] else ChapterResult.SUCCESS
     point.pop('_task_stats', None)
     _chapter_counts(point, ChapterResult.SKIPPED)
@@ -463,14 +468,10 @@ class JobProcessor:
         """Report a user-requested stop, including one seen before the watcher."""
         if self._cancelled.is_set():
             return True
-        if callable(self._cancel_check):
-            try:
-                if self._cancel_check():
-                    self._cancelled.set()
-                    self._stop.set()
-                    return True
-            except Exception as exc:
-                logger.debug('读取停止信号失败: {}', exc)
+        if _is_cancelled(self._cancel_check):
+            self._cancelled.set()
+            self._stop.set()
+            return True
         return False
 
     def _start_thread(self, target, name):
@@ -518,12 +519,7 @@ class JobProcessor:
                         task.result = _cancel_chapter(task.point)
                     if task.result == ChapterResult.NOT_OPEN and self.config.get('notopen_action') == 'continue':
                         task.result = ChapterResult.SKIPPED
-                        if task.point.get('_job_results'):
-                            task.point['_job_results'] = {
-                                key: StudyResult.SKIPPED if result.is_failure() else result
-                                for key, result in task.point['_job_results'].items()
-                            }
-                            _record_job_counts(task.point)
+                        _skip_unfinished_jobs(task.point)
                     if task.result in {ChapterResult.ERROR, ChapterResult.NOT_OPEN}:
                         task.tries += 1
                         if task.tries < self.max_tries and not self.cancelled() and not self._stop.is_set():
@@ -579,13 +575,7 @@ def process_chapter(chaoxing: Chaoxing, course: dict[str, Any], point: dict[str,
     cancel_check = config.get('cancel_check')
 
     def stopped():
-        if not callable(cancel_check):
-            return False
-        try:
-            return bool(cancel_check())
-        except Exception as exc:
-            logger.debug('读取停止信号失败: {}', exc)
-            return False
+        return _is_cancelled(cancel_check)
 
     logger.info('当前章节: {}', point["title"])
     if point.get('_job_results'):
