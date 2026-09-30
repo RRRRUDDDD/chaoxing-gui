@@ -201,14 +201,6 @@ if errorlevel 1 (
     set "HAS_ERRORS=1"
 )
 
-REM 安装 Flask-CORS
-echo    安装 Flask-CORS...
-"%PYTHON_EXE%" -m pip install --no-warn-script-location flask-cors
-if errorlevel 1 (
-    echo    ⚠️  Flask-CORS 安装失败，Web 模式可能无法正常工作
-    set "HAS_ERRORS=1"
-)
-
 REM 安装 OCR 依赖（完整版默认安装）
 echo    安装 OCR 依赖 paddlepaddle...
 "%PYTHON_EXE%" -m pip install --no-warn-script-location paddlepaddle -i https://www.paddlepaddle.org.cn/packages/stable/cpu/

@@ -57,6 +57,12 @@ python main.py -u 手机号 -p 密码 -l 课程ID --speed 1.5
 
 ---
 
+## 源码便携版构建
+
+唯一入口为 `clean_and_build_portable.bat`，旧的 `build_portable.bat` 已删除。
+
+**请只在不含个人数据的源码副本中构建。** 该脚本会先清理源码目录中的日志、`cache.json`、`cookies.txt`、`config.ini` 和旧构建产物，再安装嵌入式 Python 与依赖，输出 `chaoxing_portable/`。它不同于 PyInstaller 独立 EXE，也不同于 Tauri 桌面包。
+
 ## 使用说明
 
 ### 1. 登录
