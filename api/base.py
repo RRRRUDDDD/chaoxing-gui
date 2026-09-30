@@ -15,7 +15,7 @@ from tqdm import tqdm
 
 from api.answer import Tiku
 from api.answer_check import cut
-from api.captcha import CxCaptcha, is_captcha_response
+from api.captcha import CAPTCHA_PROTOCOL_VERIFIED, CxCaptcha, is_captcha_response
 from api.cipher import AESCipher
 from api.config import GlobalConst as gc
 from api.cookies import save_cookies
@@ -159,9 +159,21 @@ class Chaoxing:
         Threads that hit the page while another thread is solving it wait and
         reuse that result instead of submitting their own attempt.
         """
+        if _is_cancelled(cancel_check):
+            return False
+        if not CAPTCHA_PROTOCOL_VERIFIED:
+            logger.warning("验证码自动处理尚待真实样本验证，请在浏览器中手动完成验证")
+            return False
         seen = self._captcha_generation
-        with self._captcha_lock:
+        while not self._captcha_lock.acquire(timeout=0.1):
+            if _is_cancelled(cancel_check):
+                return False
+        try:
+            if _is_cancelled(cancel_check):
+                return False
             if self._captcha_generation != seen:
+                if self._captcha_passed:
+                    self.session_manager.get_session()  # Refresh this worker's cookie snapshot.
                 return self._captcha_passed
             passed = False
             try:
@@ -170,20 +182,22 @@ class Chaoxing:
                     if _is_cancelled(cancel_check):
                         break
                     try:
-                        passed = solver.attempt()
+                        passed = solver.attempt(cancel_check=lambda: _is_cancelled(cancel_check))
                     except Exception as exc:
                         logger.warning("验证码第 {} 次识别失败: {}", attempt, exc)
                     if passed:
                         logger.info("验证码已自动通过")
                         break
-                    if _wait_for_cancel(1, cancel_check):
+                    if attempt < self.CAPTCHA_ATTEMPTS and _wait_for_cancel(1, cancel_check):
                         break
                 if not passed and not _is_cancelled(cancel_check):
                     logger.error("验证码自动识别失败，请在浏览器中打开学习通手动完成验证后重试")
             finally:
                 self._captcha_passed = passed
                 self._captcha_generation += 1
-            return passed
+            return passed and not _is_cancelled(cancel_check)
+        finally:
+            self._captcha_lock.release()
 
     def login(self, login_with_cookies=False):
         self._root_course_list_html = None
@@ -397,11 +411,13 @@ class Chaoxing:
         response = session.get(url, **kwargs)
         if not is_captcha_response(response):
             return response
-        logger.warning("请求触发验证码，正在自动识别")
-        if self.solve_captcha(cancel_check):
+        logger.warning("请求触发验证码")
+        if self.solve_captcha(cancel_check) and not _is_cancelled(cancel_check):
+            response.close()
             response = session.get(url, **kwargs)
             if not is_captcha_response(response):
                 return response
+        response.close()
         raise RequestException("验证码未通过，请在浏览器中手动完成验证后重试")
 
     def get_enc(self, clazzId, jobid, objectId, playingTime, duration, userid):
@@ -476,9 +492,12 @@ class Chaoxing:
             # A verification page means this report was rejected, not counted.
             # Replaying it once after the pass is not the connection-failure
             # replay that reports must avoid: nothing reached the counter.
-            logger.warning("视频进度上报触发验证码，正在自动识别")
+            logger.warning("视频进度上报触发验证码")
             if not self.solve_captcha(cancel_check):
                 return resp
+            if _is_cancelled(cancel_check):
+                return resp
+            resp.close()
             params["_t"] = get_timestamp()
             return _session.get(_url, params=params, headers=headers)
 
@@ -501,7 +520,9 @@ class Chaoxing:
                 params.update({"rt": rt,
                                "_t": get_timestamp()})
                 resp = send()
-                if resp.status_code == 200 and not is_captcha_response(resp):
+                if is_captcha_response(resp):
+                    break
+                if resp.status_code == 200:
                     logger.trace(resp.text)
                     return resp.json()["isPassed"], 200
                 elif resp.status_code == 403:

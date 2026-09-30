@@ -8,3 +8,5 @@ verification page loads `/processVerifyPng.ac` and submits to
 Replace or extend them with captured samples (status, `Location`, headers and
 the first 2 KB of the body, with cookies and personal data removed) before
 widening `api.captcha.is_captcha_response`.
+
+`CAPTCHA_PROTOCOL_VERIFIED` currently remains false. The production flow reports that manual verification is required without fetching or submitting a captcha. Offline tests explicitly patch this guard to exercise the framework; they do not establish live-platform behavior.

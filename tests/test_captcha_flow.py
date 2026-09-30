@@ -46,6 +46,14 @@ class DetectionTests(unittest.TestCase):
         self.assertTrue(captcha.is_captcha_response(redirect_to_verify()))
         self.assertTrue(captcha.is_captcha_response(response(403, VERIFY_PAGE)))
 
+    def test_streamed_html_is_not_consumed_and_foreign_redirect_is_not_verification(self):
+        streamed = response(200, headers={"Content-Type": "text/html"})
+        from unittest.mock import PropertyMock
+        with patch.object(requests.Response, "text", new_callable=PropertyMock, side_effect=AssertionError("body read")):
+            self.assertFalse(captcha.is_captcha_response(streamed, inspect_body=False))
+        for url in ("https://evil.example/html/processVerify.ac", "https://mooc1.chaoxing.com/other?next=processVerify.ac"):
+            self.assertFalse(captcha.is_captcha_response(response(302, headers={"Location": url})))
+
     def test_plain_errors_and_normal_pages_are_not(self):
         for item in (
             response(403, PLAIN_403, {"Content-Type": "text/html"}),
@@ -96,6 +104,44 @@ class SolverTests(unittest.TestCase):
         self.assertFalse(self.solver.attempt())
         self.manager.set_cookies.assert_not_called()
 
+    def test_cancel_after_recognition_does_not_submit(self):
+        stopped = threading.Event()
+        self.session.get.return_value = response(200, content=b"png", headers={"Content-Type": "image/png"})
+        self.engine.classification.side_effect = lambda data: (stopped.set() or "code")
+        self.assertFalse(self.solver.attempt(stopped.is_set))
+        self.session.get.assert_called_once()
+        self.manager.set_cookies.assert_not_called()
+
+    def test_pass_cookie_is_seen_by_an_existing_thread_session(self):
+        from api.session import SessionManager
+        manager = SessionManager("offline")
+        self.addCleanup(manager.close)
+        ready, published = threading.Event(), threading.Event()
+        seen = []
+        def worker():
+            session = manager.get_session()
+            ready.set()
+            published.wait(3)
+            refreshed = manager.get_session()
+            seen.append((session is refreshed, refreshed.cookies.get("verified")))
+            manager.close_current_session()
+        thread = threading.Thread(target=worker)
+        thread.start()
+        try:
+            self.assertTrue(ready.wait(3))
+            manager.get_session()
+            def submit(current, code):
+                current.cookies.set("verified", "yes", domain=".chaoxing.com", path="/")
+                return True
+            solver = captcha.CxCaptcha(manager, "offline", ocr=self.engine)
+            with patch.object(solver, "fetch_image", return_value=b"png"),                     patch.object(solver, "submit", side_effect=submit), patch.object(captcha, "save_cookies"):
+                self.assertTrue(solver.attempt())
+        finally:
+            published.set()
+            thread.join(3)
+        self.assertFalse(thread.is_alive())
+        self.assertEqual(seen, [(True, "yes")])
+
     def test_no_ocr_engine_means_no_request(self):
         solver = captcha.CxCaptcha(self.manager, "alice")
         with patch.object(captcha, "captcha_ocr", return_value=None):
@@ -105,6 +151,9 @@ class SolverTests(unittest.TestCase):
 
 class ChaoxingCaptchaTests(unittest.TestCase):
     def setUp(self):
+        verified = patch("api.base.CAPTCHA_PROTOCOL_VERIFIED", True)
+        verified.start()
+        self.addCleanup(verified.stop)
         self.client = Chaoxing(account=Account("offline", "secret"), tiku=None)
         self.client.rate_limiter = Mock()
         self.client.video_log_limiter = Mock()
@@ -146,7 +195,7 @@ class ChaoxingCaptchaTests(unittest.TestCase):
         release = threading.Event()
         calls = []
 
-        def attempt():
+        def attempt(**kwargs):
             calls.append(threading.current_thread().name)
             started.set()
             release.wait(5)
@@ -174,7 +223,7 @@ class ChaoxingCaptchaTests(unittest.TestCase):
     def test_stop_during_the_captcha_skips_without_more_attempts(self):
         stop = threading.Event()
 
-        def attempt():
+        def attempt(**kwargs):
             stop.set()
             return False
 
@@ -182,6 +231,24 @@ class ChaoxingCaptchaTests(unittest.TestCase):
             solver.return_value.attempt.side_effect = attempt
             self.assertFalse(self.client.solve_captcha(stop.is_set))
         self.assertEqual(solver.return_value.attempt.call_count, 1)
+
+    def test_live_submission_stays_disabled_until_real_protocol_is_verified(self):
+        with patch("api.base.CAPTCHA_PROTOCOL_VERIFIED", False), patch("api.base.CxCaptcha") as solver:
+            self.assertFalse(self.client.solve_captcha())
+            solver.assert_not_called()
+
+    def test_cancel_does_not_wait_for_another_workers_solver(self):
+        stop = threading.Event()
+        self.client._captcha_lock.acquire()
+        worker = threading.Thread(target=lambda: self.client.solve_captcha(stop.is_set))
+        try:
+            worker.start()
+            stop.set()
+            worker.join(1)
+            self.assertFalse(worker.is_alive())
+        finally:
+            self.client._captcha_lock.release()
+            worker.join(3)
 
     def test_card_page_captcha_is_not_an_empty_chapter(self):
         session = Mock()

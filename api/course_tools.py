@@ -172,7 +172,7 @@ class CourseTools:
                 response = getattr(session, method)(
                     url, timeout=HTTP_TIMEOUT, allow_redirects=False, **kwargs,
                 )
-            if is_captcha_response(response):
+            if is_captcha_response(response, inspect_body=not kwargs.get("stream", False)):
                 response.close()
                 response = None
                 # A verification page means the request was refused, so
@@ -185,7 +185,7 @@ class CourseTools:
                     response = getattr(session, method)(
                         url, timeout=HTTP_TIMEOUT, allow_redirects=False, **kwargs,
                     )
-                if is_captcha_response(response):
+                if is_captcha_response(response, inspect_body=not kwargs.get("stream", False)):
                     raise RuntimeError(f"{label}需要验证码，自动识别未通过，请在浏览器中手动完成验证")
             if response.status_code not in statuses:
                 if response.status_code in {401, 403}:

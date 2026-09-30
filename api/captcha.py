@@ -15,6 +15,7 @@ import threading
 import time
 from random import randint
 from typing import Optional
+from urllib.parse import urljoin, urlsplit
 
 from loguru import logger
 
@@ -26,6 +27,9 @@ IMAGE_PATH = "/processVerifyPng.ac"
 SUBMIT_PATH = "/html/processVerify.ac"
 _MARKERS = ("processverifypng.ac", "processverify.ac")
 _PEEK_BYTES = 64 * 1024
+# Only synthetic fixtures exist. Enable after real rejection/pass samples prove
+# detection, success and cookie semantics; this is not a user-facing bypass flag.
+CAPTCHA_PROTOCOL_VERIFIED = False
 
 _OCR_RETRY_SECONDS = 60.0
 _ocr_lock = threading.Lock()
@@ -49,14 +53,22 @@ def captcha_ocr() -> Optional[CaptchaOcr]:
         return _ocr_engine
 
 
-def is_captcha_response(response) -> bool:
+def is_captcha_response(response, *, inspect_body=True) -> bool:
     """True only when the response sends the user to the verification page."""
     if response is None:
         return False
-    location = str(response.headers.get("Location") or "").lower()
-    if any(marker in location for marker in _MARKERS):
-        return True
-    if response.status_code not in (200, 403):
+    location = response.headers.get("Location")
+    if isinstance(location, str) and response.status_code in (301, 302, 303, 307, 308, 403):
+        try:
+            target = urlsplit(urljoin(getattr(response, "url", None) or HOST, location))
+            if (target.scheme == "https" and target.hostname == "mooc1.chaoxing.com"
+                    and target.username is None and target.password is None and target.port in (None, 443)
+                    and target.path.lower() in (IMAGE_PATH.lower(), SUBMIT_PATH.lower())):
+                return True
+        except ValueError:
+            pass
+    # Streamed downloads must never be eagerly read for HTML markers.
+    if not inspect_body or response.status_code not in (200, 403):
         return False
     content_type = str(response.headers.get("Content-Type") or "").lower()
     if content_type and "html" not in content_type:
@@ -96,17 +108,20 @@ class CxCaptcha:
         finally:
             response.close()
 
-    def attempt(self) -> bool:
+    def attempt(self, cancel_check=None) -> bool:
         """One fetch-recognize-submit round; publishes cookies on success."""
+        cancelled = cancel_check or (lambda: False)
+        if cancelled():
+            return False
         engine = self.ocr or captcha_ocr()
-        if engine is None:
+        if engine is None or cancelled():
             return False
         session = self.session_manager.get_session()
         image = self.fetch_image(session)
-        if not image:
+        if not image or cancelled():
             return False
         code = engine.classification(image)
-        if not code or not self.submit(session, code):
+        if cancelled() or not code or not self.submit(session, code):
             return False
         # Any cookie issued with the pass must reach the other worker threads.
         self.session_manager.set_cookies(session.cookies)
