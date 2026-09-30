@@ -12,6 +12,7 @@ import sys
 import time
 
 from api.exceptions import LoginError
+from api.fs_policy import reject_links
 from api.logger import logger
 from api.task_state import TaskNotFound
 
@@ -160,25 +161,15 @@ def selected_resources(store, account, course_ids, task_type, options):
         return selected
 
 
-def _reject_links(path):
-    for candidate in (path, *path.parents):
-        try:
-            info = candidate.lstat()
-        except FileNotFoundError:
-            continue
-        if stat.S_ISLNK(info.st_mode) or getattr(info, "st_file_attributes", 0) & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400):
-            raise ValueError("下载目录不能包含符号链接或目录联接")
-
-
 def download_directory(data_dir, task_id, *, create=False):
     if not isinstance(task_id, str) or not SAFE_ID.fullmatch(task_id):
         raise ValueError("任务 ID 格式错误")
     base = Path(os.path.abspath(data_dir))
     directory = base / "downloads" / task_id
-    _reject_links(directory)
+    reject_links(directory)
     if create:
         directory.mkdir(parents=True, exist_ok=True)
-        _reject_links(directory)
+        reject_links(directory)
     resolved = directory.resolve()
     if not resolved.is_relative_to(base.resolve()):
         raise ValueError("下载目录超出允许范围")
@@ -194,7 +185,7 @@ def _valid_download(result, directory):
             path = directory / path
         if not path.is_relative_to(directory):
             return False
-        _reject_links(path)
+        reject_links(path)
         info = path.stat()
         return stat.S_ISREG(info.st_mode) and type(result.get("bytes")) is int and result["bytes"] == info.st_size
     except (KeyError, TypeError, ValueError, OSError):

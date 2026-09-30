@@ -18,7 +18,6 @@ import math
 import os
 from pathlib import Path
 import re
-import stat
 import tempfile
 import time
 import unicodedata
@@ -31,6 +30,7 @@ from urllib3.util.retry import Retry
 
 from api.captcha import is_captcha_response
 from api.decode import card_page_has_payload
+from api.fs_policy import reject_links
 from api.url_policy import UrlMessages, canonical_https_url
 from api.session import HTTP_TIMEOUT
 
@@ -680,16 +680,7 @@ class CourseTools:
 
     @staticmethod
     def _download_directory(directory):
-        path = Path(directory).absolute()
-        for candidate in (path, *path.parents):
-            try:
-                info = candidate.lstat()
-            except FileNotFoundError:
-                continue
-            if stat.S_ISLNK(info.st_mode) or (
-                getattr(info, "st_file_attributes", 0) & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
-            ):
-                raise ValueError("下载目录不能包含链接或重解析点")
+        path = reject_links(directory)
         path.mkdir(parents=True, exist_ok=True)
         return path.resolve(strict=True)
 
