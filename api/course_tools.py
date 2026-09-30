@@ -275,8 +275,8 @@ class CourseTools:
         return chapters
 
     @staticmethod
-    def _card_data(text):
-        _check_html(text, "章节卡片")
+    def _card_data(soup):
+        text = " ".join(script.get_text() for script in soup.find_all("script"))
         # The platform initializes mArg to "" before assigning the resource
         # object inside try/catch. Match that object, not the placeholder.
         match = re.search(r"\bmArg\s*=\s*(?=\{)", text)
@@ -388,14 +388,14 @@ class CourseTools:
                             "num": page, "v": "20160407-1", "mooc2": 1,
                         }
                         text = self._text("get", CARDS_URL, "章节卡片", params=params)
-                        if _LOCKED.search(BeautifulSoup(text, "html.parser").get_text()):
+                        soup = _check_html(text, "章节卡片")
+                        if _LOCKED.search(soup.get_text()):
                             logger.warning("章节“{}”未开放，已跳过剩余卡片", chapter["title"])
                             break
                         if probing and _CARD_PLACEHOLDER.search(text) and not card_page_has_payload(text):
-                            _check_html(text, "章节卡片")
                             break
                         try:
-                            data = self._card_data(text)
+                            data = self._card_data(soup)
                             for index, attachment in enumerate(data.get("attachments", [])):
                                 self._check_cancelled()
                                 resource = self._resource(

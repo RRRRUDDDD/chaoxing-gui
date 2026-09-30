@@ -134,6 +134,15 @@ class OfflineToolsCase(unittest.TestCase):
 
 
 class ScanTests(OfflineToolsCase):
+    def test_card_html_is_parsed_only_once(self):
+        from bs4 import BeautifulSoup
+        card = card_page([VIDEO])
+        self.session.get.side_effect = [Response(course_page()), Response('<input id="cardcount" value="1">'), Response(card)]
+        with patch("api.course_tools.BeautifulSoup", wraps=BeautifulSoup) as parse:
+            found = self.tools.scan_course(COURSE)
+        self.assertEqual(len(found), 1)
+        self.assertEqual(sum(call.args[0] == card for call in parse.call_args_list), 1)
+
     def test_reads_every_actual_card_and_keeps_completed_and_non_job_media(self):
         original = deepcopy(VIDEO)
         original["property"]["name"] = "已完成 视频 {有空格}"
