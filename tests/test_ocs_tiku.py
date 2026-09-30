@@ -12,6 +12,7 @@ from api.ocs_tiku import (
     TikuOcs,
     compile_handler,
     load_wrappers,
+    normalize_wrapper,
     resolve_data,
     select_answer,
 )
@@ -51,12 +52,26 @@ class HandlerTests(unittest.TestCase):
 
     def test_field_handler_replaces_placeholder_context(self):
         env = {"title": "单选题中国梦", "options": "A. 一\nB. 二", "type": "single"}
-        resolved = resolve_data({
+        data = normalize_wrapper(_wrapper(data={
             "title": {"handler": "return (env)=> env.title.replace('单选题','')"},
             "question": "${title}",
-        }, env)
+        }))["data"]
+        resolved = resolve_data(data, env)
         self.assertEqual(resolved["title"], "中国梦")
         self.assertEqual(resolved["question"], "单选题中国梦")
+
+    def test_data_handlers_compile_once_and_fail_during_configuration(self):
+        config = _wrapper(data={"question": {"handler": "return (env)=> env.title.trim()"}})
+        with patch("api.ocs_tiku.compile_handler", wraps=compile_handler) as compile_once:
+            wrapper = normalize_wrapper(config)
+            self.assertEqual(compile_once.call_count, 2)  # request data plus response handler
+            for title in (" first ", " second "):
+                self.assertEqual(resolve_data(wrapper["data"], {"title": title}), {"question": title.strip()})
+            self.assertEqual(compile_once.call_count, 2)
+        self.assertIsInstance(config["data"]["question"], dict)
+        for source in (None, 123, "invalid ??? script"):
+            with self.subTest(source=source), self.assertRaises(ValueError):
+                normalize_wrapper(_wrapper(data={"question": {"handler": source}}))
 
     def test_rejects_arbitrary_code(self):
         with self.assertRaises(HandlerSyntaxError):

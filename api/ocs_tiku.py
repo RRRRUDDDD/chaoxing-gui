@@ -137,6 +137,15 @@ def normalize_wrapper(item: Any) -> dict[str, Any]:
     data = item.get("data") or {}
     if not isinstance(data, dict):
         raise ValueError(f"{name} 的 data 必须是对象")
+    compiled_data = {}
+    for key, value in data.items():
+        if isinstance(value, dict) and "handler" in value:
+            source = value["handler"]
+            if not isinstance(source, str):
+                raise ValueError(f"{key} 的 handler 必须是字符串")
+            compiled_data[key] = compile_handler(source)
+        else:
+            compiled_data[key] = value
     headers = item.get("headers") or {}
     if not isinstance(headers, dict) or any(not isinstance(key, str) or not isinstance(value, str) for key, value in headers.items()):
         raise ValueError(f"{name} 的 headers 必须是字符串字段")
@@ -148,7 +157,7 @@ def normalize_wrapper(item: Any) -> dict[str, Any]:
         "method": method,
         "content_type": content_type,
         "headers": dict(headers),
-        "data": data,
+        "data": compiled_data,
         "run": compile_handler(handler),
     }
 
@@ -156,11 +165,8 @@ def normalize_wrapper(item: Any) -> dict[str, Any]:
 def resolve_data(data: Mapping[str, Any], env: Mapping[str, str]) -> dict[str, Any]:
     resolved = {}
     for key, value in data.items():
-        if isinstance(value, dict) and "handler" in value:
-            source = value.get("handler")
-            if not isinstance(source, str):
-                raise ValueError(f"{key} 的 handler 必须是字符串")
-            resolved[key] = compile_handler(source)(env)
+        if callable(value):
+            resolved[key] = value(env)
         elif isinstance(value, str):
             resolved[key] = substitute(value, env)
         else:
