@@ -429,3 +429,12 @@ windowsTest('Windows PowerShell portable entrypoints preserve check/start errors
   failure(rejected, /signature|Microsoft|Authenticode/i);
   assert.equal(fs.readFileSync(path.join(portable, 'calls.txt'), 'utf8'), before, 'unsigned installer must never execute');
 });
+
+test('both Python bundles import the same resource and dependency policy', () => {
+  for (const filename of ['chaoxing.spec', 'chaoxing-backend.spec']) {
+    const source = fs.readFileSync(path.join(project, filename), 'utf8');
+    assert.match(source, /Path\(SPECPATH\) \/ "packaging"/);
+    assert.match(source, /from spec_common import datas, hiddenimports, excludes/);
+    assert.doesNotMatch(source, /copy_metadata|distribution\("ddddocr"\)/);
+  }
+});
