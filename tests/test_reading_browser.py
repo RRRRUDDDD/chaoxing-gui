@@ -6,12 +6,13 @@ import socket
 import threading
 import time
 import unittest
+from unittest.mock import Mock
 from requests.cookies import RequestsCookieJar
 
 import tempfile
 
 from api.reading_browser import (
-    CdpSocket, allow_reading_url, browser_executable, cdp_cookies, chrome_command,
+    CdpSocket, NotReadingPage, allow_reading_url, browser_executable, cdp_cookies, chrome_command,
     _STATE_JS, navigation_ready, scroll_book, scroll_expression, scroll_reading_page,
 )
 
@@ -147,7 +148,7 @@ class ReadingBrowserTests(unittest.TestCase):
         self.assertIn("logs.js", _STATE_JS)
 
     def test_reading_box_is_not_replaced_by_a_chapter_link(self):
-        page = Page({"hasBox": True, "chapter": "https://evil.example/steal"})
+        page = Page({"hasBox": True, "reading": True, "chapter": "https://evil.example/steal"})
         scroll_book(BOOK, cookies(), 5, wait=lambda seconds: None, opener=lambda jar: page)
         self.assertEqual(page.urls, [BOOK])
         self.assertTrue(page.closed)
@@ -287,6 +288,26 @@ class ReadingBrowserTests(unittest.TestCase):
         self.assertIn("超时", str(raised.exception))
         self.assertGreaterEqual(elapsed, 0.55)
         self.assertLess(elapsed, 3)
+
+    def test_box_without_reporter_is_not_reading(self):
+        page = Page({"hasBox": True})
+        with self.assertRaises(NotReadingPage):
+            scroll_book(BOOK, cookies(), 5, opener=lambda jar: page)
+        self.assertEqual(page.scripts, [])
+        self.assertTrue(page.closed)
+
+    def test_lost_body_after_progress_is_not_a_reason_to_restart_on_another_book(self):
+        page = Mock()
+        page.evaluate.side_effect = [380, None]
+        progress = []
+        with self.assertRaises(RuntimeError) as raised:
+            scroll_reading_page(page, 10, wait=lambda seconds: None,
+                                on_progress=lambda done, total: progress.append(done))
+        self.assertNotIsInstance(raised.exception, NotReadingPage)
+        self.assertEqual(progress, [0, 5])
+        page.evaluate.side_effect = [None]
+        with self.assertRaises(NotReadingPage):
+            scroll_reading_page(page, 10, wait=lambda seconds: None)
 
     def test_cdp_rejects_a_remote_debugger(self):
         with self.assertRaises(RuntimeError):

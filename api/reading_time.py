@@ -10,17 +10,16 @@ from copy import deepcopy
 import hashlib
 import json
 import re
-from urllib.parse import parse_qs, urlsplit, urlunsplit
+from urllib.parse import parse_qs, urlsplit
 
 from loguru import logger
 
 from api.course_tools import CourseTools, _check_html, _scalar, _number
-from api.reading_browser import READING_URL_MESSAGES, scroll_book
+from api.reading_browser import NotReadingPage, READING_URL_MESSAGES, scroll_book
 from api.url_policy import canonical_https_url
 
 
 READ_WORK_URL = "https://mooc1.chaoxing.com/mooc-ans/api/work"
-READ_CARDS_PATH = "/mooc-ans/zt/getcards"
 # The link emitted by the reading task starts at ``/course/<id>.html`` and
 # the platform redirects it to the canonical ``/zt/<id>.html`` page.  Both
 # forms carry the same book identity and must be accepted while validating
@@ -41,27 +40,6 @@ _TASK_POINT_HTML = re.compile(
 def _task_point_html(value):
     """Video, document, work and ordinary read-task pages are not duration pages."""
     return isinstance(value, str) and bool(_TASK_POINT_HTML.search(value))
-
-
-def _cards_page_kind(value):
-    """Classify a chapter payload without treating every attachment shell as text."""
-    if _task_point_html(value):
-        return "task"
-    stripped = value.lstrip()
-    if stripped.startswith(("{", "[")):
-        try:
-            payload = json.loads(stripped)
-        except (TypeError, ValueError):
-            payload = None
-        if isinstance(payload, dict) and payload.get("data") in (None, [], ""):
-            return "empty"
-    soup = _check_html(value, "专题书籍章节")
-    if (soup.select_one("#pageDiv") or soup.select_one("#courseMainBox")
-            or soup.select_one(".ans-cc") or soup.get_text(" ", strip=True)
-            or re.search(r"logs\.js|/multimedia/readlog", value, re.I)):
-        return "reading"
-    return "empty"
-
 
 
 def _platform_url(value, *, base=None, path=None):
@@ -272,54 +250,7 @@ class ReadingTools(CourseTools):
                 result[key] = value
         return result
 
-    @staticmethod
-    def _chapter_ids(text, soup):
-        """Collect chapter ids without treating the first shell as the only candidate."""
-        found = []
-
-        def add(value):
-            if isinstance(value, str) and re.fullmatch(r"\d{1,20}", value) and value not in found and len(found) < 12:
-                found.append(value)
-
-        for match in re.finditer(r"\b(?:ctid|courseChapterId|initKid)\s*=\s*['\"]?(\d{1,20})", text):
-            add(match.group(1))
-        for node in soup.select("#nodeIdInput[value], #chapterId[value]"):
-            add(node.get("value") or "")
-        for node in soup.select("[id^='zt_']"):
-            match = re.search(r"zt_(\d{1,20})", node.get("id") or "")
-            if match:
-                add(match.group(1))
-        for match in re.finditer(r"[?&]knowledgeId=(\d{1,20})", text, re.I):
-            add(match.group(1))
-        return found
-
-    def _fetch_chapter_cards(self, page_url, course_id, chapter_id, query):
-        cards_url = _platform_url(
-            urlunsplit((urlsplit(page_url).scheme, urlsplit(page_url).netloc, READ_CARDS_PATH, "", "")),
-            path=lambda item: item == READ_CARDS_PATH,
-        )
-        cards = None
-        for _ in range(6):
-            response = self._request(
-                "get", cards_url, "专题书籍章节", statuses=(200, 301, 302, 303, 307, 308),
-                params={"knowledgeid": chapter_id, "courseid": course_id, **query},
-                headers={"Referer": page_url},
-            )
-            try:
-                if response.status_code == 200:
-                    cards = response.text
-                    break
-                location = response.headers.get("Location")
-                if not location:
-                    raise RuntimeError("专题书籍章节重定向缺少目标地址")
-                cards_url = _platform_url(location, base=cards_url, path=lambda item: item == READ_CARDS_PATH)
-            finally:
-                response.close()
-        if cards is None:
-            raise RuntimeError("专题书籍章节重定向次数过多")
-        return cards
-
-    def _book_context(self, book, course=None, chapter=None):
+    def _book_context(self, book, course=None):
         url = _platform_url(book.get("url"), path=READ_BOOK_PATH.fullmatch)
         initial_path = READ_BOOK_PATH.fullmatch(urlsplit(url).path)
         expected_course = initial_path[1] if initial_path else ""
@@ -347,13 +278,12 @@ class ReadingTools(CourseTools):
                 response.close()
         if text is None:
             raise RuntimeError("专题书籍重定向次数过多")
-        soup = _check_html(text, "专题书籍")
+        _check_html(text, "专题书籍")
         course_match = re.search(r"(?:window\[['\"]courseid['\"]\]|window\.courseid|window\.courseId|var\s+courseid)\s*=\s*['\"]?(\d{1,20})", text)
         if not course_match:
-            course_match = re.search(r"/mooc-ans/course/(\d{1,20})\.html", url)
-        chapter_ids = self._chapter_ids(text, soup)
-        if not course_match or not chapter_ids:
-            raise RuntimeError("专题书籍缺少课程或章节内容")
+            course_match = READ_BOOK_PATH.fullmatch(urlsplit(url).path)
+        if not course_match:
+            raise RuntimeError("专题书籍缺少课程标识")
         course_id = course_match[1]
         path_match = READ_BOOK_PATH.fullmatch(urlsplit(url).path)
         if not path_match or course_id != path_match[1]:
@@ -370,20 +300,7 @@ class ReadingTools(CourseTools):
                     attribution[0] != str(course.get("courseId")) or
                     attribution[1] != str(course.get("clazzId"))):
                 raise ValueError("专题书籍归属课程不匹配")
-        saw_task = False
-        for chapter_id in chapter_ids:
-            cards = self._fetch_chapter_cards(url, course_id, chapter_id, query)
-            kind = _cards_page_kind(cards)
-            if kind == "task":
-                saw_task = True
-                continue
-            if kind == "empty":
-                continue
-            return {"url": url, "courseid": course_id, "chapterid": chapter_id,
-                    "query": query}
-        if saw_task:
-            raise RuntimeError("专题书籍章节是视频或其他任务点，不是阅读页")
-        raise RuntimeError("专题书籍没有可读内容")
+        return url
 
     def watch_reading(self, course, resource, seconds, on_progress=None):
         self._check_cancelled()
@@ -398,28 +315,26 @@ class ReadingTools(CourseTools):
         }
         if not metadata["books"]:
             raise ValueError("专题阅读没有可读书籍")
-        context = None
         last_error = None
         for book in metadata["books"]:
+            self._check_cancelled()
+            url = self._book_context(book, course=course)
             try:
-                context = self._book_context(book, course=course)
+                completed = scroll_book(
+                    url, self.chaoxing.session_manager.get_session().cookies,
+                    requested, on_progress=on_progress, wait=self._wait,
+                    check=self._check_cancelled,
+                )
                 break
-            except RuntimeError as exc:
+            except NotReadingPage as exc:
+                # Only unreadable content permits another book. Network,
+                # cancellation and post-progress failures must not be replayed.
                 last_error = exc
-        if context is None:
+        else:
             if last_error is not None and "不是阅读页" in str(last_error):
                 raise last_error
             raise RuntimeError("没有可读取的专题书籍") from last_error
 
-        target = requested
-        # An empty readlog body is not evidence that the platform stored the
-        # time. Open the book page and scroll it, which is what makes the
-        # page's own reporter run.
-        completed = scroll_book(
-            context["url"], self.chaoxing.session_manager.get_session().cookies,
-            target, on_progress=on_progress, wait=self._wait,
-            check=self._check_cancelled,
-        )
         # Refreshing the page is part of the authenticated protocol and also
         # gives the caller the platform's end counter.  Invalid, empty or
         # rejected responses are surfaced instead of being mistaken for a

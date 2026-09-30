@@ -60,6 +60,10 @@ READING_URL_MESSAGES = UrlMessages(
 )
 
 
+class NotReadingPage(RuntimeError):
+    """A book has no readable body; no reading progress has been reported."""
+
+
 def allow_reading_url(value):
     """Return a canonical reading-page URL, or reject anything else.
 
@@ -92,7 +96,6 @@ def scroll_expression(step):
         "const el = candidates[i];"
         "if (el && el.scrollHeight - el.clientHeight > 1) { box = el; break; }"
         "}"
-        "box = box || document.body;"
         "if (!box) return null;"
         "const max = Math.max(0, (box.scrollHeight || 0) - (box.clientHeight || 0));"
         f"const delta = [380, 380, -280][{index}];"
@@ -176,7 +179,9 @@ def scroll_reading_page(page, seconds, on_progress=None, wait=None, check=None):
     while completed < seconds:
         check()
         if page.evaluate(scroll_expression(step)) is None:
-            raise RuntimeError("阅读页没有可滚动的正文")
+            if completed == 0:
+                raise NotReadingPage("阅读页没有可滚动的正文")
+            raise RuntimeError("阅读过程中正文已不可滚动，停止计时")
         step += 1
         interval = min(5.0, seconds - completed)
         wait(interval)
@@ -190,9 +195,7 @@ def _is_reading_state(state):
     """A duration page has its own reporter. Task-point shells do not."""
     if not isinstance(state, dict) or state.get("taskPoint"):
         return False
-    if "reading" in state:
-        return bool(state["reading"])
-    return bool(state.get("hasBox"))
+    return state.get("reading") is True
 
 
 def _chapter_candidates(state):
@@ -231,8 +234,8 @@ def scroll_book(url, cookies, seconds, on_progress=None, wait=None, check=None, 
                 saw_task = saw_task or bool(isinstance(state, dict) and state.get("taskPoint"))
             if not found:
                 if saw_task:
-                    raise RuntimeError("当前页面是视频或其他任务点，不是阅读页")
-                raise RuntimeError("阅读页没有可滚动的正文")
+                    raise NotReadingPage("当前页面是视频或其他任务点，不是阅读页")
+                raise NotReadingPage("阅读页没有可滚动的正文")
         return scroll_reading_page(
             page, seconds, on_progress=on_progress, wait=wait, check=check,
         )

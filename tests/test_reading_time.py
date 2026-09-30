@@ -2,9 +2,11 @@
 
 from types import SimpleNamespace
 import unittest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from api.reading_time import ReadingTools
+from api.reading_browser import NotReadingPage
+from api.course_tools import ToolCancelled
 
 
 COURSE = {"courseId": "course-1", "clazzId": "class-1", "cpi": "enrollment-1", "title": "课程"}
@@ -23,7 +25,6 @@ READ_PAGE = (
     '<span class="readTitle">专题书</span></a></div>'
 )
 BOOK_PAGE = '<script>window["courseid"] = "242311696"; var ctid = 847466162;</script><div id="pageDiv">内容</div>'
-CARDS_PAGE = '<div id="pageDiv">内容</div>'
 
 
 class Response:
@@ -48,7 +49,7 @@ class ReadingProtocolTests(unittest.TestCase):
         self.session.get.side_effect = [item if isinstance(item, Response) else Response(item) for item in items]
 
     def test_watch_reading_scrolls_the_book_page_instead_of_trusting_readlog(self):
-        self.responses(BOOK_PAGE, CARDS_PAGE, READ_PAGE)
+        self.responses(BOOK_PAGE, READ_PAGE)
         self.session.cookies = []
         with unittest.mock.patch("api.reading_time.scroll_book", return_value=10) as scrolled:
             result = self.service.watch_reading(COURSE, {**RESOURCE, "_books": [{
@@ -84,28 +85,58 @@ class ReadingProtocolTests(unittest.TestCase):
                 self.assertIn("不是阅读页", str(raised.exception))
         self.assertEqual(self.service._parse_read_page(READ_PAGE)["required_minutes"], 60)
 
-    def test_video_chapter_is_skipped_for_a_later_reading_chapter(self):
-        book = '<script>window["courseid"] = "242311696"; var ctid = 11; var courseChapterId = 22;</script>'
-        video = '<div class="ans-cc"><iframe module="insertvideo" src="/ananas/modules/video/index.html"></iframe></div>'
-        reading = '<div id="pageDiv"><div id="courseMainBox">正文</div></div>'
-        self.responses(book, video, reading)
-        context = self.service._book_context({
-            "url": "https://mooc1.chaoxing.com/mooc-ans/course/242311696.html?_from_=course-1_class-1_user_sig",
-        }, course=COURSE)
-        self.assertEqual(context["chapterid"], "22")
-        params = [call.kwargs.get("params", {}).get("knowledgeid") for call in self.session.get.call_args_list]
-        params = [item for item in params if item]
-        self.assertEqual(params, ["11", "22"])
+    def books(self):
+        return [{"url": f"https://mooc1.chaoxing.com/mooc-ans/course/{ident}.html?_from_=course-1_class-1_user_sig"}
+                for ident in (242311696, 242311697)]
 
-    def test_only_task_point_chapters_are_rejected(self):
-        book = '<script>window["courseid"] = "242311696"; var ctid = 11;</script>'
-        video = '<iframe module="insertdoc" src="/ananas/modules/pdf/index.html"></iframe>'
-        self.responses(book, video)
-        with self.assertRaises(RuntimeError) as raised:
-            self.service._book_context({
-                "url": "https://mooc1.chaoxing.com/mooc-ans/course/242311696.html?_from_=course-1_class-1_user_sig",
-            }, course=COURSE)
-        self.assertIn("不是阅读页", str(raised.exception))
+    def test_book_context_validates_redirects_without_requesting_cards(self):
+        book = self.books()[0]
+        redirected = book["url"].replace("/course/", "/zt/")
+        self.responses(Response(status=302, headers={"Location": redirected}), "<html>book index</html>")
+        self.assertEqual(self.service._book_context(book, course=COURSE), redirected)
+        self.assertEqual([call.args[0] for call in self.session.get.call_args_list], [book["url"], redirected])
+
+    def test_book_identity_and_attribution_checks_remain(self):
+        book = self.books()[0]
+        for text in ('<script>window.courseid = "99";</script>', BOOK_PAGE):
+            with self.subTest(text=text):
+                self.responses(text)
+                course = COURSE if "99" in text else {**COURSE, "courseId": "foreign"}
+                with self.assertRaises(ValueError):
+                    self.service._book_context(book, course=course)
+        self.responses(Response(status=302, headers={"Location": "https://evil.example/book"}))
+        with self.assertRaises(ValueError):
+            self.service._book_context(book, course=COURSE)
+
+    def test_browser_tries_next_book_only_for_unreadable_content(self):
+        books = self.books()
+        self.session.cookies = []
+        self.responses("<html>first index</html>", "<html>second index</html>", READ_PAGE)
+        with patch("api.reading_time.scroll_book", side_effect=[NotReadingPage("不是阅读页"), 10]) as scroll:
+            result = self.service.watch_reading(COURSE, {**RESOURCE, "_books": books}, 10)
+        self.assertEqual([call.args[0] for call in scroll.call_args_list], [book["url"] for book in books])
+        self.assertEqual(result["seconds"], 10)
+        self.assertEqual(self.session.get.call_count, 3)
+
+    def test_all_books_unreadable_preserves_error_messages(self):
+        self.session.cookies = []
+        for message, expected in (("不是阅读页", "不是阅读页"), ("阅读页没有可滚动的正文", "没有可读取的专题书籍")):
+            with self.subTest(message=message):
+                self.responses("<html>index</html>", "<html>index</html>")
+                with patch("api.reading_time.scroll_book", side_effect=NotReadingPage(message)) as scroll:
+                    with self.assertRaisesRegex(RuntimeError, expected):
+                        self.service.watch_reading(COURSE, {**RESOURCE, "_books": self.books()}, 10)
+                self.assertEqual(scroll.call_count, 2)
+
+    def test_network_and_cancel_errors_do_not_switch_books_or_replay_time(self):
+        self.session.cookies = []
+        for error in (RuntimeError("browser connection lost"), ToolCancelled("stopped")):
+            with self.subTest(error=error):
+                self.responses("<html>index</html>")
+                with patch("api.reading_time.scroll_book", side_effect=error) as scroll:
+                    with self.assertRaises(type(error)):
+                        self.service.watch_reading(COURSE, {**RESOURCE, "_books": self.books()}, 10)
+                scroll.assert_called_once()
 
     def test_scan_skips_task_point_pages_and_keeps_reading_pages(self):
         video = '<iframe module="insertaudio" src="/ananas/modules/audio/index.html"></iframe>'
