@@ -737,13 +737,7 @@ def _extract_passed_jobs(cards: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         if is_read and card.get("job") is None:
             job_type = "read"
         else:
-            type_fields = (card_type, property_data.get("type", ""),
-                           property_data.get("resourceType", ""))
-            is_live = any(isinstance(value, str) and "live" in value.lower()
-                          for value in type_fields) or any(
-                property_data.get(key) is not None for key in ("liveId", "streamName", "vdoid")
-            )
-            job_type = "live" if is_live else card_type.lower()
+            job_type = "live" if is_live_card(card) else card_type.lower()
         if job_type not in {"video", "document", "workid", "read", "live"}:
             continue
 
@@ -795,6 +789,16 @@ def _extract_job_info(cards_data: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def is_live_card(card: Dict[str, Any]) -> bool:
+    """Use the same live markers for pending, passed and resource cards."""
+    prop = card.get("property") or {}
+    if not isinstance(prop, dict):
+        return False
+    types = (card.get("type"), prop.get("type"), prop.get("resourceType"))
+    return (any(isinstance(value, str) and "live" in value.lower() for value in types)
+            or any(prop.get(key) is not None for key in ("liveId", "streamName", "vdoid")))
+
+
 def _process_attachment_cards(cards: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """
     处理所有附件任务卡片，强化直播任务识别逻辑
@@ -829,26 +833,8 @@ def _process_attachment_cards(cards: List[Dict[str, Any]]) -> List[Dict[str, Any
             card["otherInfo"] = card["otherInfo"].split("&")[0]
             logger.trace(f"New info: {card['otherInfo']}")
 
-        # 多维度判断是否为直播任务
         card_type = card.get("type", "").lower()
-        property_data = card.get("property", {})
-        prop_type = property_data.get("type", "").lower()
-        resource_type = property_data.get("resourceType", "").lower()
-        
-        # 直播任务特征：包含liveId、streamName等字段，
-        # 或类型标识包含live（因为live和video有点类似，怕超星又搞出什么幺蛾子就加了一些关键字识别）
-        is_live = (
-            "live" in card_type 
-            or "live" in prop_type
-            or "live" in resource_type
-            or "livestream" in card_type
-            or property_data.get("liveId") is not None
-            or property_data.get("streamName") is not None
-            or property_data.get("vdoid") is not None
-        )
-
-        # 根据任务类型处理
-        if is_live:
+        if is_live_card(card):
             live_job = _process_live_task(card)
             if live_job:
                 job_list.append(live_job)

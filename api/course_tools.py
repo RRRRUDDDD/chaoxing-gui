@@ -29,7 +29,7 @@ import requests
 from urllib3.util.retry import Retry
 
 from api.captcha import is_captcha_response
-from api.decode import card_page_has_payload
+from api.decode import card_page_has_payload, is_live_card
 from api.fs_policy import reject_links
 from api.url_policy import UrlMessages, canonical_https_url
 from api.session import HTTP_TIMEOUT
@@ -317,7 +317,7 @@ class CourseTools:
             raise RuntimeError("章节附件属性格式无效")
         kind = _scalar(attachment.get("type")).lower()
         module = _scalar(prop.get("module")).lower()
-        if "live" in kind or any(prop.get(key) for key in ("liveId", "streamName", "vdoid")):
+        if is_live_card(attachment):
             return None
         object_id = self._object_id(attachment)
         if kind == "audio" or module == "insertaudio":
