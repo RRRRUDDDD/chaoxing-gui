@@ -7,6 +7,7 @@ handler 只支持文档中的常见表达式，不执行任意脚本。
 from __future__ import annotations
 
 import json
+import sys
 import warnings
 from typing import Any, Callable, Mapping
 from urllib.parse import urlsplit
@@ -20,6 +21,7 @@ _MAX_WRAPPERS = 20
 _MAX_HANDLER_LENGTH = 8000
 _MAX_SUBSCRIPTION_BYTES = 512_000
 _PLACEHOLDERS = ("title", "options", "type")
+_CONTEXT_AWARE_WARNINGS = bool(getattr(sys.flags, "context_aware_warnings", False))
 
 
 class HandlerSyntaxError(ValueError):
@@ -74,9 +76,11 @@ def ssl_error_message(name: str) -> str:
 
 
 def _send(session: requests.Session, method: str, url: str, **kwargs) -> requests.Response:
-    if session.verify:
+    if session.verify or not _CONTEXT_AWARE_WARNINGS:
+        # Python 3.11/3.13 catch_warnings changes global filters. Keep urllib3's
+        # default warning rather than silencing unrelated concurrent requests.
         return session.request(method, url, **kwargs)
-    # Silence only the requests the user opted out of checking.
+    # Newer context-aware runtimes can safely silence just this request.
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", InsecureRequestWarning)
         return session.request(method, url, **kwargs)
@@ -85,10 +89,13 @@ def _send(session: requests.Session, method: str, url: str, **kwargs) -> request
 def fetch_subscription(url: str, session: requests.Session) -> Any:
     checked = _check_http_url(url)
     response = _send(session, "get", checked, timeout=20)
-    response.raise_for_status()
-    if len(response.content) > _MAX_SUBSCRIPTION_BYTES:
-        raise ValueError("题库订阅内容过大")
-    return response.json()
+    try:
+        response.raise_for_status()
+        if len(response.content) > _MAX_SUBSCRIPTION_BYTES:
+            raise ValueError("题库订阅内容过大")
+        return response.json()
+    finally:
+        response.close()
 
 
 def parse_config_text(text: str, session: requests.Session) -> Any:
@@ -185,10 +192,13 @@ def request_wrapper(wrapper: Mapping[str, Any], env: Mapping[str, str], session:
         response = _send(session, "post", url, json=data, headers=headers, timeout=30)
     else:
         response = _send(session, "post", url, data=data, headers=headers, timeout=30)
-    response.raise_for_status()
-    if wrapper["content_type"] == "json":
-        return response.json()
-    return response.text
+    try:
+        response.raise_for_status()
+        if wrapper["content_type"] == "json":
+            return response.json()
+        return response.text
+    finally:
+        response.close()
 
 
 def _pairs(result: Any) -> list[tuple[Any, Any]]:

@@ -1,6 +1,7 @@
 import json
 import unittest
 import warnings
+import threading
 from unittest.mock import Mock, patch
 
 import requests
@@ -9,6 +10,7 @@ from urllib3.exceptions import InsecureRequestWarning
 from api.answer import Tiku
 from api.ocs_tiku import (
     HandlerSyntaxError,
+    _CONTEXT_AWARE_WARNINGS,
     TikuOcs,
     compile_handler,
     load_wrappers,
@@ -204,7 +206,28 @@ class CertificateTests(unittest.TestCase):
             with patch.object(tiku._session, "request", side_effect=insecure):
                 tiku._query({"title": "题", "type": "single", "options": ""})
             warnings.warn("other request", InsecureRequestWarning)
-        self.assertEqual([str(item.message) for item in caught], ["other request"])
+        expected = ["other request"] if _CONTEXT_AWARE_WARNINGS else ["unverified", "other request"]
+        self.assertEqual([str(item.message) for item in caught], expected)
+
+    def test_opt_out_does_not_suppress_a_concurrent_threads_warning(self):
+        tiku = self.bank(verify_ssl=False)
+        entered, release = threading.Event(), threading.Event()
+        def request(*args, **kwargs):
+            entered.set()
+            release.wait(3)
+            return self.answer()
+        with warnings.catch_warnings(record=True) as caught, patch.object(tiku._session, "request", side_effect=request):
+            warnings.simplefilter("always")
+            worker = threading.Thread(target=lambda: tiku._query({"title": "q"}))
+            worker.start()
+            try:
+                self.assertTrue(entered.wait(3))
+                warnings.warn("unrelated HTTPS request", InsecureRequestWarning)
+            finally:
+                release.set()
+                worker.join(3)
+            self.assertFalse(worker.is_alive())
+        self.assertEqual([str(item.message) for item in caught], ["unrelated HTTPS request"])
 
     def test_certificate_failure_names_the_bank(self):
         tiku = self.bank()
