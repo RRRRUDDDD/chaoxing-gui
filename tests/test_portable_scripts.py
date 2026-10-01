@@ -13,7 +13,10 @@ class PortableScriptTests(unittest.TestCase):
         self.assertIn('clean_and_build_portable.bat', quick)
         self.assertNotIn('运行 build_portable.bat', quick)
         readme = (ROOT / 'README.md').read_text(encoding='utf-8')
-        self.assertIn('不含个人数据的源码副本', readme)
+        self.assertIn('(DEVELOPMENT.md)', readme)
+        guide = (ROOT / 'DEVELOPMENT.md').read_text(encoding='utf-8')
+        self.assertIn('clean_and_build_portable.bat', guide)
+        self.assertIn('不含个人数据的独立源码副本', guide)
 
     def test_flask_cors_comes_from_requirements_not_an_extra_install(self):
         for filename in ('clean_and_build_portable.bat', 'start.bat'):
