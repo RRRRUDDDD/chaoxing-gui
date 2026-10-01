@@ -8,6 +8,7 @@ open and change its scroll position.
 import base64
 import json
 import os
+import random
 import shutil
 import socket
 import subprocess
@@ -77,37 +78,127 @@ def allow_reading_url(value):
     )
 
 
-def scroll_expression(step):
-    """Move the page scroller the same way a person scrolls the book.
+# Keep DOM inspection and actions in the same scoped script. The page owns
+# its loader and reporting globals; none of those globals are replaced here.
+# MooTools 1.4 also replaces Array.from, so use direct DOM iteration.
+_SCROLLER_JS = """
+const main = document.querySelector('#courseMainBox');
+if (!main) return null;
+const candidates = [document.scrollingElement, document.body].filter(el =>
+    el && el.clientHeight > 0 && el.scrollHeight - el.clientHeight > 1 &&
+    (el === document.scrollingElement ||
+        !['visible', 'clip'].includes(getComputedStyle(el).overflowY)));
+const box = candidates.sort((a, b) =>
+    (b.scrollHeight - b.clientHeight) - (a.scrollHeight - a.clientHeight))[0] || null;
+const max = box ? box.scrollHeight - box.clientHeight : 0;
+const top = box ? box.scrollTop : 0;
+const viewport = box ? box.clientHeight : (window.innerHeight || 600);
+"""
+_CONTENT_DOM_JS = _SCROLLER_JS + r"""
+const cards = main.querySelector('#cardview');
+const loaded = [];
+if (cards) {
+    for (const el of cards.querySelectorAll('[id^="knowledge-"]')) {
+        if (!loaded.includes(el.id)) loaded.push(el.id);
+    }
+}
+const button = main.querySelector('#loadbutton');
+const visible = !!(button && button.getClientRects().length &&
+    getComputedStyle(button).visibility !== 'hidden');
+const handler = button ? button.getAttribute('onclick') || '' : '';
+const match = handler.match(/^\s*loadMoreChapter\(\s*(\d{1,20})\s*\)\s*;?\s*$/);
+const next = match ? match[1] : '';
+"""
+_CONTENT_JS = "(() => {" + _CONTENT_DOM_JS + """
+return {top, max, viewport, loaded, hasCards: !!cards, hasMore: !!button,
+    visible, next, nearEnd: max - top <= Math.max(80, viewport * 0.2)};
+})()
+"""
 
-    ``#courseMainBox`` only proves this is a book page; it grows with its
-    content and never scrolls. The book page makes ``body#outerBody`` the
-    scroller, and logs.js reports ``body.scrollTop``. Native scroll events fire
-    on their own; the page's MooTools replaces ``window.Event``, so none is
-    constructed here.
+
+def scroll_expression(distance):
+    """Move the real body scroller and return its actual, changed position.
+
+    The page's MooTools replaces window.Event, so rely on native scroll
+    events rather than constructing events or touching the reporter.
     """
-    index = int(step) % 3
-    return (
-        "(() => {"
-        "if (!document.querySelector('#courseMainBox')) return null;"
-        "const candidates = [document.body, document.scrollingElement];"
-        "let box = null;"
-        "for (let i = 0; i < candidates.length; i++) {"
-        "const el = candidates[i];"
-        "if (el && el.scrollHeight - el.clientHeight > 1) { box = el; break; }"
-        "}"
-        "if (!box) return null;"
-        "const max = Math.max(0, (box.scrollHeight || 0) - (box.clientHeight || 0));"
-        f"const delta = [380, 380, -280][{index}];"
-        "let top = (box.scrollTop || 0) + delta;"
-        "if (max > 0) {"
-        "if (top > max) top = Math.max(0, max - 280);"
-        "if (top < 0) top = Math.min(max, 380);"
-        "} else { top = Math.max(0, top); }"
-        "box.scrollTop = top;"
-        "return top;"
-        "})()"
-    )
+    delta = int(distance)
+    if delta == 0:
+        raise ValueError("滚动距离不能为零")
+    return "(() => {" + _SCROLLER_JS + f"""
+if (!box) return null;
+const delta = {delta};
+let target = Math.max(0, Math.min(max, top + delta));
+if (Math.abs(target - top) < 1) {{
+    target = Math.max(0, Math.min(max, top - delta));
+}}
+box.scrollTop = target;
+return Math.abs(box.scrollTop - top) >= 1 ? box.scrollTop : null;
+}})()
+"""
+
+
+class _ScrollPlan:
+    """Short random rereads interspersed with forward progress to the loader."""
+
+    def __init__(self):
+        self.rng = random.Random()
+        self.direction = 1
+        self.remaining = self.rng.randint(2, 4)
+
+    def distance(self, state):
+        if state["top"] <= 1:
+            self.direction, self.remaining = 1, self.rng.randint(2, 4)
+        elif state["max"] - state["top"] <= 1:
+            self.direction, self.remaining = -1, self.rng.randint(2, 4)
+        elif self.remaining <= 0:
+            self.direction *= -1
+            limits = (1, 2) if state["hasMore"] and self.direction < 0 else (2, 4)
+            self.remaining = self.rng.randint(*limits)
+        self.remaining -= 1
+        limits = (0.25, 0.5) if state["hasMore"] and self.direction < 0 else (0.6, 0.95)
+        distance = max(1, int(state["viewport"] * self.rng.uniform(*limits)))
+        return self.direction * distance
+
+
+def _wait_for_content(page, wait, check, expected=None):
+    """Wait for a newly appended chapter, never just a disappearing button."""
+    deadline = time.monotonic() + 20
+    for _ in range(100):
+        check()
+        state = page.evaluate(_CONTENT_JS)
+        if not isinstance(state, dict):
+            raise RuntimeError("章节加载过程中阅读正文已丢失")
+        loaded = state.get("loaded", [])
+        if loaded and (expected is None or expected in loaded):
+            if not _is_reading_state(page.evaluate(_STATE_JS)):
+                raise RuntimeError("加载后的内容不是可用阅读页，停止计时")
+            return state
+        if time.monotonic() >= deadline:
+            break
+        wait(0.2)
+    raise RuntimeError("阅读章节加载超时，停止计时")
+
+
+def _load_next_chapter(page, state, attempted, wait, check):
+    target = state.get("next")
+    if not isinstance(target, str) or not re.fullmatch(r"\d{1,20}", target):
+        raise RuntimeError("阅读章节加载按钮不受支持")
+    expected = "knowledge-" + target
+    if target in attempted or expected in state["loaded"]:
+        raise RuntimeError("阅读章节加载按钮重复，停止重复加载")
+    check()
+    expression = "(() => {" + _CONTENT_DOM_JS + f"""
+if (!visible || next !== {json.dumps(target)} || loaded.includes({json.dumps(expected)})) return false;
+button.scrollIntoView({{block: 'end'}});
+button.click();
+return true;
+}})()
+"""
+    if page.evaluate(expression) is not True:
+        raise RuntimeError("阅读章节加载按钮已变化或不可见")
+    attempted.add(target)
+    return _wait_for_content(page, wait, check, expected)
 
 
 def browser_executable():
@@ -167,22 +258,30 @@ def cdp_cookies(jar):
 
 
 def scroll_reading_page(page, seconds, on_progress=None, wait=None, check=None):
-    """Change scroll position once per reporting interval and count only waited time."""
+    """Expand chapters as needed; count only waits following real scrolling."""
     if not 0 < float(seconds) <= 86400:
         raise ValueError("阅读时长必须大于零且不超过 24 小时")
     wait = wait or time.sleep
     check = check or (lambda: None)
     completed = 0.0
-    step = 0
+    plan = _ScrollPlan()
+    attempted = set()
     if callable(on_progress):
         on_progress(0, seconds)
     while completed < seconds:
         check()
-        if page.evaluate(scroll_expression(step)) is None:
+        state = page.evaluate(_CONTENT_JS)
+        if isinstance(state, dict) and state["hasCards"] and not state["loaded"]:
+            state = _wait_for_content(page, wait, check)
+        if isinstance(state, dict) and state["hasMore"] and state["nearEnd"]:
+            _load_next_chapter(page, state, attempted, wait, check)
+            continue
+        moved = page.evaluate(scroll_expression(plan.distance(state))) if isinstance(state, dict) else None
+        if moved is None:
             if completed == 0:
                 raise NotReadingPage("阅读页没有可滚动的正文")
             raise RuntimeError("阅读过程中正文已不可滚动，停止计时")
-        step += 1
+        check()
         interval = min(5.0, seconds - completed)
         wait(interval)
         completed += interval
