@@ -7,6 +7,7 @@
     "allow-api-cancel",
     "allow-backend-status",
     "allow-open-repository",
+    "allow-open-ocs-docs",
     "allow-session-read",
     "allow-session-remember-login",
     "allow-session-remember-task",

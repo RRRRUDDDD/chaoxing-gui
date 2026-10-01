@@ -6,13 +6,13 @@
 
 ### 安装、便携与回滚
 
-产物位于 `desktop/release/tauri/`，版本取自 `pyproject.toml`（当前 `1.1.1`）：
+产物位于 `desktop/release/tauri/`，版本取自 `pyproject.toml`（当前 `1.2.0`）：
 
 | 产物 | 用途 |
 |---|---|
-| `chaoxing-gui-tauri-setup-1.1.1-windows-x64.exe` | 当前用户 NSIS 安装；默认目录 `chaoxing_gui` |
-| `chaoxing-gui-tauri-portable-1.1.1-windows-x64.zip` | 完整解压后运行 `Start-Chaoxing.cmd` |
-| `chaoxing-gui-tauri-artifacts-1.1.1-windows-x64.json`、`SHA256SUMS.txt` | 版本、大小、SHA256 和签名可用性记录 |
+| `chaoxing-gui-tauri-setup-1.2.0-windows-x64.exe` | 当前用户 NSIS 安装；默认目录 `chaoxing_gui` |
+| `chaoxing-gui-tauri-portable-1.2.0-windows-x64.zip` | 完整解压后运行 `Start-Chaoxing.cmd` |
+| `chaoxing-gui-tauri-artifacts-1.2.0-windows-x64.json`、`SHA256SUMS.txt` | 版本、大小、SHA256 和签名可用性记录 |
 | ZIP 的 `.manifest.json`、`.sha256` | ZIP 与内部逐文件清单的完整性检查 |
 | NSIS 的 `.exe.manifest.json` | 绑定 NSIS/ZIP 校验值，并记录安装版宿主的独立哈希；包校验时与两个产物一起保留 |
 
@@ -53,7 +53,7 @@ Cargo 默认启用仅供测试的 `test-support` 特性，以保留原有 `cargo
 
 Tauri 会在 NSIS 宿主中写入包类型标记，所以它与便携宿主的哈希不同。构建从编译输出独立计算 NSIS 预期字节；有证书时在签名回调中捕获已签 NSIS 宿主，再单独签便携宿主。资源清单中的后端和第三方依赖在打包时保持原字节。内容校验对两个宿主分别检查完整哈希，对其余全部文件使用相同资源清单。
 
-`pyproject.toml` 是唯一版本源。手动修改该文件后，可运行 `python desktop/scripts/version.py --sync` 同步 Cargo、Tauri、Web/Desktop package 与 lock；`--check --tag v1.1.1 --artifacts desktop/release/tauri` 检查当前 tag 和产物。脚本不会自行升级版本或创建 tag。
+`pyproject.toml` 是唯一版本源。手动修改该文件后，可运行 `python desktop/scripts/version.py --sync` 同步 Cargo、Tauri、Web/Desktop package 与 lock；`--check --tag v1.2.0 --artifacts desktop/release/tauri` 检查当前 tag 和产物。脚本不会自行升级版本或创建 tag。
 
 `sign-windows.ps1 -Mode Inspect` 查找有效且含私钥的代码签名证书；多个证书时用 `CHAOXING_SIGN_CERT_THUMBPRINT` 选择。实际签名还需要 Windows SDK `signtool.exe`。CI 可提供 `WINDOWS_CERTIFICATE_PFX`（Base64）和 `WINDOWS_CERTIFICATE_PASSWORD` secrets；缺少可用证书时明确记录 unsigned，有证书时对宿主、后端和安装器签名并验证。SHA256 清单用于检测内容变化，不能替代发行者签名。
 
@@ -63,8 +63,8 @@ Tauri 会在 NSIS 宿主中写入包类型标记，所以它与便携宿主的�
 python -m unittest discover -s tests -v
 npm --prefix web test
 npm --prefix desktop test
-pwsh -NoProfile -File desktop/scripts/verify-package.ps1 -PackagePath desktop/release/tauri/chaoxing-gui-tauri-portable-1.1.1-windows-x64.zip
-pwsh -NoProfile -File desktop/scripts/verify-nsis.ps1 -InstallerPath desktop/release/tauri/chaoxing-gui-tauri-setup-1.1.1-windows-x64.exe -PortablePath desktop/release/tauri/chaoxing-gui-tauri-portable-1.1.1-windows-x64.zip
+pwsh -NoProfile -File desktop/scripts/verify-package.ps1 -PackagePath desktop/release/tauri/chaoxing-gui-tauri-portable-1.2.0-windows-x64.zip
+pwsh -NoProfile -File desktop/scripts/verify-nsis.ps1 -InstallerPath desktop/release/tauri/chaoxing-gui-tauri-setup-1.2.0-windows-x64.exe -PortablePath desktop/release/tauri/chaoxing-gui-tauri-portable-1.2.0-windows-x64.zip
 ```
 
 包检查不执行安装器或宿主。`smoke-tauri.ps1` 先用合成后端验证失败、取消、409/404 和退出，再验证真实冻结后端的 health/安全 API；宿主子进程 PATH 排除系统 Python，stdin 是持有的真实管道，嵌套 Windows Job 在关窗和强杀后检查残留。GUI 操作为 CDP 下确认可见/可用后 DOM click，不等于物理鼠标测试。

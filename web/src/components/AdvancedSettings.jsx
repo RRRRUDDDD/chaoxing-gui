@@ -3,6 +3,7 @@ import Input from './ui/Input';
 import Label from './ui/Label';
 import Select from './ui/Select';
 import NumberInput from './ui/NumberInput';
+import ExternalLink from './ExternalLink';
 import { Settings2, Database, Bell, ChevronDown, AppWindow } from 'lucide-react';
 import { desktopBridge, isTauriDesktop } from '../lib/desktopBridge';
 
@@ -129,9 +130,14 @@ const AdvancedSettings = ({ settings, onChange, onFieldValidity }) => {
                   />
                   <p className="text-xs text-faint">
                     留空则不自动答题。格式与{' '}
-                    <a href="https://docs.ocsjs.com/docs/work" target="_blank" rel="noreferrer" className="text-brand underline-offset-2 hover:underline">
+                    <ExternalLink
+                      href="https://docs.ocsjs.com/docs/work"
+                      openDesktop={desktopBridge.openOcsDocs}
+                      title="在浏览器中打开 OCS 题库配置"
+                      className="text-brand underline-offset-2 hover:underline"
+                    >
                       OCS 题库配置
-                    </a>
+                    </ExternalLink>
                     {' '}相同，可以是 JSON 数组，也可以是订阅链接。占位符为 {'${title}'}、{'${options}'}、{'${type}'}。
                   </p>
                 </div>

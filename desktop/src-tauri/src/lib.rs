@@ -99,7 +99,7 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            backend_status, open_repository, api_request, api_cancel, session_read,
+            backend_status, open_repository, open_ocs_docs, api_request, api_cancel, session_read,
             session_remember_login, session_remember_task, session_clear,
             close_prompt_shown, close_choice, preferences_read, preferences_write
         ])
@@ -377,18 +377,40 @@ fn open_repository(
     ipc: tauri::ipc::Request<'_>,
 ) -> Result<(), String> {
     let _: EmptyArgs = command_args(&window, &ipc)?;
-    // No renderer-supplied URL or shell arguments cross this boundary.
+    open_browser(BrowserPage::Repository)
+}
+
+#[tauri::command]
+fn open_ocs_docs(
+    window: tauri::WebviewWindow,
+    ipc: tauri::ipc::Request<'_>,
+) -> Result<(), String> {
+    let _: EmptyArgs = command_args(&window, &ipc)?;
+    open_browser(BrowserPage::OcsDocs)
+}
+
+enum BrowserPage {
+    Repository,
+    OcsDocs,
+}
+
+fn open_browser(page: BrowserPage) -> Result<(), String> {
+    // Only fixed destinations are supported; no renderer URL or shell arguments.
     #[cfg(windows)]
     {
         use windows::core::w;
         use windows::Win32::UI::Shell::ShellExecuteW;
         use windows::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
 
+        let url = match page {
+            BrowserPage::Repository => w!("https://github.com/RRRRUDDDD/chaoxing-gui"),
+            BrowserPage::OcsDocs => w!("https://docs.ocsjs.com/docs/work"),
+        };
         let result = unsafe {
             ShellExecuteW(
                 None,
                 w!("open"),
-                w!("https://github.com/RRRRUDDDD/chaoxing-gui"),
+                url,
                 None,
                 None,
                 SW_SHOWNORMAL,
@@ -400,7 +422,10 @@ fn open_repository(
         Ok(())
     }
     #[cfg(not(windows))]
-    Err("当前平台暂不支持打开系统浏览器".into())
+    {
+        let _ = page;
+        Err("当前平台暂不支持打开系统浏览器".into())
+    }
 }
 
 #[tauri::command]
@@ -647,6 +672,21 @@ mod command_tests {
         ))
         .is_err());
         assert!(decode_args::<EmptyArgs>(&tauri::ipc::InvokeBody::Raw(vec![])).is_err());
+    }
+
+    #[test]
+    fn browser_commands_reject_renderer_destinations_and_arguments() {
+        let body = tauri::ipc::InvokeBody::Json;
+        assert!(decode_args::<EmptyArgs>(&body(json!({}))).is_ok());
+        for rejected in [
+            json!({"url": "https://example.test/"}),
+            json!({"path": "C:/Windows/System32/cmd.exe"}),
+            json!({"args": ["/c", "echo test"]}),
+            json!([]),
+            json!(null),
+        ] {
+            assert!(decode_args::<EmptyArgs>(&body(rejected)).is_err());
+        }
     }
 
     #[test]

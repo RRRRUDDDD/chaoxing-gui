@@ -4,6 +4,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import CourseSelection from './CourseSelection';
 import StudyProgress from './StudyProgress';
 import RepositoryLink, { REPOSITORY_URL } from './RepositoryLink';
+import AdvancedSettings from './AdvancedSettings';
 import api from '../api/axios';
 
 const core = vi.hoisted(() => ({ isTauri: vi.fn(), invoke: vi.fn() }));
@@ -25,8 +26,8 @@ afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); });
 
 it('starts with no selected courses and selects the current list with Ctrl+A or Cmd+A', async () => {
   const start = vi.fn();
-  render(<CourseSelection userInfo={account} onStartStudy={start} />);
-  const first = await screen.findByRole('button', { name: /First course/ });
+  await act(async () => { render(<CourseSelection userInfo={account} onStartStudy={start} />); });
+  const first = screen.getByRole('button', { name: /First course/ });
   expect(first.getAttribute('aria-pressed')).toBe('false');
   expect(screen.getByRole('button', { name: /Second course/ }).getAttribute('aria-pressed')).toBe('false');
   expect(screen.getByRole('button', { name: '开始学习' }).disabled).toBe(true);
@@ -65,28 +66,57 @@ it('does not select courses while their configuration is unavailable', async () 
   expect(screen.getByRole('button', { name: /First course/ }).getAttribute('aria-pressed')).toBe('false');
 });
 
-it('opens the repository through the fixed Tauri command and reports browser errors', async () => {
+const externalLinks = [
+  { kind: 'repository', name: '在 GitHub 上查看项目', url: REPOSITORY_URL, command: 'open_repository' },
+  { kind: 'OCS docs', name: 'OCS 题库配置', url: 'https://docs.ocsjs.com/docs/work', command: 'open_ocs_docs' },
+];
+
+async function renderExternalLink({ kind, name }) {
+  core.invoke.mockResolvedValue({ closeAction: 'ask' });
+  await act(async () => {
+    render(kind === 'repository' ? <RepositoryLink /> : <AdvancedSettings settings={{}} onChange={vi.fn()} />);
+  });
+  if (kind !== 'repository') fireEvent.click(screen.getByRole('button', { name: '展开高级配置' }));
+  core.invoke.mockClear();
+  return screen.getByRole('link', { name });
+}
+
+it.each(externalLinks)('opens $kind through its fixed Tauri command and recovers from browser errors', async (target) => {
   core.isTauri.mockReturnValue(true);
-  render(<RepositoryLink />);
-  const link = screen.getByRole('link', { name: '在 GitHub 上查看项目' });
-  expect(link.getAttribute('href')).toBe(REPOSITORY_URL);
+  const link = await renderExternalLink(target);
+  expect(link.getAttribute('href')).toBe(target.url);
   expect(fireEvent.click(link)).toBe(false);
-  expect(core.invoke).toHaveBeenCalledExactlyOnceWith('open_repository');
+  expect(core.invoke).toHaveBeenCalledExactlyOnceWith(target.command);
   core.invoke.mockRejectedValueOnce(new Error('browser unavailable'));
   fireEvent.click(link);
   expect((await screen.findByRole('alert')).textContent).toContain('无法打开浏览器');
+  await act(async () => { fireEvent.click(link); });
+  expect(screen.queryByRole('alert')).toBeNull();
 });
 
-it('keeps native browser link navigation', () => {
-  render(<RepositoryLink />);
-  const link = screen.getByRole('link');
+it.each(externalLinks)('opens $kind on middle click but not on right click in Tauri', async (target) => {
+  core.isTauri.mockReturnValue(true);
+  const link = await renderExternalLink(target);
+  const middle = new MouseEvent('auxclick', { bubbles: true, cancelable: true, button: 1 });
+  expect(fireEvent(link, middle)).toBe(false);
+  expect(core.invoke).toHaveBeenCalledExactlyOnceWith(target.command);
+  core.invoke.mockClear();
+  const right = new MouseEvent('auxclick', { bubbles: true, cancelable: true, button: 2 });
+  expect(fireEvent(link, right)).toBe(true);
+  expect(core.invoke).not.toHaveBeenCalled();
+});
+
+it.each(externalLinks)('keeps native browser navigation for $kind', async (target) => {
+  const link = await renderExternalLink(target);
   // Observe the component decision, then prevent jsdom from navigating.
   let prevented;
   const observe = (event) => { prevented = event.defaultPrevented; event.preventDefault(); };
   document.addEventListener('click', observe, { once: true });
   fireEvent.click(link);
   expect(prevented).toBe(false);
+  expect(link.getAttribute('href')).toBe(target.url);
   expect(link.target).toBe('_blank');
+  expect(link.rel).toBe('noopener noreferrer');
   expect(core.invoke).not.toHaveBeenCalled();
 });
 
