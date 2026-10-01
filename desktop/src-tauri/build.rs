@@ -5,6 +5,7 @@ fn main() {
             "api_cancel",
             "backend_status",
             "open_repository",
+            "open_ocs_docs",
             "session_read",
             "session_remember_login",
             "session_remember_task",

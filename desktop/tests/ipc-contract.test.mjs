@@ -22,7 +22,7 @@ test('IPC commands, capability grants and handlers stay in sync', () => {
 
   assert.deepEqual(sorted(registered), sorted(declared));
   assert.deepEqual(sorted(granted), sorted(declared));
-  for (const command of ['close_prompt_shown', 'close_choice', 'preferences_read', 'preferences_write']) {
+  for (const command of ['open_repository', 'open_ocs_docs', 'close_prompt_shown', 'close_choice', 'preferences_read', 'preferences_write']) {
     assert.ok(declared.includes(command), `${command} is not declared`);
   }
   assert.deepEqual(capability.windows, ['main']);

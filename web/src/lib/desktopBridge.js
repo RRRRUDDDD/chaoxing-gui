@@ -9,6 +9,7 @@ export const desktopBridge = Object.freeze({
   apiCancel: (requestId) => invoke('api_cancel', { requestId }),
   backendStatus: () => invoke('backend_status'),
   openRepository: () => invoke('open_repository'),
+  openOcsDocs: () => invoke('open_ocs_docs'),
   read: () => invoke('session_read'),
   rememberLogin: (username) => invoke('session_remember_login', { username }),
   rememberTask: (task) => invoke('session_remember_task', { task }),
