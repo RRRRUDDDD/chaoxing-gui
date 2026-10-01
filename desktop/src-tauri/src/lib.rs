@@ -381,10 +381,7 @@ fn open_repository(
 }
 
 #[tauri::command]
-fn open_ocs_docs(
-    window: tauri::WebviewWindow,
-    ipc: tauri::ipc::Request<'_>,
-) -> Result<(), String> {
+fn open_ocs_docs(window: tauri::WebviewWindow, ipc: tauri::ipc::Request<'_>) -> Result<(), String> {
     let _: EmptyArgs = command_args(&window, &ipc)?;
     open_browser(BrowserPage::OcsDocs)
 }
@@ -406,16 +403,7 @@ fn open_browser(page: BrowserPage) -> Result<(), String> {
             BrowserPage::Repository => w!("https://github.com/RRRRUDDDD/chaoxing-gui"),
             BrowserPage::OcsDocs => w!("https://docs.ocsjs.com/docs/work"),
         };
-        let result = unsafe {
-            ShellExecuteW(
-                None,
-                w!("open"),
-                url,
-                None,
-                None,
-                SW_SHOWNORMAL,
-            )
-        };
+        let result = unsafe { ShellExecuteW(None, w!("open"), url, None, None, SW_SHOWNORMAL) };
         if result.0 as isize <= 32 {
             return Err("无法打开系统默认浏览器".into());
         }
