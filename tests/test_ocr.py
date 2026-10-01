@@ -20,7 +20,9 @@ IMAGE_URL = "https://p.ananas.chaoxing.com/question.png"
 
 
 def image_response(content=b"offline-image"):
-    return Mock(status_code=200, content=content)
+    response = Mock(status_code=200, content=content)
+    response.iter_content.return_value = [content]
+    return response
 
 
 class OCRConfigTests(unittest.TestCase):
