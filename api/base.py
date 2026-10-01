@@ -14,7 +14,7 @@ from requests import RequestException
 from tqdm import tqdm
 
 from api.answer import Tiku
-from api.answer_check import cut
+from api.answer_check import cut, match_answer
 from api.captcha import CAPTCHA_PROTOCOL_VERIFIED, CxCaptcha, is_captcha_response
 from api.cipher import AESCipher
 from api.config import GlobalConst as gc
@@ -857,20 +857,6 @@ class Chaoxing:
             else:
                 return res
 
-        def clean_res(res):
-            cleaned_res = []
-            if isinstance(res, str):
-                res = [res]
-            for c in res:
-                cleaned = re.sub(r'^[A-Za-z]|[.,!?;:，。！？；：]', '', c)
-                cleaned_res.append(cleaned.strip())
-
-            return cleaned_res
-
-        def is_subsequence(a, o):
-            iter_o = iter(o)
-            return all(c in iter_o for c in a)
-
         # FIXME: Use tenacity for retrying
         def with_retry(max_retries=3, delay=1):
             def decorator(func):
@@ -978,66 +964,10 @@ class Chaoxing:
                 answer = random_answer(q, q["options"])
                 q[f'answerSource{q["id"]}'] = "random"
             else:
-                # 根据响应结果选择答案
-                if q["type"] == "multiple":
-                    # 多选处理
-                    options_list = multi_cut(q["options"])
-                    if options_list is not None:
-                        # 1) 优先尝试直接使用 AI 返回的选项字母（例如 "ACD" 或 ["A", "C"]）
-                        opt_letters = "".join(o[:1] for o in options_list)
-                        letters_raw = "".join(ch for ch in str(res) if ch.isalpha()).upper()
-                        letters_filtered = "".join(ch for ch in letters_raw if ch in opt_letters)
-                        if letters_filtered:
-                            # 去重并排序，保证提交格式稳定
-                            unique_letters = []
-                            for ch in letters_filtered:
-                                if ch not in unique_letters:
-                                    unique_letters.append(ch)
-                            answer = "".join(sorted(unique_letters))
-                        else:
-                            # 2) 回退到基于选项内容的子序列匹配
-                            res_list = multi_cut(res)
-                            if res_list is not None:
-                                for _a in clean_res(res_list):
-                                    for o in options_list:
-                                        if is_subsequence(_a, o):  # 去掉各种符号和前面ABCD的答案应当是选项的子序列
-                                            answer += o[:1]
-                                # 对答案进行排序, 否则会提交失败
-                                answer = "".join(sorted(answer))
-                    # else 如果分割失败那么就直接到下面去随机选
-                elif q["type"] == "single":
-                    # 单选题：优先解析为选项字母，其次再根据选项文本匹配
-                    options_list = multi_cut(q["options"])
-                    if options_list is not None:
-                        opt_letters = "".join(o[:1] for o in options_list)
-                        letters_raw = "".join(ch for ch in str(res) if ch.isalpha()).upper()
-                        letters_filtered = "".join(ch for ch in letters_raw if ch in opt_letters)
-                        if len(letters_filtered) == 1:
-                            # AI 已经明确给出单个选项字母
-                            answer = letters_filtered
-                        else:
-                            # 回退到基于选项文本的匹配逻辑
-                            t_res = clean_res(res)
-                            if t_res:
-                                for o in options_list:
-                                    if is_subsequence(t_res[0], o):
-                                        answer = o[:1]
-                                        break
-                elif q["type"] == "judgement":
-                    answer = "true" if self.tiku.judgement_select(res) else "false"
-                elif q["type"] == "completion":
-                    # 填空题 / 完成题：直接使用题库返回的文本；如果是列表则拼接，避免答案被清空
-                    if isinstance(res, list):
-                        # 将多个空的答案用换行拼接，确保每个空的内容都被保留
-                        parts = [str(part).strip() for part in res if str(part).strip()]
-                        answer = "\n".join(parts)
-                    elif isinstance(res, str):
-                        answer = res.strip()
-                    else:
-                        answer = str(res).strip()
-                else:
-                    # 其他类型直接使用答案 （目前仅知有简答题，待补充处理）
-                    answer = res
+                matched = match_answer(res, q, self.tiku.true_list, self.tiku.false_list)
+                answer = matched.answer or ""
+                if matched.fields:
+                    q["answerField"].update(matched.fields)
 
                 if not answer:  # 检查 answer 是否为空
                     logger.warning(f"找到答案但答案未能匹配 -> {res}\t随机选择答案")

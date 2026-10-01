@@ -22,6 +22,7 @@ from bs4 import BeautifulSoup, NavigableString
 from api.exceptions import FontDecodeError
 from api.font_decoder import FontDecoder
 from api.logger import logger
+from api.question_images import download_image, extract_image_text
 from api.config import GlobalConst as gc
 from api.session import get_current_session
 from api.vision_ocr import (
@@ -353,34 +354,11 @@ def _call_http_ocr(ocr_endpoint: str, image_bytes: bytes, img_url: str) -> OCRRe
 
 
 def _download_ocr_image(img_url: str, session) -> Optional[bytes]:
-    """借用账号线程会话；独立调用只用无账号 cookies 的临时会话。"""
-    owned_session = session is None
-    resp = None
     try:
-        if owned_session:
-            session = requests.Session()
-            session.headers.update(gc.HEADERS)
-
-        # 对超星图片域名补充一个简单 Referer，进一步降低 403 概率
-        extra_headers = {}
-        if "p.ananas.chaoxing.com" in img_url:
-            extra_headers["Referer"] = "https://mooc1.chaoxing.com/"
-
-        resp = session.get(img_url, headers=extra_headers or None, timeout=8)
-        if resp.status_code != 200:
-            logger.debug(f"下载题目图片失败: {img_url} -> {resp.status_code}")
-            return None
-        return resp.content or None
-    except Exception as exc:
-        logger.debug(f"下载题目图片异常: {exc}")
+        return download_image(img_url, session)
+    except (ValueError, OSError, requests.RequestException):
+        logger.debug("题目图片下载失败（地址、网络或大小限制）")
         return None
-    finally:
-        try:
-            if resp is not None:
-                resp.close()
-        finally:
-            if owned_session and session is not None:
-                session.close()
 
 
 def _local_ocr_result(image_bytes: bytes, img_url: str) -> OCRResult:
@@ -1019,11 +997,19 @@ def _process_question(div_tag, font_decoder=None) -> Dict[str, Any]:
     options_list = div_tag.find("ul").find_all("li") if div_tag.find("ul") else []
     
     # 解析题目和选项
-    q_title = _extract_title(title_div, font_decoder)
-    q_options = []
+    raw_title, image_urls = extract_image_text(title_div)
+    raw_options, q_options = [], []
     for li in options_list:
-        q_options.append(_extract_choices(li, font_decoder))
-    # 排序选项
+        choice = _extract_choices(li, font_decoder)
+        q_options.append(choice)
+        text, urls = extract_image_text(li)
+        if urls and font_decoder:
+            text = font_decoder.decode(text)
+        raw_options.append(text if urls else choice)
+        image_urls.extend(urls)
+    if font_decoder:
+        raw_title = font_decoder.decode(raw_title)
+    q_title = _extract_title(title_div, font_decoder)
     q_options.sort()
     q_options = '\n'.join(q_options)
     
@@ -1036,7 +1022,7 @@ def _process_question(div_tag, font_decoder=None) -> Dict[str, Any]:
     # 兼容填空题等可能存在的多个 answer* 字段（例如 answer{id}_0 等）：
     # 收集当前题目 div 下所有 name 中包含 "answer" 且与本题相关的 input 字段名，
     # 以便后续按照原始字段名回填答案。
-    for input_tag in div_tag.find_all("input"):
+    for input_tag in div_tag.find_all(["input", "textarea"]):
         name = input_tag.attrs.get("name", "")
         if not name or "answer" not in name:
             continue
@@ -1052,6 +1038,8 @@ def _process_question(div_tag, font_decoder=None) -> Dict[str, Any]:
         "options": q_options,
         "type": q_type,
         "answerField": answer_field,
+        **({"_image_context": {"title": raw_title, "options": "\n".join(raw_options), "urls": image_urls}}
+           if image_urls else {}),
     }
 
 
@@ -1107,6 +1095,9 @@ def _extract_choices(element, font_decoder=None) -> str:
         
     # 提取aria-label属性值作为选项，解决#474
     choice = element.get("aria-label") or element.get_text()
+    image_text, image_urls = extract_image_text(element)
+    if image_urls:
+        choice = image_text
     if not choice:
         return ""
 

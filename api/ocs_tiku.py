@@ -7,20 +7,26 @@ handler 只支持文档中的常见表达式，不执行任意脚本。
 from __future__ import annotations
 
 import json
+import re
 import sys
+import time
 import warnings
 from typing import Any, Callable, Mapping
-from urllib.parse import urlsplit
+from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
 import requests
 from urllib3.exceptions import InsecureRequestWarning
 
 from api.logger import logger
+from api.answer_check import match_answer
+from api.question_images import build_image_env, restore_image_answer, validate_images, MAX_TOTAL_BYTES
+from api.session import get_current_session
 
 _MAX_WRAPPERS = 20
 _MAX_HANDLER_LENGTH = 8000
 _MAX_SUBSCRIPTION_BYTES = 512_000
-_PLACEHOLDERS = ("title", "options", "type")
+_PLACEHOLDERS = ("title", "options", "type", "suggestion_title", "suggestion_options", "images")
+_MAX_NESTING = 40
 _CONTEXT_AWARE_WARNINGS = bool(getattr(sys.flags, "context_aware_warnings", False))
 
 
@@ -28,7 +34,11 @@ class HandlerSyntaxError(ValueError):
     pass
 
 
-def question_env(q_info: Mapping[str, Any]) -> dict[str, str]:
+class ResponseParseError(ValueError):
+    pass
+
+
+def question_env(q_info: Mapping[str, Any]) -> dict[str, Any]:
     options = q_info.get("options")
     if isinstance(options, list):
         options_text = "\n".join(str(item) for item in options)
@@ -36,17 +46,50 @@ def question_env(q_info: Mapping[str, Any]) -> dict[str, str]:
         options_text = ""
     else:
         options_text = str(options)
-    return {
+    env = {
         "title": str(q_info.get("title") or ""),
-        "type": str(q_info.get("type") or ""),
+        "type": str(q_info.get("type") or "unknown"),
         "options": options_text,
+        "images": [],
+        "suggestion_title": "",
+        "suggestion_options": "",
     }
 
+    # Extension values are caller-provided; do not invent provider-specific data.
+    for key in ("suggestion_title", "suggestion_options", "images"):
+        if key in q_info:
+            env[key] = q_info[key]
+    for key in ("suggestion_title", "suggestion_options"):
+        if not isinstance(env[key], str):
+            raise ValueError(f"{key} 必须是字符串")
+    env["images"] = validate_images(env["images"])
+    return env
 
-def substitute(value: str, env: Mapping[str, str]) -> str:
-    for key in _PLACEHOLDERS:
-        value = value.replace("${" + key + "}", env.get(key, ""))
-    return value
+
+def substitute(value: Any, env: Mapping[str, Any], *, encode: bool = False, depth: int = 0) -> Any:
+    if depth > _MAX_NESTING:
+        raise ValueError("题库参数嵌套过深")
+    if isinstance(value, dict):
+        return {key: substitute(item, env, encode=encode, depth=depth + 1) for key, item in value.items()}
+    if isinstance(value, list):
+        return [substitute(item, env, encode=encode, depth=depth + 1) for item in value]
+    if not isinstance(value, str):
+        return value
+
+    def replace(match):
+        key = match.group(1)
+        if key not in _PLACEHOLDERS:
+            raise ValueError("题库占位符不受支持或缺少上下文值")
+        if key not in env:
+            raise ValueError(f"题库占位符 {key} 缺少上下文值")
+        resolved = env[key]
+        if key == "images" and isinstance(resolved, list):
+            resolved = ",".join(resolved)
+        if not isinstance(resolved, str):
+            raise ValueError("题库文本占位符的上下文值必须是字符串")
+        return quote(resolved, safe="") if encode else resolved
+
+    return re.sub(r"\$\{([^{}]*)\}", replace, value)
 
 
 def _check_http_url(url: str) -> str:
@@ -120,7 +163,16 @@ def load_wrappers(conf: Mapping[str, Any], session: requests.Session) -> list[di
         raise ValueError("题库配置必须是 JSON 数组")
     if len(raw) > _MAX_WRAPPERS:
         raise ValueError(f"题库配置最多 {_MAX_WRAPPERS} 个")
-    return [normalize_wrapper(item) for item in raw]
+    wrappers = []
+    for index, item in enumerate(raw, 1):
+        try:
+            wrappers.append(normalize_wrapper(item))
+        except (ValueError, RecursionError) as exc:
+            message = str(exc) if isinstance(exc, ValueError) else "配置嵌套过深"
+            logger.warning(f"第 {index} 个题库配置已跳过: {message}")
+    if raw and not wrappers:
+        raise ValueError("所有题库配置均无效，请查看逐项诊断")
+    return wrappers
 
 
 def normalize_wrapper(item: Any) -> dict[str, Any]:
@@ -133,6 +185,9 @@ def normalize_wrapper(item: Any) -> dict[str, Any]:
     method = str(item.get("method") or "get").strip().lower()
     if method not in ("get", "post"):
         raise ValueError(f"{name} 的 method 只允许 get 或 post")
+    request_type = item.get("type", "fetch")
+    if request_type not in ("fetch", "GM_xmlhttpRequest"):
+        raise ValueError(f"{name} 的 type 只允许 fetch 或 GM_xmlhttpRequest")
     content_type = str(item.get("contentType") or "json").strip().lower()
     if content_type not in ("json", "text"):
         raise ValueError(f"{name} 的 contentType 只允许 json 或 text")
@@ -150,7 +205,7 @@ def normalize_wrapper(item: Any) -> dict[str, Any]:
             source = value["handler"]
             if not isinstance(source, str):
                 raise ValueError(f"{key} 的 handler 必须是字符串")
-            compiled_data[key] = compile_handler(source)
+            compiled_data[key] = _compile_field(source, name, f"data.{key}.handler")
         else:
             compiled_data[key] = value
     headers = item.get("headers") or {}
@@ -163,52 +218,73 @@ def normalize_wrapper(item: Any) -> dict[str, Any]:
         "url": url,
         "method": method,
         "content_type": content_type,
+        "request_type": request_type,
+        "uses_images": bool(re.search(r"\.images\b|\$\{(?:images|suggestion_title|suggestion_options)\}", json.dumps(data))),
         "headers": dict(headers),
+        "secret_values": [value for key, value in {**data, **headers}.items()
+                          if isinstance(value, str) and value and re.search("token|key|auth|password|secret", key, re.I)],
         "data": compiled_data,
-        "run": compile_handler(handler),
+        "run": _compile_field(handler, name, "handler"),
     }
 
 
-def resolve_data(data: Mapping[str, Any], env: Mapping[str, str]) -> dict[str, Any]:
-    resolved = {}
-    for key, value in data.items():
-        if callable(value):
-            resolved[key] = value(env)
-        elif isinstance(value, str):
-            resolved[key] = substitute(value, env)
-        else:
-            resolved[key] = value
-    return resolved
+def _compile_field(source: str, name: str, field: str) -> Callable:
+    try:
+        return compile_handler(source)
+    except HandlerSyntaxError as exc:
+        raise HandlerSyntaxError(f"题库 {name} 的 {field}: {exc}") from None
 
 
-def request_wrapper(wrapper: Mapping[str, Any], env: Mapping[str, str], session: requests.Session) -> Any:
+def resolve_data(data: Mapping[str, Any], env: Mapping[str, Any]) -> dict[str, Any]:
+    return {
+        key: value(env) if callable(value) else substitute(value, env)
+        for key, value in data.items()
+    }
+
+
+def request_wrapper(wrapper: Mapping[str, Any], env: Mapping[str, Any], session: requests.Session) -> Any:
+    if wrapper["method"] == "get" and env.get("images"):
+        if wrapper["uses_images"] or "${images}" in wrapper["url"]:
+            raise ValueError("images_require_post")
     headers = {key: substitute(value, env) for key, value in wrapper["headers"].items()}
     data = resolve_data(wrapper["data"], env)
-    url = substitute(wrapper["url"], env)
+    url = substitute(wrapper["url"], env, encode=True)
     _check_http_url(url)
+    if len(json.dumps(data, ensure_ascii=False).encode("utf-8")) > MAX_TOTAL_BYTES:
+        raise ValueError("request_body_limit")
+    if wrapper["method"] == "get" and "data:image/" in json.dumps(data):
+        raise ValueError("images_require_post")
     if wrapper["method"] == "get":
+        parts = urlsplit(url)
+        query = [(key, value) for key, value in parse_qsl(parts.query, keep_blank_values=True) if key not in data]
+        url = urlunsplit(parts._replace(query=urlencode(query)))
         response = _send(session, "get", url, params=data or None, headers=headers, timeout=30)
-    elif wrapper["content_type"] == "json":
-        response = _send(session, "post", url, json=data, headers=headers, timeout=30)
     else:
-        response = _send(session, "post", url, data=data, headers=headers, timeout=30)
+        content_type = next((value for key, value in headers.items() if key.lower() == "content-type"), "")
+        form = wrapper["request_type"] == "GM_xmlhttpRequest" and content_type == "application/x-www-form-urlencoded"
+        body = data if form else json.dumps(data, ensure_ascii=False, allow_nan=False).encode("utf-8")
+        response = _send(session, "post", url, data=body, headers=headers, timeout=30)
     try:
         response.raise_for_status()
         if wrapper["content_type"] == "json":
-            return response.json()
+            try:
+                return response.json()
+            except ValueError:
+                raise ResponseParseError("invalid_json_response") from None
         return response.text
     finally:
         response.close()
 
 
-def _pairs(result: Any) -> list[tuple[Any, Any]]:
-    if not isinstance(result, list):
+def normalize_results(result: Any) -> list[dict[str, Any]]:
+    if not isinstance(result, list) or not result:
         return []
-    if result and all(isinstance(item, list) for item in result):
-        return [(item[0] if item else None, item[1] if len(item) > 1 else None) for item in result]
-    question = result[0] if result else None
-    answer = result[1] if len(result) > 1 else None
-    return [(question, answer)]
+    rows = result if all(isinstance(item, list) for item in result) else [result]
+    return [{
+        "question": row[0] if row else None,
+        "answer": row[1] if len(row) > 1 else None,
+        "extra_data": row[2] if len(row) > 2 and isinstance(row[2], dict) else {},
+    } for row in rows]
 
 
 def _answer_text(answer: Any) -> str:
@@ -268,20 +344,24 @@ class _Parser:
         self.source = source
         self.length = len(source)
         self.index = 0
+        self.depth = 0
+
+    def _error(self, message: str) -> HandlerSyntaxError:
+        return HandlerSyntaxError(f"{message}（字符位置 {self.index + 1}）")
 
     def parse(self) -> Callable[[Any], Any]:
         self._skip()
         if not self._consume_word("return"):
-            raise HandlerSyntaxError("handler 必须以 return 开头")
+            raise self._error("handler 必须以 return 开头")
         self._skip()
         name = self._parse_param()
         self._skip()
         if not self._consume("=>"):
-            raise HandlerSyntaxError("handler 缺少 =>")
+            raise self._error("handler 缺少 =>")
         expression = self._parse_ternary()
         self._skip()
         if self.index != self.length:
-            raise HandlerSyntaxError("handler 存在无法识别的内容")
+            raise self._error("handler 存在无法识别的内容")
 
         def run(argument: Any, name: str = name, expression: Callable = expression) -> Any:
             return expression({name: argument})
@@ -295,12 +375,21 @@ class _Parser:
             name = self._ident()
             self._skip()
             if self._peek() != ")":
-                raise HandlerSyntaxError("参数缺少 )")
+                raise self._error("参数缺少 )")
             self.index += 1
             return name
         return self._ident()
 
     def _parse_ternary(self) -> Callable:
+        self.depth += 1
+        try:
+            if self.depth > _MAX_NESTING:
+                raise self._error("表达式嵌套过深")
+            return self._parse_conditional()
+        finally:
+            self.depth -= 1
+
+    def _parse_conditional(self) -> Callable:
         condition = self._parse_or()
         self._skip()
         if self._peek() != "?":
@@ -309,7 +398,7 @@ class _Parser:
         yes = self._parse_ternary()
         self._skip()
         if self._peek() != ":":
-            raise HandlerSyntaxError("三元表达式缺少 :")
+            raise self._error("三元表达式缺少 :")
         self.index += 1
         no = self._parse_ternary()
         return lambda env, condition=condition, yes=yes, no=no: yes(env) if _truthy(condition(env)) else no(env)
@@ -365,7 +454,7 @@ class _Parser:
                 index = self._parse_ternary()
                 self._skip()
                 if self._peek() != "]":
-                    raise HandlerSyntaxError("下标缺少 ]")
+                    raise self._error("下标缺少 ]")
                 self.index += 1
                 expression = lambda env, expression=expression, index=index: _index(expression(env), index(env))
                 continue
@@ -378,11 +467,11 @@ class _Parser:
             param = self._parse_param()
             self._skip()
             if not self._consume("=>"):
-                raise HandlerSyntaxError("map 缺少 =>")
+                raise self._error("map 缺少 =>")
             body = self._parse_ternary()
             self._skip()
             if self._peek() != ")":
-                raise HandlerSyntaxError("map 缺少 )")
+                raise self._error("map 缺少 )")
             self.index += 1
 
             def run(env, target=target, param=param, body=body):
@@ -408,7 +497,7 @@ class _Parser:
                     continue
                 break
         if self._peek() != ")":
-            raise HandlerSyntaxError("函数调用缺少 )")
+            raise self._error("函数调用缺少 )")
         self.index += 1
 
         def run(env, target=target, prop=prop, args=tuple(args)):
@@ -424,12 +513,14 @@ class _Parser:
             return lambda env, value=value: value
         if char == "[":
             return self._parse_array()
+        if char == "{":
+            return self._parse_object()
         if char == "(":
             self.index += 1
             expression = self._parse_ternary()
             self._skip()
             if self._peek() != ")":
-                raise HandlerSyntaxError("表达式缺少 )")
+                raise self._error("表达式缺少 )")
             self.index += 1
             return expression
         if char == "-" or char.isdigit():
@@ -441,6 +532,26 @@ class _Parser:
             value = constants[name]
             return lambda env, value=value: value
         return lambda env, name=name: env.get(name)
+
+    def _parse_object(self) -> Callable:
+        self.index += 1
+        items = []
+        self._skip()
+        if self._consume("}"):
+            return lambda env: {}
+        while True:
+            self._skip()
+            key = self._parse_string() if self._peek() in ("'", '"') else self._ident()
+            if not self._consume(":"):
+                raise self._error("对象属性缺少 :，不支持简写、方法或语句块")
+            items.append((key, self._parse_ternary()))
+            if self._consume("}"):
+                break
+            if not self._consume(","):
+                raise self._error("对象属性缺少 , 或 }")
+            if self._consume("}"):
+                break
+        return lambda env, items=tuple(items): {key: value(env) for key, value in items}
 
     def _parse_array(self) -> Callable:
         self.index += 1
@@ -462,7 +573,7 @@ class _Parser:
             if self._peek() == "]":
                 self.index += 1
                 break
-            raise HandlerSyntaxError("数组缺少 ]")
+            raise self._error("数组缺少 ]")
         return lambda env, items=tuple(items): [item(env) for item in items]
 
     def _parse_string(self) -> str:
@@ -482,14 +593,14 @@ class _Parser:
                 chars.append({"n": "\n", "r": "\r", "t": "\t", "\\": "\\", "'": "'", '"': '"', "/": "/"}.get(escaped, escaped))
                 continue
             chars.append(char)
-        raise HandlerSyntaxError("字符串没有结束")
+        raise self._error("字符串没有结束")
 
     def _parse_number(self) -> int | float:
         start = self.index
         if self._peek() == "-":
             self.index += 1
         if not self._peek().isdigit():
-            raise HandlerSyntaxError("数字格式错误")
+            raise self._error("数字格式错误")
         while self._peek().isdigit():
             self.index += 1
         if self._peek() == "." and self._peek_at(1).isdigit():
@@ -504,7 +615,7 @@ class _Parser:
         start = self.index
         char = self._peek()
         if not char or not (char.isalpha() or char in "_$"):
-            raise HandlerSyntaxError("缺少标识符")
+            raise self._error("此处需要属性名或变量名，可能使用了不支持的语法")
         self.index += 1
         while True:
             char = self._peek()
@@ -549,7 +660,11 @@ def _compare(left: Any, right: Any, op: str) -> bool:
 def compile_handler(source: str) -> Callable[[Any], Any]:
     if not isinstance(source, str) or len(source) > _MAX_HANDLER_LENGTH:
         raise HandlerSyntaxError("handler 为空或过长")
-    return _Parser(source).parse()
+    parser = _Parser(source)
+    try:
+        return parser.parse()
+    except RecursionError:
+        raise parser._error("表达式过于复杂") from None
 
 from difflib import SequenceMatcher
 
@@ -562,23 +677,44 @@ def _similarity(question: Any, title: str) -> float:
     return SequenceMatcher(None, str(question), title).ratio()
 
 
+def _select_result(rows, title="", question=None, true_list=(), false_list=()):
+    answers = []
+    for row in rows:
+        if row["answer"] is None:
+            continue
+        text = _answer_text(row["answer"])
+        if not text or "data:image/" in text:
+            continue
+        if question and (question.get("options") or question.get("type") in ("completion", "judgement")):
+            matched = match_answer(text, question, true_list, false_list)
+            if matched.answer is None:
+                continue
+        answers.append({**row, "answer": text})
+    return max(answers, key=lambda row: _similarity(row["question"], title)) if answers else None
+
+
 def select_answer(result: Any, title: str = "") -> str | None:
     if isinstance(result, str) and result.strip():
         return result.strip()
-    answers = []
-    for question, answer in _pairs(result):
-        if answer is None:
-            if isinstance(question, str) and question.strip():
-                logger.info(f"题库提示: {question.strip()}")
-            continue
-        text = _answer_text(answer)
-        if text:
-            answers.append((question, text))
-    if not answers:
-        return None
-    if len(answers) == 1:
-        return answers[0][1]
-    return max(answers, key=lambda item: _similarity(item[0], title))[1]
+    selected = _select_result(normalize_results(result), title)
+    return selected["answer"] if selected else None
+
+
+def _safe_summary(value, secrets=()):
+    text = str(value or "")
+    for secret in secrets:
+        text = text.replace(secret, "[redacted]")
+    text = re.sub(r"data:image/\S+|https?://\S+", "[redacted]", text)
+    text = re.sub(r"(?i)(token|authorization|password|api_key)\s*[:=]\s*\S+", "[redacted]", text)
+    return text[:256]
+
+
+def _result_summary(row, secrets=()):
+    extra = row.get("extra_data", {})
+    tags = extra.get("tags", [])
+    return {"question": _safe_summary(row["question"], secrets), "answer": _safe_summary(row["answer"], secrets),
+            "ai": extra.get("ai") if isinstance(extra.get("ai"), bool) else None,
+            "tags": [_safe_summary(tag, secrets) for tag in tags[:10] if isinstance(tag, str)] if isinstance(tags, list) else []}
 
 
 class TikuOcs(Tiku):
@@ -611,18 +747,68 @@ class TikuOcs(Tiku):
             self.DISABLE = True
 
     def _query(self, q_info: dict) -> str | None:
-        env = question_env(q_info)
+        self.query_diagnostics = []
+        try:
+            env = question_env(q_info)
+        except (ValueError, OSError) as exc:
+            self.query_diagnostics.append({"stage": "context", "status": "invalid_context", "error": type(exc).__name__})
+            return None
+        image_env = None
+        image_urls = []
         for wrapper in self.wrappers:
+            started = time.monotonic()
+            report = {"source": _safe_summary(wrapper["name"], wrapper["secret_values"]), "stage": "context", "status": "pending", "candidates": []}
+            self.query_diagnostics.append(report)
             try:
-                payload = request_wrapper(wrapper, env, self._session)
-                answer = select_answer(wrapper["run"](payload), env["title"])
+                wrapper_env = env
+                active_urls = []
+                if wrapper["uses_images"] and wrapper["method"] == "get" and q_info.get("_image_context"):
+                    report["image_warnings"] = ["images_require_post"]
+                if wrapper["uses_images"] and wrapper["method"] == "post" and "images" not in q_info:
+                    if image_env is None:
+                        image_env, image_urls, failures = build_image_env(q_info, get_current_session())
+                    else:
+                        failures = []
+                    report["image_warnings"] = failures
+                    active_urls = image_urls
+                    wrapper_env = {**env, **{key: value for key, value in image_env.items() if key not in q_info}}
+                report["stage"] = "request"
+                payload = request_wrapper(wrapper, wrapper_env, self._session)
+                report["stage"] = "handler"
+                result = wrapper["run"](payload)
+                rows = normalize_results(result)
+                if isinstance(result, str) and result.strip():
+                    rows = [{"question": None, "answer": result, "extra_data": {}}]
+                for row in rows:
+                    row["answer"] = restore_image_answer(row["answer"], active_urls)
+                report["candidates"] = [_result_summary(row, wrapper["secret_values"]) for row in rows[:20]]
+                report["stage"] = "match"
+                selected = _select_result(rows, env["title"], q_info, self.true_list, self.false_list)
+                if selected:
+                    report["status"] = "selected"
+                    report["selected"] = _result_summary(selected, wrapper["secret_values"])
+                    logger.info(f"从{report['source']}获取候选答案")
+                    return selected["answer"]
+                report["status"] = "unmatched" if any(row["answer"] for row in rows) else "no_answer"
             except requests.exceptions.SSLError:
-                logger.error(ssl_error_message(wrapper["name"]))
-                continue
+                report["status"] = "ssl_error"
+                logger.error(ssl_error_message(report["source"]))
+            except requests.Timeout:
+                report["status"] = "timeout"
+            except requests.HTTPError as exc:
+                code = getattr(exc.response, "status_code", None)
+                report["status"] = "authentication_rejected" if code in (401, 403) else "http_error"
+                report["http_status"] = code
+            except (ResponseParseError, requests.exceptions.JSONDecodeError):
+                report["status"] = "response_parse_error"
+            except requests.RequestException:
+                report["status"] = "network_error"
             except Exception as exc:
-                logger.error(f"{wrapper['name']} 搜题失败: {exc}")
-                continue
-            if answer:
-                logger.info(f"从{wrapper['name']}获取候选答案")
-                return answer
+                report["status"] = {"context": "invalid_context", "request": "request_or_response_error",
+                                    "handler": "handler_error", "match": "matching_error"}[report["stage"]]
+                report["error"] = type(exc).__name__
+            finally:
+                report["elapsed_ms"] = round((time.monotonic() - started) * 1000)
+                if report["status"] != "selected":
+                    logger.info("题库 {}: {}", report["source"], report["status"])
         return None
