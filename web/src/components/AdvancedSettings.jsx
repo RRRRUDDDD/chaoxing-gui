@@ -82,7 +82,6 @@ const AdvancedSettings = ({ settings, onChange, onFieldValidity, onEditTiku }) =
         <SettingsDisclosure title="题库配置" icon={Database}>
           <div className="space-y-4">
             <div className="space-y-2">
-              <p className="text-xs text-faint">{String(settings.tiku_config?.config || '').trim() ? '已填写题库配置，可在宽屏模式查看和修改。' : '未配置题库，不自动答题。'}</p>
               <Button variant="outline" size="sm" onClick={(event) => onEditTiku?.(event.currentTarget)}>展开编辑</Button>
             </div>
             <div className="space-y-1.5">
@@ -141,7 +140,7 @@ const AdvancedSettings = ({ settings, onChange, onFieldValidity, onEditTiku }) =
     </SettingsDisclosure>
 
             {/* 通知配置 */}
-            <SettingsDisclosure title="外部通知" icon={Bell}>
+            <SettingsDisclosure title="任务通知" icon={Bell}>
               <div className="space-y-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="notification-provider">通知服务</Label>

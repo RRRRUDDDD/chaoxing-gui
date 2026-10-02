@@ -89,6 +89,9 @@ it('keeps wide editor text and numeric drafts without saving or disrupting discl
   expect(screen.queryByRole('button', { name: '展开题库配置' })).toBeNull();
   fireEvent.click(outer);
   fireEvent.click(screen.getByRole('button', { name: '展开题库配置' }));
+  expect(screen.getByRole('button', { name: '展开任务通知' })).toBeTruthy();
+  const bankPanel = document.getElementById(screen.getByRole('button', { name: '收起题库配置' }).getAttribute('aria-controls'));
+  expect(bankPanel.querySelector('button').parentElement.querySelector('p')).toBeNull();
   const delay = screen.getByRole('spinbutton', { name: '查询延迟（秒）' });
   fireEvent.change(delay, { target: { value: '1.50' } });
   delay.focus();
@@ -101,6 +104,7 @@ it('keeps wide editor text and numeric drafts without saving or disrupting discl
   const trigger = screen.getByRole('button', { name: '展开编辑' });
   fireEvent.click(trigger);
   expect(screen.queryByRole('button', { name: '开始学习' })).toBeNull();
+  expect(screen.getByText(/编辑时不会请求订阅链接/)).toBeTruthy();
   fireEvent.change(screen.getByLabelText('题库配置'), { target: { value: 'https://example.com/subscription' } });
   fireEvent.click(screen.getByRole('button', { name: '返回配置面板' }));
   expect(document.activeElement).toBe(trigger);

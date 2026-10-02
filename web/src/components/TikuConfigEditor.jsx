@@ -15,7 +15,7 @@ const TikuConfigEditor = ({ settings, onChange, onBack }) => {
         <h2 ref={heading} tabIndex={-1} className="text-lg font-semibold focus:outline-none">编辑题库配置</h2>
         <Button variant="outline" onClick={onBack}>返回配置面板</Button>
       </div>
-      <p className="mb-4 text-sm text-faint">修改会保留在当前页面；返回后点击“保存当前配置”才会保存。不会自动读取订阅。</p>
+      <p className="mb-4 text-sm text-faint">修改会保留在当前页面；返回后点击“保存当前配置”才会保存。编辑时不会请求订阅链接。</p>
       <div className="space-y-1.5">
         <Label htmlFor="tiku-config">题库配置</Label>
         <textarea
