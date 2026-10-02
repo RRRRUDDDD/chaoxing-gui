@@ -3,8 +3,10 @@ import Input from './ui/Input';
 import Label from './ui/Label';
 import Select from './ui/Select';
 import NumberInput from './ui/NumberInput';
-import ExternalLink from './ExternalLink';
-import { Settings2, Database, Bell, ChevronDown, AppWindow } from 'lucide-react';
+import Button from './ui/Button';
+import SettingsDisclosure from './SettingsDisclosure';
+import { updateTikuSettings } from '../lib/courseSelection';
+import { Settings2, Database, Bell, AppWindow } from 'lucide-react';
 import { desktopBridge, isTauriDesktop } from '../lib/desktopBridge';
 
 const SectionHeader = ({ icon: Icon, title, description }) => (
@@ -60,21 +62,8 @@ export const CloseActionSetting = () => {
   );
 };
 
-const AdvancedSettings = ({ settings, onChange, onFieldValidity }) => {
-  const [showAdvanced, setShowAdvanced] = useState(false);
-
-  const handleTikuChange = (field, value) => {
-    const previous = settings.tiku_config || {};
-    const next = {};
-    for (const key of ['config', 'submit', 'cover_rate', 'delay', 'true_list', 'false_list', 'verify_ssl']) {
-      if (previous[key] !== undefined) next[key] = previous[key];
-    }
-    next[field] = value;
-    onChange({
-      ...settings,
-      tiku_config: next,
-    });
-  };
+const AdvancedSettings = ({ settings, onChange, onFieldValidity, onEditTiku }) => {
+  const handleTikuChange = (field, value) => onChange(updateTikuSettings(settings, field, value));
 
   const handleNotificationChange = (field, value) => {
     onChange({
@@ -87,117 +76,72 @@ const AdvancedSettings = ({ settings, onChange, onFieldValidity }) => {
   };
 
   return (
-    <div>
-      <button
-        type="button"
-        onClick={() => setShowAdvanced(!showAdvanced)}
-        aria-expanded={showAdvanced}
-        className="flex w-full items-center justify-between rounded-lg text-[13px] font-medium text-body transition-colors hover:text-brand focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/20"
-      >
-        <span className="flex items-center gap-2">
-          <Settings2 className="h-4 w-4" aria-hidden="true" />
-          {showAdvanced ? '收起高级配置' : '展开高级配置'}
-        </span>
-        <ChevronDown
-          className={`h-4 w-4 transition-transform duration-300 ease-out ${
-            showAdvanced ? 'rotate-180' : ''
-          }`}
-          aria-hidden="true"
-        />
-      </button>
-
-      {/* grid-template-rows 0fr→1fr 折叠,纯 CSS 过渡 */}
-      <div
-        className="grid transition-[grid-template-rows] duration-400 ease-out"
-        style={{ gridTemplateRows: showAdvanced ? '1fr' : '0fr' }}
-      >
-        <div className="overflow-hidden">
-          <div className="space-y-6 pt-5">
-            {/* 题库配置 */}
-            <section className="rounded-xl border border-line p-4">
-              <SectionHeader icon={Database} title="题库配置" description="粘贴 OCS 题库 JSON，或填写订阅链接" />
-              <div className="space-y-4">
-                <div className="space-y-1.5">
-                  <Label htmlFor="tiku-config">题库配置</Label>
-                  <textarea
-                    id="tiku-config"
-                    rows={8}
-                    spellCheck={false}
-                    placeholder={'[\n  {\n    "name": "示例题库",\n    "url": "https://example.com/search",\n    "method": "get",\n    "data": { "question": "${title}" },\n    "handler": "return (res)=> res.code === 1 ? [res.question, res.answer] : undefined"\n  }\n]'}
-                    value={settings.tiku_config?.config || ''}
-                    onChange={(e) => handleTikuChange('config', e.target.value)}
-                    className="flex min-h-36 w-full rounded-lg border border-line bg-white px-3 py-2 font-mono text-xs text-ink placeholder:text-faint/70 hover:border-faint/50 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand/15"
-                  />
-                  <p className="text-xs text-faint">
-                    留空则不自动答题。格式与{' '}
-                    <ExternalLink
-                      href="https://docs.ocsjs.com/docs/work"
-                      openDesktop={desktopBridge.openOcsDocs}
-                      title="在浏览器中打开 OCS 题库配置"
-                      className="text-brand underline-offset-2 hover:underline"
-                    >
-                      OCS 题库配置
-                    </ExternalLink>
-                    {' '}相同，可以是 JSON 数组，也可以是订阅链接。占位符为 {'${title}'}、{'${options}'}、{'${type}'}。
-                  </p>
-                </div>
-                <div className="space-y-1.5">
-                  <label htmlFor="tiku-verify-ssl" className="flex items-center gap-2 text-[13px] font-medium text-body">
-                    <input
-                      id="tiku-verify-ssl"
-                      type="checkbox"
-                      className="h-4 w-4 accent-brand"
-                      checked={settings.tiku_config?.verify_ssl !== false}
-                      onChange={(e) => handleTikuChange('verify_ssl', e.target.checked)}
-                    />
-                    校验题库 HTTPS 证书
-                  </label>
-                  {settings.tiku_config?.verify_ssl === false && (
-                    <p role="alert" className="text-xs text-danger">
-                      已关闭证书校验：题库请求可能被中间人窃听或篡改，仅在确认题库地址可信时使用。
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="tiku-submit">自动提交答题</Label>
-                  <Select id="tiku-submit" value={settings.tiku_config?.submit || 'false'} onChange={(e) => handleTikuChange('submit', e.target.value)}>
-                    <option value="false">仅保存，不提交</option>
-                    <option value="true">达到覆盖率后自动提交</option>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="tiku-cover-rate">最低覆盖率</Label>
-                    <NumberInput
-                      id="tiku-cover-rate"
-                      onValidityChange={(valid) => onFieldValidity?.('tiku-cover-rate', valid)}
-                      min={0}
-                      max={1}
-                      step="0.1"
-                      value={settings.tiku_config?.cover_rate ?? 0.9}
-                      onValueChange={(value) => handleTikuChange('cover_rate', value)}
-                      hint="0.0–1.0，推荐 0.9"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="tiku-delay">查询延迟（秒）</Label>
-                    <NumberInput
-                      id="tiku-delay"
-                      onValidityChange={(valid) => onFieldValidity?.('tiku-delay', valid)}
-                      min={0}
-                      step="0.5"
-                      value={settings.tiku_config?.delay ?? 1.0}
-                      onValueChange={(value) => handleTikuChange('delay', value)}
-                      hint="题库查询间隔"
-                    />
-                  </div>
-                </div>
+    <SettingsDisclosure title="高级配置" icon={Settings2}>
+      <div className="space-y-5">
+        {/* 题库配置 */}
+        <SettingsDisclosure title="题库配置" icon={Database}>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <p className="text-xs text-faint">{String(settings.tiku_config?.config || '').trim() ? '已填写题库配置，可在宽屏模式查看和修改。' : '未配置题库，不自动答题。'}</p>
+              <Button variant="outline" size="sm" onClick={(event) => onEditTiku?.(event.currentTarget)}>展开编辑</Button>
+            </div>
+            <div className="space-y-1.5">
+              <label htmlFor="tiku-verify-ssl" className="flex items-center gap-2 text-[13px] font-medium text-body">
+                <input
+                  id="tiku-verify-ssl"
+                  type="checkbox"
+                  className="h-4 w-4 accent-brand"
+                  checked={settings.tiku_config?.verify_ssl !== false}
+                  onChange={(e) => handleTikuChange('verify_ssl', e.target.checked)}
+                />
+                校验题库 HTTPS 证书
+              </label>
+              {settings.tiku_config?.verify_ssl === false && (
+                <p role="alert" className="text-xs text-danger">
+                  已关闭证书校验：题库请求可能被中间人窃听或篡改，仅在确认题库地址可信时使用。
+                </p>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="tiku-submit">自动提交答题</Label>
+              <Select id="tiku-submit" value={settings.tiku_config?.submit || 'false'} onChange={(e) => handleTikuChange('submit', e.target.value)}>
+                <option value="false">仅保存，不提交</option>
+                <option value="true">达到覆盖率后自动提交</option>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="tiku-cover-rate">最低覆盖率</Label>
+                <NumberInput
+                  id="tiku-cover-rate"
+                  onValidityChange={(valid) => onFieldValidity?.('tiku-cover-rate', valid)}
+                  min={0}
+                  max={1}
+                  step="0.1"
+                  value={settings.tiku_config?.cover_rate ?? 0.9}
+                  onValueChange={(value) => handleTikuChange('cover_rate', value)}
+                  hint="0.0–1.0，推荐 0.9"
+                />
               </div>
-            </section>
+              <div className="space-y-1.5">
+                <Label htmlFor="tiku-delay">查询延迟（秒）</Label>
+                <NumberInput
+                  id="tiku-delay"
+                  onValidityChange={(valid) => onFieldValidity?.('tiku-delay', valid)}
+                  min={0}
+                  step="0.5"
+                  value={settings.tiku_config?.delay ?? 1.0}
+                  onValueChange={(value) => handleTikuChange('delay', value)}
+                  hint="题库查询间隔"
+                />
+              </div>
+            </div>
+          </div>
+
+    </SettingsDisclosure>
 
             {/* 通知配置 */}
-            <section className="rounded-xl border border-line p-4">
-              <SectionHeader icon={Bell} title="外部通知" description="完成或出错时推送（可选）" />
+            <SettingsDisclosure title="外部通知" icon={Bell}>
               <div className="space-y-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="notification-provider">通知服务</Label>
@@ -250,13 +194,11 @@ const AdvancedSettings = ({ settings, onChange, onFieldValidity }) => {
                   </>
                 )}
               </div>
-            </section>
+            </SettingsDisclosure>
 
             {isTauriDesktop() && <CloseActionSetting />}
           </div>
-        </div>
-      </div>
-    </div>
+    </SettingsDisclosure>
   );
 };
 

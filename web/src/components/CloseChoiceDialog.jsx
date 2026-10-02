@@ -105,7 +105,7 @@ export function CloseChoiceDialog({ taskRunning = false }) {
                 <Icon className="h-4 w-4" aria-hidden="true" />{label}
               </Button>
               {action === 'exit' && taskRunning && (
-                <p className="mt-1 text-xs text-warning">正在运行的任务会中断，下次启动可恢复。</p>
+                <p className="mt-1 text-xs text-warning-ink">正在运行的任务会中断，下次启动可恢复。</p>
               )}
             </div>
           ))}

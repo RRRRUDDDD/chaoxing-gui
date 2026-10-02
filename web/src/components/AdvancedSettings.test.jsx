@@ -23,6 +23,8 @@ function Harness({ initial, onSettings = () => {} }) {
 it('checks question-bank certificates unless the user turns it off', () => {
   const changed = vi.fn();
   render(<Harness initial={{ tiku_config: { config: '[]', submit: 'true' } }} onSettings={changed} />);
+  fireEvent.click(screen.getByRole('button', { name: '展开高级配置' }));
+  fireEvent.click(screen.getByRole('button', { name: '展开题库配置' }));
   const box = screen.getByLabelText('校验题库 HTTPS 证书');
   expect(box.checked).toBe(true);
   expect(screen.queryByRole('alert')).toBeNull();

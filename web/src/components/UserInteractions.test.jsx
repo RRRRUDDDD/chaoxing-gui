@@ -4,7 +4,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import CourseSelection from './CourseSelection';
 import StudyProgress from './StudyProgress';
 import RepositoryLink, { REPOSITORY_URL } from './RepositoryLink';
-import AdvancedSettings from './AdvancedSettings';
+import TikuConfigEditor from './TikuConfigEditor';
 import api from '../api/axios';
 
 const core = vi.hoisted(() => ({ isTauri: vi.fn(), invoke: vi.fn() }));
@@ -74,9 +74,8 @@ const externalLinks = [
 async function renderExternalLink({ kind, name }) {
   core.invoke.mockResolvedValue({ closeAction: 'ask' });
   await act(async () => {
-    render(kind === 'repository' ? <RepositoryLink /> : <AdvancedSettings settings={{}} onChange={vi.fn()} />);
+    render(kind === 'repository' ? <RepositoryLink /> : <TikuConfigEditor settings={{}} onChange={vi.fn()} onBack={vi.fn()} />);
   });
-  if (kind !== 'repository') fireEvent.click(screen.getByRole('button', { name: '展开高级配置' }));
   core.invoke.mockClear();
   return screen.getByRole('link', { name });
 }

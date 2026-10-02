@@ -156,7 +156,7 @@ function CourseToolContent({ taskId, username, taskStatus, tool, catalogReady = 
             </Button>
             {!hasDownloads && <p className="text-xs text-faint">文件保存完成后可打开下载目录。</p>}
             {openError && <p role="alert" className="rounded-lg bg-danger/5 px-3 py-2 text-sm text-danger">{openError}</p>}
-            {openNotice && <p role="status" className="text-xs text-success">{openNotice}</p>}
+            {openNotice && <p role="status" className="text-xs text-success-ink">{openNotice}</p>}
           </div>
         )}
       </section>
@@ -256,7 +256,7 @@ function CourseToolContent({ taskId, username, taskStatus, tool, catalogReady = 
                     <p className="break-words text-sm font-medium">{result.name}</p>
                     <p className="mt-0.5 text-xs text-faint">{result.course_title}</p>
                   </div>
-                  <span className={`shrink-0 text-xs ${result.status === 'error' ? 'text-danger' : result.status === 'completed' ? 'text-success' : 'text-warning'}`}>{readingTask && result.status === 'completed' ? '上报完成' : resultLabels[result.status] || result.status}</span>
+                  <span className={`shrink-0 text-xs ${result.status === 'error' ? 'text-danger' : result.status === 'completed' ? 'text-success-ink' : 'text-warning-ink'}`}>{readingTask && result.status === 'completed' ? '上报完成' : resultLabels[result.status] || result.status}</span>
                 </div>
                 {result.message && <p className={`whitespace-pre-wrap text-xs leading-relaxed ${result.status === 'error' ? 'text-danger' : 'text-body'}`}>{result.message}</p>}
                 {taskType === 'visits' && (

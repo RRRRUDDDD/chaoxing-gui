@@ -147,7 +147,7 @@ describe('resource selection and task results', () => {
     const start = vi.fn();
     render(<StudyProgress taskId="catalog-task" username="alice" onStartStudy={start} />);
     await screen.findByRole('checkbox', { name: '选择资源 课程讲义' });
-    expect(screen.getAllByRole('checkbox').every((checkbox) => !checkbox.checked)).toBe(true);
+    expect(screen.getAllByRole('checkbox', { name: /^选择资源/ }).every((checkbox) => !checkbox.checked)).toBe(true);
     expect(screen.getByRole('button', { name: '下载所选资源' }).disabled).toBe(true);
     expect(screen.getByRole('checkbox', { name: '选择资源 不可用视频' }).disabled).toBe(true);
     fireEvent.click(screen.getByRole('checkbox', { name: '选择资源 课程讲义' }));
@@ -295,7 +295,7 @@ describe('resource selection and task results', () => {
     fireEvent.click(screen.getByRole('button', { name: '下载所选资源' }));
     view.rerender(<CourseToolProgress {...props} taskId="new" />);
     await act(async () => old.reject(new Error('old start failure')));
-    expect(screen.getAllByRole('checkbox').every((checkbox) => !checkbox.checked)).toBe(true);
+    expect(screen.getAllByRole('checkbox', { name: /^选择资源/ }).every((checkbox) => !checkbox.checked)).toBe(true);
     expect(screen.queryByRole('alert')).toBeNull();
     expect(screen.getByRole('button', { name: '下载所选资源' }).disabled).toBe(true);
   });
@@ -338,7 +338,7 @@ describe('shared App start lifecycle', () => {
     appServices({ purpose });
     await openCatalog(purpose);
     expect((await sessionStore.read()).activeTask).toEqual({ username: 'alice', taskId: 'catalog-task' });
-    expect(screen.getAllByRole('checkbox').every((checkbox) => !checkbox.checked)).toBe(true);
+    expect(screen.getAllByRole('checkbox', { name: /^选择资源/ }).every((checkbox) => !checkbox.checked)).toBe(true);
     fireEvent.click(screen.getByRole('checkbox', { name: '选择资源 课程视频' }));
     if (purpose === 'video_time') fireEvent.change(screen.getByLabelText('每个视频增加时长（分钟）'), { target: { value: '0.1' } });
     fireEvent.click(screen.getByRole('button', { name: purpose === 'video_time' ? '开始累计时长' : '下载所选资源' }));

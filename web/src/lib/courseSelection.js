@@ -28,3 +28,28 @@ export function restoreCourseSelection(config, username, courses) {
   const selection = Array.isArray(accounts[username]) ? accounts[username] : [];
   return { ids: [...new Set(selection.map(String))].filter((id) => valid.has(id)), saved: true };
 }
+
+// Compare the actual save payload, ignoring course click order and object key order.
+export function configSnapshot(settings, username, selectedCourses) {
+  const canonical = (value) => {
+    if (Array.isArray(value)) return value.map(canonical);
+    if (value && typeof value === 'object') {
+      return Object.fromEntries(Object.keys(value).sort().filter((key) => value[key] !== undefined)
+        .map((key) => [key, canonical(value[key])]));
+    }
+    return value;
+  };
+  return JSON.stringify(canonical({
+    settings,
+    selectedCoursesByAccount: { [username]: [...new Set(selectedCourses.map(String))].sort() },
+  }));
+}
+
+export function updateTikuSettings(settings, field, value) {
+  const previous = settings.tiku_config || {};
+  const next = {};
+  for (const key of ['config', 'submit', 'cover_rate', 'delay', 'true_list', 'false_list', 'verify_ssl']) {
+    if (previous[key] !== undefined) next[key] = previous[key];
+  }
+  return { ...settings, tiku_config: { ...next, [field]: value } };
+}

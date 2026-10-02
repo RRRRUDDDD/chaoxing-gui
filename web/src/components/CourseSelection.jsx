@@ -4,6 +4,7 @@ import Label from './ui/Label';
 import Select from './ui/Select';
 import NumberInput from './ui/NumberInput';
 import AdvancedSettings from './AdvancedSettings';
+import TikuConfigEditor from './TikuConfigEditor';
 import CourseToolSettings, { validateVisits } from './CourseToolSettings';
 import RepositoryLink from './RepositoryLink';
 import {
@@ -11,14 +12,17 @@ import {
   Check, Search, GraduationCap, AlertCircle, BookX,
 } from 'lucide-react';
 import api from '../api/axios';
-import { defaultSettings, normalizeCourses, restoreCourseSelection, restoreSettings } from '../lib/courseSelection';
+import { configSnapshot, defaultSettings, normalizeCourses, restoreCourseSelection, restoreSettings } from '../lib/courseSelection';
 
 const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOut = false, startError, activeTaskId, taskRunning = false, onReturnToTask, preview = false }) => {
   const [courses, setCourses] = useState([]);
   const [selectedCourses, setSelectedCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [saveStatus, setSaveStatus] = useState('');
+  const [saveStatus, setSaveStatus] = useState(null);
+  const [savedSnapshot, setSavedSnapshot] = useState(null);
+  const [editingTiku, setEditingTiku] = useState(false);
+  const editorTrigger = useRef(null);
   const [query, setQuery] = useState('');
   const [settings, setSettings] = useState(defaultSettings);
   const [taskType, setTaskType] = useState('study');
@@ -51,8 +55,11 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
     setTaskType('study');
     setToolOptions({ count: '10', interval: '30' });
     setLoadError('');
-    setSaveStatus('');
+    setSaveStatus(null);
     setSaving(false);
+    setSavedSnapshot(null);
+    setEditingTiku(false);
+    saveController.current?.abort();
     setQuery('');
     setSelectionNotice('');
     if (preview) {
@@ -61,10 +68,11 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
         { courseId: 'preview-002', title: '高等数学（演示课程）' },
         { courseId: 'preview-003', title: '计算机基础（演示课程）' },
       ]);
+      setSavedSnapshot(configSnapshot(defaultSettings(), username, []));
       setLoadedAccount(username);
       setSelectionNotice('请至少选择一门课程后开始学习');
       setLoading(false);
-      return () => controller.abort();
+      return () => { controller.abort(); saveController.current?.abort(); };
     }
     const load = async () => {
       try {
@@ -82,7 +90,9 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
         if (!configResult.value.data.status) throw new Error(configResult.value.data.msg || '加载已保存配置失败');
         const config = configResult.value.data.data || {};
         const selection = restoreCourseSelection(config, username, nextCourses);
-        setSettings(restoreSettings(config.settings));
+        const restoredSettings = restoreSettings(config.settings);
+        setSettings(restoredSettings);
+        setSavedSnapshot(configSnapshot(restoredSettings, username, selection.ids));
         setSelectedCourses(selection.ids);
         setSelectionNotice(selection.saved
           ? selection.ids.length ? '已恢复此账号仍有效的课程选择，可继续调整' : '保存的课程选择为空或已失效，请重新选择课程'
@@ -96,6 +106,13 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
     load();
     return () => { controller.abort(); saveController.current?.abort(); };
   }, [username, password, useCookies, preview, loadVersion]);
+
+  const currentSnapshot = useMemo(() => configSnapshot(settings, username, selectedCourses), [settings, username, selectedCourses]);
+  const dirty = savedSnapshot !== null && currentSnapshot !== savedSnapshot;
+  useEffect(() => { setSaveStatus(null); }, [currentSnapshot]);
+  useEffect(() => {
+    if (!editingTiku) editorTrigger.current?.focus();
+  }, [editingTiku]);
 
   const toggleCourse = (courseId) => {
     setSelectedCourses((prev) =>
@@ -151,24 +168,32 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
 
   const handleSaveConfig = async () => {
     if (loggingOut || loading || saving || loadError || loadedAccount !== username) return;
-    if (preview) { setSaveStatus('演示配置已保存'); return; }
+    const snapshot = currentSnapshot;
+    if (preview) {
+      setSavedSnapshot(snapshot);
+      setSaveStatus({ type: 'success', message: '演示配置已保存', snapshot });
+      return;
+    }
+    if (saveController.current && !saveController.current.signal.aborted) return;
     const controller = new AbortController();
     saveController.current = controller;
     try {
       setSaving(true);
-      setSaveStatus('');
+      setSaveStatus(null);
       const payload = { settings, selectedCoursesByAccount: { [username]: selectedCourses } };
       const response = await api.post('/config', payload, { signal: controller.signal });
       if (controller.signal.aborted) return;
       if (!response.data.status) {
-        setSaveStatus(response.data.msg || '保存失败，请重试');
+        setSaveStatus({ type: 'error', message: response.data.msg || '保存失败，请重试' });
       } else {
-        setSaveStatus('配置已保存');
+        setSavedSnapshot(snapshot);
+        setSaveStatus({ type: 'success', message: '配置已保存', snapshot });
       }
     } catch (err) {
-      if (!controller.signal.aborted) setSaveStatus('保存请求失败');
+      if (!controller.signal.aborted) setSaveStatus({ type: 'error', message: '保存请求失败，请重试' });
     } finally {
       if (!controller.signal.aborted) setSaving(false);
+      if (saveController.current === controller) saveController.current = null;
     }
   };
 
@@ -185,7 +210,7 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
 
   /* ---------- 主视图 ---------- */
   return (
-    <div className="min-h-screen bg-canvas">
+    <div className="course-page min-h-screen bg-canvas">
       {/* 顶栏 */}
       <header className="sticky top-0 z-20 border-b border-line bg-white/85 backdrop-blur">
         <div className="page-shell flex h-16 items-center justify-between">
@@ -213,9 +238,9 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
         </div>
       </header>
 
-      <main className="page-shell py-[clamp(1.5rem,2.5vw,3rem)]">
+      <main className="course-main page-shell py-5">
         {/* 页首 */}
-        <div className="mb-7 animate-stagger-up">
+        <div className="course-heading mb-5 shrink-0 animate-stagger-up">
           <h1 className="text-2xl font-semibold tracking-tight">选择课程并配置学习参数</h1>
           <p className="mt-1.5 text-sm text-faint">
             {selectionNotice || '请至少选择一门课程；未选课程时无法开始学习'}
@@ -235,11 +260,12 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-[minmax(0,1fr)_clamp(18.5rem,30vw,30rem)] md:items-start 2xl:gap-8">
+        {editingTiku && <TikuConfigEditor settings={settings} onChange={setSettings} onBack={() => setEditingTiku(false)} />}
+        <div hidden={editingTiku} className="course-body grid grid-cols-1 gap-5 md:grid-cols-[minmax(0,1fr)_clamp(19.5rem,32vw,30rem)] 2xl:gap-8">
           {/* 左:课程列表 */}
           <section
             aria-label="课程列表"
-            className="rounded-xl border border-line bg-white shadow-card animate-stagger-up"
+            className="course-list flex min-h-0 flex-col rounded-xl border border-line bg-white shadow-card animate-stagger-up"
             style={{ animationDelay: '80ms' }}
           >
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
@@ -261,7 +287,7 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="搜索课程"
                     aria-label="搜索课程"
-                    className="h-8 w-44 rounded-lg border border-line bg-white pl-8 pr-3 text-[13px] placeholder:text-faint/70 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand/15"
+                    className="h-8 w-44 rounded-lg border border-line bg-white pl-8 pr-3 text-[13px] placeholder:text-faint focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand/15"
                   />
                 </div>
               </div>
@@ -278,7 +304,7 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
                 </p>
               </div>
             ) : (
-              <ul className="max-h-[clamp(20rem,calc(100vh-16rem),52rem)] divide-y divide-line overflow-y-auto scroll-brutal px-2 py-1.5">
+              <ul className="min-h-0 divide-y divide-line overflow-y-auto overscroll-contain scroll-brutal px-2 py-1.5">
                 {filteredCourses.map((course) => {
                   const selected = selectedCourses.includes(course.courseId);
                   return (
@@ -287,7 +313,9 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
                         type="button"
                         onClick={() => toggleCourse(course.courseId)}
                         aria-pressed={selected}
-                        className={`group flex w-full items-center gap-3.5 rounded-lg px-3 py-3 text-left transition-colors duration-150 hover:bg-soft focus-visible:bg-soft focus-visible:outline-none ${
+                        disabled={!canSelect}
+                        title={course.title}
+                        className={`group flex w-full items-center gap-3.5 rounded-lg px-3 py-3 text-left transition-colors duration-150 hover:bg-soft focus-visible:bg-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand ${
                           selected ? 'bg-brand-soft/60' : ''
                         }`}
                       >
@@ -302,7 +330,7 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
                           {selected && <Check className="h-3 w-3" strokeWidth={3.5} />}
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-medium text-ink">
+                          <span className="block break-words text-sm font-medium text-ink">
                             {course.title}
                           </span>
                           <span className="mt-0.5 block font-mono text-xs text-faint tnum">
@@ -325,16 +353,16 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
           {/* 右:配置面板，配置区限高滚动，操作卡始终可见 */}
           <aside
             aria-label="学习配置"
-            className="flex flex-col gap-4 animate-stagger-up md:sticky md:top-20 md:max-h-[calc(100vh-6rem)]"
+            className="course-config flex min-h-0 flex-col gap-3 animate-stagger-up"
             style={{ animationDelay: '160ms' }}
           >
-            <div className="flex min-h-0 flex-col rounded-xl border border-line bg-white shadow-card max-md:pb-60">
+            <div className="course-parameters flex min-h-0 flex-1 flex-col rounded-xl border border-line bg-white shadow-card">
               <div className="flex shrink-0 items-center gap-2 border-b border-line px-5 py-3.5">
                 <SlidersHorizontal className="h-4 w-4 text-brand" aria-hidden="true" />
                 <h2 className="text-[15px] font-semibold">学习配置</h2>
               </div>
 
-              <div className="min-h-0 overflow-y-auto overscroll-contain">
+              <div className="min-h-0 overflow-y-auto overscroll-contain" tabIndex={0} aria-label="学习参数">
                 <div className="p-5">
                   <CourseToolSettings
                     taskType={taskType} onTaskTypeChange={setTaskType}
@@ -392,13 +420,14 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
                   </div>
 
                   <div className="border-t border-line pt-5">
-                    <AdvancedSettings settings={settings} onChange={setSettings} onFieldValidity={setFieldValid} />
+                    <AdvancedSettings settings={settings} onChange={setSettings} onFieldValidity={setFieldValid}
+                      onEditTiku={(trigger) => { editorTrigger.current = trigger; setEditingTiku(true); }} />
                   </div>
                 </div>}
               </div>
             </div>
 
-            <div className="shrink-0 space-y-2.5 rounded-xl border border-line bg-white p-5 shadow-card max-md:sticky max-md:bottom-3 max-md:shadow-pop">
+            <div className="course-actions shrink-0 space-y-2.5 rounded-xl border border-line bg-white p-4 shadow-card">
               <Button className="w-full" size="lg" onClick={handleStartStudy} disabled={!canStart}>
                 {starting ? (
                   <>
@@ -435,9 +464,11 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
                   <span>{startError}</span>
                 </div>
               )}
-              {saveStatus && (
-                <p className="text-center text-xs text-success animate-fade-in" role="status">
-                  {saveStatus}
+              {dirty && <p role="status" className="text-center text-xs text-warning-ink">有未保存的更改</p>}
+              {saveStatus && (saveStatus.type === 'error' || saveStatus.snapshot === currentSnapshot) && (
+                <p className={`text-center text-xs animate-fade-in ${saveStatus.type === 'error' ? 'text-danger' : 'text-success-ink'}`}
+                  role={saveStatus.type === 'error' ? 'alert' : 'status'}>
+                  {saveStatus.message}
                 </p>
               )}
             </div>

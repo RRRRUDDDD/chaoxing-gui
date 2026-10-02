@@ -20,9 +20,9 @@ export default {
           dark: "hsl(var(--brand-dark))",
           soft: "hsl(var(--brand-soft))",
         },
-        success: "hsl(var(--success))",
+        success: { DEFAULT: "hsl(var(--success))", ink: "hsl(var(--success-ink))" },
         danger: "hsl(var(--danger))",
-        warning: "hsl(var(--warning))",
+        warning: { DEFAULT: "hsl(var(--warning))", ink: "hsl(var(--warning-ink))" },
         /* 兼容旧语义 token */
         paper: "hsl(var(--canvas))",
         accent: "hsl(var(--brand))",
