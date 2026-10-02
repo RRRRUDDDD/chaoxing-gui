@@ -17,6 +17,7 @@ from typing import Callable
 from uuid import uuid4
 
 from api.logger import logger
+from api.privacy import redact, sanitize_errors
 
 
 TERMINAL_STATES = frozenset({"completed", "error", "partial", "cancelled"})
@@ -383,6 +384,8 @@ class TaskStore:
 
     def _save_locked(self, task_id):
         task = self._tasks[task_id]
+        sanitize_errors(task.status)
+        sanitize_errors(task.details)
         if self._state_dir is not None and task.resume_config is not None:
             self._write_record(task_id, task)
 
@@ -427,15 +430,23 @@ class TaskStore:
             task = self._tasks.get(task_id)
             if task is None:
                 raise TaskNotFound(task_id)
-            yield task
+            try:
+                yield task
+            finally:
+                sanitize_errors(task.status)
+                sanitize_errors(task.details)
 
     def get_status(self, task_id: str) -> dict:
         with self.edit(task_id) as task:
-            return deepcopy(task.status)
+            snapshot = deepcopy(task.status)
+            sanitize_errors(snapshot)
+            return snapshot
 
     def get_details(self, task_id: str) -> dict:
         with self.edit(task_id) as task:
-            return deepcopy(task.details)
+            snapshot = deepcopy(task.details)
+            sanitize_errors(snapshot)
+            return snapshot
 
     def finish(self, task_id: str, status: str, *, error: str | None = None) -> None:
         if status not in TERMINAL_STATES:
@@ -454,7 +465,7 @@ class TaskStore:
         task.status["status"] = status
         task.status["end_time"] = self._wall_time()
         if error is not None:
-            task.status["error"] = error
+            task.status["error"] = redact(error)
         task.details["active_jobs"] = {}
         task.expires_at = self._clock() + self._ttl
         heappush(self._expirations, (task.expires_at, task_id))
@@ -470,7 +481,7 @@ class TaskStore:
     def append_log(
         self, task_id: str, message: str, *, level: str = "info", timestamp: float | None = None
     ) -> int | None:
-        text = str(message).strip()
+        text = redact(message).strip()
         if not text:
             return None
         if len(text) > self._max_message_chars:

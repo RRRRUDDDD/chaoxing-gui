@@ -163,3 +163,21 @@ it('follows logs inside their own container without moving focus, and pauses whe
     else delete Element.prototype.scrollIntoView;
   }
 });
+
+it.each([
+  ['confirmed', '平台已确认完成'],
+  ['pending', '平台仍有未完成任务'],
+  ['unknown', '执行已结束，平台完成状态未确认'],
+  ['cancelled', '平台复核已停止'],
+])('shows independent platform verification for %s', async (status, label) => {
+  api.get.mockImplementation(async (url) => {
+    if (url.endsWith('/details')) return ok({ courses: [{
+      id: 'course', title: 'Verified course', status: status === 'confirmed' ? 'completed' : 'partial',
+      chapters: [], verification: { status, reason: 'offline evidence' },
+    }] });
+    if (url.startsWith('/logs/')) return { data: { status: true, data: [], next_cursor: 0 } };
+    return ok({ status: 'partial', progress: 1, total: 1 });
+  });
+  await act(async () => { render(<StudyProgress taskId="verification-task" />); });
+  expect(await screen.findByText(`${label}：offline evidence`)).toBeTruthy();
+});

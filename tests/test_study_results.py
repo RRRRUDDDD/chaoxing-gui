@@ -148,6 +148,22 @@ class StudyResultTests(unittest.TestCase):
     def test_submitted_work_is_completed(self):
         self.assertEqual(self.exercise_work(), StudyResult.SUCCESS)
 
+    def test_result_reader_never_checks_saved_or_failed_submissions(self):
+        with patch('api.base.WorkResultReader') as reader:
+            self.exercise_work(save_only=True)
+            reader.assert_not_called()
+            self.exercise_work(expired=True)
+            reader.return_value.check.assert_not_called()
+
+    def test_result_reader_is_informational_after_success(self):
+        with patch('api.base.WorkResultReader') as reader:
+            reader.return_value.check.return_value = {
+                'result_status': 'unknown', 'score': None, 'reason': 'timeout',
+            }
+            self.assertEqual(self.exercise_work(), StudyResult.SUCCESS)
+            reader.return_value.capture_baseline.assert_called_once()
+            reader.return_value.check.assert_called_once()
+
     def test_undecodable_question_skips_the_question_bank(self):
         self.exercise_work(undecodable=True)
         self.provider.query.assert_not_called()

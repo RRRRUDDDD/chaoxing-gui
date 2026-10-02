@@ -1,3 +1,4 @@
+from pathlib import Path
 import json
 import unittest
 import warnings
@@ -196,6 +197,25 @@ class TikuOcsTests(unittest.TestCase):
         loaded = tiku.get_tiku_from_config()
         self.assertIs(loaded, tiku)
         self.assertTrue(loaded.DISABLE)
+
+    def test_single_punctuation_through_ocs_query_and_cache(self):
+        import tempfile
+        from api.answer import CacheDAO
+        with tempfile.TemporaryDirectory() as directory:
+            cache = CacheDAO(str(Path(directory) / 'cache.json'))
+            bank = TikuOcs()
+            self.addCleanup(bank.close)
+            bank.config_set({'wrappers': [_wrapper()]})
+            bank.init_tiku()
+            answer = '坚持独立负责、不参与国际组织的活动'
+            question = {'title': '单选顿号离线回归', 'type': 'single', 'options': 'A. ' + answer + chr(10) + 'B. 其他'}
+            response = Mock()
+            response.json.return_value = {'code': 1, 'question': question['title'], 'answer': answer}
+            with (patch.object(bank._session, 'request', return_value=response),
+                  patch.object(CacheDAO, 'get_shared', return_value=cache)):
+                self.assertEqual(bank.query(question), answer)
+                self.assertEqual(bank.query(question), answer)
+                bank.close()
 
     def test_request_failure_tries_next_bank(self):
         tiku = TikuOcs()

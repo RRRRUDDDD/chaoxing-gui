@@ -9,7 +9,7 @@ import traceback
 from concurrent.futures.thread import ThreadPoolExecutor
 from contextlib import nullcontext
 from contextvars import copy_context
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from queue import PriorityQueue
 from typing import Any
 
@@ -17,6 +17,7 @@ from api.answer import Tiku
 from api.base import Chaoxing, Account, StudyResult, _is_cancelled
 from api.exceptions import LoginError, InputFormatError
 from api.logger import logger, set_console_level
+from api.verification import verify_course
 from api.notification import Notification
 from api.live import Live
 from api.live_process import LiveProcessor
@@ -290,6 +291,7 @@ class ChapterTask:
 @dataclass(frozen=True)
 class CourseResult:
     tasks: tuple[ChapterTask, ...]
+    verification: dict | None = None
 
     @property
     def completed(self):
@@ -678,7 +680,9 @@ def process_course(chaoxing: Chaoxing, course: dict[str, Any], config: dict,
     if not isinstance(point_list, dict) or not isinstance(point_list.get('points'), list):
         raise ValueError('课程章节响应格式错误')
     tasks = [ChapterTask(index=i, point=point) for i, point in enumerate(point_list['points'])]
-    return JobProcessor(chaoxing, course, tasks, config).run()
+    result = JobProcessor(chaoxing, course, tasks, config).run()
+    verification = verify_course(chaoxing, course, config.get('cancel_check'))
+    return replace(result, verification=verification)
 
 
 def filter_courses(all_course, course_list, *, interactive=False):
@@ -758,8 +762,9 @@ def main():
         results = [process_course(chaoxing, course, common_config) for course in course_task]
         failed = sum(len(result.failed) for result in results)
         skipped = sum(len(result.skipped) for result in results)
-        if failed or skipped:
-            message = f"课程处理结束：{failed} 个章节失败，{skipped} 个章节跳过"
+        unconfirmed = sum(not result.verification or result.verification.get("status") != "confirmed" for result in results)
+        if failed or skipped or unconfirmed:
+            message = f"课程处理结束：{failed} 个章节失败，{skipped} 个章节跳过，{unconfirmed} 门课程平台完成状态未确认"
             logger.warning(message)
             notification.send(f"chaoxing : {message}")
             return 1

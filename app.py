@@ -33,6 +33,7 @@ from api.base import Chaoxing, Account
 from api.answer import Tiku
 from api.exceptions import InputFormatError, LoginError
 from api.logger import logger
+from api.privacy import redact
 from api.task_logging import task_log_sink
 from api.notification import Notification
 from api.task_state import TaskAlreadyRunning, TaskNotFound, TaskStore
@@ -164,7 +165,7 @@ def _close_resource(resource):
             resource.close()
         except Exception as exc:
             logger.warning(f"清理学习资源失败: {exc}")
-            return str(exc)
+            return redact(exc)
     return None
 
 
@@ -184,7 +185,7 @@ def login():
     try:
         username, password, use_cookies = _credentials(_json_body())
     except ValueError as exc:
-        return jsonify({"status": False, "msg": str(exc)}), 400
+        return jsonify({"status": False, "msg": redact(exc)}), 400
     try:
         with _login_client(username, password) as chaoxing:
             result = chaoxing.login(login_with_cookies=use_cookies)
@@ -193,7 +194,7 @@ def login():
             return jsonify({"status": True, "msg": "登录成功", "data": {"username": username}})
     except Exception as exc:
         logger.error(f"登录错误: {exc}")
-        return jsonify({"status": False, "msg": str(exc)}), 500
+        return jsonify({"status": False, "msg": redact(exc)}), 500
 
 
 @app.route('/api/courses', methods=['POST'])
@@ -201,7 +202,7 @@ def get_courses():
     try:
         username, password, use_cookies = _credentials(_json_body())
     except ValueError as exc:
-        return jsonify({"status": False, "msg": str(exc)}), 400
+        return jsonify({"status": False, "msg": redact(exc)}), 400
     try:
         with _login_client(username, password) as chaoxing:
             result = chaoxing.login(login_with_cookies=use_cookies)
@@ -210,7 +211,7 @@ def get_courses():
             return jsonify({"status": True, "data": chaoxing.get_course_list()})
     except Exception as exc:
         logger.error(f"获取课程列表错误: {exc}")
-        return jsonify({"status": False, "msg": str(exc)}), 500
+        return jsonify({"status": False, "msg": redact(exc)}), 500
 
 
 @app.route('/api/config', methods=['GET', 'POST'])
@@ -232,7 +233,7 @@ def web_config():
                 raise ValueError("选课配置缺少账号")
             normalized[account.strip()] = _course_ids(ids, allow_empty=True)
     except ValueError as exc:
-        return jsonify({"status": False, "msg": str(exc)}), 400
+        return jsonify({"status": False, "msg": redact(exc)}), 400
 
     with config_lock:
         stored = load_web_config()
@@ -381,11 +382,13 @@ class _StudyProgress:
             raise ValueError("章节结果不属于当前课程快照")
 
     @staticmethod
-    def _end_course(task, detail, *, failed, skipped):
+    def _end_course(task, detail, *, failed, skipped, unconfirmed=False):
         has_success = any(chapter["has_finished"] or chapter["task_stats"]["completed"] for chapter in detail["chapters"])
         state = "completed"
         if failed or skipped:
             state = "partial" if has_success or skipped else "error"
+        if unconfirmed and state == "completed":
+            state = "partial"
         detail.update(status=state, end_time=time.time())
         stats = task.status["stats"]
         stats["completed_courses"] += int(state == "completed")
@@ -411,7 +414,10 @@ class _StudyProgress:
                 for chapter in detail["chapters"]
             )
             failed = failed or (not result.success and not skipped)
-            self._end_course(task, detail, failed=failed, skipped=skipped)
+            verification = result.verification or {"status": "unknown", "reason": "未执行平台完成复核"}
+            detail["verification"] = verification
+            self._end_course(task, detail, failed=failed, skipped=skipped,
+                             unconfirmed=verification.get("status") != "confirmed")
 
     def fail_course(self, course, error):
         with self.store.edit(self.task_id) as task:
@@ -422,7 +428,7 @@ class _StudyProgress:
                 if key not in self._finalized and not chapter["has_finished"]:
                     self._replace_chapter(task, chapter, "error", _chapter_task_stats(points[index], "ERROR"))
                     self._finalized.add(key)
-            detail["error"] = str(error)
+            detail["error"] = redact(error)
             skipped = any(chapter["task_stats"]["skipped"] or chapter["status"] == "skipped" for chapter in detail["chapters"])
             self._end_course(task, detail, failed=True, skipped=skipped)
 
@@ -463,7 +469,7 @@ class _StudyProgress:
         successful = stats["completed_courses"] or stats["completed_chapters"] or stats["completed_tasks"]
         if failed and not successful and not skipped:
             return "error"
-        return "partial" if failed or skipped else "completed"
+        return "partial" if failed or skipped or stats["partial_courses"] else "completed"
 
 
 def _notification_message(store, task_id, outcome, error):
@@ -514,7 +520,7 @@ def _run_study_task(task_id, store, common_config, tiku_config, notification_con
                             notification = None
                             logger.warning(f"通知初始化失败: {exc}")
                             with store.edit(task_id) as task:
-                                task.status["notification_error"] = str(exc)
+                                task.status["notification_error"] = redact(exc)
 
                         if cancelled():
                             return
@@ -561,7 +567,7 @@ def _run_study_task(task_id, store, common_config, tiku_config, notification_con
                                 task.status["progress"] = index + 1
                         outcome = progress.outcome()
                         if outcome != "completed":
-                            error = "部分课程失败或被跳过，请查看课程详情"
+                            error = "部分课程失败、被跳过或平台完成状态未确认，请查看课程详情"
                         if cancelled():
                             # A user-requested stop is not an error, so no error text.
                             outcome, error = "cancelled", None
@@ -571,7 +577,7 @@ def _run_study_task(task_id, store, common_config, tiku_config, notification_con
                             with store.edit(task_id) as task:
                                 task.status["cleanup_error"] = cleanup_error
             except Exception as exc:
-                error = str(exc)
+                error = redact(exc)
                 outcome = progress.outcome(fatal=True)
                 logger.error(f"任务执行错误: {exc}")
                 if cancelled():
@@ -589,7 +595,7 @@ def _run_study_task(task_id, store, common_config, tiku_config, notification_con
                     except Exception as exc:
                         logger.warning(f"通知发送失败: {exc}")
                         with store.edit(task_id) as task:
-                            task.status["notification_error"] = str(exc)
+                            task.status["notification_error"] = redact(exc)
     finally:
         store.finish(task_id, outcome, error=error)
 
@@ -677,18 +683,18 @@ def _start_course_tool(data):
     except TaskNotFound:
         return jsonify({"status": False, "msg": "资源列表已过期或不属于当前账号，请重新读取资源"}), 404
     except TaskAlreadyRunning as exc:
-        return jsonify({"status": False, "msg": str(exc), "data": {"task_id": exc.task_id}}), 409
+        return jsonify({"status": False, "msg": redact(exc), "data": {"task_id": exc.task_id}}), 409
     except ValueError:
         raise
     except Exception as exc:
         logger.error(f"创建课程工具任务失败: {exc}")
-        return jsonify({"status": False, "msg": str(exc)}), 500
+        return jsonify({"status": False, "msg": redact(exc)}), 500
     try:
         _launch_tool_task(task_id, store, config)
     except Exception as exc:
-        store.finish(task_id, "error", error=str(exc))
+        store.finish(task_id, "error", error=redact(exc))
         logger.error(f"启动课程工具失败: {exc}")
-        return jsonify({"status": False, "msg": str(exc), "data": {"task_id": task_id}}), 500
+        return jsonify({"status": False, "msg": redact(exc), "data": {"task_id": task_id}}), 500
     return jsonify({"status": True, "data": {"task_id": task_id}})
 
 
@@ -700,7 +706,7 @@ def start_study():
             return _start_course_tool(data)
         common_config, configs = _study_config(data)
     except (ValueError, InputFormatError) as exc:
-        return jsonify({"status": False, "msg": str(exc)}), 400
+        return jsonify({"status": False, "msg": redact(exc)}), 400
 
     store = task_store
     try:
@@ -714,16 +720,16 @@ def start_study():
             resume_config=resume_config,
         )
     except TaskAlreadyRunning as exc:
-        return jsonify({"status": False, "msg": str(exc), "data": {"task_id": exc.task_id}}), 409
+        return jsonify({"status": False, "msg": redact(exc), "data": {"task_id": exc.task_id}}), 409
     except Exception as exc:
         logger.error(f"创建任务失败: {exc}")
-        return jsonify({"status": False, "msg": str(exc)}), 500
+        return jsonify({"status": False, "msg": redact(exc)}), 500
     try:
         _launch_study_task(task_id, store, common_config, *configs)
     except Exception as exc:
-        store.finish(task_id, "error", error=str(exc))
+        store.finish(task_id, "error", error=redact(exc))
         logger.error(f"启动任务错误: {exc}")
-        return jsonify({"status": False, "msg": str(exc), "data": {"task_id": task_id}}), 500
+        return jsonify({"status": False, "msg": redact(exc), "data": {"task_id": task_id}}), 500
     return jsonify({"status": True, "data": {"task_id": task_id}})
 
 
@@ -750,7 +756,7 @@ def resume_study(task_id):
                     try:
                         _launch_tool_task(task_id, store, config)
                     except Exception as exc:
-                        store.interrupt(task_id, str(exc))
+                        store.interrupt(task_id, redact(exc))
                         raise
             return jsonify({"status": True, "data": {
                 "task_id": task_id, "status": store.get_status(task_id)["status"],
@@ -766,7 +772,7 @@ def resume_study(task_id):
                 try:
                     _launch_study_task(task_id, store, common_config, *configs)
                 except Exception as exc:
-                    store.interrupt(task_id, str(exc))
+                    store.interrupt(task_id, redact(exc))
                     raise
         return jsonify({"status": True, "data": {
             "task_id": task_id, "status": store.get_status(task_id)["status"],
@@ -774,12 +780,12 @@ def resume_study(task_id):
     except TaskNotFound:
         return jsonify({"status": False, "msg": "上次任务已过期或没有可恢复的记录"}), 404
     except (ValueError, InputFormatError) as exc:
-        return jsonify({"status": False, "msg": str(exc)}), 400
+        return jsonify({"status": False, "msg": redact(exc)}), 400
     except LoginError as exc:
-        return jsonify({"status": False, "msg": str(exc)}), 401
+        return jsonify({"status": False, "msg": redact(exc)}), 401
     except Exception as exc:
         logger.error(f"恢复任务失败: {exc}")
-        return jsonify({"status": False, "msg": str(exc)}), 500
+        return jsonify({"status": False, "msg": redact(exc)}), 500
 
 
 @app.route('/api/task/<task_id>/stop', methods=['POST'])
@@ -798,10 +804,10 @@ def stop_study(task_id):
         # are reported the same way, so a stop cannot probe other accounts.
         return jsonify({"status": False, "msg": "任务不存在或已过期"}), 404
     except ValueError as exc:
-        return jsonify({"status": False, "msg": str(exc)}), 400
+        return jsonify({"status": False, "msg": redact(exc)}), 400
     except Exception as exc:
         logger.error(f"停止任务失败: {exc}")
-        return jsonify({"status": False, "msg": str(exc)}), 500
+        return jsonify({"status": False, "msg": redact(exc)}), 500
 
 
 @app.route('/api/task/<task_id>/open-downloads', methods=['POST'])
@@ -816,7 +822,7 @@ def open_task_downloads(task_id):
     except TaskNotFound:
         return jsonify({"status": False, "msg": "任务不存在或已过期"}), 404
     except ValueError as exc:
-        return jsonify({"status": False, "msg": str(exc)}), 400
+        return jsonify({"status": False, "msg": redact(exc)}), 400
     except Exception as exc:
         logger.error(f"打开下载目录失败: {exc}")
         return jsonify({"status": False, "msg": f"无法打开下载目录：{exc}"}), 500

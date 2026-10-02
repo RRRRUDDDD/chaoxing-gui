@@ -15,6 +15,7 @@ from typing import Optional
 
 from api.answer_check import check_answer, match_answer
 from api.logger import logger
+from api.privacy import register_config
 from api.decode import _ocr_image_to_text
 
 
@@ -325,6 +326,7 @@ class Tiku:
         pass
 
     def config_set(self,config):
+        register_config(config)
         self._conf = config
 
     def _get_conf(self):

@@ -13,6 +13,15 @@ class AnswerMatchingTests(unittest.TestCase):
             with self.subTest(answer=answer):
                 self.assertEqual(match_answer(answer, {'type': kind, 'options': options}).answer, expected)
 
+    def test_single_option_with_enumeration_comma_is_not_split(self):
+        answer = '坚持独立负责、不参与国际组织的活动'
+        question = {'type': 'single', 'options': 'A. ' + answer + chr(10) + 'B. 其他'}
+        self.assertEqual(match_answer(answer, question).answer, 'A')
+        self.assertIsNone(match_answer('A、B', question).answer)
+        self.assertEqual(match_answer('A、B', {**question, 'type': 'multiple'}).answer, 'AB')
+        question['options'] = 'A. ' + answer + chr(10) + 'B. ' + answer
+        self.assertIsNone(match_answer(answer, question).answer)
+
     def test_duplicate_or_partial_matches_are_not_answers(self):
         for options, answer in [('A. 相同\nB. 相同', '相同'), ('A. 苹果\nB. 香蕉', '苹果#西瓜')]:
             self.assertIsNone(match_answer(answer, {'type': 'multiple', 'options': options}).answer)

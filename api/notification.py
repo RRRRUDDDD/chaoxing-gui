@@ -13,6 +13,7 @@ from xml.sax.saxutils import escape
 import requests
 
 from api.logger import logger
+from api.privacy import redact, register_config
 
 
 NOTIFICATION_TIMEOUT = (5, 10)
@@ -41,6 +42,7 @@ class NotificationService(ABC):
         Args:
             config: 包含配置参数的字典
         """
+        register_config(config)
         self._conf = config
 
     def _load_config_from_file(self) -> Optional[Dict[str, str]]:
@@ -53,6 +55,7 @@ class NotificationService(ABC):
         try:
             config = configparser.ConfigParser()
             config.read(self.CONFIG_PATH, encoding="utf8")
+            register_config(config['notification'])
             return config['notification']
         except (KeyError, FileNotFoundError):
             logger.info("未找到notification配置，已忽略外部通知功能")
@@ -92,7 +95,7 @@ class NotificationService(ABC):
             message: 要发送的消息内容
         """
         if not self.disabled:
-            self._send(message)
+            self._send(redact(message))
 
 
 class DefaultNotification(NotificationService):
@@ -155,7 +158,7 @@ class ServerChan(NotificationService):
             return
 
         self.url = self._conf['url']
-        logger.info(f"已初始化Server酱通知服务，URL: {self.url}")
+        logger.info("已初始化Server酱通知服务")
 
     def _send(self, message: str) -> None:
         """
@@ -196,7 +199,7 @@ class Qmsg(NotificationService):
             return
 
         self.url = self._conf['url']
-        logger.info(f"已初始化Qmsg酱通知服务，URL: {self.url}")
+        logger.info("已初始化Qmsg酱通知服务")
 
     def _send(self, message: str) -> None:
         """
@@ -232,7 +235,7 @@ class Bark(NotificationService):
             return
 
         self.url = self._conf['url']
-        logger.info(f"已初始化Bark通知服务，URL: {self.url}")
+        logger.info("已初始化Bark通知服务")
 
     def _send(self, message: str) -> None:
         """
@@ -266,7 +269,7 @@ class Telegram(NotificationService):
             return
         self.tg_chat_id = self._conf['tg_chat_id']
         self.url = self._conf['url']
-        logger.info(f"已初始化Telegram通知服务，Chat_id: {self.tg_chat_id} URL: {self.url}")
+        logger.info("已初始化Telegram通知服务")
 
     def _send(self, message: str) -> None:
         """

@@ -21,6 +21,7 @@ from bs4 import BeautifulSoup
 from urllib3.exceptions import InsecureRequestWarning
 
 from api.logger import logger
+from api.privacy import register_config, register_secret
 from api.answer_check import match_answer
 from api.question_images import build_image_env, restore_image_answer, validate_images, MAX_TOTAL_BYTES
 from api.session import get_current_session
@@ -763,6 +764,10 @@ class TikuOcs(Tiku):
             if not self._session.verify:
                 logger.warning("已关闭题库 HTTPS 证书校验，请确认题库地址可信")
             self.wrappers = load_wrappers(conf, self._session)
+            for wrapper in self.wrappers:
+                register_config(wrapper["headers"])
+                for secret in wrapper["secret_values"]:
+                    register_secret(secret)
         except requests.exceptions.SSLError:
             logger.error(f"{ssl_error_message('订阅')}，已忽略题库功能")
             self.wrappers = []

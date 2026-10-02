@@ -492,6 +492,14 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
                             <ChevronRight className="h-4 w-4 shrink-0 text-faint transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true" />
                           )}
                         </button>
+                        {course.verification && (
+                          <p className="px-2.5 pb-2 text-xs text-muted" role="status">
+                            {course.verification.status === 'confirmed' ? '平台已确认完成' :
+                              course.verification.status === 'pending' ? '平台仍有未完成任务' :
+                              course.verification.status === 'cancelled' ? '平台复核已停止' : '执行已结束，平台完成状态未确认'}
+                            {course.verification.reason && `：${course.verification.reason}`}
+                          </p>
+                        )}
                         {open && total > 0 && (
                           <ol className="mb-2 space-y-0.5 rounded-lg bg-soft/50 px-2.5 py-2">
                             {course.chapters.map((chapter, idx) => (
