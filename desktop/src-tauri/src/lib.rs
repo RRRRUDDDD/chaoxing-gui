@@ -122,8 +122,8 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            backend_status, open_repository, open_ocs_docs, api_request, api_cancel, session_read,
-            session_remember_login, session_remember_task, session_clear,
+            backend_status, open_repository, open_ocs_docs, pick_download_dir, api_request,
+            api_cancel, session_read, session_remember_login, session_remember_task, session_clear,
             close_prompt_shown, close_choice, preferences_read, preferences_write
         ])
         .build(tauri::generate_context!())
@@ -414,6 +414,39 @@ enum BrowserPage {
     OcsDocs,
 }
 
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct PickDirArgs {
+    start_dir: Option<String>,
+}
+
+/// Opens the native folder picker and returns the picked directory. The
+/// renderer only supplies a start hint; the user always confirms the result.
+#[tauri::command]
+async fn pick_download_dir(
+    window: tauri::WebviewWindow,
+    ipc: tauri::ipc::Request<'_>,
+) -> Result<Option<String>, String> {
+    let args: PickDirArgs = command_args(&window, &ipc)?;
+    let start = args
+        .start_dir
+        .map(PathBuf::from)
+        .filter(|path| path.is_absolute() && path.is_dir());
+    // The modal dialog pumps its own message loop, so it must not run on the
+    // main thread; rfd's sync API is the supported shape off-thread on Windows.
+    tauri::async_runtime::spawn_blocking(move || {
+        let mut dialog = rfd::FileDialog::new().set_title("选择下载目录");
+        if let Some(start) = start {
+            dialog = dialog.set_directory(start);
+        }
+        Ok(dialog
+            .pick_folder()
+            .map(|path| path.to_string_lossy().into_owned()))
+    })
+    .await
+    .map_err(|_| "文件夹选择器启动失败".to_string())?
+}
+
 fn open_browser(page: BrowserPage) -> Result<(), String> {
     // Only fixed destinations are supported; no renderer URL or shell arguments.
     #[cfg(windows)]
@@ -697,6 +730,23 @@ mod command_tests {
             json!(null),
         ] {
             assert!(decode_args::<EmptyArgs>(&body(rejected)).is_err());
+        }
+    }
+
+    #[test]
+    fn pick_dir_envelope_accepts_optional_start_dir_only() {
+        let body = tauri::ipc::InvokeBody::Json;
+        assert!(decode_args::<PickDirArgs>(&body(json!({}))).is_ok());
+        assert!(decode_args::<PickDirArgs>(&body(json!({"startDir": "D:/Download"}))).is_ok());
+        assert!(decode_args::<PickDirArgs>(&body(json!({"startDir": null}))).is_ok());
+        for rejected in [
+            json!(["D:/Download"]),
+            json!({"startDir": "D:/", "path": "C:/"}),
+        ] {
+            assert!(
+                decode_args::<PickDirArgs>(&body(rejected.clone())).is_err(),
+                "accepted {rejected}"
+            );
         }
     }
 

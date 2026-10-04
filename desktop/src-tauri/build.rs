@@ -6,6 +6,7 @@ fn main() {
             "backend_status",
             "open_repository",
             "open_ocs_docs",
+            "pick_download_dir",
             "session_read",
             "session_remember_login",
             "session_remember_task",

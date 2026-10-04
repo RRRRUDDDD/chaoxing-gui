@@ -4,7 +4,7 @@ from copy import deepcopy
 import json
 import math
 import os
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 import re
 import stat
 import subprocess
@@ -30,6 +30,11 @@ MAX_SNAPSHOT_BYTES = 2 * 1024 * 1024
 RESULT_RESERVE_BYTES = 4096
 SNAPSHOT_OVERHEAD_BYTES = 65536
 SAFE_ID = re.compile(r"[a-zA-Z0-9_-]{1,128}\Z")
+# Keep room for the ~160-char resource names the downloader generates under
+# the classic MAX_PATH limit.
+DOWNLOAD_DIR_MAX_LENGTH = 200
+WINDOWS_RESERVED_NAMES = frozenset(
+    {"CON", "PRN", "AUX", "NUL", *(f"{prefix}{number}" for prefix in ("COM", "LPT") for number in range(1, 10))})
 PUBLIC_RESOURCE_FIELDS = frozenset({
     "id", "course_id", "course_title", "chapter_id", "chapter_title", "name",
     "kind", "downloadable", "watchable", "duration", "readable",
@@ -60,6 +65,28 @@ def _number(value, label, low, high, *, integer=False):
     return int(number) if integer else number
 
 
+def _parse_download_dir(value):
+    """Return a trimmed custom download directory, or None for the default."""
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise ValueError("下载目录必须是有效路径")
+    text = value.strip()
+    if not text:
+        return None
+    if len(text) > DOWNLOAD_DIR_MAX_LENGTH:
+        raise ValueError("下载目录路径过长，请选择更浅的目录")
+    if any(ord(char) < 32 or char in '<>"|?*' for char in text):
+        raise ValueError("下载目录包含无效字符")
+    pure = PureWindowsPath(text)
+    if not pure.is_absolute() or len(pure.parts) < 2:
+        raise ValueError("下载目录必须是形如 D:\\Download 的绝对路径")
+    for part in pure.parts[1:]:
+        if part in {".", ".."} or part.upper() in WINDOWS_RESERVED_NAMES or part != part.rstrip(" ."):
+            raise ValueError("下载目录包含无效的路径片段")
+    return text
+
+
 def parse_options(task_type, options):
     if not isinstance(task_type, str) or task_type not in TOOL_TYPES or not isinstance(options, dict):
         raise ValueError("课程工具类型或参数格式错误")
@@ -67,7 +94,7 @@ def parse_options(task_type, options):
         "visits": {"count", "interval"}, "catalog": {"purpose"},
         "video_time": {"source_task_id", "resource_ids", "minutes"},
         "reading_time": {"source_task_id", "resource_ids", "minutes"},
-        "download": {"source_task_id", "resource_ids"},
+        "download": {"source_task_id", "resource_ids", "download_dir"},
     }[task_type]
     if set(options) - allowed:
         raise ValueError("课程工具包含不支持的参数")
@@ -87,6 +114,8 @@ def parse_options(task_type, options):
     if any(not isinstance(item, str) or not SAFE_ID.fullmatch(item) for item in ids):
         raise ValueError("资源 ID 格式错误，请重新读取资源")
     normalized = {"source_task_id": source, "resource_ids": list(dict.fromkeys(ids))}
+    if task_type == "download":
+        normalized["download_dir"] = _parse_download_dir(options.get("download_dir"))
     if task_type in TIMED_TOOLS:
         label = "每个阅读任务的新增分钟数" if task_type == "reading_time" else "每个视频的目标分钟数"
         normalized["minutes"] = _number(options.get("minutes", 30), label, 0.1, 1440)
@@ -162,17 +191,24 @@ def selected_resources(store, account, course_ids, task_type, options):
         return selected
 
 
-def download_directory(data_dir, task_id, *, create=False):
+def download_directory(data_dir, task_id, *, create=False, custom=None):
+    """Resolve where a download task stores files: a user-chosen absolute
+    directory, or the per-task folder under the data dir by default."""
     if not isinstance(task_id, str) or not SAFE_ID.fullmatch(task_id):
         raise ValueError("任务 ID 格式错误")
     base = Path(os.path.abspath(data_dir))
-    directory = base / "downloads" / task_id
+    directory = Path(custom) if custom else base / "downloads" / task_id
+    if custom and not directory.is_absolute():
+        raise ValueError("下载目录必须是绝对路径")
     reject_links(directory)
     if create:
-        directory.mkdir(parents=True, exist_ok=True)
+        try:
+            directory.mkdir(parents=True, exist_ok=True)
+        except OSError as exc:
+            raise ValueError(f"无法创建下载目录：{exc}") from exc
         reject_links(directory)
     resolved = directory.resolve()
-    if not resolved.is_relative_to(base.resolve()):
+    if not custom and not resolved.is_relative_to(base.resolve()):
         raise ValueError("下载目录超出允许范围")
     return resolved
 
@@ -197,7 +233,7 @@ def restored_details(config, previous, data_dir, task_id):
     resources = previous.get("tool", {}).get("resources", [])
     details = initial_details(config, resources if config["task_type"] == "download" else [])
     if config["task_type"] == "download":
-        directory = download_directory(data_dir, task_id)
+        directory = download_directory(data_dir, task_id, custom=config["tool_options"].get("download_dir"))
         selected = set(config["tool_options"]["resource_ids"])
         details["tool"]["results"] = [deepcopy(result) for result in previous.get("tool", {}).get("results", [])
             if result.get("id") in selected and result.get("status") == "completed" and _valid_download(result, directory)]
@@ -213,7 +249,14 @@ def open_download_directory(store, account, task_id, data_dir):
             raise TaskNotFound(task_id)
         if task.status.get("task_type") != "download":
             raise ValueError("此任务没有下载目录")
-    directory = download_directory(data_dir, task_id)
+        stored = task.details.get("tool", {}).get("output_dir")
+    if stored:
+        directory = Path(stored)
+        reject_links(directory)
+    else:
+        # Task created but never started: fall back to the default location,
+        # which does not exist yet either and reports the same message below.
+        directory = download_directory(data_dir, task_id)
     if not directory.is_dir():
         raise ValueError("下载目录尚未创建或已被移动")
     if sys.platform == "win32":
@@ -436,7 +479,7 @@ def _run_resources(task_id, store, config, service, courses, progress, cancelled
         raise ValueError("保存的资源选择不完整，请重新读取资源列表")
     directory = None
     if kind == "download":
-        directory = download_directory(data_dir, task_id, create=True)
+        directory = download_directory(data_dir, task_id, create=True, custom=options.get("download_dir"))
         with store.edit(task_id) as task:
             task.details["tool"]["output_dir"] = str(directory)
         _checkpoint(store, task_id)

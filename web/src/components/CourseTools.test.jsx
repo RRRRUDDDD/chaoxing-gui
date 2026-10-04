@@ -126,6 +126,18 @@ describe('course tool configuration', () => {
     expect(start).toHaveBeenCalledExactlyOnceWith({ task_type: 'catalog', course_list: ['two'], tool_options: { purpose } });
   });
 
+  it('configures the download directory on the course page before reading resources', async () => {
+    selectionServices();
+    render(<CourseSelection userInfo={account} onStartStudy={vi.fn()} />);
+    fireEvent.click(await screen.findByRole('radio', { name: '资源下载' }));
+    expect(screen.getByLabelText('下载目录').value).toBe('D:\\Download');
+    const pick = screen.getByRole('button', { name: '选择' });
+    expect(pick.disabled).toBe(true);
+    expect(pick.getAttribute('title')).toContain('桌面版');
+    fireEvent.change(screen.getByLabelText('下载目录'), { target: { value: ' E:\\CourseFiles ' } });
+    expect(localStorage.getItem('chaoxing_download_dir')).toBe('E:\\CourseFiles');
+  });
+
   it('resets tool configuration and courses when the account changes', async () => {
     selectionServices();
     const view = render(<CourseSelection userInfo={account} onStartStudy={vi.fn()} />);
@@ -158,10 +170,23 @@ describe('resource selection and task results', () => {
     expect(screen.getByRole('checkbox', { name: '选择资源 不可用视频' }).checked).toBe(false);
     fireEvent.click(screen.getByRole('button', { name: '下载所选资源' }));
     await waitFor(() => expect(start).toHaveBeenCalledOnce());
-    expect(start.mock.lastCall[0]).toEqual({ task_type: 'download', course_list: ['one', 'two'], tool_options: { source_task_id: 'catalog-task', resource_ids: ['document-one', 'video-two'] } });
+    expect(start.mock.lastCall[0]).toEqual({ task_type: 'download', course_list: ['one', 'two'], tool_options: { source_task_id: 'catalog-task', resource_ids: ['document-one', 'video-two'], download_dir: 'D:\\Download' } });
     await waitFor(() => expect(screen.queryByRole('button', { name: '任务启动中' })).toBeNull());
     fireEvent.click(screen.getByRole('button', { name: '清空选择' }));
     expect(screen.getByRole('button', { name: '下载所选资源' }).disabled).toBe(true);
+  });
+
+  it('starts downloads into the directory configured on the course page', async () => {
+    localStorage.setItem('chaoxing_download_dir', 'E:\\CourseFiles');
+    progressServices(catalogState(), catalogTool());
+    const start = vi.fn();
+    render(<StudyProgress taskId="catalog-task" username="alice" onStartStudy={start} />);
+    await screen.findByRole('checkbox', { name: '选择资源 课程讲义' });
+    expect(screen.queryByLabelText('下载目录')).toBeNull();
+    fireEvent.click(screen.getByRole('checkbox', { name: '选择资源 课程讲义' }));
+    fireEvent.click(screen.getByRole('button', { name: '下载所选资源' }));
+    await waitFor(() => expect(start).toHaveBeenCalledOnce());
+    expect(start.mock.lastCall[0].tool_options.download_dir).toBe('E:\\CourseFiles');
   });
 
   it('validates video minutes and supports targets shorter than a minute', async () => {
@@ -345,7 +370,7 @@ describe('shared App start lifecycle', () => {
     await screen.findByText('next-task');
     const starts = api.post.mock.calls.filter(([url]) => url === '/start');
     expect(starts).toHaveLength(2);
-    expect(starts[1][1]).toEqual({ ...account, task_type: purpose, course_list: ['one'], tool_options: { source_task_id: 'catalog-task', resource_ids: ['video-one'], ...(purpose === 'video_time' ? { minutes: 0.1 } : {}) } });
+    expect(starts[1][1]).toEqual({ ...account, task_type: purpose, course_list: ['one'], tool_options: { source_task_id: 'catalog-task', resource_ids: ['video-one'], ...(purpose === 'video_time' ? { minutes: 0.1 } : { download_dir: 'D:\\Download' }) } });
     await waitFor(async () => expect((await sessionStore.read()).activeTask).toEqual({ username: 'alice', taskId: 'next-task' }));
     fireEvent.click(screen.getByRole('button', { name: '返回课程选择' }));
     // 会话草稿保留所选功能：返回后不再是默认的“开始学习”，但仍禁止并发启动。

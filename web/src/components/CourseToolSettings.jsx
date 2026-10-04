@@ -1,6 +1,10 @@
-import React, { useId } from 'react';
+import React, { useState, useId } from 'react';
+import { FolderOpen, Loader2 } from 'lucide-react';
+import Button from './ui/Button';
 import Input from './ui/Input';
 import Label from './ui/Label';
+import { isTauriDesktop, desktopBridge } from '../lib/desktopBridge';
+import { DEFAULT_DOWNLOAD_DIR, loadDownloadDir, saveDownloadDir } from '../lib/downloadDir';
 
 export const courseToolLabels = {
   study: '自动学习', visits: '学习次数', catalog: '资源读取',
@@ -56,6 +60,28 @@ export function validateMinutes(value) {
 
 const CourseToolSettings = ({ taskType, options, onOptionsChange, disabled = false }) => {
   const errors = validateVisits(options);
+  const [downloadDir, setDownloadDir] = useState(() => loadDownloadDir());
+  const [picking, setPicking] = useState(false);
+  const canPickFolder = isTauriDesktop();
+  const handleDownloadDirChange = (event) => {
+    setDownloadDir(event.target.value);
+    saveDownloadDir(event.target.value);
+  };
+  const handlePickDownloadDir = async () => {
+    if (!canPickFolder || picking) return;
+    setPicking(true);
+    try {
+      const picked = await desktopBridge.pickDownloadDir(downloadDir);
+      if (picked) {
+        setDownloadDir(picked);
+        saveDownloadDir(picked);
+      }
+    } catch {
+      // 选择器不可用时保留手填路径。
+    } finally {
+      setPicking(false);
+    }
+  };
   return (
     <div className="space-y-5">
       {taskType === 'visits' && (
@@ -88,7 +114,37 @@ const CourseToolSettings = ({ taskType, options, onOptionsChange, disabled = fal
         <p className="text-[13px] leading-relaxed text-body">先读取课程的阅读任务，再勾选任务并设置新增时长。执行时会打开浏览器窗口滚动阅读页，请不要关闭该窗口，也不会占用鼠标。平台当天统计可能次日更新。</p>
       )}
       {taskType === 'download' && (
-        <p className="text-[13px] leading-relaxed text-body">先读取所选课程的资源列表，再勾选需要下载的视频、音频或文件。完成后可打开下载目录。</p>
+        <>
+          <div className="space-y-1.5">
+            <Label htmlFor="download-dir">下载目录</Label>
+            <div className="flex gap-2">
+              <Input
+                id="download-dir"
+                type="text"
+                value={downloadDir}
+                disabled={disabled}
+                onChange={handleDownloadDirChange}
+                aria-describedby="download-dir-hint"
+                spellCheck={false}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                className="shrink-0"
+                onClick={handlePickDownloadDir}
+                disabled={disabled || !canPickFolder || picking}
+                title={canPickFolder ? '在文件管理器中选择文件夹' : '选择文件夹需在桌面版中使用'}
+              >
+                {picking ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <FolderOpen className="h-4 w-4" aria-hidden="true" />}
+                {picking ? '打开中' : '选择'}
+              </Button>
+            </div>
+            <p id="download-dir-hint" className="text-xs text-faint">
+              文件将保存到此目录，默认 {DEFAULT_DOWNLOAD_DIR}；目录不存在时会自动创建。
+            </p>
+          </div>
+          <p className="text-[13px] leading-relaxed text-body">先读取所选课程的资源列表，再勾选需要下载的视频、音频或文件。完成后可打开下载目录。</p>
+        </>
       )}
     </div>
   );

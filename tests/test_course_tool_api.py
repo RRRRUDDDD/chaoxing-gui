@@ -97,6 +97,28 @@ class CourseToolApiTests(unittest.TestCase):
         self.assertEqual(self.store.get_details(task_id)["tool"]["resources"], [RESOURCE])
         self.launch.assert_called_once()
 
+    def test_download_start_passes_custom_directory_and_rejects_invalid_paths(self):
+        source = self.catalog()
+        self.launch.reset_mock()
+        response = self.start("download", {
+            "source_task_id": source, "resource_ids": ["video1"], "download_dir": " D:\\CourseFiles "})
+        self.assertEqual(response.status_code, 200, response.get_json())
+        self.assertEqual(self.launch.call_args.args[2]["tool_options"]["download_dir"], "D:\\CourseFiles")
+        for invalid in ["Download", "D:\\a\\..\\b", "D:\\Down<load", 3]:
+            response = self.start("download", {
+                "source_task_id": source, "resource_ids": ["video1"], "download_dir": invalid})
+            self.assertEqual(response.status_code, 400, response.get_json())
+        self.launch.assert_called_once()
+
+    def test_download_restart_keeps_the_custom_directory(self):
+        source = self.catalog()
+        response = self.start("download", {
+            "source_task_id": source, "resource_ids": ["video1"], "download_dir": "D:\\CourseFiles"})
+        task_id = response.get_json()["data"]["task_id"]
+        self.restart()
+        self.assertEqual(self.resume(task_id).status_code, 200)
+        self.assertEqual(self.launch.call_args.args[2]["tool_options"]["download_dir"], "D:\\CourseFiles")
+
     def reading_catalog(self):
         source = self.catalog("reading_time")
         reading = dict(RESOURCE, id="reading1", name="课程阅读", kind="read", readable=True,

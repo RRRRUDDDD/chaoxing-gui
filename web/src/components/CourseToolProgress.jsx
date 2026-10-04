@@ -3,6 +3,7 @@ import { BookOpen, Download, FileText, FolderOpen, Loader2, MonitorPlay, Search 
 import api from '../api/axios';
 import { validTaskId } from '../lib/sessionStore';
 import { isTerminalStatus, resultLabels } from '../lib/taskPolling';
+import { loadDownloadDir } from '../lib/downloadDir';
 import Button from './ui/Button';
 import Input from './ui/Input';
 import Label from './ui/Label';
@@ -100,6 +101,7 @@ function CourseToolContent({ taskId, username, taskStatus, tool, catalogReady = 
           source_task_id: taskId,
           resource_ids: selected.map((resource) => resource.id),
           ...(durationTask ? { minutes: Number(minutes) } : {}),
+          ...(purpose === 'download' ? { download_dir: loadDownloadDir() } : {}),
         },
       });
     } catch (error) {

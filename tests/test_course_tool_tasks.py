@@ -233,6 +233,36 @@ class CourseToolTaskTests(unittest.TestCase):
         self.assertEqual((Path(tool["output_dir"]) / tool["results"][0]["path"]).read_bytes(), b"0123456789")
         self.assertTrue(tasks._valid_download(tool["results"][0], Path(tool["output_dir"])))
 
+    def test_download_task_stores_files_in_the_custom_directory(self):
+        custom = self.data_dir / "课程资料"
+
+        def download(course, resource, directory, on_progress=None):
+            target = directory / "video.mp4"
+            target.write_bytes(b"video")
+            return {"path": str(target), "bytes": 5}
+
+        self.service.download_resource.side_effect = download
+        task_id = self.run_task("download", {
+            "source_task_id": "source", "resource_ids": ["resource1"], "download_dir": str(custom),
+        }, [RESOURCE])
+        self.assertEqual(self.store.get_status(task_id)["status"], "completed")
+        tool = self.store.get_details(task_id)["tool"]
+        self.assertEqual(tool["output_dir"], str(custom.resolve()))
+        self.assertEqual(tool["results"][0]["path"], "video.mp4")
+        self.assertEqual((custom / "video.mp4").read_bytes(), b"video")
+
+    def test_open_downloads_uses_the_stored_custom_directory(self):
+        custom = self.data_dir / "课程资料"
+        custom.mkdir()
+        task_id, _ = self.create("download", {"source_task_id": "source", "resource_ids": ["resource1"]}, [RESOURCE])
+        with self.store.edit(task_id) as task:
+            task.details["tool"]["output_dir"] = str(custom.resolve())
+        with patch("api.course_tool_tasks.os.startfile", create=True) as opening, \
+                patch("api.course_tool_tasks.sys.platform", "win32"):
+            self.assertEqual(tasks.open_download_directory(self.store, "alice", task_id, self.data_dir),
+                             str(custom.resolve()))
+        opening.assert_called_once_with(str(custom.resolve()))
+
     def test_completed_download_rows_remain_counted_when_resumed_worker_skips_them(self):
         task_id, config = self.create("download", {"source_task_id": "source", "resource_ids": ["resource1"]}, [RESOURCE])
         directory = tasks.download_directory(self.data_dir, task_id, create=True)
@@ -405,11 +435,57 @@ class ToolOptionTests(unittest.TestCase):
             ("download", {"source_task_id": "../bad", "resource_ids": ["r"]}),
             ("download", {"source_task_id": "t", "resource_ids": []}),
             ("download", {"source_task_id": "t", "resource_ids": ["r"], "path": "C:/"}),
+            ("download", {"source_task_id": "t", "resource_ids": ["r"], "download_dir": "Download"}),
+            ("download", {"source_task_id": "t", "resource_ids": ["r"], "download_dir": "D:\\"}),
+            ("download", {"source_task_id": "t", "resource_ids": ["r"], "download_dir": "D:\\Down<load"}),
+            ("download", {"source_task_id": "t", "resource_ids": ["r"], "download_dir": "D:\\a\\..\\b"}),
+            ("download", {"source_task_id": "t", "resource_ids": ["r"], "download_dir": "D:\\Download."}),
+            ("download", {"source_task_id": "t", "resource_ids": ["r"], "download_dir": "D:\\CON"}),
+            ("download", {"source_task_id": "t", "resource_ids": ["r"], "download_dir": 3}),
+            ("download", {"source_task_id": "t", "resource_ids": ["r"], "download_dir": "x" * 201}),
             ("video_time", {"source_task_id": "t", "resource_ids": ["r"], "minutes": float("inf")}),
             ("video_time", {"source_task_id": "t", "resource_ids": ["r"], "minutes": 0}),
         ]:
             with self.subTest(kind=kind, options=options), self.assertRaises(ValueError):
                 tasks.parse_options(kind, options)
+
+    def test_download_dir_option_normalizes_to_none_or_trimmed_text(self):
+        base = {"source_task_id": "t", "resource_ids": ["r"]}
+        self.assertIsNone(tasks.parse_options("download", dict(base))["download_dir"])
+        self.assertIsNone(tasks.parse_options("download", {**base, "download_dir": "   "})["download_dir"])
+        self.assertEqual(
+            tasks.parse_options("download", {**base, "download_dir": " D:\\Download "})["download_dir"],
+            "D:\\Download")
+        self.assertNotIn("download_dir", tasks.parse_options("visits", {"count": 1, "interval": 1}))
+
+    def test_custom_download_directory_is_created_outside_the_data_dir(self):
+        with tempfile.TemporaryDirectory() as directory, tempfile.TemporaryDirectory() as other:
+            target = Path(other) / "课程资料"
+            resolved = tasks.download_directory(directory, "task-1", create=True, custom=str(target))
+            self.assertTrue(resolved.is_dir())
+            self.assertEqual(resolved, target.resolve())
+            self.assertFalse(resolved.is_relative_to(Path(directory).resolve()))
+
+    def test_custom_download_directory_rejects_links_and_unusable_paths(self):
+        with tempfile.TemporaryDirectory() as directory:
+            outside = Path(directory) / "outside"
+            outside.mkdir()
+            link = Path(directory) / "link"
+            try:
+                os.symlink(outside, link, target_is_directory=True)
+            except (OSError, NotImplementedError) as exc:
+                self.skipTest(f"directory symlinks unavailable: {exc}")
+            with self.assertRaises(ValueError):
+                tasks.download_directory(directory, "task-1", create=True, custom=str(link))
+            self.assertEqual(list(outside.iterdir()), [])
+
+    def test_uncreatable_custom_download_directory_reports_a_friendly_error(self):
+        with tempfile.TemporaryDirectory() as directory:
+            blocked = Path(directory) / "file.txt"
+            blocked.write_text("x", encoding="utf-8")
+            with self.assertRaises(ValueError) as raised:
+                tasks.download_directory(directory, "task-1", create=True, custom=str(blocked / "sub"))
+            self.assertIn("无法创建下载目录", str(raised.exception))
 
     def test_download_directory_rejects_bad_task_id_and_linked_parents(self):
         with tempfile.TemporaryDirectory() as directory:

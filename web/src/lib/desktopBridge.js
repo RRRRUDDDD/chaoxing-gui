@@ -10,6 +10,7 @@ export const desktopBridge = Object.freeze({
   backendStatus: () => invoke('backend_status'),
   openRepository: () => invoke('open_repository'),
   openOcsDocs: () => invoke('open_ocs_docs'),
+  pickDownloadDir: (startDir) => invoke('pick_download_dir', { startDir: startDir || null }),
   read: () => invoke('session_read'),
   rememberLogin: (username) => invoke('session_remember_login', { username }),
   rememberTask: (task) => invoke('session_remember_task', { task }),
