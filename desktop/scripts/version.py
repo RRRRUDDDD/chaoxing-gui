@@ -10,7 +10,7 @@ import tomllib
 
 
 VERSION = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?")
-ARTIFACT = re.compile(r"chaoxing-gui-tauri-(setup|portable)-(.+)-windows-x64\.(exe|zip)")
+ARTIFACT = re.compile(r"chaoxing-gui-(setup|portable)-(.+)-windows-x64\.(exe|zip)")
 
 
 def read_text(path):

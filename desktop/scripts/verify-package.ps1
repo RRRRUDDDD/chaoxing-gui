@@ -10,7 +10,7 @@ param(
 $packageVersion = Get-PackageVersion $Version
 $archivePath = Get-PackageFullPath $PackagePath
 Assert-PackageNoReparse $archivePath
-$artifactName = "chaoxing-gui-tauri-portable-$packageVersion-windows-x64.zip"
+$artifactName = "chaoxing-gui-portable-$packageVersion-windows-x64.zip"
 if ([IO.Path]::GetFileName($archivePath) -cne $artifactName -or -not [IO.File]::Exists($archivePath)) { throw "Missing or incorrectly named package artifact: $artifactName" }
 if (-not $ArtifactManifestPath) { $ArtifactManifestPath = "$archivePath.manifest.json" }
 $outer = Read-PackageJson (Get-PackageFullPath $ArtifactManifestPath)

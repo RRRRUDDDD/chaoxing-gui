@@ -71,8 +71,8 @@ function Write-NsisArtifactManifest {
     Assert-NsisHostExpectation $HostExpectation
     $record = [ordered]@{
         schemaVersion=1; kind='chaoxing-gui-tauri-nsis-artifact'; version=$version; platform='windows-x64'
-        installer=(Get-NsisArtifactIdentity $InstallerPath "chaoxing-gui-tauri-setup-$version-windows-x64.exe")
-        portable=(Get-NsisArtifactIdentity $PortablePath "chaoxing-gui-tauri-portable-$version-windows-x64.zip")
+        installer=(Get-NsisArtifactIdentity $InstallerPath "chaoxing-gui-setup-$version-windows-x64.exe")
+        portable=(Get-NsisArtifactIdentity $PortablePath "chaoxing-gui-portable-$version-windows-x64.zip")
         host=$HostExpectation
     }
     $sidecar = (Get-PackageFullPath $InstallerPath) + '.manifest.json'
@@ -89,8 +89,8 @@ function Read-NsisPayloadManifest {
     Assert-PackageManifestHeader $sidecar 'chaoxing-gui-tauri-nsis-artifact' $version
     if ($sidecar.platform -cne 'windows-x64' -or $PortableManifest.platform -cne 'windows-x64') { throw 'Invalid NSIS payload platform.' }
     $identities = @{
-        installer=(Get-NsisArtifactIdentity $InstallerPath "chaoxing-gui-tauri-setup-$version-windows-x64.exe")
-        portable=(Get-NsisArtifactIdentity $PortablePath "chaoxing-gui-tauri-portable-$version-windows-x64.zip")
+        installer=(Get-NsisArtifactIdentity $InstallerPath "chaoxing-gui-setup-$version-windows-x64.exe")
+        portable=(Get-NsisArtifactIdentity $PortablePath "chaoxing-gui-portable-$version-windows-x64.zip")
     }
     foreach ($name in $identities.Keys) {
         $record = $sidecar[$name]

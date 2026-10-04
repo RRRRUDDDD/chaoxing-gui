@@ -134,8 +134,8 @@ windowsTest('NSIS host expectation accounts for exactly the Tauri bundle marker 
 windowsTest('NSIS artifact record binds both artifacts and validates every byte with a distinct host hash', t => {
   const f = fixture(t);
   const version = JSON.parse(fs.readFileSync(path.join(desktop, 'package.json'), 'utf8')).version;
-  const installer = path.join(f.root, `chaoxing-gui-tauri-setup-${version}-windows-x64.exe`);
-  const portable = path.join(f.root, `chaoxing-gui-tauri-portable-${version}-windows-x64.zip`);
+  const installer = path.join(f.root, `chaoxing-gui-setup-${version}-windows-x64.exe`);
+  const portable = path.join(f.root, `chaoxing-gui-portable-${version}-windows-x64.zip`);
   const host = path.join(f.root, 'chaoxing-gui-tauri.exe');
   const original = 'MZ inert host __TAURI_BUNDLE_TYPE_VAR_UNK complete code bytes';
   const bundled = original.replace('_VAR_UNK', '_VAR_NSS');

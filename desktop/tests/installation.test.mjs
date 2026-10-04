@@ -313,8 +313,8 @@ test('NSIS reference binds inert artifacts and verifies the exact installed host
   await writeFile(compilerHost, fixture.contents.get('chaoxing-gui-tauri.exe').replace('_VAR_NSS', '_VAR_UNK'));
   const request = { packageCommon: path.join(repo, 'desktop/scripts/package-common.ps1'), nsisContent: path.join(repo, 'desktop/scripts/nsis-content.ps1'),
     scratch, runId, compilerHost, portableManifest, portableManifestSha256: hash(portableBytes),
-    installerPath: path.join(fixture.root, `chaoxing-gui-tauri-setup-${version}-windows-x64.exe`),
-    portablePath: path.join(fixture.root, `chaoxing-gui-tauri-portable-${version}-windows-x64.zip`) };
+    installerPath: path.join(fixture.root, `chaoxing-gui-setup-${version}-windows-x64.exe`),
+    portablePath: path.join(fixture.root, `chaoxing-gui-portable-${version}-windows-x64.zip`) };
   // These files exercise manifest hash bindings only. Neither file is a
   // runnable program or an extractable archive, and no payload is executed.
   await writeFile(request.installerPath, 'MZ inert installer binding fixture; never execute');

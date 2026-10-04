@@ -12,7 +12,7 @@ $version = Get-PackageVersion
 $installer = Get-PackageFullPath $InstallerPath
 $portable = Get-PackageFullPath $PortablePath
 Assert-PackageNoReparse $installer
-if ([IO.Path]::GetFileName($installer) -cne "chaoxing-gui-tauri-setup-$version-windows-x64.exe" -or -not [IO.File]::Exists($installer)) {
+if ([IO.Path]::GetFileName($installer) -cne "chaoxing-gui-setup-$version-windows-x64.exe" -or -not [IO.File]::Exists($installer)) {
     throw 'Missing or incorrectly named NSIS artifact.'
 }
 & (Join-Path $PSScriptRoot 'verify-package.ps1') -PackagePath $portable -Version $version

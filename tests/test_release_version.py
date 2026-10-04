@@ -92,10 +92,10 @@ class ReleaseVersionTests(unittest.TestCase):
         self.run_check("--sync", success=False)
 
     def test_artifact_versions_must_match_the_source(self):
-        self.write("artifacts/chaoxing-gui-tauri-setup-1.1.1-windows-x64.exe", "test")
-        self.write("artifacts/chaoxing-gui-tauri-portable-1.1.1-windows-x64.zip", "test")
+        self.write("artifacts/chaoxing-gui-setup-1.1.1-windows-x64.exe", "test")
+        self.write("artifacts/chaoxing-gui-portable-1.1.1-windows-x64.zip", "test")
         self.run_check("--check", "--artifacts", str(self.root / "artifacts"))
-        self.write("artifacts/chaoxing-gui-tauri-setup-1.0.0-windows-x64.exe", "stale")
+        self.write("artifacts/chaoxing-gui-setup-1.0.0-windows-x64.exe", "stale")
         self.run_check("--check", "--artifacts", str(self.root / "artifacts"), success=False)
 
     def test_invalid_source_version_is_rejected_before_writes(self):
@@ -105,8 +105,8 @@ class ReleaseVersionTests(unittest.TestCase):
         self.assertEqual((self.root / "desktop/package.json").read_bytes(), before)
 
     def test_artifact_kind_requires_its_matching_extension(self):
-        for name in ("chaoxing-gui-tauri-setup-1.1.1-windows-x64.zip",
-                     "chaoxing-gui-tauri-portable-1.1.1-windows-x64.exe"):
+        for name in ("chaoxing-gui-setup-1.1.1-windows-x64.zip",
+                     "chaoxing-gui-portable-1.1.1-windows-x64.exe"):
             with self.subTest(name=name):
                 self.write(f"artifacts/{name}", "test")
                 self.run_check("--check", "--artifacts", str(self.root / "artifacts"), success=False)

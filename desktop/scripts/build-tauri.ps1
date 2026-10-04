@@ -104,7 +104,7 @@ try {
     if ($hostVersion -notin @($version, "$version.0")) { throw "Host PE product version $hostVersion differs from $version" }
     $installers = @(Get-ChildItem -LiteralPath (Join-Path $release 'bundle/nsis') -File -Filter '*.exe' | Where-Object { $_.LastWriteTime -ge $started })
     if ($installers.Count -ne 1) { throw "Expected one newly built NSIS installer, found $($installers.Count)" }
-    $setup = Join-Path $output "chaoxing-gui-tauri-setup-$version-windows-x64.exe"
+    $setup = Join-Path $output "chaoxing-gui-setup-$version-windows-x64.exe"
     Copy-Item -LiteralPath $installers[0].FullName -Destination $setup -Force
     # The bundler restores the unsigned UNK host after packaging the NSS host.
     # Derive the expected NSIS bytes independently; signed captures must match
@@ -114,7 +114,7 @@ try {
         Invoke-BuildCommand pwsh @('-NoProfile', '-File', (Join-Path $PSScriptRoot 'sign-windows.ps1'), '-Mode', 'Sign', '-CertificateThumbprint', $CertificateThumbprint, '-Path', $hostExe)
     }
     Invoke-BuildCommand pwsh @('-NoProfile', '-File', (Join-Path $PSScriptRoot 'package-portable.ps1'), '-HostPath', $hostExe, '-OutputDirectory', $output, '-Version', $version)
-    $portable = Join-Path $output "chaoxing-gui-tauri-portable-$version-windows-x64.zip"
+    $portable = Join-Path $output "chaoxing-gui-portable-$version-windows-x64.zip"
     Invoke-BuildCommand pwsh @('-NoProfile', '-File', (Join-Path $PSScriptRoot 'verify-package.ps1'), '-PackagePath', $portable, '-Version', $version)
     Write-NsisArtifactManifest -InstallerPath $setup -PortablePath $portable -HostExpectation $hostExpectation
     Invoke-BuildCommand pwsh @('-NoProfile', '-File', (Join-Path $PSScriptRoot 'verify-nsis.ps1'), '-InstallerPath', $setup, '-PortablePath', $portable, '-EvidenceDirectory', (Join-Path $repoRoot 'desktop/release/verification/nsis-content'))
@@ -134,7 +134,7 @@ try {
         })
         acceptance='Build and content checks only; release host acceptance requires disposable Windows profile smoke'
     }
-    $artifactManifest | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $output "chaoxing-gui-tauri-artifacts-$version-windows-x64.json") -Encoding utf8
+    $artifactManifest | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $output "chaoxing-gui-artifacts-$version-windows-x64.json") -Encoding utf8
     $artifactManifest.artifacts | ForEach-Object { "$($_.sha256)  $($_.name)" } | Set-Content -LiteralPath (Join-Path $output 'SHA256SUMS.txt') -Encoding ascii
     Write-Output "Tauri $version build and content checks completed: $output"
 } finally {

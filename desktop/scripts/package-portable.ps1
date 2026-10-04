@@ -43,7 +43,7 @@ foreach ($file in $licenseFiles.Values) {
     if (-not [IO.File]::Exists($file) -or [IO.FileInfo]::new($file).Length -eq 0) { throw "Missing required distribution license: $file" }
 }
 
-$artifactName = "chaoxing-gui-tauri-portable-$packageVersion-windows-x64.zip"
+$artifactName = "chaoxing-gui-portable-$packageVersion-windows-x64.zip"
 [void][IO.Directory]::CreateDirectory($output)
 $temporary = Join-Path $output ".portable-staging-$([Guid]::NewGuid().ToString('N'))"
 $payload = Join-Path $temporary 'payload'

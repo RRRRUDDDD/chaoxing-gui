@@ -88,7 +88,7 @@ function fixture(t) {
   const host = path.join(directory, 'release host 中文/chaoxing-gui-tauri.exe');
   write(path.dirname(host), path.basename(host), 'MZ fake Tauri host; never executed by packaging');
   const output = path.join(directory, 'release output 中文');
-  const artifact = path.join(output, `chaoxing-gui-tauri-portable-${version}-windows-x64.zip`);
+  const artifact = path.join(output, `chaoxing-gui-portable-${version}-windows-x64.zip`);
   return { directory, source, destination, manifest, host, output, artifact };
 }
 

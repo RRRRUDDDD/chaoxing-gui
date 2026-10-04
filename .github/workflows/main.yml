@@ -243,7 +243,7 @@ jobs:
 
       - name: Validate NSIS and portable payloads
         run: |
-          pwsh -NoProfile -File desktop/scripts/verify-nsis.ps1 -InstallerPath "desktop/release/tauri/chaoxing-gui-tauri-setup-$env:APP_VERSION-windows-x64.exe" -PortablePath "desktop/release/tauri/chaoxing-gui-tauri-portable-$env:APP_VERSION-windows-x64.zip" -EvidenceDirectory desktop/release/verification/nsis-content
+          pwsh -NoProfile -File desktop/scripts/verify-nsis.ps1 -InstallerPath "desktop/release/tauri/chaoxing-gui-setup-$env:APP_VERSION-windows-x64.exe" -PortablePath "desktop/release/tauri/chaoxing-gui-portable-$env:APP_VERSION-windows-x64.zip" -EvidenceDirectory desktop/release/verification/nsis-content
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Build frozen synthetic backend and embedded debug host
@@ -289,7 +289,7 @@ jobs:
 
       - name: Install/uninstall and portable release host acceptance on disposable runner
         run: |
-          pwsh -NoProfile -File desktop/scripts/smoke-installation.ps1 -InstallerPath "desktop/release/tauri/chaoxing-gui-tauri-setup-$env:APP_VERSION-windows-x64.exe" -PortablePath "desktop/release/tauri/chaoxing-gui-tauri-portable-$env:APP_VERSION-windows-x64.zip" -EvidenceDirectory desktop/release/verification/tauri-installation
+          pwsh -NoProfile -File desktop/scripts/smoke-installation.ps1 -InstallerPath "desktop/release/tauri/chaoxing-gui-setup-$env:APP_VERSION-windows-x64.exe" -PortablePath "desktop/release/tauri/chaoxing-gui-portable-$env:APP_VERSION-windows-x64.zip" -EvidenceDirectory desktop/release/verification/tauri-installation
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Remove temporary WebView2 debugging policies
@@ -331,7 +331,7 @@ jobs:
       - name: Upload Tauri artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: chaoxing-gui-tauri-${{ env.APP_VERSION }}-windows-x64
+          name: chaoxing-gui-${{ env.APP_VERSION }}-windows-x64
           path: desktop/release/tauri/
           if-no-files-found: error
 
@@ -345,10 +345,10 @@ jobs:
           generate_release_notes: true
           files: |
             release/chaoxing-gui-python-${{ env.APP_VERSION }}-windows-x64.zip
-            desktop/release/tauri/chaoxing-gui-tauri-setup-${{ env.APP_VERSION }}-windows-x64.exe
-            desktop/release/tauri/chaoxing-gui-tauri-setup-${{ env.APP_VERSION }}-windows-x64.exe.manifest.json
-            desktop/release/tauri/chaoxing-gui-tauri-portable-${{ env.APP_VERSION }}-windows-x64.zip
-            desktop/release/tauri/chaoxing-gui-tauri-portable-${{ env.APP_VERSION }}-windows-x64.zip.manifest.json
-            desktop/release/tauri/chaoxing-gui-tauri-portable-${{ env.APP_VERSION }}-windows-x64.zip.sha256
-            desktop/release/tauri/chaoxing-gui-tauri-artifacts-${{ env.APP_VERSION }}-windows-x64.json
+            desktop/release/tauri/chaoxing-gui-setup-${{ env.APP_VERSION }}-windows-x64.exe
+            desktop/release/tauri/chaoxing-gui-setup-${{ env.APP_VERSION }}-windows-x64.exe.manifest.json
+            desktop/release/tauri/chaoxing-gui-portable-${{ env.APP_VERSION }}-windows-x64.zip
+            desktop/release/tauri/chaoxing-gui-portable-${{ env.APP_VERSION }}-windows-x64.zip.manifest.json
+            desktop/release/tauri/chaoxing-gui-portable-${{ env.APP_VERSION }}-windows-x64.zip.sha256
+            desktop/release/tauri/chaoxing-gui-artifacts-${{ env.APP_VERSION }}-windows-x64.json
             desktop/release/tauri/SHA256SUMS.txt
