@@ -294,14 +294,9 @@ echo ========================================
 echo [7/8] 复制项目文件 (不含缓存)...
 echo ========================================
 
-REM 复制 Python 源码 (排除 __pycache__)
+REM 复制 Python 源码 (__pycache__ 由下方统一清理)
 echo    复制 api 目录...
-xcopy /E /I /Y "%SCRIPT_DIR%api" "%DIST_DIR%\api" /EXCLUDE:%SCRIPT_DIR%exclude_list.txt >nul 2>nul
-if errorlevel 1 (
-    xcopy /E /I /Y "%SCRIPT_DIR%api" "%DIST_DIR%\api" >nul
-    REM 删除复制后的缓存
-    for /d /r "%DIST_DIR%\api" %%d in (__pycache__) do rd /s /q "%%d" 2>nul
-)
+xcopy /E /I /Y "%SCRIPT_DIR%api" "%DIST_DIR%\api" >nul
 
 echo    复制 resource 目录...
 xcopy /E /I /Y "%SCRIPT_DIR%resource" "%DIST_DIR%\resource" >nul
@@ -316,11 +311,7 @@ REM 复制配置文件模板 (不复制实际配置)
 echo    复制配置模板...
 if exist "%SCRIPT_DIR%config.ini.example" copy "%SCRIPT_DIR%config.ini.example" "%DIST_DIR%\config.ini.example" >nul
 
-REM 复制 web_config.json (清空敏感信息)
-if exist "%SCRIPT_DIR%web_config.json" (
-    echo    处理 web_config.json...
-    copy "%SCRIPT_DIR%web_config.json" "%DIST_DIR%\web_config.json" >nul
-)
+REM web_config.json 以手机号为键保存账号课程选择,含个人数据,不进包 (首次运行自动生成)
 
 REM 清理 python 目录中的 __pycache__
 echo    清理便携版中的 __pycache__...
@@ -439,7 +430,7 @@ echo.>> "%README_FILE%"
 echo ## 配置说明>> "%README_FILE%"
 echo.>> "%README_FILE%"
 echo - `config.ini` - 账号密码和学习参数>> "%README_FILE%"
-echo - `web_config.json` - Web 模式的题库等设置>> "%README_FILE%"
+echo - `web_config.json` - Web 模式的题库等设置（首次保存设置时自动生成）>> "%README_FILE%"
 echo.>> "%README_FILE%"
 echo ## 功能说明>> "%README_FILE%"
 echo.>> "%README_FILE%"

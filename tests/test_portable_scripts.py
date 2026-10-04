@@ -23,3 +23,9 @@ class PortableScriptTests(unittest.TestCase):
                 if 'pip install' in line:
                     self.assertNotIn('flask-cors', line)
             self.assertIn('requirements.txt', script)
+
+    def test_portable_package_never_carries_personal_data(self):
+        script = (ROOT / 'clean_and_build_portable.bat').read_text(encoding='utf-8')
+        # web_config.json 以手机号为键保存账号课程选择，不得打进便携包（首次运行自动生成）。
+        self.assertNotIn('copy "%SCRIPT_DIR%web_config.json"', script)
+        self.assertNotIn('exclude_list.txt', script)

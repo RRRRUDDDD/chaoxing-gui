@@ -20,7 +20,11 @@ on:
       - "v*"
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
 
 defaults:
   run:
@@ -90,6 +94,8 @@ jobs:
     needs: [test-backend, test-web]
     runs-on: windows-latest
     timeout-minutes: 120
+    permissions:
+      contents: write
     env:
       PYTHONUTF8: "1"
       CARGO_BUILD_JOBS: "1"
@@ -161,7 +167,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $requirements = Get-Content requirements.txt | Where-Object { $_ -notmatch '^\s*paddleocr\s*' }
+          $requirements = Get-Content requirements.txt | Where-Object { $_ -notmatch 'packaging-skip' }
           $requirements | Set-Content "$env:RUNNER_TEMP\requirements-packaging.txt"
           python -m pip install -r "$env:RUNNER_TEMP\requirements-packaging.txt"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

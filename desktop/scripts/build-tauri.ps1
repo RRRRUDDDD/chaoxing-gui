@@ -19,11 +19,24 @@ function Invoke-BuildCommand {
     if ($LASTEXITCODE -ne 0) { throw "$Program failed with exit code $LASTEXITCODE" }
 }
 
+function Get-CargoLockPackageVersion {
+    param([string]$LockPath, [string]$Name)
+    # Same contract as version.py: Cargo.lock lists name/version on adjacent
+    # lines inside each [[package]] block, and exactly one entry must match.
+    $lockText = Get-Content -Raw -LiteralPath $LockPath
+    $versions = @([regex]::Matches($lockText, '(?m)^name = "([^"]+)"\r?\nversion = "([^"]+)"') |
+        Where-Object { $_.Groups[1].Value -eq $Name } |
+        ForEach-Object { $_.Groups[2].Value })
+    if ($versions.Count -ne 1) { throw "Expected exactly one '$Name' package in $(Split-Path -Leaf $LockPath), found $($versions.Count)" }
+    return $versions[0]
+}
+
 Push-Location -LiteralPath $repoRoot
 try {
     $versionJson = & python (Join-Path $PSScriptRoot 'version.py') --check --json
     if ($LASTEXITCODE -ne 0) { throw "Release version check failed: $versionJson" }
     $version = ($versionJson | ConvertFrom-Json).version
+    $tauriFramework = Get-CargoLockPackageVersion -LockPath (Join-Path $crate 'Cargo.lock') -Name 'tauri'
     $rustVersion = & rustc --version
     if ($LASTEXITCODE -ne 0) { throw 'Rust is unavailable; initialize the documented toolchain first' }
     if ($rustVersion -notmatch '^rustc 1\.95\.0 ') { throw "Expected Rust 1.95.0, found $rustVersion" }
@@ -127,7 +140,7 @@ try {
 
     $artifactFiles = @($setup, "$setup.manifest.json", $portable, "$portable.manifest.json", "$portable.sha256")
     $artifactManifest = [ordered]@{
-        version=$version; target=$target; rust=$rustVersion; tauri='2.11.5'; signed=[bool]$signing.signingAvailable
+        version=$version; target=$target; rust=$rustVersion; tauriFramework=$tauriFramework; signed=[bool]$signing.signingAvailable
         builtAt=(Get-Date).ToUniversalTime().ToString('o')
         artifacts=@(foreach ($file in $artifactFiles) {
             [ordered]@{ name=[System.IO.Path]::GetFileName($file); bytes=(Get-Item -LiteralPath $file).Length; sha256=(Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant() }

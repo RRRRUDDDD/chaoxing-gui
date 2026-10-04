@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
-import { createReadStream } from 'node:fs';
+import { createReadStream, readFileSync } from 'node:fs';
 import { copyFile, lstat, mkdir, mkdtemp, open, readFile, readdir, realpath, rm, symlink, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -17,8 +17,11 @@ import {
 const exec = promisify(execFile);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const scratchMarker = '.p3-installation-owner.json';
-const uninstallKey = 'Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\超星学习通·自动化学习助手';
-const preferencesKey = 'Software\\chaoxing-gui\\超星学习通·自动化学习助手';
+// Registry paths are keyed by the bundled product name; derive it from the
+// single authoritative source like p3-smoke.mjs does for the window title.
+const productName = JSON.parse(readFileSync(path.join(repo, 'desktop/src-tauri/tauri.conf.json'), 'utf8')).productName;
+const uninstallKey = `Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\${productName}`;
+const preferencesKey = `Software\\chaoxing-gui\\${productName}`;
 const canonical = (value) => path.win32.resolve(value).toLowerCase();
 const json = async (filename) => JSON.parse(await readFile(filename, 'utf8'));
 const encoded = (script) => Buffer.from(script, 'utf16le').toString('base64');
@@ -273,7 +276,7 @@ foreach ($p3Hive in @('CurrentUser','LocalMachine')) {
   foreach ($p3View in @('Registry64','Registry32')) {
     $p3Base = [Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]$p3Hive, [Microsoft.Win32.RegistryView]$p3View)
     try {
-      $p3PreferencesPath = 'Software\chaoxing-gui\超星学习通·自动化学习助手'
+      $p3PreferencesPath = 'Software\chaoxing-gui\${productName}'
       $p3Preferences = $p3Base.OpenSubKey($p3PreferencesPath, $false)
       if ($null -ne $p3Preferences) {
         try { $p3Records.Add(@{ hive=$p3Hive; view=$p3View; key=$p3PreferencesPath; kind='preferences'; installLocation=[string]$p3Preferences.GetValue('') }) }
@@ -288,7 +291,7 @@ foreach ($p3Hive in @('CurrentUser','LocalMachine')) {
             try {
               $p3Display = [string]$p3Entry.GetValue('DisplayName')
               $p3Binary = [string]$p3Entry.GetValue('MainBinaryName')
-              if ($p3Name -in @('超星学习通·自动化学习助手','com.chaoxing.gui') -or $p3Display -like '*超星学习通·自动化学习助手*' -or $p3Binary -eq 'chaoxing-gui-tauri.exe') {
+              if ($p3Name -in @('${productName}','com.chaoxing.gui') -or $p3Display -like '*${productName}*' -or $p3Binary -eq 'chaoxing-gui-tauri.exe') {
                 $p3Records.Add(@{ hive=$p3Hive; view=$p3View; key="Software\Microsoft\Windows\CurrentVersion\Uninstall\$p3Name"; kind='uninstall'; displayName=$p3Display; installLocation=[string]$p3Entry.GetValue('InstallLocation'); uninstallString=[string]$p3Entry.GetValue('UninstallString') })
               }
             } finally { $p3Entry.Dispose() }
@@ -298,7 +301,7 @@ foreach ($p3Hive in @('CurrentUser','LocalMachine')) {
       $p3Run = $p3Base.OpenSubKey('Software\Microsoft\Windows\CurrentVersion\Run', $false)
       if ($null -ne $p3Run) {
         try {
-          if ('超星学习通·自动化学习助手' -in $p3Run.GetValueNames()) { $p3Records.Add(@{ hive=$p3Hive; view=$p3View; key='Software\Microsoft\Windows\CurrentVersion\Run'; kind='autorun'; valueName='超星学习通·自动化学习助手' }) }
+          if ('${productName}' -in $p3Run.GetValueNames()) { $p3Records.Add(@{ hive=$p3Hive; view=$p3View; key='Software\Microsoft\Windows\CurrentVersion\Run'; kind='autorun'; valueName='${productName}' }) }
         } finally { $p3Run.Dispose() }
       }
     } finally { $p3Base.Dispose() }
@@ -310,11 +313,13 @@ $p3ProgramFilesX86 = [Environment]::GetFolderPath('ProgramFilesX86')
 $p3Programs = [Environment]::GetFolderPath('Programs')
 $p3Desktop = [Environment]::GetFolderPath('DesktopDirectory')
 @{ records=@($p3Records.ToArray()); defaultPaths=@(
-  (Join-Path $p3Local 'chaoxing_gui'), (Join-Path $p3Local 'Programs\超星学习通·自动化学习助手'),
+  (Join-Path $p3Local 'chaoxing_gui'), (Join-Path $p3Local 'Programs\${productName}'),
+  # installer.nsi defaults to D:\chaoxing_gui when D: is a fixed disk; both
+  # documented install locations must end up owned or absent after uninstall.
   'D:\chaoxing_gui',
   (Join-Path $p3ProgramFiles 'chaoxing_gui'), (Join-Path $p3ProgramFilesX86 'chaoxing_gui'),
-  (Join-Path $p3Programs '超星学习通·自动化学习助手'), (Join-Path $p3Programs '超星学习通·自动化学习助手.lnk'),
-  (Join-Path $p3Desktop '超星学习通·自动化学习助手.lnk')
+  (Join-Path $p3Programs '${productName}'), (Join-Path $p3Programs '${productName}.lnk'),
+  (Join-Path $p3Desktop '${productName}.lnk')
 ) } | ConvertTo-Json -Depth 8 -Compress
 `;
 
@@ -414,7 +419,7 @@ if ($p3Owner.runId -cne $p3Request.runId -or [IO.Path]::GetFullPath($p3Owner.pat
 $p3Expected = [IO.Path]::GetFullPath($p3Request.installDirectory)
 if (-not $p3Expected.StartsWith(([IO.Path]::GetFullPath($p3Request.scratch).TrimEnd('\') + '\'), [StringComparison]::OrdinalIgnoreCase)) { throw 'Registry cleanup target is outside scratch' }
 foreach ($p3Record in $p3Request.records) {
-  if ($p3Record.hive -ne 'CurrentUser' -or $p3Record.view -notin @('Registry32','Registry64') -or $p3Record.key -notin @('Software\Microsoft\Windows\CurrentVersion\Uninstall\超星学习通·自动化学习助手','Software\chaoxing-gui\超星学习通·自动化学习助手')) { throw 'Unowned registry cleanup key' }
+  if ($p3Record.hive -ne 'CurrentUser' -or $p3Record.view -notin @('Registry32','Registry64') -or $p3Record.key -notin @('${uninstallKey}','${preferencesKey}')) { throw 'Unowned registry cleanup key' }
   $p3Base = [Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::CurrentUser, [Microsoft.Win32.RegistryView]([string]$p3Record.view))
   try {
     $p3Entry = $p3Base.OpenSubKey($p3Record.key, $false)
