@@ -60,6 +60,14 @@ class ToolCancelled(Exception):
     """The owning task requested cooperative cancellation."""
 
 
+class _NetworkRequestError(RuntimeError):
+    """传输层请求失败（连接中断/读写超时），请求可能未到达平台。
+
+    与"平台明确拒绝"（HTTP 状态码、业务校验失败）区分：前者对幂等调用
+    （如绑定绝对位置的心跳）可以安全重试，后者重试没有意义。
+    """
+
+
 def _scalar(value):
     if isinstance(value, (str, int)) and not isinstance(value, bool):
         return str(value).strip()
@@ -203,7 +211,7 @@ class CourseTools:
         except requests.RequestException as exc:
             if response is not None:
                 response.close()
-            raise RuntimeError(f"{label}网络请求失败（{type(exc).__name__}）") from None
+            raise _NetworkRequestError(f"{label}网络请求失败（{type(exc).__name__}）") from None
         except BaseException:
             if response is not None:
                 response.close()
@@ -644,11 +652,22 @@ class CourseTools:
                     params[key] = attachment[key]
             # Heartbeats wait up to a minute. A reused keep-alive socket that
             # the platform already closed becomes ConnectionError, and reports
-            # must not inherit automatic retries.
-            text = self._text(
-                "get", url, "视频时长上报", no_retry=True,
-                params=params, headers={"Referer": VIDEO_REFERER, "Connection": "close"},
-            )
+            # must not inherit automatic retries (no_retry=True keeps replay
+            # protection). A heartbeat is pinned to an absolute position, so
+            # one manual retry after a transport-level failure cannot
+            # double-report; platform rejections raise inside _check_report
+            # and are never retried.
+            for attempt in range(2):
+                try:
+                    text = self._text(
+                        "get", url, "视频时长上报", no_retry=True,
+                        params=params, headers={"Referer": VIDEO_REFERER, "Connection": "close"},
+                    )
+                    break
+                except _NetworkRequestError as exc:
+                    if attempt:
+                        raise
+                    logger.warning("视频时长上报网络中断，重试一次（位置 {} 毫秒）: {}", position, exc)
             self._check_report(text, video=True)
 
         completed = position = 0

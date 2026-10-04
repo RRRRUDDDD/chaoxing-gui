@@ -360,20 +360,27 @@ class WebAppTests(unittest.TestCase):
                 self.notification.send.side_effect = RuntimeError("notify send") if failure == "send" else None
                 task_id, status = self.state(self.start())
                 self.assertEqual(status["status"], "completed")
-                self.assertIn("notification_error", status)
+                self.assertEqual(status["notification_error"], "notify " + failure)
                 self.assertNotIn("error", status)
-                self.assertTrue(any("通知" in entry["message"] for entry in self.store.read_logs(task_id)["data"]))
+                # 终态发布后才发生的发送失败不再进入任务日志（append_log 拒收终态后的消息）。
+                in_logs = any("通知" in entry["message"] for entry in self.store.read_logs(task_id)["data"])
+                self.assertEqual(in_logs, failure == "init")
 
-    def test_final_logs_include_resource_cleanup_and_notification_tail(self):
+    def test_unconfirmed_notification_delivery_is_recorded_without_failing_the_task(self):
+        self.notification.send.return_value = False
+        task_id, status = self.state(self.start())
+        self.assertEqual(status["status"], "completed")
+        self.assertEqual(status["notification_error"], "通知服务未确认送达")
+        self.assertNotIn("error", status)
+
+    def test_final_logs_include_resource_cleanup_tail(self):
         self.chaoxing.close.side_effect = lambda: web.logger.info("cleanup-tail-marker")
-        self.notification.send.side_effect = lambda message: web.logger.info("notification-tail-marker")
         task_id, status = self.state(self.start())
         self.assertEqual(status["status"], "completed")
         response = self.client.get(f"/api/logs/{task_id}?after=0").get_json()
         self.assertIsInstance(response["data"], list)
         text = "\n".join(entry["message"] for entry in response["data"])
         self.assertIn("cleanup-tail-marker", text)
-        self.assertIn("notification-tail-marker", text)
         tail = self.client.get(f"/api/logs/{task_id}?after={response['next_cursor']}").get_json()
         self.assertEqual(tail["data"], [])
 

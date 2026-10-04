@@ -29,6 +29,13 @@ from api.session import get_current_session
 _MAX_WRAPPERS = 20
 _MAX_HANDLER_LENGTH = 8000
 _MAX_SUBSCRIPTION_BYTES = 512_000
+# 熔断：连续失败达到上限后，本任务内跳过该题库；401/403 认证拒绝立即熔断。
+_WRAPPER_FAILURE_LIMIT = 3
+# 计入熔断的失败都是"题库不可达或响应不可用"；no_answer/unmatched 说明题库在线。
+_BREAKER_FAILURE_STATUSES = frozenset({
+    "ssl_error", "timeout", "http_error", "network_error",
+    "response_parse_error", "handler_error", "request_or_response_error", "matching_error",
+})
 _PLACEHOLDERS = ("title", "options", "type", "suggestion_title", "suggestion_options", "images")
 _MAX_NESTING = 40
 _CONTEXT_AWARE_WARNINGS = bool(getattr(sys.flags, "context_aware_warnings", False))
@@ -756,6 +763,8 @@ class TikuOcs(Tiku):
         self.wrappers: list[dict[str, Any]] = []
         # One session reuses connections across questions; Tiku.close() closes it.
         self._session = requests.Session()
+        # 熔断计数按 wrapper 下标记录，生命周期为题库实例（即单个任务）。
+        self._wrapper_failures: dict[int, int] = {}
 
     def _init_tiku(self) -> None:
         conf = self._conf or {}
@@ -782,6 +791,23 @@ class TikuOcs(Tiku):
             logger.info("未配置题库，已忽略题库功能")
             self.DISABLE = True
 
+    def _record_wrapper_outcome(self, index: int, report: dict) -> None:
+        """按结果更新熔断计数；达到上限的题库由 _query 直接跳过。"""
+        status = report["status"]
+        if status == "authentication_rejected":
+            self._wrapper_failures[index] = _WRAPPER_FAILURE_LIMIT
+            logger.error("题库 {}: 认证被拒绝，本次任务内跳过该题库", report["source"])
+            return
+        if status not in _BREAKER_FAILURE_STATUSES:
+            # 题库在线且有正常响应（无论是否命中答案）都重置连续失败计数。
+            self._wrapper_failures.pop(index, None)
+            return
+        previous = self._wrapper_failures.get(index, 0)
+        count = min(_WRAPPER_FAILURE_LIMIT, previous + 1)
+        self._wrapper_failures[index] = count
+        if count >= _WRAPPER_FAILURE_LIMIT > previous:
+            logger.error("题库 {}: 连续失败 {} 次，本次任务内跳过该题库", report["source"], count)
+
     def _query(self, q_info: dict) -> str | None:
         self.query_diagnostics = []
         try:
@@ -791,7 +817,13 @@ class TikuOcs(Tiku):
             return None
         image_env = None
         image_urls = []
-        for wrapper in self.wrappers:
+        for index, wrapper in enumerate(self.wrappers):
+            if self._wrapper_failures.get(index, 0) >= _WRAPPER_FAILURE_LIMIT:
+                self.query_diagnostics.append({
+                    "source": _safe_summary(wrapper["name"], wrapper["secret_values"]),
+                    "stage": "request", "status": "circuit_open", "candidates": [], "elapsed_ms": 0,
+                })
+                continue
             started = time.monotonic()
             report = {"source": _safe_summary(wrapper["name"], wrapper["secret_values"]), "stage": "context", "status": "pending", "candidates": []}
             self.query_diagnostics.append(report)
@@ -849,6 +881,7 @@ class TikuOcs(Tiku):
                 report["error"] = type(exc).__name__
             finally:
                 report["elapsed_ms"] = round((time.monotonic() - started) * 1000)
+                self._record_wrapper_outcome(index, report)
                 if report["status"] != "selected":
                     if report.get("message"):
                         logger.error("题库 {}: {}（题库提示：{}）", report["source"], report["status"], report["message"])

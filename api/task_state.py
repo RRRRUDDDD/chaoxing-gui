@@ -479,9 +479,11 @@ class TaskStore:
             task.status["recovery_error"] = "任务已结束，但保存结果失败；重新打开时可能需要再次核对学习进度"
 
     def append_log(
-        self, task_id: str, message: str, *, level: str = "info", timestamp: float | None = None
+        self, task_id: str, message: str, *, level: str = "info",
+        timestamp: float | None = None, redacted: bool = False,
     ) -> int | None:
-        text = redact(message).strip()
+        # 调用方已做过 patch_record 全量脱敏（task_log_sink）时可跳过二次 redact。
+        text = (message if redacted else redact(message)).strip()
         if not text:
             return None
         if len(text) > self._max_message_chars:

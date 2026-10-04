@@ -81,7 +81,7 @@ class OCRConfigTests(unittest.TestCase):
         empty = Mock(status_code=200)
         empty.json.return_value = {"choices": [{"message": {"content": "[空]"}}]}
         failure = Mock(status_code=503, text="offline failure")
-        with vision.ocr_context(REMOTE_CONFIG), patch("api.vision_ocr.requests.post", side_effect=[empty, failure]):
+        with vision.ocr_context(REMOTE_CONFIG), patch("api.vision_ocr._SESSION.post", side_effect=[empty, failure]):
             result = vision.vision_ocr_result(b"image")
             self.assertTrue(result.success)
             self.assertEqual(result.text, "")
@@ -99,6 +99,7 @@ class OCRPipelineTests(unittest.TestCase):
         patches = [
             patch.object(decode, "_OCR_URL_CACHE", OrderedDict()),
             patch.object(decode, "_OCR_CONTENT_CACHE", OrderedDict()),
+            patch.object(decode, "_OCR_PERSISTENT_CACHE", None),
             patch.object(decode.time, "monotonic", side_effect=lambda: self.clock[0]),
             patch.object(decode, "get_current_session", return_value=self.session),
             patch.object(decode, "vision_ocr_result", self.result),
@@ -234,30 +235,36 @@ class OCRPipelineTests(unittest.TestCase):
         self.session.get.assert_not_called()
         initialize.assert_not_called()
 
-    def test_local_inference_cleans_temporary_image_and_caches_text(self):
+    def test_local_inference_passes_images_in_memory_and_caches_text(self):
         engine = Mock()
         engine.predict.return_value = [{"rec_texts": ["x=1", "y=2"]}]
+        image = object()
         with vision.ocr_context({"enable_local": True}), \
+                patch.object(decode, "PIL_AVAILABLE", True), \
+                patch.object(decode, "NUMPY_AVAILABLE", True), \
                 patch.object(decode, "_init_paddle_ocr", return_value=engine), \
-                patch.object(decode, "_preprocess_image_for_ocr", return_value=b"processed"):
+                patch.object(decode, "_preprocess_image_for_ocr", return_value=image) as preprocess:
             self.assertEqual(decode._ocr_image_to_text(IMAGE_URL), "x=1 y=2")
             self.assertEqual(decode._ocr_image_to_text(IMAGE_URL), "x=1 y=2")
-        engine.predict.assert_called_once()
-        self.assertFalse(Path(engine.predict.call_args.args[0]).exists())
+        preprocess.assert_called_once()
+        self.assertIs(engine.predict.call_args.args[0], image)
         self.result.assert_not_called()
 
     def test_local_gpu_inference_can_fall_back_to_cpu(self):
         gpu, cpu = Mock(), Mock()
         gpu.predict.side_effect = RuntimeError("offline GPU failure")
         cpu.predict.return_value = [{"rec_texts": ["CPU answer"]}]
+        image = object()
         with vision.ocr_context({"enable_local": True}), \
+                patch.object(decode, "PIL_AVAILABLE", True), \
+                patch.object(decode, "NUMPY_AVAILABLE", True), \
                 patch.object(decode, "_PADDLE_OCR_DEVICE", "gpu"), \
                 patch.object(decode, "_init_paddle_ocr", side_effect=[gpu, cpu]) as initialize, \
-                patch.object(decode, "_preprocess_image_for_ocr", return_value=b"processed"):
+                patch.object(decode, "_preprocess_image_for_ocr", return_value=image):
             self.assertEqual(decode._ocr_image_to_text(IMAGE_URL), "CPU answer")
         self.assertEqual(initialize.call_count, 2)
         self.assertEqual(initialize.call_args.kwargs, {"preferred_device": "cpu"})
-        self.assertFalse(Path(cpu.predict.call_args.args[0]).exists())
+        self.assertIs(cpu.predict.call_args.args[0], image)
 
     def test_parse_then_query_does_not_repeat_failed_model_initialization(self):
         title = BeautifulSoup(f'<div>formula<img src="{IMAGE_URL}"></div>', "html.parser").div
@@ -275,12 +282,95 @@ class OCRPipelineTests(unittest.TestCase):
         response = Mock(status_code=200)
         response.json.return_value = {"text": ""}
         with vision.ocr_context(dict(REMOTE_CONFIG, http_endpoint="https://offline.invalid/ocr")), \
-                patch("api.decode.requests.post", return_value=response):
+                patch("api.decode._HTTP_OCR_SESSION.post", return_value=response):
             self.assertEqual(decode._ocr_image_to_text(IMAGE_URL), "")
             self.clock[0] += decode._OCR_FAILURE_TTL + 1
             self.assertEqual(decode._ocr_image_to_text(IMAGE_URL), "")
         self.assertEqual(self.result.call_count, 2)
         self.assertEqual(response.close.call_count, 2)
+
+
+class OcrPersistenceTests(unittest.TestCase):
+    def setUp(self):
+        self.directory = tempfile.TemporaryDirectory()
+        self.addCleanup(self.directory.cleanup)
+        self.store_path = Path(self.directory.name) / "ocr_cache.json"
+        self.clock = [100.0]
+        self.session = Mock()
+        self.session.get.return_value = image_response()
+        self.result = Mock(return_value=vision.OCRResult("recognized", success=True))
+        patches = [
+            patch.object(decode, "_OCR_URL_CACHE", OrderedDict()),
+            patch.object(decode, "_OCR_CONTENT_CACHE", OrderedDict()),
+            patch.object(decode.time, "monotonic", side_effect=lambda: self.clock[0]),
+            patch.object(decode, "get_current_session", return_value=self.session),
+            patch.object(decode, "vision_ocr_result", self.result),
+            patch.object(decode, "_PADDLE_OCR_ENGINE", None),
+            patch.object(decode, "_PADDLE_OCR_INITIALIZED", False),
+            patch.object(decode, "_PADDLE_OCR_DEVICE", None),
+            patch.object(decode, "_PADDLE_OCR_RETRY_AT", 0.0),
+            patch.dict(os.environ, {}, clear=True),
+        ]
+        for current in patches:
+            current.start()
+            self.addCleanup(current.stop)
+        self.context = vision.ocr_context(REMOTE_CONFIG)
+        self.context.__enter__()
+        self.addCleanup(self.context.__exit__, None, None, None)
+
+    def restart(self):
+        """模拟进程重启：内存缓存清空、会话更换，仅磁盘持久文件保留。"""
+        self.session = Mock()
+        self.session.get.return_value = image_response()
+        self.result.reset_mock()
+        stoppers = [
+            patch.object(decode, "_OCR_URL_CACHE", OrderedDict()),
+            patch.object(decode, "_OCR_CONTENT_CACHE", OrderedDict()),
+            patch.object(decode, "get_current_session", return_value=self.session),
+        ]
+        for stopper in stoppers:
+            stopper.start()
+            self.addCleanup(stopper.stop)
+
+    def test_recognized_text_persists_across_restart_and_skips_recognition(self):
+        with patch.object(decode, "_OCR_PERSISTENT_CACHE", decode._OcrPersistentCache(str(self.store_path))):
+            self.assertEqual(decode._ocr_image_to_text(IMAGE_URL), "recognized")
+        self.result.assert_called_once()
+        self.assertTrue(self.store_path.is_file())
+        with patch.object(decode, "_OCR_PERSISTENT_CACHE", decode._OcrPersistentCache(str(self.store_path))):
+            self.restart()
+            self.assertEqual(decode._ocr_image_to_text(IMAGE_URL), "recognized")
+        self.result.assert_not_called()
+        self.session.get.assert_not_called()
+
+    def test_persisted_text_does_not_cross_ocr_configurations(self):
+        with patch.object(decode, "_OCR_PERSISTENT_CACHE", decode._OcrPersistentCache(str(self.store_path))):
+            self.assertEqual(decode._ocr_image_to_text(IMAGE_URL), "recognized")
+        with patch.object(decode, "_OCR_PERSISTENT_CACHE", decode._OcrPersistentCache(str(self.store_path))), \
+                vision.ocr_context(dict(REMOTE_CONFIG, model="another-model")):
+            self.restart()
+            self.assertEqual(decode._ocr_image_to_text(IMAGE_URL), "recognized")
+        self.result.assert_called_once()
+
+    def test_failures_and_empty_results_are_not_persisted(self):
+        self.result.return_value = vision.OCRResult()
+        with patch.object(decode, "_OCR_PERSISTENT_CACHE", decode._OcrPersistentCache(str(self.store_path))):
+            self.assertEqual(decode._ocr_image_to_text(IMAGE_URL), "")
+            self.restart()
+            self.assertEqual(decode._ocr_image_to_text(IMAGE_URL), "")
+        self.result.assert_called_once()
+        self.assertFalse(self.store_path.exists())
+
+    def test_persistent_store_is_bounded_and_round_trips(self):
+        store = decode._OcrPersistentCache(str(self.store_path), maxsize=2)
+        store.put("u1", "fp", "t1")
+        store.put("u2", "fp", "t2")
+        store.put("u3", "fp", "t3")
+        self.assertIsNone(store.get("u1", "fp"))
+        self.assertEqual(store.get("u2", "fp"), "t2")
+        reloaded = decode._OcrPersistentCache(str(self.store_path))
+        self.assertEqual(reloaded.get("u3", "fp"), "t3")
+        self.assertIsNone(reloaded.get("u1", "fp"))
 
 
 class OCRParsingCompatibilityTests(unittest.TestCase):

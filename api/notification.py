@@ -78,24 +78,33 @@ class NotificationService(ABC):
         pass
 
     @abstractmethod
-    def _send(self, message: str) -> None:
+    def _send(self, message: str) -> bool:
         """
         发送通知消息，由子类实现
-        
+
         Args:
             message: 要发送的消息内容
+
+        Returns:
+            是否确认送达；失败返回 False，由 send() 决定是否重试。
         """
         pass
 
-    def send(self, message: str) -> None:
+    def send(self, message: str, *, attempts: int = 2) -> bool:
         """
-        发送通知消息的公共接口
-        
+        发送通知消息的公共接口；失败自动重试，返回是否至少一次确认成功。
+
         Args:
             message: 要发送的消息内容
+            attempts: 最大尝试次数（含首次），最小为 1
         """
-        if not self.disabled:
-            self._send(redact(message))
+        if self.disabled:
+            return True
+        text = redact(message)
+        for _ in range(max(1, attempts)):
+            if self._send(text):
+                return True
+        return False
 
 
 class DefaultNotification(NotificationService):
@@ -106,8 +115,8 @@ class DefaultNotification(NotificationService):
     def _init_service(self) -> None:
         pass
 
-    def _send(self, message: str) -> None:
-        pass
+    def _send(self, message: str) -> bool:
+        return True
 
     def get_notification_from_config(self) -> NotificationService:
         """
@@ -160,10 +169,10 @@ class ServerChan(NotificationService):
         self.url = self._conf['url']
         logger.info("已初始化Server酱通知服务")
 
-    def _send(self, message: str) -> None:
+    def _send(self, message: str) -> bool:
         """
         通过Server酱发送通知
-        
+
         Args:
             message: 要发送的消息内容
         """
@@ -180,10 +189,12 @@ class ServerChan(NotificationService):
             response.raise_for_status()
             result = response.json()
             logger.info(f"Server酱通知发送成功: {result}")
+            return True
         except requests.RequestException as e:
             logger.error(f"Server酱通知发送失败: {e}")
         except ValueError as e:
             logger.error(f"Server酱返回数据解析失败: {e}")
+        return False
 
 
 class Qmsg(NotificationService):
@@ -201,10 +212,10 @@ class Qmsg(NotificationService):
         self.url = self._conf['url']
         logger.info("已初始化Qmsg酱通知服务")
 
-    def _send(self, message: str) -> None:
+    def _send(self, message: str) -> bool:
         """
         通过Qmsg酱发送通知
-        
+
         Args:
             message: 要发送的消息内容
         """
@@ -216,10 +227,12 @@ class Qmsg(NotificationService):
             response.raise_for_status()
             result = response.json()
             logger.info(f"Qmsg酱通知发送成功: {result}")
+            return True
         except requests.RequestException as e:
             logger.error(f"Qmsg酱通知发送失败: {e}")
         except ValueError as e:
             logger.error(f"Qmsg酱返回数据解析失败: {e}")
+        return False
 
 
 class Bark(NotificationService):
@@ -237,10 +250,10 @@ class Bark(NotificationService):
         self.url = self._conf['url']
         logger.info("已初始化Bark通知服务")
 
-    def _send(self, message: str) -> None:
+    def _send(self, message: str) -> bool:
         """
         通过Bark发送通知
-        
+
         Args:
             message: 要发送的消息内容
         """
@@ -251,10 +264,12 @@ class Bark(NotificationService):
             response.raise_for_status()
             result = response.json()
             logger.info(f"Bark通知发送成功: {result}")
+            return True
         except requests.RequestException as e:
             logger.error(f"Bark通知发送失败: {e}")
         except ValueError as e:
             logger.error(f"Bark返回数据解析失败: {e}")
+        return False
 
 class Telegram(NotificationService):
     """
@@ -271,10 +286,10 @@ class Telegram(NotificationService):
         self.url = self._conf['url']
         logger.info("已初始化Telegram通知服务")
 
-    def _send(self, message: str) -> None:
+    def _send(self, message: str) -> bool:
         """
         通过Telegram发送通知
-        
+
         Args:
             message: 要发送的消息内容
         """
@@ -290,12 +305,13 @@ class Telegram(NotificationService):
             result = response.json()
             if result.get('ok'):
                 logger.info(f"Telegram通知发送成功: {result}")
-            else:
-                logger.error(f"Telegram通知发送失败: {result}")
+                return True
+            logger.error(f"Telegram通知发送失败: {result}")
         except requests.RequestException as e:
             logger.error(f"Telegram通知发送失败: {e}")
         except ValueError as e:
             logger.error(f"Telegram返回数据解析失败: {e}")
+        return False
 
 class Windows(NotificationService):
     """
@@ -368,7 +384,7 @@ class Windows(NotificationService):
         except Exception as e:
             return False, str(e)
 
-    def _send(self, message: str) -> None:
+    def _send(self, message: str) -> bool:
         """
         发送Windows系统通知
 
@@ -381,6 +397,7 @@ class Windows(NotificationService):
             logger.info("Windows系统通知发送成功")
         else:
             logger.error(f"Windows系统通知发送失败: {err}")
+        return ok
 
 
 # 为了向后兼容，保留原来的Notification类

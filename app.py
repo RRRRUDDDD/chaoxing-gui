@@ -588,15 +588,30 @@ def _run_study_task(task_id, store, common_config, tiku_config, notification_con
                 if cancelled():
                     outcome, error = "cancelled", None
                     progress.cancel_remaining()
-                if notification is not None:
-                    try:
-                        notification.send(_notification_message(store, task_id, outcome, error))
-                    except Exception as exc:
-                        logger.warning(f"通知发送失败: {exc}")
-                        with store.edit(task_id) as task:
-                            task.status["notification_error"] = redact(exc)
     finally:
+        # Publish the terminal state before any notification I/O: a slow or
+        # unreachable provider must not delay the outcome the UI waits on.
+        # finish is idempotent, so the outer fallback stays safe. The send's
+        # logs can no longer enter task logs (append_log rejects post-finish
+        # messages); failures surface through the notification_error status.
         store.finish(task_id, outcome, error=error)
+        if notification is not None:
+            _send_task_notification(store, task_id, notification, outcome, error)
+
+
+def _send_task_notification(store, task_id, notification, outcome, error):
+    failure = "通知服务未确认送达"
+    try:
+        if notification.send(_notification_message(store, task_id, outcome, error)):
+            return
+    except Exception as exc:
+        failure = redact(exc)
+    logger.warning(f"通知发送失败: {failure}")
+    try:
+        with store.edit(task_id) as task:
+            task.status["notification_error"] = failure
+    except TaskNotFound:
+        pass
 
 
 def _launch_study_task(*args):

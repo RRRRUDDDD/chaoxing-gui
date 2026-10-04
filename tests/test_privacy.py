@@ -14,7 +14,7 @@ from api.task_state import TaskStore
 
 class PrivacyTests(unittest.TestCase):
     def setUp(self):
-        self.registry = patch.object(privacy, '_secrets', set())
+        self.registry = patch.object(privacy, '_secrets', {})
         self.registry.start()
         self.addCleanup(self.registry.stop)
 
@@ -35,6 +35,15 @@ class PrivacyTests(unittest.TestCase):
         self.assertEqual(extra['task_id'], 'task-123')
         self.assertEqual(extra['count'], 4)
         self.assertNotIn('canary-key', str(extra))
+
+    def test_secret_registry_is_bounded_and_evicts_oldest(self):
+        with patch.object(privacy, '_SECRETS_LIMIT', 3):
+            for secret in ('canary-one', 'canary-two', 'canary-three', 'canary-four'):
+                privacy.register_secret(secret)
+            self.assertEqual(list(privacy._secrets), ['canary-two', 'canary-three', 'canary-four'])
+            self.assertNotIn('canary-four', privacy.redact('leak canary-four'))
+            # 被淘汰的最旧值不再被替换。
+            self.assertIn('canary-one', privacy.redact('leak canary-one'))
 
     def test_all_sinks_receive_safe_exceptions_without_losing_context(self):
         privacy.register_secret('canary-secret')

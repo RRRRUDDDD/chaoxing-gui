@@ -1,7 +1,7 @@
 import configparser
 import os
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import requests
 
@@ -11,15 +11,31 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 class NotificationTests(unittest.TestCase):
-    def test_all_http_notifications_are_bounded_and_do_not_retry_posts(self):
+    def test_all_http_notifications_are_bounded_and_retry_exactly_once(self):
         for provider in (Bark, Qmsg, ServerChan, Telegram):
             with self.subTest(provider=provider.__name__):
                 service = provider()
                 service.url = 'https://example.invalid/notification'
                 with patch('api.notification.requests.post', side_effect=requests.Timeout) as post:
-                    service.send('offline test')
-                self.assertEqual(post.call_args.kwargs['timeout'], NOTIFICATION_TIMEOUT)
-                post.assert_called_once()
+                    self.assertFalse(service.send('offline test'))
+                self.assertEqual(post.call_count, 2)
+                for call in post.call_args_list:
+                    self.assertEqual(call.kwargs['timeout'], NOTIFICATION_TIMEOUT)
+
+    def test_send_recovers_when_the_retry_succeeds(self):
+        service = Bark()
+        service.url = 'https://example.invalid/notification'
+        ok = Mock(status_code=200)
+        with patch('api.notification.requests.post', side_effect=[requests.Timeout('first attempt'), ok]) as post:
+            self.assertTrue(service.send('retry works'))
+        self.assertEqual(post.call_count, 2)
+
+    def test_disabled_service_reports_success_without_sending(self):
+        service = ServerChan()
+        service.disabled = True
+        with patch('api.notification.requests.post') as post:
+            self.assertTrue(service.send('not configured'))
+        post.assert_not_called()
 
 
 class NotificationConfigContractTests(unittest.TestCase):

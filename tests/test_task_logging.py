@@ -3,6 +3,7 @@ import unittest
 from unittest.mock import patch
 
 from api.logger import logger
+from api.privacy import redact
 from api.task_logging import task_log_sink
 from api.task_state import TaskStore
 
@@ -47,3 +48,18 @@ class TaskLogSinkTests(unittest.TestCase):
                 with task_log_sink(store, task_id):
                     pass
             remove.assert_called_once()
+
+    def test_sink_messages_bypass_the_second_redaction_pass(self):
+        store = TaskStore()
+        self.addCleanup(store.close)
+        task_id = store.create('alice', {}, {})
+        with patch('api.task_state.redact', wraps=redact) as second_pass:
+            with task_log_sink(store, task_id):
+                logger.info('sink message')
+            store.append_log(task_id, 'direct message')
+        entries = store.read_logs(task_id)['data']
+        self.assertEqual(len(entries), 2)
+        self.assertIn('sink message', entries[0]['message'])
+        self.assertEqual(entries[1]['message'], 'direct message')
+        # patcher 已脱敏的 sink 记录不再走 append_log 的二次 redact。
+        second_pass.assert_called_once_with('direct message')

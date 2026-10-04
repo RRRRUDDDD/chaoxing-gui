@@ -591,8 +591,9 @@ class VideoTests(OfflineToolsCase):
         self.assertTrue(all(call.kwargs["headers"]["Referer"] == VIDEO_REFERER for call in calls))
         self.assert_closed(status, *reports)
 
-    def test_video_heartbeats_close_idle_connections_and_do_not_retry_connection_errors(self):
+    def test_video_heartbeats_close_idle_connections_and_manually_retry_transport_failures_once(self):
         status = Response({"status": "success", "duration": 12, "dtoken": "signed-token"})
+        report = Response({"isPassed": True})
         original_retries = self.adapter.max_retries
         retries = []
         connections = []
@@ -601,6 +602,32 @@ class VideoTests(OfflineToolsCase):
             if "/multimedia/log/" in url:
                 retries.append(self.adapter.max_retries.total)
                 connections.append(kwargs["headers"].get("Connection"))
+                if len(retries) == 1:
+                    raise requests.ConnectionError("Remote end closed connection")
+                return report
+            return status
+
+        self.session.get.side_effect = get
+        clock = self.fake_clock()
+        progress = Mock()
+        result = self.tools.watch_video(COURSE, resource(), 6, progress)
+        self.assertEqual(result, {"seconds": 6})
+        # 心跳不继承自动重试（防重放），但绑定绝对位置的同一心跳手动重试了一次。
+        self.assertEqual([call.kwargs["params"]["playingTime"] for call in self.session.get.call_args_list[1:]],
+                         [0, 0, 6])
+        self.assertEqual(retries, [0, 0, 0])
+        self.assertEqual(connections, ["close"] * 3)
+        self.assertAlmostEqual(clock.now, 6)
+        self.assertIs(self.adapter.max_retries, original_retries)
+        self.assert_closed(status, report)
+
+    def test_transport_failure_on_both_attempts_aborts_the_report(self):
+        status = Response({"status": "success", "duration": 12, "dtoken": "signed-token"})
+        attempts = []
+
+        def get(url, **kwargs):
+            if "/multimedia/log/" in url:
+                attempts.append(1)
                 raise requests.ConnectionError("Remote end closed connection")
             return status
 
@@ -609,12 +636,9 @@ class VideoTests(OfflineToolsCase):
         progress = Mock()
         with self.assertRaisesRegex(RuntimeError, "网络请求失败（ConnectionError）"):
             self.tools.watch_video(COURSE, resource(), 6, progress)
+        self.assertEqual(len(attempts), 2)
         progress.assert_not_called()
         self.assertEqual(clock.now, 0)
-        self.assertEqual(retries, [0])
-        self.assertEqual(connections, ["close"])
-        self.assertIs(self.adapter.max_retries, original_retries)
-        self.assert_closed(status)
 
     def test_completed_video_restarts_at_boundaries_for_requested_extra_time(self):
         status, reports = self.setup_video(7, 6)

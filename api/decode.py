@@ -6,6 +6,7 @@
 并转换为程序内部使用的结构化数据格式。
 """
 import hashlib
+import itertools
 import json
 import re
 import os
@@ -13,8 +14,10 @@ import tempfile
 import threading
 import time
 import io
+import weakref
 from collections import OrderedDict
 from collections.abc import Mapping
+from pathlib import Path
 from typing import List, Dict, Tuple, Any, Optional, Union
 
 from bs4 import BeautifulSoup, NavigableString
@@ -22,6 +25,7 @@ from bs4 import BeautifulSoup, NavigableString
 from api.exceptions import FontDecodeError
 from api.font_decoder import FontDecoder
 from api.logger import logger
+from api.paths import data_dir
 from api.question_images import download_image, extract_image_text
 from api.config import GlobalConst as gc
 from api.session import get_current_session
@@ -39,6 +43,12 @@ try:
     PIL_AVAILABLE = True
 except ImportError:
     PIL_AVAILABLE = False
+
+try:
+    import numpy as np
+    NUMPY_AVAILABLE = True
+except ImportError:
+    NUMPY_AVAILABLE = False
 
 _PADDLE_OCR_ENGINE = None
 _PADDLE_OCR_INITIALIZED = False
@@ -59,6 +69,110 @@ _OCR_CACHE_LOCK = threading.Lock()
 # 有界分片锁抑制相同 URL/内容的并发重复请求；不在全局缓存锁内联网。
 _OCR_URL_LOCKS = [threading.Lock() for _ in range(32)]
 _OCR_CONTENT_LOCKS = [threading.Lock() for _ in range(32)]
+# HTTP fallback OCR 与外部视觉 OCR 各自复用连接（requests.Session 官方线程安全）。
+_HTTP_OCR_SESSION = requests.Session()
+
+# 会话令牌表：弱引用键随会话消亡，OCR 缓存键因此不持有已关闭 Session 的强引用，
+# id 复用也不会把一个账号的缓存命中到另一个账号。
+_OCR_SESSION_TOKENS: "weakref.WeakKeyDictionary[Any, int]" = weakref.WeakKeyDictionary()
+_OCR_SESSION_TOKEN_LOCK = threading.Lock()
+_OCR_SESSION_TOKEN_SEQ = itertools.count(1)
+
+
+def _session_cache_token(session) -> Optional[int]:
+    if session is None:
+        return None
+    try:
+        token = _OCR_SESSION_TOKENS.get(session)
+        if token is not None:
+            return token
+        with _OCR_SESSION_TOKEN_LOCK:
+            token = _OCR_SESSION_TOKENS.get(session)
+            if token is None:
+                token = next(_OCR_SESSION_TOKEN_SEQ)
+                _OCR_SESSION_TOKENS[session] = token
+        return token
+    except TypeError:
+        # 不可弱引用/哈希的会话对象退化为对象 id；正常 requests.Session 不走此分支。
+        return id(session)
+
+
+class _OcrPersistentCache:
+    """(url, OCR 配置指纹) → 识别文本 的小型磁盘缓存。
+
+    只持久化成功且非空的结果，跨任务与重启跳过重复识别；键包含配置指纹，
+    OCR 引擎、提示词或管线版本变化后自然失效。条目有界，超出淘汰最旧；
+    读写失败只影响持久化本身，不阻断识别流程。
+    """
+
+    FILE_NAME = "ocr_cache.json"
+    VERSION = 1
+
+    def __init__(self, file: Optional[str] = None, *, maxsize: int = 512):
+        self.file = file  # None → 共享数据目录
+        self._maxsize = maxsize
+        self._lock = threading.Lock()
+        self._entries: Optional[Dict[str, str]] = None
+
+    def _path(self) -> Path:
+        return Path(self.file) if self.file else Path(data_dir()) / self.FILE_NAME
+
+    def _load_locked(self) -> Dict[str, str]:
+        if self._entries is None:
+            entries: Dict[str, str] = {}
+            try:
+                path = self._path()
+                if path.is_file():
+                    with path.open("r", encoding="utf8") as fp:
+                        loaded = json.load(fp)
+                    if (isinstance(loaded, dict) and loaded.get("version") == self.VERSION
+                            and isinstance(loaded.get("entries"), dict)):
+                        entries = {str(key): str(value) for key, value in loaded["entries"].items()}
+            except (OSError, ValueError, UnicodeDecodeError) as exc:
+                logger.debug(f"OCR 持久缓存读取失败，按空缓存继续: {exc}")
+            self._entries = entries
+        return self._entries
+
+    @classmethod
+    def _key(cls, url: str, fingerprint: str) -> str:
+        return hashlib.sha256(f"{cls.VERSION}\x00{url}\x00{fingerprint}".encode("utf8")).hexdigest()
+
+    def get(self, url: str, fingerprint: str) -> Optional[str]:
+        with self._lock:
+            return self._load_locked().get(self._key(url, fingerprint))
+
+    def put(self, url: str, fingerprint: str, text: str) -> None:
+        key = self._key(url, fingerprint)
+        with self._lock:
+            entries = self._load_locked()
+            if entries.get(key) == text:
+                return
+            entries[key] = text
+            while len(entries) > self._maxsize:
+                del entries[next(iter(entries))]
+            try:
+                path = self._path()
+                path.parent.mkdir(parents=True, exist_ok=True)
+                fd, tmp_path = tempfile.mkstemp(prefix=self.FILE_NAME, dir=str(path.parent))
+                try:
+                    with os.fdopen(fd, "w", encoding="utf8") as fp:
+                        json.dump({"version": self.VERSION, "entries": entries}, fp,
+                                  ensure_ascii=False, separators=(",", ":"))
+                        fp.flush()
+                        os.fsync(fp.fileno())
+                    os.replace(tmp_path, str(path))
+                finally:
+                    if os.path.exists(tmp_path):
+                        try:
+                            os.remove(tmp_path)
+                        except OSError:
+                            pass
+            except OSError as exc:
+                logger.debug(f"OCR 持久缓存写入失败，下次将重新识别: {exc}")
+
+
+# 测试把该全局置为 None 即可禁用持久化；生产路径始终走真实实例。
+_OCR_PERSISTENT_CACHE: Optional[_OcrPersistentCache] = _OcrPersistentCache()
 
 
 def _get_ocr_cache(cache, key) -> Optional[OCRResult]:
@@ -252,22 +366,24 @@ def _init_paddle_ocr(preferred_device: Optional[str] = None):
         return _PADDLE_OCR_ENGINE
 
 
-def _preprocess_image_for_ocr(image_bytes: bytes, enhance_mode: int = 0) -> bytes:
+def _preprocess_image_for_ocr(image_bytes: bytes, enhance_mode: int = 0) -> Optional["np.ndarray"]:
     """预处理图片以提高 OCR 识别率。
-    
+
     enhance_mode:
         0 - 标准预处理：调整大小、增强对比度
         1 - 高对比度模式：更强的对比度增强 + 锐化
         2 - 二值化模式：转灰度后进行阈值处理
-    
-    返回处理后的 PNG 图片字节数据。
+
+    返回处理后的 BGR uint8 ndarray——PaddleOCR 对 ndarray 输入按 OpenCV 的
+    BGR 约定解码——全程内存传递，不再经过 PNG 编码与临时文件往返；
+    无法处理时返回 None。
     """
-    if not PIL_AVAILABLE:
-        return image_bytes
-    
+    if not (PIL_AVAILABLE and NUMPY_AVAILABLE):
+        return None
+
     try:
         img = Image.open(io.BytesIO(image_bytes))
-        
+
         # 转换为 RGB（处理 RGBA 或其他模式）
         if img.mode in ('RGBA', 'LA', 'P'):
             background = Image.new('RGB', img.size, (255, 255, 255))
@@ -277,7 +393,7 @@ def _preprocess_image_for_ocr(image_bytes: bytes, enhance_mode: int = 0) -> byte
             img = background
         elif img.mode != 'RGB':
             img = img.convert('RGB')
-        
+
         # 如果图片太小，放大以提高识别率
         min_dimension = 100
         width, height = img.size
@@ -285,7 +401,7 @@ def _preprocess_image_for_ocr(image_bytes: bytes, enhance_mode: int = 0) -> byte
             scale = max(min_dimension / width, min_dimension / height, 2.0)
             new_size = (int(width * scale), int(height * scale))
             img = img.resize(new_size, Image.Resampling.LANCZOS)
-        
+
         # 如果图片太大，缩小以加快处理速度
         max_dimension = 2000
         width, height = img.size
@@ -293,7 +409,7 @@ def _preprocess_image_for_ocr(image_bytes: bytes, enhance_mode: int = 0) -> byte
             scale = min(max_dimension / width, max_dimension / height)
             new_size = (int(width * scale), int(height * scale))
             img = img.resize(new_size, Image.Resampling.LANCZOS)
-        
+
         if enhance_mode == 0:
             # 标准模式：轻微增强对比度和锐度
             enhancer = ImageEnhance.Contrast(img)
@@ -317,14 +433,12 @@ def _preprocess_image_for_ocr(image_bytes: bytes, enhance_mode: int = 0) -> byte
             threshold = 180
             img = img.point(lambda p: 255 if p > threshold else 0)
             img = img.convert('RGB')
-        
-        # 输出为 PNG
-        output = io.BytesIO()
-        img.save(output, format='PNG')
-        return output.getvalue()
+
+        array = np.asarray(img, dtype=np.uint8)
+        return np.ascontiguousarray(array[:, :, ::-1])
     except Exception as exc:
         logger.debug(f"图片预处理失败: {exc}")
-        return image_bytes
+        return None
 
 
 def _call_http_ocr(ocr_endpoint: str, image_bytes: bytes, img_url: str) -> OCRResult:
@@ -332,7 +446,7 @@ def _call_http_ocr(ocr_endpoint: str, image_bytes: bytes, img_url: str) -> OCRRe
     ocr_resp = None
     try:
         files = {"file": ("question.png", image_bytes, "image/png")}
-        ocr_resp = requests.post(ocr_endpoint, files=files, timeout=20)
+        ocr_resp = _HTTP_OCR_SESSION.post(ocr_endpoint, files=files, timeout=20)
         if ocr_resp.status_code != 200:
             logger.debug(f"HTTP OCR 服务返回异常状态码: {ocr_resp.status_code}")
             return OCRResult()
@@ -364,40 +478,37 @@ def _download_ocr_image(img_url: str, session) -> Optional[bytes]:
 def _local_ocr_result(image_bytes: bytes, img_url: str) -> OCRResult:
     engine = _init_paddle_ocr()
     if engine is not None:
-        tmp_path = None
-        had_error = False
+        if not (PIL_AVAILABLE and NUMPY_AVAILABLE):
+            # 引擎存在而 Pillow/numpy 缺失时无法在内存中预处理；PaddleOCR
+            # 自身依赖 numpy，此分支仅防御异常裁剪的安装环境。
+            logger.debug("缺少 Pillow/numpy，本地 OCR 无法在内存中预处理图片")
+            return OCRResult()
         try:
             # 尝试多种预处理模式，直到获得有效文本
             # 模式 0: 标准预处理（对比度+锐化）
             # 模式 1: 高对比度模式
             # 模式 2: 二值化模式
             preprocessing_modes = [0, 1, 2]
-            
+
             final_texts: List[str] = []
+            had_error = False
             for preprocess_mode in preprocessing_modes:
-                # 预处理图片
-                processed_bytes = _preprocess_image_for_ocr(image_bytes, enhance_mode=preprocess_mode)
-                
-                # 写入临时文件
-                if tmp_path:
-                    try:
-                        os.remove(tmp_path)
-                    except OSError:
-                        pass
-                fd, tmp_path = tempfile.mkstemp(suffix=".png")
-                with os.fdopen(fd, "wb") as f:
-                    f.write(processed_bytes)
-                
+                # 预处理图片：内存 ndarray 直接交给引擎，不落临时文件
+                processed = _preprocess_image_for_ocr(image_bytes, enhance_mode=preprocess_mode)
+                if processed is None:
+                    had_error = True
+                    continue
+
                 # 执行 OCR
                 for device_attempt in range(2):
                     try:
                         with _PADDLE_OCR_LOCK:
                             predict = getattr(engine, "predict", None)
                             if callable(predict):
-                                ocr_result = predict(tmp_path)
+                                ocr_result = predict(processed)
                             else:
                                 # PaddleOCR 2.x fallback; 3.x exposes predict().
-                                ocr_result = engine.ocr(tmp_path)
+                                ocr_result = engine.ocr(processed)
                             final_texts = _parse_paddle_ocr_result(ocr_result)
                         break
                     except Exception as exc:
@@ -415,7 +526,7 @@ def _local_ocr_result(image_bytes: bytes, img_url: str) -> OCRResult:
                         logger.debug(f"PaddleOCR 识别失败 (模式{preprocess_mode}): {exc}")
                         had_error = True
                         break
-                
+
                 if final_texts:
                     logger.debug(
                         f"PaddleOCR 提取文本成功 (预处理模式{preprocess_mode}): {' '.join(final_texts)} 来自 {img_url}"
@@ -425,10 +536,10 @@ def _local_ocr_result(image_bytes: bytes, img_url: str) -> OCRResult:
                     break
                 else:
                     logger.debug(f"PaddleOCR 预处理模式{preprocess_mode}未识别出文本，尝试下一模式")
-            
+
             if not final_texts:
                 logger.debug(f"PaddleOCR 所有预处理模式均未识别出文本 来自 {img_url}")
-            
+
             if final_texts:
                 # 将多行结果合并为一行，交给大模型进一步理解
                 return OCRResult(" ".join(final_texts), success=True)
@@ -436,12 +547,6 @@ def _local_ocr_result(image_bytes: bytes, img_url: str) -> OCRResult:
         except Exception as exc:
             logger.debug(f"PaddleOCR 识别失败: {exc}")
             return OCRResult()
-        finally:
-            if tmp_path:
-                try:
-                    os.remove(tmp_path)
-                except OSError:
-                    pass
 
     return OCRResult()
 
@@ -475,12 +580,22 @@ def _ocr_image_to_text(img_url: str) -> str:
         return ""
     fingerprint = ocr_config_fingerprint(config)
     session = get_current_session()
-    # 保留会话对象本身而不是 id，避免会话释放后 id 复用命中其他账号。
-    url_key = (session, img_url, fingerprint)
+    # 缓存键存会话令牌而非会话对象：令牌随会话消亡，已关闭 Session 不会
+    # 因 LRU 未淘汰而无法回收，id 复用也不会命中其他账号的缓存。
+    url_key = (_session_cache_token(session), img_url, fingerprint)
+    persist = _OCR_PERSISTENT_CACHE
     with _OCR_URL_LOCKS[hash(url_key) % len(_OCR_URL_LOCKS)]:
         cached = _get_ocr_cache(_OCR_URL_CACHE, url_key)
         if cached is not None:
             return cached.text
+
+        if persist is not None:
+            persisted = persist.get(img_url, fingerprint)
+            if persisted is not None:
+                # 持久缓存命中：跳过下载与识别。
+                result = OCRResult(persisted, success=True)
+                _put_ocr_cache(_OCR_URL_CACHE, url_key, result)
+                return result.text
 
         result = OCRResult()
         try:
@@ -496,6 +611,8 @@ def _ocr_image_to_text(img_url: str) -> str:
             logger.debug(f"题目图片 OCR 失败: {exc}")
             result = OCRResult()
         _put_ocr_cache(_OCR_URL_CACHE, url_key, result)
+        if persist is not None and result.success and result.text:
+            persist.put(img_url, fingerprint, result.text)
         return result.text
 
 

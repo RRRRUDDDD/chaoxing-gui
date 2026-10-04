@@ -34,6 +34,9 @@ import requests
 
 from api.logger import logger
 
+# 模块级共享连接池；requests.Session 官方线程安全，各提供商跨请求复用 TLS 连接。
+_SESSION = requests.Session()
+
 # ============== 配置常量 ==============
 
 # 默认 OCR 提示词 - 严格模式，专为题目识别优化
@@ -245,7 +248,7 @@ def _call_openai_compatible(config: Dict[str, str], image_bytes: bytes) -> OCRRe
 
     resp = None
     try:
-        resp = requests.post(
+        resp = _SESSION.post(
             config["endpoint"],
             headers=headers,
             json=payload,
@@ -304,7 +307,7 @@ def _call_claude(config: Dict[str, str], image_bytes: bytes) -> OCRResult:
 
     resp = None
     try:
-        resp = requests.post(
+        resp = _SESSION.post(
             config["endpoint"],
             headers=headers,
             json=payload,

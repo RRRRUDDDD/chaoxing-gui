@@ -614,6 +614,59 @@ class QueryDiagnosticsTests(unittest.TestCase):
 
 
 
+    def test_repeated_failures_open_a_circuit_for_the_rest_of_the_task(self):
+        bank = self.bank([_wrapper(name='dead')])
+        requests_sent = Mock(side_effect=requests.Timeout('offline bank'))
+        with patch.object(bank._session, 'request', requests_sent), patch('api.ocs_tiku.logger') as log:
+            for _ in range(3):
+                self.assertIsNone(bank._query({'title': 'Q'}))
+                self.assertEqual(bank.query_diagnostics[0]['status'], 'timeout')
+            self.assertIsNone(bank._query({'title': 'Q'}))
+            self.assertEqual(bank.query_diagnostics[0]['status'], 'circuit_open')
+        self.assertEqual(requests_sent.call_count, 3)
+        self.assertTrue(any('连续失败 3 次' in call.args[0].format(*call.args[1:]) for call in log.error.call_args_list))
+
+    def test_authentication_rejection_opens_the_circuit_immediately(self):
+        bank = self.bank([_wrapper(name='auth-bank')])
+        error = requests.HTTPError('401 Client Error')
+        error.response = Mock(status_code=401)
+        requests_sent = Mock(side_effect=error)
+        with patch.object(bank._session, 'request', requests_sent), patch('api.ocs_tiku.logger'):
+            self.assertIsNone(bank._query({'title': 'Q'}))
+            self.assertEqual(bank.query_diagnostics[0]['status'], 'authentication_rejected')
+            self.assertIsNone(bank._query({'title': 'Q'}))
+            self.assertEqual(bank.query_diagnostics[0]['status'], 'circuit_open')
+        self.assertEqual(requests_sent.call_count, 1)
+
+    def test_successful_answer_resets_the_failure_count(self):
+        bank = self.bank([_wrapper()])
+        good = Mock()
+        good.json.return_value = {'code': 1, 'question': 'Q', 'answer': 'A'}
+        requests_sent = Mock(side_effect=[requests.Timeout('t1'), requests.Timeout('t2'), good,
+                                          requests.Timeout('t3'), requests.Timeout('t4'), requests.Timeout('t5')])
+        with patch.object(bank._session, 'request', requests_sent), patch('api.ocs_tiku.logger'):
+            self.assertIsNone(bank._query({'title': 'Q'}))
+            self.assertIsNone(bank._query({'title': 'Q'}))
+            self.assertEqual(bank._query({'title': 'Q'}), 'A')
+            for _ in range(2):
+                self.assertIsNone(bank._query({'title': 'Q'}))
+                self.assertEqual(bank.query_diagnostics[0]['status'], 'timeout')
+            self.assertIsNone(bank._query({'title': 'Q'}))
+            self.assertEqual(bank.query_diagnostics[0]['status'], 'timeout')
+            self.assertIsNone(bank._query({'title': 'Q'}))
+            self.assertEqual(bank.query_diagnostics[0]['status'], 'circuit_open')
+        self.assertEqual(requests_sent.call_count, 6)
+
+    def test_no_answer_keeps_the_circuit_closed(self):
+        bank = self.bank([_wrapper(handler='return r => [r.reason, undefined]')])
+        requests_sent = Mock(side_effect=lambda *a, **k: Mock(json=lambda: {'reason': '未找到匹配题目'}))
+        with patch.object(bank._session, 'request', requests_sent), patch('api.ocs_tiku.logger'):
+            for _ in range(5):
+                self.assertIsNone(bank._query({'title': 'Q'}))
+                self.assertEqual(bank.query_diagnostics[0]['status'], 'no_answer')
+        self.assertEqual(requests_sent.call_count, 5)
+
+
 class AdditionalCompatibilityTests(unittest.TestCase):
     def test_authentication_and_handler_failures_are_separate(self):
         bank = TikuOcs()
@@ -626,13 +679,18 @@ class AdditionalCompatibilityTests(unittest.TestCase):
             bank._query({'title': 'Q'})
         self.assertEqual(bank.query_diagnostics[0]['status'], 'authentication_rejected')
         self.assertNotIn('credential', str(bank.query_diagnostics))
+        # 401 已立即熔断该题库实例，处理失败用新实例（新任务）观察。
+        other = TikuOcs()
+        self.addCleanup(other.close)
+        other.config_set({'wrappers': [_wrapper()]})
+        other.init_tiku()
         response = Mock()
         response.json.return_value = {}
-        bank.wrappers[0]['run'] = Mock(side_effect=ValueError('secret handler data'))
-        with patch.object(bank._session, 'request', return_value=response):
-            bank._query({'title': 'Q'})
-        self.assertEqual(bank.query_diagnostics[0]['status'], 'handler_error')
-        self.assertNotIn('secret', str(bank.query_diagnostics))
+        other.wrappers[0]['run'] = Mock(side_effect=ValueError('secret handler data'))
+        with patch.object(other._session, 'request', return_value=response):
+            other._query({'title': 'Q'})
+        self.assertEqual(other.query_diagnostics[0]['status'], 'handler_error')
+        self.assertNotIn('secret', str(other.query_diagnostics))
 
     def test_cache_hit_resets_metadata_without_fetching_images(self):
         bank = TikuOcs()

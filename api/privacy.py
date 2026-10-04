@@ -5,7 +5,10 @@ import re
 import threading
 from urllib.parse import urlsplit
 
-_secrets = set()
+_SECRETS_LIMIT = 512
+# 有界集合（dict 模拟保序 set）：超限淘汰最旧的注册值。注册源是无界增长的
+# 动态配置（订阅、cookie 等），不封顶会让每条日志的全量替换开销持续上升。
+_secrets: dict = {}
 _lock = threading.RLock()
 _FIELDS = r'(?:password|passwd|pwd|cookies?|set-cookie|authorization|api[_-]?key|key|tokens?|[a-z_]*token|secret|enc|aienc|username|account|_?uid|fid|cpi|clazzid|classid|courseid|tg_chat_id|chat_id)'
 _SENSITIVE = re.compile(_FIELDS, re.I)
@@ -16,7 +19,9 @@ _URL = re.compile(r'''https?://[^\s<>"']+''', re.I)
 def register_secret(value):
     if isinstance(value, (str, int)) and len(str(value)) >= 4:
         with _lock:
-            _secrets.add(str(value))
+            _secrets[str(value)] = None
+            while len(_secrets) > _SECRETS_LIMIT:
+                del _secrets[next(iter(_secrets))]
 
 
 def register_config(config):
