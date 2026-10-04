@@ -2,6 +2,7 @@ import React from 'react';
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import ExecutionLog from './ExecutionLog';
+import { logRole } from '../lib/uiText';
 
 const logs = [
   { seq: 1, timestamp: 1, level: 'info', message: 'Course loaded' },
@@ -14,10 +15,10 @@ afterEach(() => { cleanup(); clipboard(undefined); vi.restoreAllMocks(); });
 it('combines filters, renders messages as text, and reports empty results', () => {
   render(<ExecutionLog logs={[...logs, { seq: 4, message: '<img src=x onerror=alert(1)>' }]} truncated />);
   expect(screen.getByText(/较早的日志已省略/)).toBeTruthy();
-  expect(screen.getByRole('log').querySelector('img')).toBeNull();
+  expect(screen.getByRole(logRole).querySelector('img')).toBeNull();
   fireEvent.change(screen.getByLabelText('日志级别'), { target: { value: 'warnings' } });
   fireEvent.change(screen.getByLabelText('搜索日志'), { target: { value: 'course' } });
-  const log = screen.getByRole('log');
+  const log = screen.getByRole(logRole);
   expect(within(log).getByText('Course skipped')).toBeTruthy();
   expect(within(log).queryByText('Course loaded')).toBeNull();
   expect(screen.getByText('匹配 1 / 4 条')).toBeTruthy();
@@ -37,7 +38,7 @@ it('copies only filtered logs, with time, level, and masked secrets', async () =
   expect(text).toContain('[error] Network failed token=[REDACTED]');
   expect(text).not.toContain('private-value');
   expect(text).not.toContain('Course');
-  expect(screen.getByRole('log').textContent).toContain('private-value');
+  expect(screen.getByRole(logRole).textContent).toContain('private-value');
 });
 it.each(['missing', 'denied'])('offers a manual copy fallback when clipboard is %s', async (mode) => {
   clipboard(mode === 'missing' ? undefined : { writeText: vi.fn().mockRejectedValue(new Error('denied')) });
@@ -55,7 +56,7 @@ it.each(['missing', 'denied'])('offers a manual copy fallback when clipboard is 
 });
 it('keeps an explicit pause across new logs and resumes without moving focus', () => {
   const view = render(<ExecutionLog logs={logs} />);
-  const log = screen.getByRole('log');
+  const log = screen.getByRole(logRole);
   Object.defineProperties(log, {
     scrollHeight: { configurable: true, value: 1200 },
     clientHeight: { configurable: true, value: 400 },

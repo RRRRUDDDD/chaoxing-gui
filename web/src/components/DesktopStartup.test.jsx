@@ -3,6 +3,7 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import DesktopStartup from './DesktopStartup';
 import { desktopBridge, isTauriDesktop } from '../lib/desktopBridge';
+import { recheckLabel } from '../lib/uiText';
 
 vi.mock('../lib/desktopBridge', () => ({ isTauriDesktop: vi.fn(), desktopBridge: { backendStatus: vi.fn() } }));
 const deferred = () => {
@@ -42,7 +43,7 @@ describe('desktop startup', () => {
     expect(screen.queryByText('业务界面')).toBeNull();
     expect(screen.getByRole('alert').textContent).toContain('服务');
     expect(screen.getByRole('alert').textContent).toContain('exit code fixture');
-    expect(screen.getByRole('button', { name: '重新检查' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: recheckLabel })).toBeTruthy();
   });
 
   it('slows the readiness watch down once the service is ready', async () => {
@@ -79,7 +80,7 @@ describe('desktop startup', () => {
     expect(screen.queryByText('业务界面')).toBeNull();
     await tick(1000);
     expect(desktopBridge.backendStatus).toHaveBeenCalledOnce();
-    fireEvent.click(screen.getByRole('button', { name: '重新检查' }));
+    fireEvent.click(screen.getByRole('button', { name: recheckLabel }));
     await tick();
     expect(desktopBridge.backendStatus).toHaveBeenCalledTimes(2);
     expect(screen.getByText('业务界面')).toBeTruthy();
@@ -92,7 +93,7 @@ describe('desktop startup', () => {
     await tick();
     expect(screen.getByRole('alert').textContent).toContain('无法读取服务状态');
     expect(screen.queryByText('业务界面')).toBeNull();
-    expect(screen.getByRole('button', { name: '重新检查' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: recheckLabel })).toBeTruthy();
     expect(vi.getTimerCount()).toBe(0);
   });
 

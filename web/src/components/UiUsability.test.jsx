@@ -4,6 +4,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import CourseSelection from './CourseSelection';
 import StudyProgress from './StudyProgress';
 import api from '../api/axios';
+import { configSavedMessage, logRole, saveDefaultLabel } from '../lib/uiText';
 
 vi.mock('../api/axios', () => ({ default: { get: vi.fn(), post: vi.fn() } }));
 const account = { username: 'alice', password: '', use_cookies: true };
@@ -36,10 +37,10 @@ it('tracks real modifications and clears stale success, ignoring click order', a
   expect(screen.getByText('有未保存的更改')).toBeTruthy();
   fireEvent.click(first);
   expect(screen.queryByText('有未保存的更改')).toBeNull();
-  fireEvent.click(screen.getByRole('button', { name: '保存为默认配置' }));
-  await screen.findByText('配置已保存');
+  fireEvent.click(screen.getByRole('button', { name: saveDefaultLabel }));
+  await screen.findByText(configSavedMessage);
   fireEvent.change(screen.getByLabelText('播放倍速'), { target: { value: '1.5' } });
-  expect(screen.queryByText('配置已保存')).toBeNull();
+  expect(screen.queryByText(configSavedMessage)).toBeNull();
   expect(screen.getByText('有未保存的更改')).toBeTruthy();
   fireEvent.change(screen.getByLabelText('播放倍速'), { target: { value: '1' } });
   expect(screen.queryByText('有未保存的更改')).toBeNull();
@@ -49,7 +50,7 @@ it.each(['business', 'network'])('renders a %s save failure as an alert, retaini
   fireEvent.click(screen.getByRole('button', { name: /First course/ }));
   if (kind === 'business') api.post.mockResolvedValueOnce({ data: { status: false, msg: '无法保存配置' } });
   else api.post.mockRejectedValueOnce(new Error('offline'));
-  fireEvent.click(screen.getByRole('button', { name: '保存为默认配置' }));
+  fireEvent.click(screen.getByRole('button', { name: saveDefaultLabel }));
   const alert = await screen.findByRole('alert');
   expect(alert.className).toContain('text-danger');
   expect(screen.getByText('有未保存的更改')).toBeTruthy();
@@ -59,11 +60,11 @@ it('acknowledges only the request snapshot when editing continues during save', 
   const pending = deferred();
   api.post.mockReturnValueOnce(pending.promise);
   fireEvent.click(screen.getByRole('button', { name: /First course/ }));
-  fireEvent.click(screen.getByRole('button', { name: '保存为默认配置' }));
+  fireEvent.click(screen.getByRole('button', { name: saveDefaultLabel }));
   expect(screen.getByRole('button', { name: '保存中' }).disabled).toBe(true);
   fireEvent.change(screen.getByLabelText('播放倍速'), { target: { value: '1.5' } });
   await act(async () => pending.resolve(ok({})));
-  expect(screen.queryByText('配置已保存')).toBeNull();
+  expect(screen.queryByText(configSavedMessage)).toBeNull();
   expect(screen.getByText('有未保存的更改')).toBeTruthy();
   fireEvent.change(screen.getByLabelText('播放倍速'), { target: { value: '1' } });
   expect(screen.queryByText('有未保存的更改')).toBeNull();
@@ -73,13 +74,13 @@ it.each(['success', 'failure'])('ignores a late save %s after changing accounts'
   const pending = deferred();
   api.post.mockReturnValueOnce(pending.promise);
   fireEvent.click(screen.getByRole('button', { name: /First course/ }));
-  fireEvent.click(screen.getByRole('button', { name: '保存为默认配置' }));
+  fireEvent.click(screen.getByRole('button', { name: saveDefaultLabel }));
   const signal = api.post.mock.calls.find(([url]) => url === '/config')[2].signal;
   view.rerender(<CourseSelection userInfo={{ ...account, username: 'bob' }} onStartStudy={vi.fn()} />);
   await screen.findByRole('button', { name: /First course/ });
   expect(signal.aborted).toBe(true);
   await act(async () => outcome === 'success' ? pending.resolve(ok({})) : pending.reject(new Error('old failure')));
-  expect(screen.queryByText('配置已保存')).toBeNull();
+  expect(screen.queryByText(configSavedMessage)).toBeNull();
   expect(screen.queryByRole('alert')).toBeNull();
   expect(screen.queryByText('有未保存的更改')).toBeNull();
 });
@@ -124,7 +125,7 @@ it('puts the task-type choice above the workspace, retitles the page and summari
 it('preview save updates only local state and demo totals match course details', async () => {
   const view = render(<CourseSelection userInfo={account} preview />);
   fireEvent.click(await screen.findByRole('button', { name: /大学英语/ }));
-  fireEvent.click(screen.getByRole('button', { name: '保存为默认配置' }));
+  fireEvent.click(screen.getByRole('button', { name: saveDefaultLabel }));
   expect(screen.getByText('演示配置已保存')).toBeTruthy();
   expect(screen.queryByText('有未保存的更改')).toBeNull();
   view.unmount();
@@ -143,7 +144,7 @@ it.each([
     { data: { status: true, data: [], next_cursor: 0 } } : ok({ status, progress: 1, total: 2, stats: { failed_chapters: 1, total_chapters: 2 } }));
   render(<StudyProgress taskId="task" />);
   const summary = await screen.findByText(label);
-  const log = screen.getByRole('log');
+  const log = screen.getByRole(logRole);
   expect(summary.compareDocumentPosition(log) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   expect(screen.getByText('失败章节').compareDocumentPosition(log) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 });
@@ -173,10 +174,10 @@ it('cancels an in-flight configuration save when unmounted', async () => {
   const view = await mountCourses();
   const pending = deferred();
   api.post.mockReturnValueOnce(pending.promise);
-  fireEvent.click(screen.getByRole('button', { name: '保存为默认配置' }));
+  fireEvent.click(screen.getByRole('button', { name: saveDefaultLabel }));
   const signal = api.post.mock.calls.find(([url]) => url === '/config')[2].signal;
   view.unmount();
   expect(signal.aborted).toBe(true);
   await act(async () => pending.resolve(ok({})));
-  expect(screen.queryByText('配置已保存')).toBeNull();
+  expect(screen.queryByText(configSavedMessage)).toBeNull();
 });

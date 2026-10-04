@@ -7,6 +7,7 @@ import StudyProgress from './StudyProgress';
 import Login from './Login';
 import api from '../api/axios';
 import { SAVED_LOGIN_KEY, SESSION_KEY, sessionStore } from '../lib/sessionStore';
+import { configSavedMessage, loginLabels, logRole, saveDefaultLabel, startStudyLabel } from '../lib/uiText';
 
 vi.mock('../api/axios', () => ({ default: { get: vi.fn(), post: vi.fn() } }));
 
@@ -44,10 +45,10 @@ function services({ config = { selectedCoursesByAccount: { alice: ['1', '2'], bo
 }
 
 async function loginManually(username) {
-  await screen.findByRole('button', { name: '登录' });
-  fireEvent.change(screen.getByLabelText('手机号'), { target: { value: username } });
-  fireEvent.change(screen.getByLabelText('密码'), { target: { value: 'test-password' } });
-  fireEvent.click(screen.getByRole('button', { name: '登录' }));
+  await screen.findByRole('button', { name: loginLabels.submit });
+  fireEvent.change(screen.getByLabelText(loginLabels.phone), { target: { value: username } });
+  fireEvent.change(screen.getByLabelText(loginLabels.password), { target: { value: 'test-password' } });
+  fireEvent.click(screen.getByRole('button', { name: loginLabels.submit }));
   await screen.findByText(username);
 }
 
@@ -69,7 +70,7 @@ describe('course selection', () => {
     const start = vi.fn();
     render(<CourseSelection userInfo={account} onStartStudy={start} />);
     expect((await screen.findByRole('alert')).textContent).toContain('课程服务暂不可用');
-    const button = screen.getByRole('button', { name: '开始学习' });
+    const button = screen.getByRole('button', { name: startStudyLabel });
     expect(button.disabled).toBe(true);
     fireEvent.click(button);
     expect(start).not.toHaveBeenCalled();
@@ -81,7 +82,7 @@ describe('course selection', () => {
     api.get.mockRejectedValue(new Error('offline'));
     render(<CourseSelection userInfo={account} onStartStudy={vi.fn()} />);
     await screen.findByRole('alert');
-    expect(screen.getByRole('button', { name: '开始学习' }).disabled).toBe(true);
+    expect(screen.getByRole('button', { name: startStudyLabel }).disabled).toBe(true);
     expect(screen.getByRole('button', { name: /Course one/ }).getAttribute('aria-pressed')).toBe('false');
   });
 
@@ -91,17 +92,17 @@ describe('course selection', () => {
     render(<CourseSelection userInfo={account} onStartStudy={start} />);
     const first = await screen.findByRole('button', { name: /Course one/ });
     expect(first.getAttribute('aria-pressed')).toBe('false');
-    expect(screen.getByRole('button', { name: '开始学习' }).disabled).toBe(true);
+    expect(screen.getByRole('button', { name: startStudyLabel }).disabled).toBe(true);
     fireEvent.click(first);
-    fireEvent.click(screen.getByRole('button', { name: '开始学习' }));
+    fireEvent.click(screen.getByRole('button', { name: startStudyLabel }));
     expect(start.mock.calls[0][0].course_list).toEqual(['1']);
-    fireEvent.click(screen.getByRole('button', { name: '保存为默认配置' }));
-    await screen.findByText('配置已保存');
+    fireEvent.click(screen.getByRole('button', { name: saveDefaultLabel }));
+    await screen.findByText(configSavedMessage);
     const payload = api.post.mock.calls.find(([url]) => url === '/config')[1];
     expect(payload.selectedCoursesByAccount).toEqual({ alice: ['1'] });
     expect(payload.selectedCourses).toBeUndefined();
     fireEvent.click(first);
-    expect(screen.getByRole('button', { name: '开始学习' }).disabled).toBe(true);
+    expect(screen.getByRole('button', { name: startStudyLabel }).disabled).toBe(true);
   });
 
   it('cancels a previous account load and never lets its late courses replace the new account', async () => {
@@ -116,7 +117,7 @@ describe('course selection', () => {
     expect(previousSignal.aborted).toBe(true);
     await act(async () => old.resolve(ok(courses)));
     expect(screen.queryByText('Course one')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: '开始学习' }));
+    fireEvent.click(screen.getByRole('button', { name: startStudyLabel }));
     expect(start.mock.calls[0][0].course_list).toEqual(['b']);
   });
 
@@ -125,7 +126,7 @@ describe('course selection', () => {
     api.post.mockResolvedValue(ok([]));
     render(<CourseSelection userInfo={account} onStartStudy={vi.fn()} />);
     await screen.findByText('暂无课程');
-    expect(screen.getByRole('button', { name: '开始学习' }).disabled).toBe(true);
+    expect(screen.getByRole('button', { name: startStudyLabel }).disabled).toBe(true);
   });
 
   it('keeps course-selection drafts across a progress round trip without saving them', async () => {
@@ -138,7 +139,7 @@ describe('course selection', () => {
     fireEvent.change(screen.getByLabelText('播放倍速'), { target: { value: '1.6' } });
     const configCalls = () => api.post.mock.calls.filter(([url]) => url === '/config').length;
     expect(configCalls()).toBe(0);
-    fireEvent.click(screen.getByRole('button', { name: '开始学习' }));
+    fireEvent.click(screen.getByRole('button', { name: startStudyLabel }));
     await screen.findByText('task-one');
     fireEvent.click(screen.getByRole('button', { name: '返回课程选择' }));
     await screen.findByRole('button', { name: '返回运行任务' });
@@ -202,7 +203,7 @@ describe('task navigation', () => {
     fireEvent.click(await screen.findByRole('button', { name: '退出登录' }));
     await loginManually('bob');
     expect(oldSignal.aborted).toBe(true);
-    fireEvent.click(screen.getByRole('button', { name: '开始学习' }));
+    fireEvent.click(screen.getByRole('button', { name: startStudyLabel }));
     await screen.findByText('task-one');
     await act(async () => {
       if (outcome === 'success') resuming.resolve(ok({ task_id: 'alice-interrupted', status: 'running' }));
@@ -218,12 +219,12 @@ describe('task navigation', () => {
     services();
     await sessionStore.rememberLogin('alice');
     const view = render(<React.StrictMode><App /></React.StrictMode>);
-    fireEvent.click(await screen.findByRole('button', { name: '开始学习' }));
+    fireEvent.click(await screen.findByRole('button', { name: startStudyLabel }));
     await screen.findByText('task-one');
     await waitFor(() => expect(JSON.parse(localStorage.getItem(SESSION_KEY)).activeTask?.taskId).toBe('task-one'));
     fireEvent.click(screen.getByRole('button', { name: '返回课程选择' }));
     const returnButton = await screen.findByRole('button', { name: '返回运行任务' });
-    expect(screen.getByRole('button', { name: '开始学习' }).disabled).toBe(true);
+    expect(screen.getByRole('button', { name: startStudyLabel }).disabled).toBe(true);
     fireEvent.click(returnButton);
     await screen.findByText('task-one');
     expect(api.post.mock.calls.filter(([url]) => url === '/start')).toHaveLength(1);
@@ -234,7 +235,7 @@ describe('task navigation', () => {
     expect(api.post.mock.calls.filter(([url]) => url === '/start')).toHaveLength(1);
     fireEvent.click(screen.getByRole('button', { name: '返回课程选择' }));
     fireEvent.click(await screen.findByRole('button', { name: '退出登录' }));
-    await screen.findByLabelText('密码');
+    await screen.findByLabelText(loginLabels.password);
     expect(localStorage.getItem(SESSION_KEY)).toBeNull();
   });
 
@@ -242,7 +243,7 @@ describe('task navigation', () => {
     services({ conflict: true });
     await sessionStore.rememberLogin('alice');
     render(<App />);
-    fireEvent.click(await screen.findByRole('button', { name: '开始学习' }));
+    fireEvent.click(await screen.findByRole('button', { name: startStudyLabel }));
     await screen.findByText('existing-task');
     await waitFor(() => expect(JSON.parse(localStorage.getItem(SESSION_KEY)).activeTask.taskId).toBe('existing-task'));
   });
@@ -263,7 +264,7 @@ describe('task navigation', () => {
       ? body.username === 'alice' ? aliceStart.promise : bobStart.promise
       : normalPost(url, body, options));
     render(<App />);
-    const startButton = await screen.findByRole('button', { name: '开始学习' });
+    const startButton = await screen.findByRole('button', { name: startStudyLabel });
     const pending = scenario !== 'idle';
     if (pending) fireEvent.click(startButton);
     const oldSignal = api.post.mock.calls.find(([url]) => url === '/start')?.[2].signal;
@@ -274,11 +275,11 @@ describe('task navigation', () => {
     if (pending) expect(oldSignal.aborted).toBe(true);
     fireEvent.click(startButton);
     expect(api.post.mock.calls.filter(([url]) => url === '/start')).toHaveLength(pending ? 1 : 0);
-    expect(screen.queryByLabelText('密码')).toBeNull();
+    expect(screen.queryByLabelText(loginLabels.password)).toBeNull();
 
     await act(async () => clearing.resolve());
     await loginManually('bob');
-    fireEvent.click(screen.getByRole('button', { name: '开始学习' }));
+    fireEvent.click(screen.getByRole('button', { name: startStudyLabel }));
     await act(async () => {
       if (scenario === 'pending conflict') {
         aliceStart.reject({ response: { status: 409, data: { data: { task_id: 'alice-task' } } } });
@@ -306,14 +307,14 @@ describe('task navigation', () => {
     api.post.mockImplementation((url, body, options) => url === '/start' && starts++ === 0
       ? oldStart.promise : normalPost(url, body, options));
     render(<App />);
-    fireEvent.click(await screen.findByRole('button', { name: '开始学习' }));
+    fireEvent.click(await screen.findByRole('button', { name: startStudyLabel }));
     fireEvent.click(screen.getByRole('button', { name: '退出登录' }));
     await act(async () => clearing.reject(new Error('clear failed')));
     expect((await screen.findByRole('alert')).textContent).toContain('清除保存的账号失败');
     expect(screen.getByText('alice')).toBeTruthy();
-    expect(screen.queryByLabelText('密码')).toBeNull();
+    expect(screen.queryByLabelText(loginLabels.password)).toBeNull();
     expect(screen.getByRole('button', { name: '退出登录' }).disabled).toBe(false);
-    const retryButton = screen.getByRole('button', { name: '开始学习' });
+    const retryButton = screen.getByRole('button', { name: startStudyLabel });
     expect(retryButton.disabled).toBe(false);
     fireEvent.click(retryButton);
     await screen.findByText('task-one');
@@ -328,7 +329,7 @@ describe('task navigation', () => {
     await sessionStore.rememberLogin('alice');
     vi.spyOn(sessionStore, 'rememberTask').mockRejectedValueOnce(new Error('storage unavailable'));
     render(<App />);
-    fireEvent.click(await screen.findByRole('button', { name: '开始学习' }));
+    fireEvent.click(await screen.findByRole('button', { name: startStudyLabel }));
     await screen.findByText(conflict ? 'existing-task' : 'task-one');
     expect(screen.getByText('学习进度监控')).toBeTruthy();
     const notice = await screen.findByRole('alert');
@@ -347,12 +348,12 @@ describe('task navigation', () => {
       ? Promise.resolve(ok({ task_id: starts++ === 0 ? 'old-task' : 'new-task' }))
       : normalPost(url, body, options));
     render(<App />);
-    fireEvent.click(await screen.findByRole('button', { name: '开始学习' }));
+    fireEvent.click(await screen.findByRole('button', { name: startStudyLabel }));
     await screen.findByText('old-task');
     fireEvent.click(screen.getByRole('button', { name: '返回课程选择' }));
     fireEvent.click(await screen.findByRole('button', { name: '退出登录' }));
     await loginManually(username);
-    fireEvent.click(screen.getByRole('button', { name: '开始学习' }));
+    fireEvent.click(screen.getByRole('button', { name: startStudyLabel }));
     await screen.findByText('new-task');
     await act(async () => oldSave.reject(new Error('old storage failure')));
     expect(screen.getByText('new-task')).toBeTruthy();
@@ -372,7 +373,7 @@ describe('task navigation', () => {
     render(<App />);
     expect((await screen.findByRole('alert')).textContent).toContain('没有可恢复的记录');
     await waitFor(() => expect(JSON.parse(localStorage.getItem(SESSION_KEY)).activeTask).toBeNull());
-    expect((await screen.findByRole('button', { name: '开始学习' })).disabled).toBe(false);
+    expect((await screen.findByRole('button', { name: startStudyLabel })).disabled).toBe(false);
   });
 
   it.each(['success', 'missing', 'error'])('ignores a late %s stop response after a new task starts for the same account', async (outcome) => {
@@ -391,14 +392,14 @@ describe('task navigation', () => {
     api.get.mockImplementation((url, options) => url === '/task/old-task'
       ? Promise.resolve(ok(taskState(oldStatus))) : normalGet(url, options));
     render(<App />);
-    fireEvent.click(await screen.findByRole('button', { name: '开始学习' }));
+    fireEvent.click(await screen.findByRole('button', { name: startStudyLabel }));
     fireEvent.click(await screen.findByRole('button', { name: '停止任务' }));
     fireEvent.click(screen.getByRole('button', { name: '确认停止任务' }));
     const oldSignal = api.post.mock.calls.find(([url]) => url.endsWith('/stop'))[2].signal;
     oldStatus = 'completed';
     fireEvent.click(screen.getByRole('button', { name: '返回课程选择' }));
     await screen.findByRole('button', { name: '查看上次任务' });
-    fireEvent.click(screen.getByRole('button', { name: '开始学习' }));
+    fireEvent.click(screen.getByRole('button', { name: startStudyLabel }));
     await screen.findByText('new-task');
     expect(oldSignal.aborted).toBe(true);
     await act(async () => {
@@ -408,7 +409,7 @@ describe('task navigation', () => {
     expect(screen.queryByRole('alert')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: '返回课程选择' }));
     await screen.findByRole('button', { name: '返回运行任务' });
-    expect(screen.getByRole('button', { name: '开始学习' }).disabled).toBe(true);
+    expect(screen.getByRole('button', { name: startStudyLabel }).disabled).toBe(true);
     expect((await sessionStore.read()).activeTask).toEqual({ username: 'alice', taskId: 'new-task' });
   });
 
@@ -421,7 +422,7 @@ describe('task navigation', () => {
     await waitFor(() => expect(screen.queryByText('加载中')).toBeNull());
     fireEvent.click(screen.getByRole('button', { name: '返回课程选择' }));
     await screen.findByRole('button', { name: '查看上次任务' });
-    expect(screen.getByRole('button', { name: '开始学习' }).disabled).toBe(false);
+    expect(screen.getByRole('button', { name: startStudyLabel }).disabled).toBe(false);
   });
 });
 
@@ -436,7 +437,7 @@ describe('progress details', () => {
     api.get.mockImplementation(async (url) => url.endsWith('/details') ? ok({ courses: [{ id: 'c', title: 'Result course', status: 'partial', chapters }] }) : url.startsWith('/logs/') ? page(logs, 510) : ok(taskState('partial')));
     render(<StudyProgress taskId="one" />);
     await screen.findByText('line-509');
-    const log = screen.getByRole('log');
+    const log = screen.getByRole(logRole);
     expect(within(log).getAllByText(/^line-/)).toHaveLength(500);
     expect(within(log).queryByText('line-0')).toBeNull();
     expect(screen.queryByText('所有任务已完成')).toBeNull();
@@ -484,9 +485,9 @@ it('migrates legacy login to cookie-only authentication and falls back to manual
   expect(api.post).toHaveBeenCalledTimes(1);
   expect(api.post.mock.calls[0][1]).toEqual({ username: 'alice', password: '', use_cookies: true });
   expect(localStorage.getItem(SAVED_LOGIN_KEY)).toBeNull();
-  expect(screen.getByLabelText('密码').value).toBe('');
-  fireEvent.change(screen.getByLabelText('密码'), { target: { value: 'new-test-password' } });
-  fireEvent.click(screen.getByRole('button', { name: '登录' }));
+  expect(screen.getByLabelText(loginLabels.password).value).toBe('');
+  fireEvent.change(screen.getByLabelText(loginLabels.password), { target: { value: 'new-test-password' } });
+  fireEvent.click(screen.getByRole('button', { name: loginLabels.submit }));
   await waitFor(() => expect(success).toHaveBeenCalledOnce());
   expect(success.mock.calls[0][0]).toEqual(account);
   expect(localStorage.getItem(SESSION_KEY)).not.toContain('password');
@@ -497,12 +498,12 @@ it.each(['courses', 'progress'])('keeps the %s preview usable without backend re
   render(<App />);
   if (preview === 'courses') {
     fireEvent.click(await screen.findByRole('button', { name: /大学英语/ }));
-    fireEvent.click(screen.getByRole('button', { name: '开始学习' }));
+    fireEvent.click(screen.getByRole('button', { name: startStudyLabel }));
   }
   await screen.findByText('preview-task');
   fireEvent.click(screen.getByRole('button', { name: '返回课程选择' }));
-  await screen.findByRole('button', { name: '开始学习' });
-  fireEvent.click(screen.getByRole('button', { name: '保存为默认配置' }));
+  await screen.findByRole('button', { name: startStudyLabel });
+  fireEvent.click(screen.getByRole('button', { name: saveDefaultLabel }));
   expect(api.get).not.toHaveBeenCalled();
   expect(api.post).not.toHaveBeenCalled();
   expect(localStorage.getItem(SESSION_KEY)).toBeNull();

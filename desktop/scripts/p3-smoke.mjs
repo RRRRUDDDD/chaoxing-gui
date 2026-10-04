@@ -11,6 +11,7 @@ import path from 'node:path';
 import { createInterface } from 'node:readline';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
+import { configSavedMessage, expiredTaskMessage, logRole, loginLabels, recheckLabel, saveDefaultLabel, startStudyLabel } from '../../web/src/lib/uiText.js';
 
 const exec = promisify(execFile);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
@@ -571,11 +572,11 @@ async function runTauri(options, context, evidence, result, record) {
     await use('fake-cancel', 'fake', (app) => syntheticCancellation(app, record));
     for (const fault of ['missing', 'bad-executable']) {
       await use(`fake-${fault}`, 'fake', async (app) => {
-        await app.page.getByRole('button', { name: '重新检查' }).waitFor();
+        await app.page.getByRole('button', { name: recheckLabel }).waitFor();
         const initial = await app.page.evaluate(() => window.__TAURI__.core.invoke('backend_status'));
         assert.equal(initial.phase, 'failed');
-        assert.equal(await app.page.getByLabel('手机号').count(), 0);
-        await activate(app.page.getByRole('button', { name: '重新检查' }));
+        assert.equal(await app.page.getByLabel(loginLabels.phone).count(), 0);
+        await activate(app.page.getByRole('button', { name: recheckLabel }));
         const again = await app.page.evaluate(() => window.__TAURI__.core.invoke('backend_status'));
         assert.equal(again.phase, 'failed');
         const snapshot = await app.owner.snapshot();
@@ -590,8 +591,8 @@ async function runTauri(options, context, evidence, result, record) {
     }, { fault: 'slow', ready: false });
     await use('fake-backend-death', 'fake', async (app) => {
       for (const identity of app.backendIdentities) await app.owner.command('kill-member', { pid: identity.pid, createdAtFileTime: identity.createdAtFileTime });
-      await app.page.getByRole('button', { name: '重新检查' }).waitFor();
-      await activate(app.page.getByRole('button', { name: '重新检查' }));
+      await app.page.getByRole('button', { name: recheckLabel }).waitFor();
+      await activate(app.page.getByRole('button', { name: recheckLabel }));
       const status = await app.page.evaluate(() => window.__TAURI__.core.invoke('backend_status'));
       assert.equal(status.phase, 'failed');
       const snapshot = await app.owner.snapshot();
@@ -641,19 +642,19 @@ async function activate(locator) {
 
 async function syntheticBusiness(app, record) {
   const { page } = app;
-  await page.getByLabel('手机号').fill('p2-fixture');
-  await page.getByLabel('密码', { exact: true }).fill('p3-synthetic-password');
-  await activate(page.getByRole('button', { name: '登录', exact: true }));
+  await page.getByLabel(loginLabels.phone).fill('p2-fixture');
+  await page.getByLabel(loginLabels.password, { exact: true }).fill('p3-synthetic-password');
+  await activate(page.getByRole('button', { name: loginLabels.submit, exact: true }));
   const course = page.getByRole('button', { name: /P2 测试课程一/ });
   await course.waitFor();
   assert.equal(await course.getAttribute('aria-pressed'), 'true');
   assert.equal(await page.getByRole('button', { name: /P2 测试课程二/ }).getAttribute('aria-pressed'), 'false');
-  await activate(page.getByRole('button', { name: '保存为默认配置' }));
-  await page.getByText('配置已保存', { exact: true }).waitFor();
-  await activate(page.getByRole('button', { name: '开始学习', exact: true }));
+  await activate(page.getByRole('button', { name: saveDefaultLabel }));
+  await page.getByText(configSavedMessage, { exact: true }).waitFor();
+  await activate(page.getByRole('button', { name: startStudyLabel, exact: true }));
   await page.getByText('p2-existing-task', { exact: true }).waitFor();
-  await page.getByRole('log').getByText('P2 终态日志二', { exact: true }).waitFor();
-  assert.equal(await page.getByRole('log').getByText('P2 唯一日志一', { exact: true }).count(), 1);
+  await page.getByRole(logRole).getByText('P2 终态日志二', { exact: true }).waitFor();
+  assert.equal(await page.getByRole(logRole).getByText('P2 唯一日志一', { exact: true }).count(), 1);
   const counters = await json(path.join(app.fixture, 'counts.json'));
   assert.equal(counters.start, 1);
   assert.equal(counters.configWrites, 1);
@@ -666,11 +667,11 @@ async function syntheticBusiness(app, record) {
   await page.getByText('p2-existing-task', { exact: true }).waitFor();
   // Let the restored task finish its final poll before injecting 404. Otherwise
   // the old document can clear the saved task while the next reload starts.
-  await page.getByRole('log').getByText('P2 终态日志二', { exact: true }).waitFor();
+  await page.getByRole(logRole).getByText('P2 终态日志二', { exact: true }).waitFor();
   assert.equal((await json(path.join(app.fixture, 'counts.json'))).start, 1);
   await writeFile(path.join(app.fixture, 'control.json'), JSON.stringify({ missing: true }));
   await page.reload();
-  await page.getByText('上次任务已过期或没有可恢复的记录，请重新选择课程。', { exact: true }).waitFor();
+  await page.getByText(expiredTaskMessage, { exact: true }).waitFor();
   await until(async () => (await page.evaluate(() => window.__TAURI__.core.invoke('session_read'))).activeTask === null, 'missing task clears saved task');
   assert.equal((await page.evaluate(() => window.__TAURI__.core.invoke('session_read'))).login.username, 'p2-fixture');
   record('synthetic-login-config-start409-after-once-refresh404', { counters, upstreamAccountsUsed: false, input: 'visible/enabled DOM click over CDP' });

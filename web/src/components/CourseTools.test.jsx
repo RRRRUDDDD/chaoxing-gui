@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '../App';
 import api from '../api/axios';
 import { sessionStore } from '../lib/sessionStore';
+import { loginLabels, startStudyLabel } from '../lib/uiText';
 import CourseSelection from './CourseSelection';
 import StudyProgress from './StudyProgress';
 import CourseToolProgress from './CourseToolProgress';
@@ -57,9 +58,9 @@ function progressServices(status, tool) {
 }
 
 async function manualLogin(username) {
-  fireEvent.change(await screen.findByLabelText('手机号'), { target: { value: username } });
-  fireEvent.change(screen.getByLabelText('密码'), { target: { value: 'mock-password' } });
-  fireEvent.click(screen.getByRole('button', { name: '登录' }));
+  fireEvent.change(await screen.findByLabelText(loginLabels.phone), { target: { value: username } });
+  fireEvent.change(screen.getByLabelText(loginLabels.password), { target: { value: 'mock-password' } });
+  fireEvent.click(screen.getByRole('button', { name: loginLabels.submit }));
   await screen.findByText(username);
 }
 
@@ -80,7 +81,7 @@ describe('course tool configuration', () => {
     render(<CourseSelection userInfo={account} onStartStudy={start} />);
     await screen.findByRole('button', { name: /模拟课程一/ });
     expect(screen.getByRole('radio', { name: '自动学习' }).checked).toBe(true);
-    expect(screen.getByRole('button', { name: '开始学习' }).disabled).toBe(true);
+    expect(screen.getByRole('button', { name: startStudyLabel }).disabled).toBe(true);
     fireEvent.click(screen.getByRole('radio', { name: '学习次数' }));
     expect(screen.getByRole('button', { name: '开始提交次数' }).disabled).toBe(true);
     fireEvent.click(screen.getByRole('button', { name: /模拟课程一/ }));
@@ -147,7 +148,7 @@ describe('course tool configuration', () => {
     view.rerender(<CourseSelection userInfo={{ ...account, username: 'bob' }} onStartStudy={vi.fn()} />);
     await screen.findByRole('button', { name: /模拟课程一/ });
     expect(screen.getByRole('radio', { name: '自动学习' }).checked).toBe(true);
-    expect(screen.getByRole('button', { name: '开始学习' }).disabled).toBe(true);
+    expect(screen.getByRole('button', { name: startStudyLabel }).disabled).toBe(true);
     fireEvent.click(screen.getByRole('radio', { name: '学习次数' }));
     expect(screen.getByLabelText('每门课程提交次数').value).toBe('10');
   });
@@ -412,7 +413,7 @@ describe('shared App start lifecycle', () => {
     fireEvent.click(await screen.findByRole('button', { name: '退出登录' }));
     await manualLogin('bob');
     expect(oldSignal.aborted).toBe(true);
-    fireEvent.click(await screen.findByRole('button', { name: '开始学习' }));
+    fireEvent.click(await screen.findByRole('button', { name: startStudyLabel }));
     await screen.findByText('bob-task');
     await act(async () => {
       if (outcome === 'success') pending.resolve(ok({ task_id: 'old-resource-task' }));

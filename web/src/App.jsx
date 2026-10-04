@@ -5,6 +5,7 @@ import StudyProgress from './components/StudyProgress';
 import api from './api/axios';
 import { sessionStore, validTaskId } from './lib/sessionStore';
 import { isTerminalStatus, startTaskPolling } from './lib/taskPolling';
+import { expiredTaskMessage } from './lib/uiText';
 import { useReportTaskRunning } from './components/CloseChoiceDialog';
 
 function App() {
@@ -69,7 +70,7 @@ function App() {
         setTaskNotice(null);
         setRecovery(null);
         setStep('courses');
-        setStartError('上次任务已过期或没有可恢复的记录，请重新选择课程。');
+        setStartError(expiredTaskMessage);
         try { await sessionStore.rememberTask(null); }
         catch {
           if (isCurrent()) setStartError('上次任务无法恢复，且清除旧记录失败；可重新选择课程开始学习。');

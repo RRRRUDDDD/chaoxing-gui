@@ -6,6 +6,7 @@ import StudyProgress from './StudyProgress';
 import RepositoryLink, { REPOSITORY_URL } from './RepositoryLink';
 import { TikuSettings } from './AdvancedSettings';
 import api from '../api/axios';
+import { logRole, startStudyLabel } from '../lib/uiText';
 
 const core = vi.hoisted(() => ({ isTauri: vi.fn(), invoke: vi.fn() }));
 vi.mock('@tauri-apps/api/core', () => core);
@@ -30,13 +31,13 @@ it('starts with no selected courses and selects the current list with Ctrl+A or 
   const first = screen.getByRole('button', { name: /First course/ });
   expect(first.getAttribute('aria-pressed')).toBe('false');
   expect(screen.getByRole('button', { name: /Second course/ }).getAttribute('aria-pressed')).toBe('false');
-  expect(screen.getByRole('button', { name: '开始学习' }).disabled).toBe(true);
+  expect(screen.getByRole('button', { name: startStudyLabel }).disabled).toBe(true);
   for (const modifier of ['ctrlKey', 'metaKey']) {
     expect(fireEvent.keyDown(document.body, { key: 'a', [modifier]: true })).toBe(false);
-    fireEvent.click(screen.getByRole('button', { name: '开始学习' }));
+    fireEvent.click(screen.getByRole('button', { name: startStudyLabel }));
     expect(start.mock.lastCall[0].course_list).toEqual(['1', '2']);
     fireEvent.click(screen.getByRole('button', { name: '清空' }));
-    expect(screen.getByRole('button', { name: '开始学习' }).disabled).toBe(true);
+    expect(screen.getByRole('button', { name: startStudyLabel }).disabled).toBe(true);
   }
 });
 
@@ -51,7 +52,7 @@ it('preserves text selection in the search field and hidden course choices when 
   expect(fireEvent.keyDown(search, { key: 'a', ctrlKey: true })).toBe(true);
   expect(screen.getByRole('button', { name: /First course/ }).getAttribute('aria-pressed')).toBe('false');
   fireEvent.keyDown(document.body, { key: 'A', ctrlKey: true });
-  fireEvent.click(screen.getByRole('button', { name: '开始学习' }));
+  fireEvent.click(screen.getByRole('button', { name: startStudyLabel }));
   expect(start.mock.lastCall[0].course_list).toEqual(['2', '1']);
   view.unmount();
   expect(fireEvent.keyDown(document.body, { key: 'a', ctrlKey: true })).toBe(true);
@@ -62,7 +63,7 @@ it('does not select courses while their configuration is unavailable', async () 
   render(<CourseSelection userInfo={account} onStartStudy={vi.fn()} />);
   await screen.findByRole('alert');
   expect(fireEvent.keyDown(document.body, { key: 'a', ctrlKey: true })).toBe(true);
-  expect(screen.getByRole('button', { name: '开始学习' }).disabled).toBe(true);
+  expect(screen.getByRole('button', { name: startStudyLabel }).disabled).toBe(true);
   expect(screen.getByRole('button', { name: /First course/ }).getAttribute('aria-pressed')).toBe('false');
 });
 
@@ -139,7 +140,7 @@ it('follows logs inside their own container without moving focus, and pauses whe
   const windowScroll = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
   try {
     render(<StudyProgress taskId="task" />);
-    const log = screen.getByRole('log');
+    const log = screen.getByRole(logRole);
     Object.defineProperties(log, {
       scrollHeight: { configurable: true, writable: true, value: 1200 },
       clientHeight: { configurable: true, value: 400 },

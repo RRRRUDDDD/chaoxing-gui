@@ -5,6 +5,7 @@ import Label from './ui/Label';
 import { LogIn, Loader2, KeyRound, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import api from '../api/axios';
 import { sessionStore } from '../lib/sessionStore';
+import { loginLabels } from '../lib/uiText';
 
 const Login = ({ onLoginSuccess }) => {
   const [username, setUsername] = useState('');
@@ -97,7 +98,7 @@ const Login = ({ onLoginSuccess }) => {
         <div className="rounded-2xl border border-line bg-white p-[clamp(1.5rem,2vw,2.25rem)] shadow-lift">
           <form onSubmit={handleLogin} aria-describedby={error ? errId : undefined} className="space-y-5">
             <div className="space-y-1.5">
-              <Label htmlFor="username">手机号</Label>
+              <Label htmlFor="username">{loginLabels.phone}</Label>
               <Input
                 id="username"
                 ref={userRef}
@@ -113,7 +114,7 @@ const Login = ({ onLoginSuccess }) => {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="password">密码</Label>
+              <Label htmlFor="password">{loginLabels.password}</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -162,7 +163,7 @@ const Login = ({ onLoginSuccess }) => {
               ) : (
                 <>
                   <LogIn className="h-4 w-4" aria-hidden="true" />
-                  登录
+                  {loginLabels.submit}
                 </>
               )}
             </Button>

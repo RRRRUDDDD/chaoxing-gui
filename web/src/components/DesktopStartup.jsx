@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AlertCircle, Loader2, RefreshCw } from 'lucide-react';
 import { desktopBridge, isTauriDesktop } from '../lib/desktopBridge';
+import { recheckLabel } from '../lib/uiText';
 import Button from './ui/Button';
 
 const phases = new Set(['starting', 'ready', 'stopping', 'stopped', 'failed']);
@@ -74,7 +75,7 @@ export default function DesktopStartup({ children, intervalMs = 1000, readyInter
           <h2 className="text-lg font-semibold">{title}</h2>
           <p className="mt-2 text-sm leading-relaxed text-body">{description}</p>
           {failed && hostError && <p className="mt-3 break-words rounded-lg bg-danger/5 px-3 py-2 text-left text-sm leading-relaxed text-danger">{hostError}</p>}
-          {failed && <Button type="button" onClick={recheck} className="mt-6"><RefreshCw className="h-4 w-4" aria-hidden="true" />重新检查</Button>}
+          {failed && <Button type="button" onClick={recheck} className="mt-6"><RefreshCw className="h-4 w-4" aria-hidden="true" />{recheckLabel}</Button>}
         </section>
       </div>
     </main>

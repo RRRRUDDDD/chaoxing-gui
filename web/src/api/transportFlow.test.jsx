@@ -7,6 +7,7 @@ import DesktopStartup from '../components/DesktopStartup';
 import api from './axios';
 import { createTauriAdapter } from './tauriAdapter';
 import { sessionStore } from '../lib/sessionStore';
+import { configSavedMessage, logRole, saveDefaultLabel, startStudyLabel } from '../lib/uiText';
 
 const core = vi.hoisted(() => ({ isTauri: vi.fn().mockReturnValue(false), invoke: vi.fn() }));
 vi.mock('@tauri-apps/api/core', () => core);
@@ -146,10 +147,10 @@ describe('shared task flow over real Axios transports', () => {
     await sessionStore.rememberLogin('alice');
     const mount = () => render(<React.StrictMode><DesktopStartup intervalMs={100}><App /></DesktopStartup></React.StrictMode>);
     let view = mount();
-    const start = await screen.findByRole('button', { name: '开始学习' });
+    const start = await screen.findByRole('button', { name: startStudyLabel });
     expect(start.disabled).toBe(false);
-    fireEvent.click(screen.getByRole('button', { name: '保存为默认配置' }));
-    await screen.findByText('配置已保存');
+    fireEvent.click(screen.getByRole('button', { name: saveDefaultLabel }));
+    await screen.findByText(configSavedMessage);
     expect(fixture.calls.find((call) => call.method === 'POST' && call.path === '/api/config').payload.selectedCoursesByAccount).toEqual({ alice: ['one'] });
     fireEvent.click(start);
     await screen.findByText('shared-task');
@@ -157,7 +158,7 @@ describe('shared task flow over real Axios transports', () => {
     expect((await sessionStore.read()).activeTask).toEqual({ username: 'alice', taskId: 'shared-task' });
     fireEvent.click(screen.getByRole('button', { name: '返回课程选择' }));
     await screen.findByRole('button', { name: '返回运行任务' });
-    expect(screen.getByRole('button', { name: '开始学习' }).disabled).toBe(true);
+    expect(screen.getByRole('button', { name: startStudyLabel }).disabled).toBe(true);
 
     view.unmount();
     fixture.status = 'interrupted';
@@ -169,7 +170,7 @@ describe('shared task flow over real Axios transports', () => {
     fixture.status = 'completed';
     await screen.findByText('最终日志', {}, { timeout: 4500 });
     await waitFor(() => expect(fixture.finalDetails).toBe(2), { timeout: 4500 });
-    const logs = within(screen.getByRole('log'));
+    const logs = within(screen.getByRole(logRole));
     expect(logs.getAllByText('初始日志')).toHaveLength(1);
     expect(logs.getAllByText('最终日志')).toHaveLength(1);
     expect(fixture.calls.filter((call) => call.path.startsWith('/api/logs/')).map((call) => call.after)).toEqual(expect.arrayContaining([0, 1, 2]));
@@ -179,7 +180,7 @@ describe('shared task flow over real Axios transports', () => {
     view = mount();
     expect((await screen.findByRole('alert')).textContent).toContain('没有可恢复的记录');
     await waitFor(async () => expect(await sessionStore.read()).toEqual({ version: 1, login: { username: 'alice', use_cookies: true }, activeTask: null }));
-    expect((await screen.findByRole('button', { name: '开始学习' })).disabled).toBe(false);
+    expect((await screen.findByRole('button', { name: startStudyLabel })).disabled).toBe(false);
     expect(fixture.calls.filter((call) => call.path === '/api/start')).toHaveLength(1);
     expect(fixture.calls.filter((call) => call.path === '/api/login').every((call) => call.payload.use_cookies === true && call.payload.password === '')).toBe(true);
     view.unmount();
@@ -190,7 +191,7 @@ describe('shared task flow over real Axios transports', () => {
     await sessionStore.rememberLogin('alice');
     const mount = () => render(<React.StrictMode><DesktopStartup intervalMs={100}><App /></DesktopStartup></React.StrictMode>);
     let view = mount();
-    fireEvent.click(await screen.findByRole('button', { name: '开始学习' }));
+    fireEvent.click(await screen.findByRole('button', { name: startStudyLabel }));
     await screen.findByText('初始日志');
     const stopRequests = () => fixture.calls.filter((call) => call.path.endsWith('/stop'));
     fireEvent.click(screen.getByRole('button', { name: '停止任务' }));
@@ -208,7 +209,7 @@ describe('shared task flow over real Axios transports', () => {
     // The request acknowledgement does not mean the workers have finished.
     expect(screen.queryByText('任务已手动停止')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: '返回课程选择' }));
-    expect((await screen.findByRole('button', { name: '开始学习' })).disabled).toBe(true);
+    expect((await screen.findByRole('button', { name: startStudyLabel })).disabled).toBe(true);
     fireEvent.click(screen.getByRole('button', { name: '返回运行任务' }));
     expect((await screen.findByRole('button', { name: '停止任务' })).disabled).toBe(true);
     fixture.status = 'cancelled';
@@ -224,7 +225,7 @@ describe('shared task flow over real Axios transports', () => {
     expect(screen.queryByText(/恢复任务失败/)).toBeNull();
     expect(fixture.status).toBe('cancelled');
     fireEvent.click(screen.getByRole('button', { name: '返回课程选择' }));
-    expect((await screen.findByRole('button', { name: '开始学习' })).disabled).toBe(false);
+    expect((await screen.findByRole('button', { name: startStudyLabel })).disabled).toBe(false);
     expect(fixture.calls.filter((call) => call.path === '/api/start')).toHaveLength(1);
     view.unmount();
   }, 15000);

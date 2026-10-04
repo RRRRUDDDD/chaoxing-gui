@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollText } from 'lucide-react';
 import Button from './ui/Button';
 import { LOG_LIMIT } from '../lib/taskPolling';
+import { logRole } from '../lib/uiText';
 import { filterLogs, formatLogsForCopy, logLevel, logTime } from '../lib/logPresentation';
 
 const levelColors = { error: 'text-red-300', warning: 'text-amber-300', success: 'text-green-300' };
@@ -88,7 +89,7 @@ const ExecutionLog = ({ logs, truncated }) => {
           {!following && <span>跟随已暂停</span>}
         </div>
         {truncated && <p className="text-xs text-faint">较早的日志已省略，仅保留最近 {LOG_LIMIT} 条。</p>}
-        <div ref={containerRef} role="log" aria-label="执行日志" aria-live="off" tabIndex={0}
+        <div ref={containerRef} role={logRole} aria-label="执行日志" aria-live="off" tabIndex={0}
           onScroll={(event) => {
             const container = event.currentTarget;
             if (!manuallyPaused.current) setFollowing(container.scrollHeight - container.scrollTop - container.clientHeight <= 24);

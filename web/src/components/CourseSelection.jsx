@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import api from '../api/axios';
 import { configSnapshot, defaultSettings, normalizeCourses, restoreCourseSelection, restoreSettings } from '../lib/courseSelection';
+import { configSavedMessage, saveDefaultLabel, startStudyLabel } from '../lib/uiText';
 
 const taskHeadings = {
   study: '选择课程并配置学习参数',
@@ -130,7 +131,7 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
   const canSelect = active && !loading && loadedAccount === username && !loadError && !loggingOut;
   const validOptions = taskType !== 'visits' || Object.values(validateVisits(toolOptions)).every((error) => !error);
   const canStart = canSelect && courses.length > 0 && selectedCount > 0 && validOptions && Object.keys(invalidFields).length === 0 && !starting && !taskRunning;
-  const startLabel = { study: '开始学习', visits: '开始提交次数', video_time: '读取视频列表', reading_time: '读取阅读任务', download: '读取资源列表' }[taskType];
+  const startLabel = { study: startStudyLabel, visits: '开始提交次数', video_time: '读取视频列表', reading_time: '读取阅读任务', download: '读取资源列表' }[taskType];
 
   const selectAllVisible = useCallback(() => {
     if (canSelect) setSelectedCourses((selected) => [...new Set([...selected, ...filteredCourses.map((course) => course.courseId)])]);
@@ -183,7 +184,7 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
         setSaveStatus({ type: 'error', message: response.data.msg || '保存失败，请重试' });
       } else {
         setSavedSnapshot(snapshot);
-        setSaveStatus({ type: 'success', message: '配置已保存', snapshot });
+        setSaveStatus({ type: 'success', message: configSavedMessage, snapshot });
       }
     } catch (err) {
       if (!controller.signal.aborted) setSaveStatus({ type: 'error', message: '保存请求失败，请重试' });
@@ -450,7 +451,7 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
                 ) : (
                   <>
                     <Save className="h-3.5 w-3.5" aria-hidden="true" />
-                    保存为默认配置
+                    {saveDefaultLabel}
                   </>
                 )}
               </Button>}
