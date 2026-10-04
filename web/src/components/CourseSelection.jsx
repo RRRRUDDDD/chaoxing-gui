@@ -312,7 +312,7 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
                 </p>
               </div>
             ) : (
-              <ul className="min-h-0 divide-y divide-line overflow-y-auto overscroll-contain scroll-brutal px-2 py-1.5">
+              <ul className="min-h-0 divide-y divide-line overflow-y-auto overscroll-contain px-2 py-1.5">
                 {filteredCourses.map((course) => {
                   const selected = selectedCourses.includes(course.courseId);
                   return (

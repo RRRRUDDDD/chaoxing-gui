@@ -54,6 +54,17 @@
   .tnum {
     font-variant-numeric: tabular-nums;
   }
+
+  /* 全局细滚动条：页面主滚动条与各滚动区域统一。
+     标准属性优先（Chromium 121+/Firefox），::-webkit 系列仅服务旧内核降级。 */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--line)) transparent;
+  }
+  *::-webkit-scrollbar { width: 6px; height: 6px; }
+  *::-webkit-scrollbar-thumb { border-radius: 9999px; background: hsl(var(--line)); }
+  *::-webkit-scrollbar-thumb:hover { background: hsl(var(--faint)); }
+  *::-webkit-scrollbar-track { background: transparent; }
 }
 
 @layer components {

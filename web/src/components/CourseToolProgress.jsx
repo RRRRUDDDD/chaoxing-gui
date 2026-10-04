@@ -192,7 +192,7 @@ function CourseToolContent({ taskId, username, taskStatus, tool, catalogReady = 
             <Button variant="ghost" size="sm" disabled={!canSelect || !filtered.some(available)} onClick={() => setSelectedIds((previous) => [...new Set([...previous, ...filtered.filter(available).map((resource) => resource.id)])])}>全选当前列表</Button>
             <Button variant="ghost" size="sm" disabled={!canSelect || !selected.length} onClick={() => setSelectedIds([])}>清空选择</Button>
           </div>
-          <ul className="max-h-[32rem] divide-y divide-line overflow-y-auto rounded-lg border border-line scroll-brutal">
+          <ul className="max-h-[32rem] divide-y divide-line overflow-y-auto rounded-lg border border-line">
             {filtered.map((resource) => (
               <li key={resource.id}>
                 <label className={`flex items-start gap-3 p-3.5 ${canSelect && available(resource) ? 'cursor-pointer hover:bg-soft' : 'text-faint'}`}>

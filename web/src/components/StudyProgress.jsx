@@ -320,8 +320,9 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
           </div>
         )}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_clamp(20rem,24vw,28rem)] lg:items-start 2xl:gap-8">
-          {/* 侧栏：当前进度 → 任务信息 → 详细统计；移动端优先展示进度摘要 */}
-          <aside className="order-first space-y-6 animate-stagger-up lg:order-2" style={{ animationDelay: '200ms' }}>
+          {/* 侧栏：当前进度 → 任务信息 → 详细统计；移动端优先展示进度摘要；
+              lg 起固定在视口内跟随滚动，内容超出视口时在栏内滚动 */}
+          <aside className="order-first space-y-6 animate-stagger-up lg:order-2 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto lg:overscroll-contain" style={{ animationDelay: '200ms' }}>
             {/* 当前进度 */}
             <section className="rounded-xl border border-line bg-white p-5 shadow-card" style={{ animationDelay: '120ms' }}>
               <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3">
