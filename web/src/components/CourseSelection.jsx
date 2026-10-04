@@ -33,7 +33,6 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
   const [taskType, setTaskType] = useState('study');
   const [toolOptions, setToolOptions] = useState({ count: '10', interval: '30' });
   const [loadError, setLoadError] = useState('');
-  const [selectionNotice, setSelectionNotice] = useState('');
   const [invalidFields, setInvalidFields] = useState({});
   const setFieldValid = useCallback((field, valid) => {
     setInvalidFields((current) => {
@@ -65,7 +64,6 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
     setSavedSnapshot(null);
     saveController.current?.abort();
     setQuery('');
-    setSelectionNotice('');
     if (preview) {
       setCourses([
         { courseId: 'preview-001', title: '大学英语（演示课程）' },
@@ -74,7 +72,6 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
       ]);
       setSavedSnapshot(configSnapshot(defaultSettings(), username, []));
       setLoadedAccount(username);
-      setSelectionNotice('请至少选择一门课程后开始学习');
       setLoading(false);
       return () => { controller.abort(); saveController.current?.abort(); };
     }
@@ -98,9 +95,6 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
         setSettings(restoredSettings);
         setSavedSnapshot(configSnapshot(restoredSettings, username, selection.ids));
         setSelectedCourses(selection.ids);
-        setSelectionNotice(selection.saved
-          ? selection.ids.length ? '已恢复此账号仍有效的课程选择，可继续调整' : '保存的课程选择为空或已失效，请重新选择课程'
-          : '请勾选需要学习的课程');
       } catch (error) {
         if (!controller.signal.aborted) setLoadError(error.response?.data?.msg || error.message || '获取课程失败，请重试');
       } finally {
@@ -242,13 +236,8 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
 
       <main className="course-main page-shell py-5">
         {/* 页首：标题随所选功能变化，功能选择放在工作区上方 */}
-        <div className="course-heading mb-4 flex shrink-0 flex-wrap items-end justify-between gap-x-8 gap-y-3 animate-stagger-up">
-          <div className="min-w-0">
-            <h1 className="text-2xl font-semibold tracking-tight">{taskHeadings[taskType]}</h1>
-            <p className="mt-1.5 text-sm text-faint">
-              {selectionNotice || '请至少选择一门课程；未选课程时无法开始学习'}
-            </p>
-          </div>
+        <div className="course-heading mb-4 flex shrink-0 flex-wrap items-center justify-between gap-x-8 gap-y-3 animate-stagger-up">
+          <h1 className="min-w-0 text-2xl font-semibold tracking-tight">{taskHeadings[taskType]}</h1>
           <TaskTypePicker
             taskType={taskType}
             onTaskTypeChange={setTaskType}
