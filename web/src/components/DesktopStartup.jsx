@@ -64,7 +64,7 @@ export default function DesktopStartup({ children, intervalMs = 1000 }) {
   return (
     <main className="flex min-h-screen items-center justify-center bg-canvas px-[clamp(1rem,4vw,4rem)] py-12">
       <div className="w-full max-w-md text-center">
-        <img src="/fav.jpg" alt="超星学习通" className="mx-auto mb-4 h-12 w-12 rounded-xl object-cover shadow-focus" />
+        <img src="/logo.png" alt="超星学习通" className="mx-auto mb-4 h-20 w-20" />
         <h1 className="mb-8 text-xl font-semibold tracking-tight">超星学习通 · 自动化学习助手</h1>
         <section role={failed ? 'alert' : 'status'} aria-live={failed ? 'assertive' : 'polite'} className="rounded-2xl border border-line bg-white p-8 shadow-lift">
           {failed ? <AlertCircle className="mx-auto mb-4 h-8 w-8 text-danger" aria-hidden="true" />

@@ -85,9 +85,9 @@ const Login = ({ onLoginSuccess }) => {
         {/* 品牌区 */}
         <div className="mb-8 flex flex-col items-center text-center">
           <img
-            src="/fav.jpg"
+            src="/logo.png"
             alt="超星学习通"
-            className="mb-4 h-12 w-12 rounded-xl object-cover shadow-focus"
+            className="mb-4 h-20 w-20"
           />
           <h1 className="text-xl font-semibold tracking-tight">超星学习通 · 自动化学习助手</h1>
           <p className="mt-1.5 text-sm text-faint">登录以继续</p>
