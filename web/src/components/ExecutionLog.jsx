@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { ScrollText } from 'lucide-react';
 import Button from './ui/Button';
 import { LOG_LIMIT } from '../lib/taskPolling';
 import { filterLogs, formatLogsForCopy, logLevel, logTime } from '../lib/logPresentation';
@@ -49,7 +50,10 @@ const ExecutionLog = ({ logs, truncated }) => {
   return (
     <section aria-label="日志工具" className="min-w-0 rounded-xl border border-line bg-white shadow-card">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-5 py-3.5">
-        <h2 className="text-[15px] font-semibold">执行日志</h2>
+        <h2 className="flex items-center gap-2 text-[15px] font-semibold">
+          <ScrollText className="h-4 w-4 text-brand" aria-hidden="true" />
+          执行日志
+        </h2>
         <span className="text-xs text-faint">最近 {LOG_LIMIT} 条</span>
       </div>
       <div className="space-y-3 p-4">
