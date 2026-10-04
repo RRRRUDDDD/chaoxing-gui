@@ -14,6 +14,28 @@ use std::sync::{Arc, Mutex};
 use tauri::{Emitter, Manager};
 use window_close::{CloseDecision, CloseGate};
 
+/// Injected before any page script runs so the desktop webview behaves like a
+/// native app: no context menu and no text selection (touch long-press
+/// included). Form fields stay selectable; the browser-served web build is
+/// unaffected because this never runs there.
+const HOST_WEBVIEW_INIT_SCRIPT: &str = r#"
+window.addEventListener('contextmenu', (event) => event.preventDefault(), { capture: true });
+(function () {
+  var css =
+    '*, *::before, *::after { -webkit-user-select: none !important; user-select: none !important; }' +
+    'input, textarea, [contenteditable] { -webkit-user-select: text !important; user-select: text !important; }';
+  function inject() {
+    var parent = document.head || document.documentElement;
+    if (!parent) { return; }
+    var style = document.createElement('style');
+    style.textContent = css;
+    parent.appendChild(style);
+  }
+  if (document.head || document.documentElement) { inject(); }
+  else { document.addEventListener('DOMContentLoaded', inject); }
+})();
+"#;
+
 /// State is registered before the webview loads. Migration and backend startup
 /// run off the event loop, so status, cancellation and window close stay usable.
 pub fn run() {
@@ -45,7 +67,8 @@ pub fn run() {
             let config = app.config().app.windows.first().ok_or("main window config missing")?;
             let mut window = tauri::WebviewWindowBuilder::from_config(app, config)?
                 .on_navigation(allowed_navigation)
-                .on_new_window(|_, _| tauri::webview::NewWindowResponse::Deny);
+                .on_new_window(|_, _| tauri::webview::NewWindowResponse::Deny)
+                .initialization_script(HOST_WEBVIEW_INIT_SCRIPT);
             if let Some(root) = &dev_root {
                 window = window.data_directory(root.join("webview"));
             }
