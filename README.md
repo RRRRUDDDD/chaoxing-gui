@@ -1,10 +1,10 @@
 # 超星学习通自动化工具
 
+[![Build Windows Package](https://github.com/RRRRUDDDD/chaoxing-gui/actions/workflows/main.yml/badge.svg)](https://github.com/RRRRUDDDD/chaoxing-gui/actions/workflows/main.yml) [![Release](https://img.shields.io/github/v/release/RRRRUDDDD/chaoxing-gui)](https://github.com/RRRRUDDDD/chaoxing-gui/releases/latest)
+
 用于超星学习通课程的自动化学习与资源管理工具，提供 Windows 桌面应用、浏览器界面和命令行入口。支持视频学习、题库配置、课程时长工具和资源下载，并可查看任务进度与日志。
 
 [下载发行版](https://github.com/RRRRUDDDD/chaoxing-gui/releases/latest) · [报告问题](https://github.com/RRRRUDDDD/chaoxing-gui/issues) · [开发指南](DEVELOPMENT.md)
-
-> 本文介绍当前主分支的功能。源码版本为 **1.2.0**，不代表同版本安装包已经发布；可下载的版本、文件和使用说明以 [Releases](https://github.com/RRRRUDDDD/chaoxing-gui/releases) 为准，旧版安装包可能不包含下文全部功能。
 
 ## 功能
 
@@ -14,7 +14,7 @@
 | 题库答题 | 接入 OCS 格式题库 JSON 或订阅链接，可设置答案覆盖率和是否自动提交 |
 | 学习次数 | 设置每门课程的提交次数与间隔，查看提交结果和平台统计 |
 | 视频时长 | 选择视频并设置新增时长，按实际时间运行，支持停止 |
-| 专题阅读 | 选择支持计时的专题阅读任务，在独立浏览器窗口中运行并查看上报结果 |
+| 阅读时长 | 选择支持计时的专题阅读任务，在独立浏览器窗口中运行并查看上报结果 |
 | 资源下载 | 筛选下载视频、音频、文档等课程资源，查看进度并打开保存目录 |
 | 任务管理 | 查看进度、日志和历史结果，返回选课页后可继续查看运行任务 |
 | 外部通知 | 可配置 Windows 系统通知、Server酱、Qmsg酱、Bark 或 Telegram |
@@ -33,11 +33,14 @@
 | --- | --- |
 | 名称含 `setup` 的 `.exe` | 运行安装程序，完成后从开始菜单或桌面快捷方式启动 |
 | Tauri 便携版 `.zip` | 完整解压到可写文件夹，再运行 `Start-Chaoxing.cmd` |
+| 名称含 `python` 的 `.zip` | 独立 Python 版：完整解压后运行 `chaoxing-gui.exe`，控制台在默认浏览器中打开；数据保存在解压目录，与 Tauri 版不互通 |
 | 旧版 `desktop-portable` 单文件 `.exe` | 按对应 Release 的说明直接运行；其功能和数据位置可能与新版不同 |
 
 桌面发行包不要求另行安装 Python、Node.js 或 Rust。**Tauri 便携版不能在 ZIP 内直接运行，也不能只复制其中一个 EXE**，请保留解压后的全部文件。
 
 当前 Tauri 桌面版需要 **Microsoft Edge WebView2 Runtime**。安装版在缺少运行时时会尝试联网安装；便携版若提示缺少运行时，请运行包内的 `Install-WebView2.cmd`。离线安装方法见 [桌面版指南](desktop/README.md#webview2-与离线安装)。
+
+Release 页面同时提供 `SHA256SUMS.txt` 和各发行文件的 `.sha256` 校验值，下载后可核对文件完整性。
 
 ### 从源码运行
 
@@ -94,7 +97,7 @@
 
 ### 阅读与平台统计
 
-专题阅读需要本机安装 **Chrome 或 Edge**，运行时会打开独立阅读窗口，请保持该窗口打开。仅支持具有阅读计时功能且正文可滚动的专题阅读页面，普通课件和视频不属于此功能。
+阅读时长功能需要本机安装 **Chrome 或 Edge**，运行时会打开独立阅读窗口，请保持该窗口打开。仅支持具有阅读计时功能且正文可滚动的专题阅读页面，普通课件和视频不属于此功能。
 
 视频、阅读时长按实际时间执行，并非瞬间增加。阅读任务会滚动正文并展开后续章节；加载章节的等待时间不计入阅读进度，短时任务不保证遍历整本书。
 
@@ -161,8 +164,8 @@ Tauri 桌面版默认询问“最小化 / 最小化到托盘 / 退出程序”�
 
 本项目采用 [GPL-3.0](LICENSE) 许可证。
 
+- 项目基于 [sweetcornna/chaoxing-fanya](https://github.com/sweetcornna/chaoxing-fanya) 二次开发。
 - 核心学习逻辑基于 [Samueli924/chaoxing](https://github.com/Samueli924/chaoxing)。
 - 学习次数、视频时长和资源下载的接口约定参考 [liuyunfz/chaoxing_tool](https://github.com/liuyunfz/chaoxing_tool)。
-- 专题阅读功能参考 `web-read-tool` 的滚动辅助思路，使用独立实现。
 
-本项目不是超星官方客户端，仅供学习与研究。请只操作本人有权访问的账号和课程，遵守学校及平台规定，不用于作弊、刷分或其他违规用途。软件按许可证“原样”提供，不保证课程兼容性、学习结果或账号安全。
+本项目仅供学习与研究。请只操作本人有权访问的账号和课程，遵守学校及平台规定，不用于作弊、刷分或其他违规用途。
