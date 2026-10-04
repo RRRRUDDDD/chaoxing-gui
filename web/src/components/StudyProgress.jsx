@@ -2,53 +2,54 @@ import React, { useState, useEffect, useRef } from 'react';
 import Button from './ui/Button';
 import CountUp from './CountUp';
 import RepositoryLink from './RepositoryLink';
+import ExecutionLog from './ExecutionLog';
 import CourseToolProgress, { formatToolAmount } from './CourseToolProgress';
 import { courseToolLabels } from './CourseToolSettings';
 import {
   Loader2, ArrowLeft, CheckCircle2, XCircle, AlertCircle,
   Play, Clock, ChevronDown, ChevronRight, BookOpen, MonitorPlay,
-  FileText, Gauge, StopCircle,
+  FileText, StopCircle,
 } from 'lucide-react';
 import api from '../api/axios';
-import { LOG_LIMIT, chapterState, isTerminalStatus, resultLabels, startTaskPolling } from '../lib/taskPolling';
+import { chapterState, isTerminalStatus, resultLabels, startTaskPolling } from '../lib/taskPolling';
+
+const previewDetails = {
+  courses: [
+    {
+      id: 'preview-001',
+      title: '大学英语（演示课程）',
+      status: 'completed',
+      chapters: [
+        { id: 'chapter-1', title: '第一章：课程导学', has_finished: true },
+        { id: 'chapter-2', title: '第二章：基础内容', has_finished: true },
+      ],
+    },
+    {
+      id: 'preview-002',
+      title: '高等数学（演示课程）',
+      status: 'completed',
+      chapters: [
+        { id: 'chapter-3', title: '第一章：函数与极限', has_finished: true },
+        { id: 'chapter-4', title: '第二章：导数与微分', has_finished: true },
+      ],
+    },
+  ],
+};
+const previewStatus = () => {
+  const courses = previewDetails.courses;
+  const chapters = courses.flatMap((course) => course.chapters);
+  const completed = chapters.filter((chapter) => chapter.has_finished).length;
+  return {
+    status: 'completed', progress: courses.filter((course) => course.status === 'completed').length, total: courses.length,
+    stats: { completed_chapters: completed, total_chapters: chapters.length,
+      completed_tasks: completed, total_tasks: chapters.length, failed_tasks: 0, skipped_tasks: 0 },
+    start_time: Date.now() / 1000 - 372,
+  };
+};
 
 const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMissing, onStop, onStartStudy, starting = false, startError = '', actionsDisabled = false, recovering = false, recoveryError = '', onRetryRecovery, preview = false }) => {
-  const [taskStatus, setTaskStatus] = useState(preview ? {
-    status: 'completed',
-    progress: 3,
-    total: 3,
-    stats: {
-      completed_chapters: 12,
-      total_chapters: 12,
-      completed_tasks: 12,
-      total_tasks: 12,
-      failed_tasks: 0,
-      skipped_tasks: 0,
-    },
-    start_time: Date.now() / 1000 - 372,
-  } : null);
-  const [taskDetails, setTaskDetails] = useState(preview ? {
-    courses: [
-      {
-        id: 'preview-001',
-        title: '大学英语（演示课程）',
-        status: 'completed',
-        chapters: [
-          { id: 'chapter-1', title: '第一章：课程导学', has_finished: true },
-          { id: 'chapter-2', title: '第二章：基础内容', has_finished: true },
-        ],
-      },
-      {
-        id: 'preview-002',
-        title: '高等数学（演示课程）',
-        status: 'completed',
-        chapters: [
-          { id: 'chapter-3', title: '第一章：函数与极限', has_finished: true },
-          { id: 'chapter-4', title: '第二章：导数与微分', has_finished: true },
-        ],
-      },
-    ],
-  } : null);
+  const [taskStatus, setTaskStatus] = useState(preview ? previewStatus() : null);
+  const [taskDetails, setTaskDetails] = useState(preview ? previewDetails : null);
   const [logs, setLogs] = useState(preview ? [
     { seq: 1, timestamp: Date.now() / 1000 - 60, level: 'success', message: '演示任务已完成' },
     { seq: 2, timestamp: Date.now() / 1000 - 30, level: 'info', message: '所有课程均已处理完毕' },
@@ -63,8 +64,6 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
   const stopConfirmTimer = useRef(null);
   const actionGeneration = useRef(0);
   const [expandedCourses, setExpandedCourses] = useState(new Set());
-  const logsContainerRef = useRef(null);
-  const followLogs = useRef(true);
   const callbacks = useRef({ onStatus, onMissing });
   callbacks.current = { onStatus, onMissing };
   const stopPending = stopping || taskStatus?.cancel_requested === true;
@@ -94,7 +93,6 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
     setPollError('');
     setMissing(false);
     setExpandedCourses(new Set());
-    followLogs.current = true;
     let observedStatus;
     return startTaskPolling({
       api, taskId,
@@ -113,11 +111,6 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
       onMissing: () => { setMissing(true); setPollError(''); callbacks.current.onMissing?.(); },
     });
   }, [taskId, username, preview, recovering, recoveryError]);
-
-  useEffect(() => {
-    const container = logsContainerRef.current;
-    if (container && followLogs.current) container.scrollTop = container.scrollHeight;
-  }, [logs]);
 
   const clearStopConfirm = () => {
     clearTimeout(stopConfirmTimer.current);
@@ -167,7 +160,7 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
 
   const getStatusInfo = () => {
     if (recovering) return { text: '恢复中', cls: 'text-brand', icon: Loader2 };
-    if (recoveryError) return { text: '等待恢复', cls: 'text-warning', icon: AlertCircle };
+    if (recoveryError) return { text: '等待恢复', cls: 'text-warning-ink', icon: AlertCircle };
     if (missing) return { text: '已过期', cls: 'text-faint', icon: Clock };
     if (!taskStatus) return { text: '加载中', cls: 'text-faint', icon: Clock };
 
@@ -177,30 +170,17 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
           ? { text: '正在停止', cls: 'text-faint', icon: Loader2 }
           : { text: isToolTask ? '执行中' : '学习中', cls: 'text-brand', icon: Play };
       case 'interrupted':
-        return { text: '等待恢复', cls: 'text-warning', icon: Clock };
+        return { text: '等待恢复', cls: 'text-warning-ink', icon: Clock };
       case 'completed':
-        return { text: isReadingTask ? '上报完成' : '已完成', cls: 'text-success', icon: CheckCircle2 };
+        return { text: isReadingTask ? '上报完成' : '已完成', cls: 'text-success-ink', icon: CheckCircle2 };
       case 'error':
         return { text: '出现错误', cls: 'text-danger', icon: AlertCircle };
       case 'partial':
-        return { text: '部分完成', cls: 'text-warning', icon: AlertCircle };
+        return { text: '部分完成', cls: 'text-warning-ink', icon: AlertCircle };
       case 'cancelled':
         return { text: '已停止', cls: 'text-faint', icon: StopCircle };
       default:
         return { text: '未知状态', cls: 'text-faint', icon: Clock };
-    }
-  };
-
-  const getLogLevelColor = (level) => {
-    switch (level) {
-      case 'error':
-        return 'text-[#f87171]';
-      case 'warning':
-        return 'text-[#fbbf24]';
-      case 'success':
-        return 'text-[#4ade80]';
-      default:
-        return 'text-gray-300';
     }
   };
 
@@ -209,12 +189,12 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
       case 'running':
         return <Loader2 className="h-4 w-4 text-brand animate-spin" aria-hidden="true" />;
       case 'completed':
-        return <CheckCircle2 className="h-4 w-4 text-success" aria-hidden="true" />;
+        return <CheckCircle2 className="h-4 w-4 text-success-ink" aria-hidden="true" />;
       case 'empty':
         return <FileText className="h-4 w-4 text-faint" aria-hidden="true" />;
       case 'partial':
       case 'skipped':
-        return <AlertCircle className="h-4 w-4 text-warning" aria-hidden="true" />;
+        return <AlertCircle className="h-4 w-4 text-warning-ink" aria-hidden="true" />;
       case 'error':
         return <XCircle className="h-4 w-4 text-danger" aria-hidden="true" />;
       default:
@@ -222,12 +202,23 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
     }
   };
 
+  // 平台复核结论必须可读：按状态区分颜色，禁用近似背景色的 text-muted。
+  const getVerificationInfo = (verification) => {
+    switch (verification.status) {
+      case 'confirmed':
+        return { text: '平台已确认完成', cls: 'text-success-ink', icon: CheckCircle2 };
+      case 'pending':
+        return { text: '平台仍有未完成任务', cls: 'text-warning-ink', icon: AlertCircle };
+      case 'cancelled':
+        return { text: '平台复核已停止', cls: 'text-faint', icon: StopCircle };
+      default:
+        return { text: '执行已结束，平台完成状态未确认', cls: 'text-warning-ink', icon: Clock };
+    }
+  };
+
   const statusInfo = getStatusInfo();
-  const statusIconBg = {
-    'text-brand': 'bg-brand-soft', 'text-success': 'bg-success/10',
-    'text-warning': 'bg-warning/10', 'text-danger': 'bg-danger/10',
-  }[statusInfo.cls] || 'bg-soft';
-  const progress = taskStatus ? (taskStatus.progress / (taskStatus.total || 1)) * 100 : 0;
+  const knownTotal = Number.isFinite(taskStatus?.total) && taskStatus.total > 0;
+  const progress = knownTotal ? Math.max(0, Math.min(100, ((taskStatus.progress || 0) / taskStatus.total) * 100)) : 0;
   const terminal = isTerminalStatus(taskStatus?.status) || missing;
   const activeJobs = !terminal && taskDetails?.active_jobs ? Object.values(taskDetails.active_jobs) : [];
   // Offer the stop only where it can act: a live task, not a preview, and not
@@ -245,47 +236,17 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
   const errored = taskStatus?.status === 'error';
   const partial = taskStatus?.status === 'partial';
   const cancelled = taskStatus?.status === 'cancelled';
-  const resultColor = (state) => state === 'error' ? 'text-danger' : ['skipped', 'partial'].includes(state) ? 'text-warning' : state === 'completed' ? 'text-success' : 'text-faint';
+  const resultColor = (state) => state === 'error' ? 'text-danger' : ['skipped', 'partial'].includes(state) ? 'text-warning-ink' : state === 'completed' ? 'text-success-ink' : 'text-faint';
+  // 读取列表只是中间步骤：资源可选时把视觉重心留给“继续处理”，返回入口降为次级。
+  const catalogReadyForSelection = taskStatus?.task_type === 'catalog' && finalDetailsReady && ['completed', 'partial'].includes(taskStatus.status);
+  const unverifiedCourses = !!taskDetails?.courses?.some((course) => course.verification && course.verification.status !== 'confirmed');
 
-  const statCards = [
-    {
-      label: isToolTask ? '已处理条目' : '已处理课程',
-      icon: BookOpen,
-      iconCls: 'bg-brand-soft text-brand',
-      value: (
-        <>
-          <CountUp value={taskStatus?.progress || 0} />
-          <span className="ml-1 text-base font-medium text-faint">/ {taskStatus?.total || 0}</span>
-        </>
-      ),
-    },
-    {
-      label: isReadingTask ? '已滚动时长' : isToolTask ? taskStatus.task_type === 'catalog' ? '已读取资源' : '累计执行量' : '章节统计',
-      icon: FileText,
-      iconCls: 'bg-success/10 text-success',
-      value: isToolTask ? (
-        <span className="text-xl">{taskStatus.task_type === 'catalog' ? taskDetails?.tool?.resources?.length || 0 : formatToolAmount(taskDetails?.tool?.completed_units ?? 0, taskDetails?.tool?.unit)}</span>
-      ) : (
-        <>
-          <CountUp value={taskStatus?.stats?.completed_chapters || 0} />
-          <span className="ml-1 text-base font-medium text-faint">/ {taskStatus?.stats?.total_chapters || 0}</span>
-        </>
-      ),
-    },
-    {
-      label: '处理进度',
-      icon: Gauge,
-      iconCls: 'bg-warning/10 text-warning',
-      value: <CountUp value={Math.round(progress)} suffix="%" />,
-    },
-    {
-      label: '任务状态',
-      icon: statusInfo.icon,
-      iconCls: `${statusIconBg} ${statusInfo.cls}`,
-      iconMotion: statusInfo.icon === Loader2 ? 'animate-spin' : taskStatus?.status === 'running' ? 'animate-pulse' : '',
-      value: <span className={`text-lg font-semibold ${statusInfo.cls}`}>{statusInfo.text}</span>,
-    },
-  ];
+  const goToResources = () => {
+    const target = document.getElementById('resource-selection');
+    if (!target) return;
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    target.focus({ preventScroll: true });
+  };
 
   return (
     <div className="min-h-screen bg-canvas">
@@ -318,7 +279,7 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
                 {stopPending ? '正在停止' : stopConfirming ? '确认停止' : '停止任务'}
               </Button>
             )}
-            <Button onClick={onBack} size="sm" variant={terminal ? 'default' : 'outline'}>
+            <Button onClick={onBack} size="sm" variant={terminal && !catalogReadyForSelection ? 'default' : 'outline'}>
               <ArrowLeft className="h-3.5 w-3.5" aria-hidden="true" />
               返回课程选择
             </Button>
@@ -358,50 +319,30 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
             {missing ? '任务不存在或已过期，请返回课程选择。' : `${pollError}，正在重试获取最新数据。`}
           </div>
         )}
-        {/* 统计卡片 */}
-        <section
-          aria-label="任务统计"
-          className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4 animate-stagger-up"
-        >
-          {statCards.map((card, i) => {
-            const Icon = card.icon;
-            return (
-              <div
-                key={card.label}
-                className="rounded-xl border border-line bg-white p-5 shadow-card"
-                style={{ animationDelay: `${i * 60}ms` }}
-              >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-[13px] text-faint">{card.label}</p>
-                    <p className="mt-1.5 text-2xl font-semibold tracking-tight leading-none tnum">
-                      {card.value}
-                    </p>
-                  </div>
-                  <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${card.iconCls}`}>
-                    <Icon className={`h-4.5 w-4.5 ${card.iconMotion || ''}`} aria-hidden="true" />
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </section>
-
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_clamp(20rem,24vw,28rem)] lg:items-start 2xl:gap-8">
-          {/* 主栏 */}
-          <div className="min-w-0 space-y-6">
+          {/* 侧栏：当前进度 → 任务信息 → 详细统计；移动端优先展示进度摘要 */}
+          <aside className="order-first space-y-6 animate-stagger-up lg:order-2" style={{ animationDelay: '200ms' }}>
             {/* 当前进度 */}
-            <section className="rounded-xl border border-line bg-white p-5 shadow-card animate-stagger-up" style={{ animationDelay: '120ms' }}>
-              <div className="mb-4 flex items-baseline justify-between">
+            <section className="rounded-xl border border-line bg-white p-5 shadow-card" style={{ animationDelay: '120ms' }}>
+              <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3">
                 <h2 className="text-[15px] font-semibold">当前进度</h2>
-                <span className="text-xs text-faint tnum">
-                  {taskStatus?.progress || 0} / {taskStatus?.total || 0} {isToolTask ? '条目' : '课程'}
-                </span>
+                <span className={`text-sm font-semibold ${statusInfo.cls}`}>{statusInfo.text}</span>
               </div>
+              <p className="mb-3 text-sm text-body tnum">
+                {knownTotal ? `${taskStatus.progress || 0} / ${taskStatus.total} ${isToolTask ? '条目' : '课程'} · ${Math.round(progress)}%` : '等待进度总量'}
+              </p>
+              {!isToolTask && taskStatus?.stats && (
+                <p className="mb-3 text-xs text-body">
+                  章节 {taskStatus.stats.completed_chapters || 0} / {taskStatus.stats.total_chapters || 0}
+                  {!!(taskStatus.stats.failed_chapters || taskStatus.stats.failed_tasks || taskStatus.stats.failed_courses || taskStatus.stats.skipped_chapters || taskStatus.stats.skipped_tasks) && (
+                    <span className="ml-3 text-warning-ink">存在失败或跳过项，请核对下方详细统计</span>
+                  )}
+                </p>
+              )}
               <div
                 className="h-2.5 w-full overflow-hidden rounded-full bg-soft"
                 role="progressbar"
-                aria-valuenow={Math.round(progress)}
+                aria-valuenow={knownTotal ? Math.round(progress) : undefined}
                 aria-valuemin={0}
                 aria-valuemax={100}
                 aria-label={isToolTask ? '整体任务进度' : '整体学习进度'}
@@ -425,7 +366,7 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
                     {taskStatus.current_chapter && (
                       <p className="mt-0.5 flex items-center gap-1.5 text-[13px] text-body">
                         <span className="rounded bg-brand-soft px-1.5 py-0.5 text-[11px] font-medium text-brand">章节</span>
-                        <span className="truncate">{taskStatus.current_chapter}</span>
+                        <span className="min-w-0 break-words" title={taskStatus.current_chapter}>{taskStatus.current_chapter}</span>
                       </p>
                     )}
                     {isToolTask && taskStatus.current_task && <p className="mt-1 break-words text-xs text-faint">{taskStatus.current_task}</p>}
@@ -444,6 +385,113 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
                 </div>
               )}
             </section>
+
+            {/* 任务信息 */}
+            <section className="rounded-xl border border-line bg-white shadow-card">
+              <div className="border-b border-line px-5 py-3.5">
+                <h2 className="text-[15px] font-semibold">任务信息</h2>
+              </div>
+              <dl className="space-y-4 p-5">
+                {isToolTask && <div>
+                  <dt className="text-xs text-faint">{isReadingTask ? '已滚动时长' : taskStatus.task_type === 'catalog' ? '已读取资源' : '累计执行量'}</dt>
+                  <dd className="mt-1 text-sm font-medium">{taskStatus.task_type === 'catalog' ? taskDetails?.tool?.resources?.length || 0 : formatToolAmount(taskDetails?.tool?.completed_units ?? 0, taskDetails?.tool?.unit)}</dd>
+                </div>}
+                <div>
+                  <dt className="text-xs text-faint">任务 ID</dt>
+                  <dd className="mt-1 break-all rounded-lg bg-soft px-2.5 py-2 font-mono text-xs">
+                    {taskId}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-faint">开始时间</dt>
+                  <dd className="mt-1 text-sm font-medium tnum">
+                    {taskStatus?.start_time
+                      ? new Date(taskStatus.start_time * 1000).toLocaleString('zh-CN')
+                      : '-'}
+                  </dd>
+                </div>
+              </dl>
+            </section>
+
+            {/* 详细统计 */}
+            {!isToolTask && taskStatus?.stats && (
+              <section className="rounded-xl border border-line bg-white shadow-card">
+                <div className="border-b border-line px-5 py-3.5">
+                  <h2 className="text-[15px] font-semibold">详细统计</h2>
+                </div>
+                <dl className="divide-y divide-line px-5">
+                  {/* 汇总项常驻，异常项仅在非零时显示 */}
+                  {[
+                    ['总章节数', taskStatus.stats.total_chapters, '', true],
+                    ['已完成章节（含无任务）', taskStatus.stats.completed_chapters, 'text-success-ink', true],
+                    ['无任务章节', taskStatus.stats.empty_chapters, ''],
+                    ['失败章节', taskStatus.stats.failed_chapters, 'text-danger'],
+                    ['跳过章节', taskStatus.stats.skipped_chapters, 'text-warning-ink'],
+                    ['失败课程', taskStatus.stats.failed_courses, 'text-danger'],
+                    ['总任务数', taskStatus.stats.total_tasks, '', true],
+                    ['已完成任务', taskStatus.stats.completed_tasks, 'text-success-ink', true],
+                    ['失败任务', taskStatus.stats.failed_tasks, 'text-danger'],
+                    ['跳过任务', taskStatus.stats.skipped_tasks, 'text-warning-ink'],
+                  ].filter(([, value, , always]) => always || value > 0).map(([label, value, color]) => (
+                    <div key={label} className="flex items-center justify-between py-3">
+                      <dt className="text-[13px] text-faint">{label}</dt>
+                      <dd className={`text-sm font-semibold tnum ${color}`}>
+                        <CountUp value={value} />
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+            )}
+          </aside>
+
+          {/* 主栏 */}
+          <div className="min-w-0 space-y-6 lg:order-1">
+            {finished && !missing && (
+              <div className="flex items-start gap-2.5 rounded-xl border border-success/25 bg-success/5 p-4 animate-fade-in" role="status">
+                <CheckCircle2 className="mt-0.5 h-4.5 w-4.5 shrink-0 text-success-ink" aria-hidden="true" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-success-ink">{isReadingTask ? '本次阅读上报已完成' : taskStatus.task_type === 'catalog' ? '资源列表已读取' : '所有任务已完成'}</p>
+                  <p className="mt-0.5 text-[13px] text-body">{isReadingTask ? '请查看平台统计，当天阅读时长可能次日更新' : isToolTask ? taskStatus.task_type === 'catalog' ? '请勾选资源后执行下一步' : '请查看执行结果和日志' : '所选课程已按当前配置处理完成，请核对平台进度'}</p>
+                </div>
+                {catalogReadyForSelection && (
+                  <Button size="sm" className="shrink-0 self-center" onClick={goToResources}>
+                    前往选择资源
+                    <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {partial && !missing && (
+              <div className="flex items-start gap-2.5 rounded-xl border border-warning/25 bg-warning/5 p-4 animate-fade-in" role="status">
+                <AlertCircle className="mt-0.5 h-4.5 w-4.5 shrink-0 text-warning-ink" aria-hidden="true" />
+                <div>
+                  <p className="text-sm font-semibold text-warning-ink">任务已结束，部分内容未完成</p>
+                  <p className="mt-0.5 text-[13px] text-body">{isToolTask ? '请查看执行结果和日志，核对已完成内容后再开始新任务' : unverifiedCourses ? '部分章节未完成或平台完成状态未确认，请查看课程明细和日志' : '部分章节失败或被跳过，请查看课程明细和日志'}</p>
+                </div>
+              </div>
+            )}
+
+            {errored && !missing && (
+              <div className="flex items-start gap-2.5 rounded-xl border border-danger/25 bg-danger/5 p-4 animate-fade-in" role="status">
+                <AlertCircle className="mt-0.5 h-4.5 w-4.5 shrink-0 text-danger" aria-hidden="true" />
+                <div>
+                  <p className="text-sm font-semibold text-danger">任务执行失败</p>
+                  <p className="mt-0.5 text-[13px] text-body">请查看错误信息或日志排查原因</p>
+                </div>
+              </div>
+            )}
+
+            {cancelled && !missing && (
+              <div className="flex items-start gap-2.5 rounded-xl border border-line bg-soft p-4 animate-fade-in" role="status">
+                <StopCircle className="mt-0.5 h-4.5 w-4.5 shrink-0 text-faint" aria-hidden="true" />
+                <div>
+                  <p className="text-sm font-semibold text-body">任务已手动停止</p>
+                  <p className="mt-0.5 text-[13px] text-body">{isReadingTask ? '本次阅读已停止，实际记录时长请以平台统计为准' : '已完成的进度已保留，可返回课程选择开始新任务'}</p>
+                </div>
+              </div>
+            )}
 
             {isToolTask && (
               <CourseToolProgress
@@ -519,10 +567,10 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
                           type="button"
                           onClick={() => toggleCourse(course.id)}
                           aria-expanded={open}
-                          className="flex w-full items-center gap-3 rounded-lg px-2.5 py-3 text-left transition-colors duration-150 hover:bg-soft focus-visible:bg-soft focus-visible:outline-none"
+                          className="flex w-full items-center gap-3 rounded-lg px-2.5 py-3 text-left transition-colors duration-150 hover:bg-soft focus-visible:bg-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand"
                         >
                           {getCourseStatusIcon(course.status)}
-                          <span className="min-w-0 flex-1 truncate text-sm font-medium">{course.title}</span>
+                          <span title={course.title} className="min-w-0 flex-1 break-words text-sm font-medium">{course.title}</span>
                           <span className={`shrink-0 text-xs ${resultColor(course.status)}`}>{resultLabels[course.status] || '等待中'}</span>
                           {total > 0 && (
                             <span className="shrink-0 rounded-full bg-soft px-2 py-0.5 text-xs text-faint tnum">
@@ -535,12 +583,23 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
                             <ChevronRight className="h-4 w-4 shrink-0 text-faint transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true" />
                           )}
                         </button>
+                        {course.verification && (() => {
+                          const info = getVerificationInfo(course.verification);
+                          return (
+                            <p className={`flex items-start gap-1.5 px-2.5 pb-2 text-xs ${info.cls}`} role="status">
+                              <info.icon className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                              <span className="min-w-0 break-words">
+                                {info.text}{course.verification.reason && `：${course.verification.reason}`}
+                              </span>
+                            </p>
+                          );
+                        })()}
                         {open && total > 0 && (
                           <ol className="mb-2 space-y-0.5 rounded-lg bg-soft/50 px-2.5 py-2">
                             {course.chapters.map((chapter, idx) => (
                               <li key={chapter.id} className="flex items-center gap-3 rounded px-2 py-1.5 text-[13px] hover:bg-white">
                                 <span className="w-5 shrink-0 font-mono text-[11px] text-faint tnum">{idx + 1}.</span>
-                                <span className="flex-1 min-w-0 truncate text-body">{chapter.title}</span>
+                                <span className="flex-1 min-w-0 break-words text-body">{chapter.title}</span>
                                 <span className={`flex shrink-0 items-center gap-1 text-xs ${resultColor(chapterState(chapter))}`}>
                                   {getCourseStatusIcon(chapterState(chapter))}
                                   {resultLabels[chapterState(chapter)] || '等待中'}
@@ -556,136 +615,10 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
               </section>
             )}
 
-            {/* 执行日志 */}
-            <section className="rounded-xl border border-line bg-white shadow-card animate-stagger-up" style={{ animationDelay: '300ms' }}>
-              <div className="flex items-center gap-2 border-b border-line px-5 py-3.5">
-                <FileText className="h-4 w-4 text-brand" aria-hidden="true" />
-                <h2 className="text-[15px] font-semibold">执行日志</h2>
-                <span className="ml-auto text-xs text-faint">最近 {LOG_LIMIT} 条</span>
-              </div>
-              <div className="p-4">
-                {logsTruncated && <p className="mb-2 text-xs text-faint">较早的日志已省略，仅保留最近 {LOG_LIMIT} 条。</p>}
-                <div
-                  ref={logsContainerRef}
-                  role="log" aria-label="执行日志" aria-live="off"
-                  onScroll={(event) => {
-                    const container = event.currentTarget;
-                    followLogs.current = container.scrollHeight - container.scrollTop - container.clientHeight <= 24;
-                  }}
-                  className="min-h-[8rem] max-h-[clamp(22.5rem,48vh,42rem)] overflow-y-auto overscroll-contain rounded-lg bg-gray-900 p-4 font-mono text-xs leading-relaxed scroll-brutal"
-                >
-                  {logs.length === 0 ? (
-                    <p className="text-gray-500">等待日志输出...</p>
-                  ) : (
-                    logs.map((log) => (
-                      <div key={log.seq} className="mb-0.5">
-                        <span className="mr-2 text-gray-500 tnum">
-                          [{new Date(log.timestamp * 1000).toLocaleTimeString('zh-CN')}]
-                        </span>
-                        <span className={getLogLevelColor(log.level || 'info')}>{log.message}</span>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </section>
+            <ExecutionLog key={`logs:${username || ''}:${taskId}`} logs={logs} truncated={logsTruncated} />
           </div>
 
-          {/* 侧栏 */}
-          <aside className="space-y-6 lg:sticky lg:top-24 animate-stagger-up" style={{ animationDelay: '200ms' }}>
-            {/* 任务信息 */}
-            <section className="rounded-xl border border-line bg-white shadow-card">
-              <div className="border-b border-line px-5 py-3.5">
-                <h2 className="text-[15px] font-semibold">任务信息</h2>
-              </div>
-              <dl className="space-y-4 p-5">
-                <div>
-                  <dt className="text-xs text-faint">任务 ID</dt>
-                  <dd className="mt-1 break-all rounded-lg bg-soft px-2.5 py-2 font-mono text-xs">
-                    {taskId}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-faint">开始时间</dt>
-                  <dd className="mt-1 text-sm font-medium tnum">
-                    {taskStatus?.start_time
-                      ? new Date(taskStatus.start_time * 1000).toLocaleString('zh-CN')
-                      : '-'}
-                  </dd>
-                </div>
-              </dl>
-            </section>
 
-            {finished && !missing && (
-              <div className="flex items-start gap-2.5 rounded-xl border border-success/25 bg-success/5 p-4 animate-fade-in" role="status">
-                <CheckCircle2 className="mt-0.5 h-4.5 w-4.5 shrink-0 text-success" aria-hidden="true" />
-                <div>
-                  <p className="text-sm font-semibold text-success">{isReadingTask ? '本次阅读上报已完成' : taskStatus.task_type === 'catalog' ? '资源列表已读取' : '所有任务已完成'}</p>
-                  <p className="mt-0.5 text-xs text-body">{isReadingTask ? '请查看平台统计，当天阅读时长可能次日更新' : isToolTask ? taskStatus.task_type === 'catalog' ? '请勾选资源后执行下一步' : '请查看执行结果和日志' : '全部课程已按配置学习完毕'}</p>
-                </div>
-              </div>
-            )}
-
-            {partial && !missing && (
-              <div className="flex items-start gap-2.5 rounded-xl border border-warning/25 bg-warning/5 p-4 animate-fade-in" role="status">
-                <AlertCircle className="mt-0.5 h-4.5 w-4.5 shrink-0 text-warning" aria-hidden="true" />
-                <div>
-                  <p className="text-sm font-semibold text-warning">任务已结束，部分内容未完成</p>
-                  <p className="mt-0.5 text-xs text-body">{isToolTask ? '请查看执行结果和日志，核对已完成内容后再开始新任务' : '部分章节失败或被跳过，请查看课程明细和日志'}</p>
-                </div>
-              </div>
-            )}
-
-            {errored && !missing && (
-              <div className="flex items-start gap-2.5 rounded-xl border border-danger/25 bg-danger/5 p-4 animate-fade-in" role="status">
-                <AlertCircle className="mt-0.5 h-4.5 w-4.5 shrink-0 text-danger" aria-hidden="true" />
-                <div>
-                  <p className="text-sm font-semibold text-danger">任务执行失败</p>
-                  <p className="mt-0.5 text-xs text-body">请查看错误信息或日志排查原因</p>
-                </div>
-              </div>
-            )}
-
-            {cancelled && !missing && (
-              <div className="flex items-start gap-2.5 rounded-xl border border-line bg-soft p-4 animate-fade-in" role="status">
-                <StopCircle className="mt-0.5 h-4.5 w-4.5 shrink-0 text-faint" aria-hidden="true" />
-                <div>
-                  <p className="text-sm font-semibold text-body">任务已手动停止</p>
-                  <p className="mt-0.5 text-xs text-body">{isReadingTask ? '已滚动时长已保留，平台统计可能次日更新' : '已完成的进度已保留，可返回课程选择开始新任务'}</p>
-                </div>
-              </div>
-            )}
-
-            {!isToolTask && taskStatus?.stats && (
-              <section className="rounded-xl border border-line bg-white shadow-card">
-                <div className="border-b border-line px-5 py-3.5">
-                  <h2 className="text-[15px] font-semibold">详细统计</h2>
-                </div>
-                <dl className="divide-y divide-line px-5">
-                  {/* 汇总项常驻，异常项仅在非零时显示 */}
-                  {[
-                    ['总章节数', taskStatus.stats.total_chapters, '', true],
-                    ['已完成章节（含无任务）', taskStatus.stats.completed_chapters, 'text-success', true],
-                    ['无任务章节', taskStatus.stats.empty_chapters, ''],
-                    ['失败章节', taskStatus.stats.failed_chapters, 'text-danger'],
-                    ['跳过章节', taskStatus.stats.skipped_chapters, 'text-warning'],
-                    ['失败课程', taskStatus.stats.failed_courses, 'text-danger'],
-                    ['总任务数', taskStatus.stats.total_tasks, '', true],
-                    ['已完成任务', taskStatus.stats.completed_tasks, 'text-success', true],
-                    ['失败任务', taskStatus.stats.failed_tasks, 'text-danger'],
-                    ['跳过任务', taskStatus.stats.skipped_tasks, 'text-warning'],
-                  ].filter(([, value, , always]) => always || value > 0).map(([label, value, color]) => (
-                    <div key={label} className="flex items-center justify-between py-3">
-                      <dt className="text-[13px] text-faint">{label}</dt>
-                      <dd className={`text-sm font-semibold tnum ${color}`}>
-                        <CountUp value={value} />
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
-              </section>
-            )}
-          </aside>
         </div>
       </main>
     </div>

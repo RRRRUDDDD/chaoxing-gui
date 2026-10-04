@@ -131,9 +131,10 @@ def _check_html(text, label):
 
 
 class CourseTools:
-    def __init__(self, chaoxing, cancel_check=None):
+    def __init__(self, chaoxing, cancel_check=None, *, read_only=False):
         self.chaoxing = chaoxing
         self.cancel_check = cancel_check
+        self.read_only = read_only
 
     def _check_cancelled(self):
         if callable(self.cancel_check) and self.cancel_check():
@@ -165,6 +166,11 @@ class CourseTools:
 
     def _request(self, method, url, label, *, no_retry=False, statuses=(200,), **kwargs):
         self._check_cancelled()
+        if self.read_only and (method != "get" or url not in {COURSE_URL, STUDY_URL, CARDS_URL}):
+            raise RuntimeError("复核只允许读取课程和任务卡片")
+        if self.read_only:
+            self.chaoxing.rate_limiter.limit_rate()
+            self._check_cancelled()
         session = self.chaoxing.session_manager.get_session()
         response = None
         try:
@@ -173,6 +179,8 @@ class CourseTools:
                     url, timeout=HTTP_TIMEOUT, allow_redirects=False, **kwargs,
                 )
             if is_captcha_response(response, inspect_body=not kwargs.get("stream", False)):
+                if self.read_only:
+                    raise RuntimeError(f"{label}需要验证码，请手动验证后复核")
                 response.close()
                 response = None
                 # A verification page means the request was refused, so
@@ -354,59 +362,67 @@ class CourseTools:
             pass
         return resource
 
+    def iter_card_pages(self, course, chapter, *, strict=False):
+        """Yield raw card data; strict readers require proof of the page boundary."""
+        self._check_cancelled()
+        if chapter["locked"]:
+            if strict:
+                raise RuntimeError("章节已锁定，无法确认任务状态")
+            logger.warning("章节“{}”已锁定，已跳过", chapter["title"])
+            return
+        params = {
+            "courseId": str(course["courseId"]), "clazzid": str(course["clazzId"]),
+            "chapterId": chapter["id"], "cpi": str(course["cpi"]),
+            "verificationcode": "", "mooc2": 1,
+        }
+        text = self._text("get", STUDY_URL, "章节页数", params=params)
+        soup = _check_html(text, "章节页数")
+        count_node = soup.select_one("#cardcount")
+        if count_node is None and _LOCKED.search(soup.get_text()):
+            if strict:
+                raise RuntimeError("章节未开放，无法确认任务状态")
+            logger.warning("章节“{}”未开放，已跳过", chapter["title"])
+            return
+        probing = count_node is None
+        raw_count = "" if probing else count_node.get("value", "")
+        if not probing and (not re.fullmatch(r"\d{1,5}", raw_count) or int(raw_count) > 10000):
+            raise RuntimeError(f"章节“{chapter['title']}”的实际页数无法读取")
+        for page in range(MAX_PROBED_CARD_PAGES if probing else int(raw_count)):
+            self._check_cancelled()
+            params = {**self._course_params(course), "knowledgeid": chapter["id"],
+                      "num": page, "v": "20160407-1", "mooc2": 1}
+            text = self._text("get", CARDS_URL, "章节卡片", params=params)
+            soup = _check_html(text, "章节卡片")
+            if _LOCKED.search(soup.get_text()):
+                if strict:
+                    raise RuntimeError("章节未开放，无法确认任务状态")
+                logger.warning("章节“{}”未开放，已跳过剩余卡片", chapter["title"])
+                return
+            if probing and _CARD_PLACEHOLDER.search(text) and not card_page_has_payload(text):
+                return
+            try:
+                data = self._card_data(soup)
+            except RuntimeError as exc:
+                raise RuntimeError(f"章节“{chapter['title']}”第 {page + 1} 页：{exc}") from None
+            yield page, data
+        if strict and probing:
+            raise RuntimeError("已达到卡片探测上限，无法确认最后一页")
+
     def scan_course(self, course, on_chapter=None):
         self._check_cancelled()
         chapters = self._chapters(self._course_page(course))
         resources = {}
         for completed, chapter in enumerate(chapters, 1):
-            self._check_cancelled()
-            if chapter["locked"]:
-                logger.warning("章节“{}”已锁定，已跳过", chapter["title"])
-            else:
-                params = {
-                    "courseId": str(course["courseId"]), "clazzid": str(course["clazzId"]),
-                    "chapterId": chapter["id"], "cpi": str(course["cpi"]),
-                    "verificationcode": "", "mooc2": 1,
-                }
-                text = self._text("get", STUDY_URL, "章节页数", params=params)
-                soup = _check_html(text, "章节页数")
-                count_node = soup.select_one("#cardcount")
-                if count_node is None and _LOCKED.search(soup.get_text()):
-                    logger.warning("章节“{}”未开放，已跳过", chapter["title"])
-                else:
-                    # The study page may be replaced by an interstitial such as
-                    # face collection while knowledge/cards still works. Probe
-                    # contiguous card pages then, as the study runner does.
-                    probing = count_node is None
-                    raw_count = "" if probing else count_node.get("value", "")
-                    if not probing and (not re.fullmatch(r"\d{1,5}", raw_count) or int(raw_count) > 10000):
-                        raise RuntimeError(f"章节“{chapter['title']}”的实际页数无法读取")
-                    for page in range(MAX_PROBED_CARD_PAGES if probing else int(raw_count)):
-                        self._check_cancelled()
-                        params = {
-                            **self._course_params(course), "knowledgeid": chapter["id"],
-                            "num": page, "v": "20160407-1", "mooc2": 1,
-                        }
-                        text = self._text("get", CARDS_URL, "章节卡片", params=params)
-                        soup = _check_html(text, "章节卡片")
-                        if _LOCKED.search(soup.get_text()):
-                            logger.warning("章节“{}”未开放，已跳过剩余卡片", chapter["title"])
-                            break
-                        if probing and _CARD_PLACEHOLDER.search(text) and not card_page_has_payload(text):
-                            break
-                        try:
-                            data = self._card_data(soup)
-                            for index, attachment in enumerate(data.get("attachments", [])):
-                                self._check_cancelled()
-                                resource = self._resource(
-                                    course, chapter, attachment, data.get("defaults", {}), page, index,
-                                )
-                                if resource is not None:
-                                    previous = resources.get(resource["id"])
-                                    if previous is None or (resource["watchable"] and not previous["watchable"]):
-                                        resources[resource["id"]] = resource
-                        except RuntimeError as exc:
-                            raise RuntimeError(f"章节“{chapter['title']}”第 {page + 1} 页：{exc}") from None
+            for page, data in self.iter_card_pages(course, chapter):
+                for index, attachment in enumerate(data.get("attachments", [])):
+                    self._check_cancelled()
+                    resource = self._resource(
+                        course, chapter, attachment, data.get("defaults", {}), page, index,
+                    )
+                    if resource is not None:
+                        previous = resources.get(resource["id"])
+                        if previous is None or (resource["watchable"] and not previous["watchable"]):
+                            resources[resource["id"]] = resource
             if callable(on_chapter):
                 on_chapter(chapter["title"], completed, len(chapters))
         self._check_cancelled()

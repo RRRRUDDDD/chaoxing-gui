@@ -52,6 +52,7 @@ class TaskStoreTests(unittest.TestCase):
         self.store.finish(ids[0], "partial")
         self.assertNotEqual(self.create(), ids[0])
 
+    @patch("api.privacy._secrets", set())
     def test_logs_are_isolated_bounded_and_reads_do_not_consume(self):
         alice = self.create()
         bob = self.create("bob")

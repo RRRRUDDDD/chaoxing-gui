@@ -31,6 +31,7 @@ class WebAppTests(unittest.TestCase):
         self.chaoxing = self.make_client()
         self.init = self.patch("app.main_module.init_chaoxing", return_value=self.chaoxing)
         self.process = self.patch("app.main_module.process_course", side_effect=self.success_result)
+        self.verification = self.patch("main.verify_course", return_value={"status": "confirmed", "reason": "offline fixture"})
         self.launch = self.patch("app._launch_study_task", side_effect=web._run_study_task)
         self.notification = MagicMock()
         factory = self.patch("app.Notification")
@@ -62,7 +63,7 @@ class WebAppTests(unittest.TestCase):
             config["chapter_start_callback"](course, point)
             config["chapter_result_callback"](course, point, result)
             tasks.append(web.main_module.ChapterTask(index, point, result))
-        return web.main_module.CourseResult(tuple(tasks))
+        return web.main_module.CourseResult(tuple(tasks), {"status": "confirmed", "reason": "offline fixture"})
 
     def start(self, **overrides):
         data = {
@@ -76,6 +77,22 @@ class WebAppTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200, response.get_json())
         task_id = response.get_json()["data"]["task_id"]
         return task_id, self.client.get(f"/api/task/{task_id}").get_json()["data"]
+
+    def test_unconfirmed_platform_state_preserves_executed_counts_but_is_partial(self):
+        original = self.success_result
+        for verification in ({'status': 'unknown', 'reason': 'read failed'},
+                             {'status': 'pending', 'reason': 'pending tasks'}):
+            def outcome(*args, **kwargs):
+                result = original(*args, **kwargs)
+                return web.main_module.CourseResult(result.tasks, verification)
+            self.process.side_effect = outcome
+            task_id, status = self.state(self.start())
+            self.assertEqual(status['status'], 'partial')
+            self.assertEqual(status['stats']['completed_tasks'], 2)
+            self.assertEqual(status['stats']['completed_courses'], 0)
+            detail = self.store.get_details(task_id)['courses'][0]
+            self.assertEqual(detail['verification'], verification)
+            self.assertEqual(status['stats']['failed_tasks'], 0)
 
     def test_success_reuses_chapter_snapshot_and_closes_client(self):
         task_id, status = self.state(self.start())
@@ -137,7 +154,7 @@ class WebAppTests(unittest.TestCase):
                 config["chapter_result_callback"](course, point, result)
                 config["chapter_result_callback"](course, point, result)
                 tasks.append(web.main_module.ChapterTask(index, point, result))
-            return web.main_module.CourseResult(tuple(tasks))
+            return web.main_module.CourseResult(tuple(tasks), {"status": "confirmed", "reason": "offline fixture"})
 
         self.process.side_effect = process
         task_id, status = self.state(self.start())
@@ -369,6 +386,7 @@ class WebAppTests(unittest.TestCase):
 
     def test_concurrent_tasks_keep_worker_logs_in_their_own_context(self):
         clients = {}
+        markers = {"alice": "worker-one-marker", "bob": "worker-two-marker"}
         barrier = threading.Barrier(2)
         threads = []
 
@@ -379,7 +397,7 @@ class WebAppTests(unittest.TestCase):
 
             def get_jobs(course, point, **kwargs):
                 barrier.wait(timeout=5)
-                web.logger.info(f"{account}-worker-marker")
+                web.logger.info(markers[account])
                 return [], {}
 
             client.get_job_list.side_effect = get_jobs
@@ -407,8 +425,8 @@ class WebAppTests(unittest.TestCase):
         for account, task_id in ids.items():
             self.assertEqual(self.store.get_status(task_id)["status"], "completed")
             text = "\n".join(entry["message"] for entry in self.store.read_logs(task_id)["data"])
-            self.assertIn(f"{account}-worker-marker", text)
-            self.assertNotIn(f"{'bob' if account == 'alice' else 'alice'}-worker-marker", text)
+            self.assertIn(markers[account], text)
+            self.assertNotIn(markers["bob" if account == "alice" else "alice"], text)
             clients[account].close.assert_called_once_with()
 
     def test_ocr_config_is_explicit_and_never_changes_process_environment(self):

@@ -6,23 +6,25 @@ vi.mock('../lib/desktopBridge', () => ({
   desktopBridge: bridge,
   isTauriDesktop: () => bridge.tauri,
 }));
-import AdvancedSettings, { CloseActionSetting } from './AdvancedSettings';
+import { TikuSettings, AppSettings, CloseActionSetting } from './AdvancedSettings';
 
 afterEach(() => { cleanup(); bridge.tauri = false; });
 
 function Harness({ initial, onSettings = () => {} }) {
   const [settings, setSettings] = useState(initial);
+  const change = (next) => { setSettings(next); onSettings(next); };
   return (
-    <AdvancedSettings
-      settings={settings}
-      onChange={(next) => { setSettings(next); onSettings(next); }}
-    />
+    <>
+      <TikuSettings settings={settings} onChange={change} />
+      <AppSettings settings={settings} onChange={change} />
+    </>
   );
 }
 
 it('checks question-bank certificates unless the user turns it off', () => {
   const changed = vi.fn();
   render(<Harness initial={{ tiku_config: { config: '[]', submit: 'true' } }} onSettings={changed} />);
+  fireEvent.click(screen.getByRole('button', { name: '展开答题设置' }));
   const box = screen.getByLabelText('校验题库 HTTPS 证书');
   expect(box.checked).toBe(true);
   expect(screen.queryByRole('alert')).toBeNull();

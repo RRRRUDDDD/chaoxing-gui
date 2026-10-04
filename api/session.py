@@ -11,6 +11,7 @@ from urllib3.util.retry import Retry
 
 from api.config import GlobalConst as gc
 from api.cookies import use_cookies
+from api.privacy import register_secret
 
 
 HTTP_TIMEOUT = (5, 15)
@@ -54,6 +55,8 @@ class SessionManager:
             return session
 
     def set_cookies(self, cookies):
+        for value in cookies.values():
+            register_secret(value)
         with self._lock:
             if self._closed:
                 raise RuntimeError('HTTP session manager is closed')

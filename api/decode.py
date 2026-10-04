@@ -574,6 +574,18 @@ def decode_course_folder(html_text: str) -> List[Dict[str, str]]:
     return course_folder_list
 
 
+def decode_job_progress(html_text: str):
+    """Only accept an explicit, consistent platform aggregate; never infer it."""
+    soup = BeautifulSoup(html_text, "lxml")
+    for node in soup(["script", "style"]):
+        node.decompose()
+    values = re.findall(r"已完成任务点\s*[:：]\s*(\d+)\s*/\s*(\d+)", soup.get_text(" ", strip=True))
+    if not values or len(set(values)) != 1:
+        return None
+    done, total = map(int, values[0])
+    return {"done": done, "total": total} if 0 <= done <= total else None
+
+
 def decode_course_point(html_text: str) -> Dict[str, Any]:
     """
     解析章节列表页面，提取章节点信息
@@ -589,6 +601,7 @@ def decode_course_point(html_text: str) -> Dict[str, Any]:
     course_point = {
         "hasLocked": False,  # 用于判断该课程任务是否是需要解锁
         "points": [],
+        "jobProgress": decode_job_progress(html_text),
     }
 
     for chapter_unit in soup.find_all("div", class_="chapter_unit"):

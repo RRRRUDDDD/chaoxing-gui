@@ -10,14 +10,18 @@ import json
 import re
 import sys
 import time
+import unicodedata
 import warnings
+from html import unescape
 from typing import Any, Callable, Mapping
 from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
 import requests
+from bs4 import BeautifulSoup
 from urllib3.exceptions import InsecureRequestWarning
 
 from api.logger import logger
+from api.privacy import register_config, register_secret
 from api.answer_check import match_answer
 from api.question_images import build_image_env, restore_image_answer, validate_images, MAX_TOTAL_BYTES
 from api.session import get_current_session
@@ -700,13 +704,41 @@ def select_answer(result: Any, title: str = "") -> str | None:
     return selected["answer"] if selected else None
 
 
+def _summary_text(value):
+    text = unescape(str(value or ""))
+    if "<" in text:
+        soup = BeautifulSoup(text, "html.parser")
+        for node in soup(["script", "style"]):
+            node.decompose()
+        text = soup.get_text(" ", strip=True)
+    # Strip terminal escapes before removing remaining control/format characters.
+    text = re.sub(r"\x1b(?:\][^\x07\x1b]*(?:\x07|\x1b\x5c)|\[[0-?]*[ -/]*[@-~])", "", text)
+    text = "".join(" " if char.isspace() else char for char in text
+                   if char.isspace() or unicodedata.category(char) not in ("Cc", "Cf"))
+    return " ".join(text.split())
+
+
 def _safe_summary(value, secrets=()):
     text = str(value or "")
     for secret in secrets:
         text = text.replace(secret, "[redacted]")
-    text = re.sub(r"data:image/\S+|https?://\S+", "[redacted]", text)
-    text = re.sub(r"(?i)(token|authorization|password|api_key)\s*[:=]\s*\S+", "[redacted]", text)
+    text = _summary_text(text)
+    for secret in secrets:
+        normalized = _summary_text(secret)
+        if normalized:
+            text = text.replace(normalized, "[redacted]")
+    text = re.sub(r"(?i)data:image/\S+|https?://\S+", "[redacted]", text)
+    text = re.sub(r"(?i)(token|authorization|password|api_key)\s*[:=]\s*(?:Bearer\s+)?\S+", "[redacted]", text)
     return text[:256]
+
+
+def _no_answer_message(rows, secrets=()):
+    for row in rows[:20]:
+        if not row["answer"] and isinstance(row["question"], str):
+            message = _safe_summary(row["question"], secrets)
+            if message:
+                return message
+    return ""
 
 
 def _result_summary(row, secrets=()):
@@ -732,6 +764,10 @@ class TikuOcs(Tiku):
             if not self._session.verify:
                 logger.warning("已关闭题库 HTTPS 证书校验，请确认题库地址可信")
             self.wrappers = load_wrappers(conf, self._session)
+            for wrapper in self.wrappers:
+                register_config(wrapper["headers"])
+                for secret in wrapper["secret_values"]:
+                    register_secret(secret)
         except requests.exceptions.SSLError:
             logger.error(f"{ssl_error_message('订阅')}，已忽略题库功能")
             self.wrappers = []
@@ -790,6 +826,10 @@ class TikuOcs(Tiku):
                     logger.info(f"从{report['source']}获取候选答案")
                     return selected["answer"]
                 report["status"] = "unmatched" if any(row["answer"] for row in rows) else "no_answer"
+                if report["status"] == "no_answer":
+                    message = _no_answer_message(rows, wrapper["secret_values"])
+                    if message:
+                        report["message"] = message
             except requests.exceptions.SSLError:
                 report["status"] = "ssl_error"
                 logger.error(ssl_error_message(report["source"]))
@@ -810,5 +850,8 @@ class TikuOcs(Tiku):
             finally:
                 report["elapsed_ms"] = round((time.monotonic() - started) * 1000)
                 if report["status"] != "selected":
-                    logger.info("题库 {}: {}", report["source"], report["status"])
+                    if report.get("message"):
+                        logger.info("题库 {}: {}（题库提示：{}）", report["source"], report["status"], report["message"])
+                    else:
+                        logger.info("题库 {}: {}", report["source"], report["status"])
         return None

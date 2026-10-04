@@ -1,3 +1,4 @@
+from pathlib import Path
 import json
 import unittest
 import warnings
@@ -80,6 +81,17 @@ class HandlerTests(unittest.TestCase):
             self.assertEqual(data["images"], [])
             self.assertEqual(data["suggestion_title"], "")
             self.assertEqual(data["suggestion_options"], "")
+
+        response.json.return_value = {'code': 0, 'data': {
+            'answer': '题库次数余额不足，请前往 <a href="https://example.test/account">个人中心</a>',
+            'tags': [{'text': '余额不足', 'color': 'red'}],
+        }}
+        with patch.object(tiku._session, 'request', return_value=response), patch('api.ocs_tiku.logger') as log:
+            self.assertIsNone(tiku._query(context))
+        report = tiku.query_diagnostics[0]
+        self.assertEqual(report['status'], 'no_answer')
+        self.assertEqual(report['message'], '题库次数余额不足，请前往 个人中心')
+        log.info.assert_called_once_with('题库 {}: {}（题库提示：{}）', '言溪题库', 'no_answer', report['message'])
 
     def test_documented_handlers(self):
         single = compile_handler("return (res)=> res.code === 1 ? [res.question,res.answer] : undefined")
@@ -185,6 +197,25 @@ class TikuOcsTests(unittest.TestCase):
         loaded = tiku.get_tiku_from_config()
         self.assertIs(loaded, tiku)
         self.assertTrue(loaded.DISABLE)
+
+    def test_single_punctuation_through_ocs_query_and_cache(self):
+        import tempfile
+        from api.answer import CacheDAO
+        with tempfile.TemporaryDirectory() as directory:
+            cache = CacheDAO(str(Path(directory) / 'cache.json'))
+            bank = TikuOcs()
+            self.addCleanup(bank.close)
+            bank.config_set({'wrappers': [_wrapper()]})
+            bank.init_tiku()
+            answer = '坚持独立负责、不参与国际组织的活动'
+            question = {'title': '单选顿号离线回归', 'type': 'single', 'options': 'A. ' + answer + chr(10) + 'B. 其他'}
+            response = Mock()
+            response.json.return_value = {'code': 1, 'question': question['title'], 'answer': answer}
+            with (patch.object(bank._session, 'request', return_value=response),
+                  patch.object(CacheDAO, 'get_shared', return_value=cache)):
+                self.assertEqual(bank.query(question), answer)
+                self.assertEqual(bank.query(question), answer)
+                bank.close()
 
     def test_request_failure_tries_next_bank(self):
         tiku = TikuOcs()
@@ -410,6 +441,127 @@ class QueryDiagnosticsTests(unittest.TestCase):
         bank.init_tiku()
         self.addCleanup(bank.close)
         return bank
+
+    def query_payload(self, bank, payload, question=None):
+        response = Mock()
+        response.json.return_value = payload
+        with patch.object(bank._session, 'request', return_value=response), patch('api.ocs_tiku.logger') as log:
+            answer = bank._query(question or {'title': 'Q'})
+        messages = [call.args[0].format(*call.args[1:]) for call in log.info.call_args_list]
+        return answer, messages
+
+    def test_no_answer_messages_are_provider_neutral(self):
+        bank = self.bank([_wrapper(handler='return r => [r.reason, undefined]')])
+        for reason in ('题库次数余额不足', 'Token 无效，请检查配置', '未找到匹配题目'):
+            with self.subTest(reason=reason):
+                answer, messages = self.query_payload(bank, {'reason': reason})
+                self.assertIsNone(answer)
+                self.assertEqual(bank.query_diagnostics[0]['status'], 'no_answer')
+                self.assertEqual(bank.query_diagnostics[0]['message'], reason)
+                self.assertEqual(messages, [f'题库 示例题库: no_answer（题库提示：{reason}）'])
+
+    def test_empty_messages_keep_status_only_log(self):
+        bank = self.bank([_wrapper(handler='return r => r.rows')])
+        for rows in (None, [], [[None, None]], [['', None]], [[' \r\n ', None]],
+                     [[{'message': 'do not stringify'}, None]],
+                     [[None, None, {'tags': [{'text': 'tag only'}]}]],
+                     [['<script>not visible</script><style>not visible</style>', None]]):
+            with self.subTest(rows=rows):
+                answer, messages = self.query_payload(bank, {'rows': rows, 'message': 'raw response must stay private'})
+                self.assertIsNone(answer)
+                self.assertNotIn('message', bank.query_diagnostics[0])
+                self.assertEqual(messages, ['题库 示例题库: no_answer'])
+
+    def test_messages_use_first_usable_row_within_diagnostic_limit(self):
+        bank = self.bank([_wrapper(handler='return r => r.rows')])
+        cases = [([[None, None], [' ', None], ['first', None], ['second', None]], 'first'),
+                 ([[None, None]] * 19 + [['last visible', None]], 'last visible'),
+                 ([[None, None]] * 20 + [['outside limit', None]], None)]
+        for rows, expected in cases:
+            with self.subTest(expected=expected):
+                self.query_payload(bank, {'rows': rows})
+                self.assertEqual(bank.query_diagnostics[0].get('message'), expected)
+                self.assertLessEqual(len(bank.query_diagnostics[0]['candidates']), 20)
+
+    def test_no_answer_messages_and_snapshots_are_safe(self):
+        credential = 'fixture-credential'
+        bank = self.bank([_wrapper(data={'token': credential}, handler='return r => [r.reason, undefined]')])
+        cases = [
+            ('<b>余额不足</b>&nbsp;<script>script-hidden</script><style>style-hidden</style>'
+             '<a href="https://example.test/account?token=' + credential + '">个人中心</a>',
+             '余额不足', ['<', 'script-hidden', 'style-hidden', 'https://', credential]),
+            ('余额不足 fixture&#45;credential https://example.test/private data:image/png;base64,IMAGEDATA',
+             '余额不足', [credential, 'https://', 'IMAGEDATA', 'data:image/']),
+            ('余额不足\r\n\x1b[31m请检查\x1b[0m\u202e\u200b\x00配置',
+             '余额不足 请检查配置', ['\r', '\n', '\x1b', '[31m', '[0m', '\u202e', '\u200b', '\x00']),
+            ('提示 token=unlisted password:unlisted api_key=unlisted authorization=unlisted',
+             '提示', ['unlisted']),
+            ('余额不足 ' + '说明' * 200, '余额不足', []),
+        ]
+        for reason, expected, forbidden in cases:
+            with self.subTest(reason=reason[:30]):
+                answer, messages = self.query_payload(bank, {'reason': reason})
+                self.assertIsNone(answer)
+                report = bank.query_diagnostics[0]
+                self.assertEqual(report['status'], 'no_answer')
+                self.assertIn(expected, report['message'])
+                self.assertLessEqual(len(report['message']), 256)
+                self.assertEqual(report['message'], report['candidates'][0]['question'])
+                output = str(report) + ''.join(messages)
+                for value in forbidden:
+                    self.assertNotIn(value, output)
+
+    def test_normalized_credentials_and_terminal_links_remain_redacted(self):
+        bank = self.bank([_wrapper(data={'token': 'fixture&amp;credential'},
+                                  handler='return r => [r.reason, undefined]')])
+        reasons = ('余额不足 fixture&amp;credential', '余额不足 fixture&credential',
+                   '余额不足 \x1b]8;;https://example.test/account\x1b\x5c个人中心\x1b]8;;\x1b\x5c')
+        for reason in reasons:
+            with self.subTest(reason=reason):
+                _, messages = self.query_payload(bank, {'reason': reason})
+                output = str(bank.query_diagnostics) + ''.join(messages)
+                for forbidden in ('fixture', 'credential', 'https://', '\x1b', ']8;;'):
+                    self.assertNotIn(forbidden, output)
+
+    def test_message_reaches_existing_task_log_sink(self):
+        from api.task_logging import task_log_sink
+        bank = self.bank([_wrapper(handler='return r => [r.reason, undefined]')])
+        response = Mock()
+        response.json.return_value = {'reason': '查询额度不足'}
+        store = Mock()
+        with task_log_sink(store, 'offline-diagnostic'), patch.object(bank._session, 'request', return_value=response):
+            self.assertIsNone(bank._query({'title': 'Q'}))
+        messages = [call.args[1] for call in store.append_log.call_args_list]
+        self.assertTrue(any('no_answer（题库提示：查询额度不足）' in message for message in messages))
+
+    def test_failure_message_does_not_block_next_bank_or_change_answers(self):
+        bank = self.bank([_wrapper(name='first', handler='return r => [r.reason, undefined]'),
+                          _wrapper(name='second')])
+        answer, messages = self.query_payload(bank, {'reason': '余额不足', 'code': 1,
+                                                    'question': 'Q', 'answer': 'Answer\n  formatting'})
+        self.assertEqual(answer, 'Answer\n  formatting')
+        self.assertEqual([r['status'] for r in bank.query_diagnostics], ['no_answer', 'selected'])
+        self.assertNotIn('message', bank.query_diagnostics[1])
+        self.assertIn('余额不足', messages[0])
+
+    def test_unmatched_answers_do_not_become_failure_messages(self):
+        bank = self.bank([_wrapper()])
+        answer, messages = self.query_payload(bank, {'code': 1, 'question': 'not an error', 'answer': 'Gamma'},
+                                              {'title': 'Q', 'type': 'single', 'options': 'A. Alpha\nB. Beta'})
+        self.assertIsNone(answer)
+        self.assertEqual(bank.query_diagnostics[0]['status'], 'unmatched')
+        self.assertNotIn('message', bank.query_diagnostics[0])
+        self.assertEqual(messages, ['题库 示例题库: unmatched'])
+
+    def test_no_answer_message_is_not_cached(self):
+        bank = self.bank([_wrapper(handler='return r => [r.reason, undefined]')])
+        response = Mock()
+        response.json.return_value = {'reason': '余额不足'}
+        with patch('api.answer.CacheDAO.get_shared') as shared, patch.object(bank._session, 'request', return_value=response):
+            shared.return_value.get_cache.return_value = None
+            self.assertIsNone(bank.query({'title': 'Q', 'type': 'single', 'options': 'A. Alpha\nB. Beta'}))
+            shared.return_value.add_cache.assert_not_called()
+        self.assertEqual(bank.query_diagnostics[0]['message'], '余额不足')
 
     def test_unusable_candidate_does_not_block_later_candidate(self):
         bank = self.bank([_wrapper(handler='return r => r.results')])

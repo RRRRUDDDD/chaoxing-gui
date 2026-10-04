@@ -241,8 +241,10 @@ class TaskRecoveryApiTests(unittest.TestCase):
         chaoxing.session_manager.context.side_effect = nullcontext
         self.patch("app.main_module.init_chaoxing", return_value=chaoxing)
         self.patch("app.Notification")
+        verify = self.patch("main.verify_course", return_value={"status": "confirmed", "reason": "offline fixture"})
         self.launch.side_effect = web._run_study_task
         self.assertEqual(self.resume(task_id).status_code, 200)
+        verify.assert_called_once()
         chaoxing.get_course_point.assert_called_once_with("course-1", "class", "cpi")
         chaoxing.get_job_list.assert_called_once()
         self.assertEqual(chaoxing.get_job_list.call_args.args[1]["id"], "pending")

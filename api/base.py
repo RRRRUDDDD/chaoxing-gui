@@ -19,6 +19,8 @@ from api.captcha import CAPTCHA_PROTOCOL_VERIFIED, CxCaptcha, is_captcha_respons
 from api.cipher import AESCipher
 from api.config import GlobalConst as gc
 from api.cookies import save_cookies
+from api.privacy import register_secret
+from api.work_result import WorkResultReader
 from api.session import HTTP_TIMEOUT, SessionManager
 from api.decode import (
     card_page_has_payload,
@@ -103,6 +105,8 @@ class Account:
     password = None
 
     def __init__(self, _username, _password):
+        register_secret(_username)
+        register_secret(_password)
         self.username = _username
         self.password = _password
 
@@ -1031,6 +1035,15 @@ class Chaoxing:
 
         del questions["questions"]
 
+        reader = None
+        if questions["pyFlag"] == "":
+            reader = WorkResultReader(
+                _session, _course, questions,
+                cancelled=lambda: _is_cancelled(cancel_check),
+                wait=lambda seconds: _wait_for_cancel(seconds, cancel_check),
+                rate_limit=self.rate_limiter.limit_rate,
+            )
+            reader.capture_baseline()
         if _is_cancelled(cancel_check):
             return StudyResult.SKIPPED
         res = _session.post(
@@ -1071,6 +1084,13 @@ class Chaoxing:
         else:
             logger.error(f'{"提交" if questions["pyFlag"] == "" else "保存"}答题失败 -> {res.text}')
             return StudyResult.ERROR
+        if reader is not None:
+            result = reader.check()
+            _job["work_result"] = result
+            if result["result_status"] == "confirmed":
+                logger.info("章节测验已提交，平台记录成绩：{} 分（不代表全部答对）", result["score"])
+            else:
+                logger.warning("章节测验已提交，成绩未确认：{}", result["reason"])
         return StudyResult.SKIPPED if questions["pyFlag"] == "1" else StudyResult.SUCCESS
 
     def study_read(self, _course, _job, _job_info) -> StudyResult:

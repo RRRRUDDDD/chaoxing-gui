@@ -156,13 +156,13 @@ function CourseToolContent({ taskId, username, taskStatus, tool, catalogReady = 
             </Button>
             {!hasDownloads && <p className="text-xs text-faint">文件保存完成后可打开下载目录。</p>}
             {openError && <p role="alert" className="rounded-lg bg-danger/5 px-3 py-2 text-sm text-danger">{openError}</p>}
-            {openNotice && <p role="status" className="text-xs text-success">{openNotice}</p>}
+            {openNotice && <p role="status" className="text-xs text-success-ink">{openNotice}</p>}
           </div>
         )}
       </section>
 
       {taskType === 'catalog' && (
-        <section className={sectionCls} aria-label="资源选择">
+        <section id="resource-selection" tabIndex={-1} className={`${sectionCls} focus:outline-none focus-visible:ring-4 focus-visible:ring-brand/15`} aria-label="资源选择">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <h2 className="flex items-center gap-2 text-[15px] font-semibold">
               <FileText className="h-4 w-4 text-brand" aria-hidden="true" />
@@ -256,7 +256,7 @@ function CourseToolContent({ taskId, username, taskStatus, tool, catalogReady = 
                     <p className="break-words text-sm font-medium">{result.name}</p>
                     <p className="mt-0.5 text-xs text-faint">{result.course_title}</p>
                   </div>
-                  <span className={`shrink-0 text-xs ${result.status === 'error' ? 'text-danger' : result.status === 'completed' ? 'text-success' : 'text-warning'}`}>{readingTask && result.status === 'completed' ? '上报完成' : resultLabels[result.status] || result.status}</span>
+                  <span className={`shrink-0 text-xs ${result.status === 'error' ? 'text-danger' : result.status === 'completed' ? 'text-success-ink' : 'text-warning-ink'}`}>{readingTask && result.status === 'completed' ? '上报完成' : resultLabels[result.status] || result.status}</span>
                 </div>
                 {result.message && <p className={`whitespace-pre-wrap text-xs leading-relaxed ${result.status === 'error' ? 'text-danger' : 'text-body'}`}>{result.message}</p>}
                 {taskType === 'visits' && (

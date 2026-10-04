@@ -4,7 +4,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import CourseSelection from './CourseSelection';
 import StudyProgress from './StudyProgress';
 import RepositoryLink, { REPOSITORY_URL } from './RepositoryLink';
-import AdvancedSettings from './AdvancedSettings';
+import { TikuSettings } from './AdvancedSettings';
 import api from '../api/axios';
 
 const core = vi.hoisted(() => ({ isTauri: vi.fn(), invoke: vi.fn() }));
@@ -74,9 +74,11 @@ const externalLinks = [
 async function renderExternalLink({ kind, name }) {
   core.invoke.mockResolvedValue({ closeAction: 'ask' });
   await act(async () => {
-    render(kind === 'repository' ? <RepositoryLink /> : <AdvancedSettings settings={{}} onChange={vi.fn()} />);
+    render(kind === 'repository' ? <RepositoryLink /> : <TikuSettings settings={{}} onChange={vi.fn()} />);
   });
-  if (kind !== 'repository') fireEvent.click(screen.getByRole('button', { name: '展开高级配置' }));
+  if (kind !== 'repository') {
+    fireEvent.click(screen.getByRole('button', { name: '展开答题设置' }));
+  }
   core.invoke.mockClear();
   return screen.getByRole('link', { name });
 }
@@ -163,4 +165,22 @@ it('follows logs inside their own container without moving focus, and pauses whe
     if (oldScroll) Object.defineProperty(Element.prototype, 'scrollIntoView', oldScroll);
     else delete Element.prototype.scrollIntoView;
   }
+});
+
+it.each([
+  ['confirmed', '平台已确认完成'],
+  ['pending', '平台仍有未完成任务'],
+  ['unknown', '执行已结束，平台完成状态未确认'],
+  ['cancelled', '平台复核已停止'],
+])('shows independent platform verification for %s', async (status, label) => {
+  api.get.mockImplementation(async (url) => {
+    if (url.endsWith('/details')) return ok({ courses: [{
+      id: 'course', title: 'Verified course', status: status === 'confirmed' ? 'completed' : 'partial',
+      chapters: [], verification: { status, reason: 'offline evidence' },
+    }] });
+    if (url.startsWith('/logs/')) return { data: { status: true, data: [], next_cursor: 0 } };
+    return ok({ status: 'partial', progress: 1, total: 1 });
+  });
+  await act(async () => { render(<StudyProgress taskId="verification-task" />); });
+  expect(await screen.findByText(`${label}：offline evidence`)).toBeTruthy();
 });
