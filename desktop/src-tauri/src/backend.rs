@@ -76,6 +76,11 @@ pub struct BackendState {
     /// Only short transitions/spawn registration; never held during HTTP or grace.
     lifecycle_lock: Mutex<()>,
     stop_lock: Mutex<()>,
+    /// Shared loopback clients, one per timeout profile (health 2s, API 30s —
+    /// ureq can only set the connect timeout at agent level). Building an
+    /// agent per request re-created its pool on every call.
+    health_agent: ureq::Agent,
+    api_agent: ureq::Agent,
 }
 
 #[derive(Clone, Copy)]
@@ -209,6 +214,8 @@ impl BackendState {
             log_dir,
             lifecycle_lock: Mutex::new(()),
             stop_lock: Mutex::new(()),
+            health_agent: loopback_agent(HEALTH_TIMEOUT),
+            api_agent: loopback_agent(API_TIMEOUT),
         }
     }
 
@@ -642,6 +649,9 @@ fn await_handshake(
     }
 }
 
+/// Constructor for the shared agents: loopback only, no env proxies, no
+/// redirects. The overall timeout remains per-request overridable (health
+/// probes cap it at the remaining start deadline).
 fn loopback_agent(timeout: Duration) -> ureq::Agent {
     ureq::AgentBuilder::new()
         .try_proxy_from_env(false)
@@ -666,8 +676,13 @@ fn health_until_ready(
         if remaining.is_zero() {
             return Err("health 探测超时（120s）".into());
         }
-        let agent = loopback_agent(HEALTH_TIMEOUT.min(remaining));
-        match agent.get(&url).set("X-Auth-Token", token).call() {
+        match state
+            .health_agent
+            .get(&url)
+            .set("X-Auth-Token", token)
+            .timeout(HEALTH_TIMEOUT.min(remaining))
+            .call()
+        {
             Ok(resp) => {
                 if resp.status() == 200 {
                     let mut body = Vec::new();
@@ -712,29 +727,35 @@ fn health_until_ready(
     }
 }
 
+/// Set phase→Stopping, cut off new requests and take ownership of the child
+/// and Job. `None` means already Stopped. Shared by both stop paths.
+fn claim_for_stop(state: &BackendState) -> Option<(Option<Child>, Option<Job>)> {
+    let _transition = state
+        .lifecycle_lock
+        .lock()
+        .unwrap_or_else(|e| e.into_inner());
+    let mut phase = state.phase.lock().unwrap_or_else(|e| e.into_inner());
+    if *phase == BackendPhase::Stopped {
+        return None;
+    }
+    *phase = BackendPhase::Stopping;
+    drop(phase);
+    state
+        .requests
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .close();
+    *state.port.lock().unwrap_or_else(|e| e.into_inner()) = None;
+    let child = state.child.lock().unwrap_or_else(|e| e.into_inner()).take();
+    let job = state.job.lock().unwrap_or_else(|e| e.into_inner()).take();
+    Some((child, job))
+}
+
 /// Idempotent stop: stdin EOF → up to 5s grace → TerminateJobObject.
 pub fn stop_backend(state: &Arc<BackendState>) {
     let _guard = state.stop_lock.lock().unwrap_or_else(|e| e.into_inner());
-    let (mut child, job) = {
-        let _transition = state
-            .lifecycle_lock
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
-        let mut phase = state.phase.lock().unwrap_or_else(|e| e.into_inner());
-        if *phase == BackendPhase::Stopped {
-            return;
-        }
-        *phase = BackendPhase::Stopping;
-        drop(phase);
-        state
-            .requests
-            .lock()
-            .unwrap_or_else(|e| e.into_inner())
-            .close();
-        *state.port.lock().unwrap_or_else(|e| e.into_inner()) = None;
-        let child = state.child.lock().unwrap_or_else(|e| e.into_inner()).take();
-        let job = state.job.lock().unwrap_or_else(|e| e.into_inner()).take();
-        (child, job)
+    let Some((mut child, job)) = claim_for_stop(state) else {
+        return;
     };
     if let Some(child) = child.as_mut() {
         child.stdin.take(); // drop = EOF → backend watchdog os._exit(0)
@@ -764,6 +785,44 @@ pub fn stop_backend(state: &Arc<BackendState>) {
         *state.phase.lock().unwrap_or_else(|e| e.into_inner()) = BackendPhase::Stopped;
     }
     state.host_log("[backend] stopped");
+}
+
+/// Stop on host exit. The main thread must not block on a stuck backend, so
+/// only the instant signals run inline — stdin EOF, then an immediate
+/// TerminateJobObject — and the reaping (kill + wait + phase) moves to a
+/// background thread. If the process exits before that thread finishes, the
+/// Job handle dropping reaps the tree via KILL_ON_JOB_CLOSE.
+pub fn stop_backend_on_exit(state: &Arc<BackendState>) {
+    let _guard = state.stop_lock.lock().unwrap_or_else(|e| e.into_inner());
+    let Some((mut child, job)) = claim_for_stop(state) else {
+        return;
+    };
+    if let Some(child) = child.as_mut() {
+        child.stdin.take(); // drop = EOF → backend watchdog os._exit(0)
+    }
+    if let Some(job) = job.as_ref() {
+        job.terminate();
+    }
+    let exit_state = state.clone();
+    std::thread::spawn(move || {
+        if let Some(child) = child.as_mut() {
+            let _ = child.kill();
+            let deadline = Instant::now() + Duration::from_millis(500);
+            while matches!(child.try_wait(), Ok(None)) && Instant::now() < deadline {
+                std::thread::sleep(POLL_INTERVAL);
+            }
+        }
+        drop(child);
+        drop(job);
+        {
+            let _transition = exit_state
+                .lifecycle_lock
+                .lock()
+                .unwrap_or_else(|e| e.into_inner());
+            *exit_state.phase.lock().unwrap_or_else(|e| e.into_inner()) = BackendPhase::Stopped;
+        }
+        exit_state.host_log("[backend] stopped (exit)");
+    });
 }
 
 /// Non-Ready guard for business requests.
@@ -825,28 +884,15 @@ pub fn api_request(
     let result = (|| {
         let method = op.route().0;
         let url = format!("http://127.0.0.1:{port}{path}");
-        let agent = loopback_agent(API_TIMEOUT);
-        let mut req = agent.request(method, &url);
+        let mut req = state.api_agent.request(method, &url);
         let token = state
             .token
             .lock()
             .unwrap_or_else(|e| e.into_inner())
             .clone();
         req = req.set("X-Auth-Token", &token);
-        let body_bytes: Option<Vec<u8>> = if op.is_post() {
-            let body =
-                serde_json::to_vec(&request.payload).map_err(|e| ProxyError::InvalidRequest {
-                    reason: format!("payload 序列化失败: {e}"),
-                })?;
-            if body.len() > crate::api_proxy::MAX_REQUEST_BODY {
-                return Err(ProxyError::InvalidRequest {
-                    reason: "请求体超过 1MB 上限".into(),
-                });
-            }
-            Some(body)
-        } else {
-            None
-        };
+        // The single payload serialization + size cap for the whole request.
+        let body_bytes = request.encoded_body()?;
         // Also cover cancellation while validating/serializing/creating the request.
         if flag.load(Ordering::Acquire) {
             return Err(ProxyError::Cancelled);

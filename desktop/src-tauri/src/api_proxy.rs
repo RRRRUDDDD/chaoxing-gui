@@ -81,6 +81,9 @@ where
 }
 
 impl ApiRequest {
+    /// Shape checks only (id, route, payload kind) — cheap enough to run at
+    /// both the command and the forward layer without serializing anything.
+    /// Body-size enforcement happens exactly once, in encoded_body().
     pub fn validate(&self) -> Result<(), ProxyError> {
         let invalid = |reason: &str| ProxyError::InvalidRequest {
             reason: reason.into(),
@@ -96,17 +99,28 @@ impl ApiRequest {
             if !self.payload.is_object() {
                 return Err(invalid("POST payload must be a JSON object"));
             }
-            let body =
-                serde_json::to_vec(&self.payload).map_err(|error| ProxyError::InvalidRequest {
-                    reason: format!("payload serialization failed: {error}"),
-                })?;
-            if body.len() > MAX_REQUEST_BODY {
-                return Err(invalid("请求体超过 1MB 上限"));
-            }
         } else if !self.payload.is_null() {
             return Err(invalid("GET operations require a null payload"));
         }
         Ok(())
+    }
+
+    /// Serialize the POST body once and enforce the 1MB cap on the encoded
+    /// form; GET operations carry no body.
+    pub fn encoded_body(&self) -> Result<Option<Vec<u8>>, ProxyError> {
+        if !self.operation.is_post() {
+            return Ok(None);
+        }
+        let body =
+            serde_json::to_vec(&self.payload).map_err(|error| ProxyError::InvalidRequest {
+                reason: format!("payload serialization failed: {error}"),
+            })?;
+        if body.len() > MAX_REQUEST_BODY {
+            return Err(ProxyError::InvalidRequest {
+                reason: "请求体超过 1MB 上限".into(),
+            });
+        }
+        Ok(Some(body))
     }
 }
 

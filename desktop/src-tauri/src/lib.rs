@@ -56,9 +56,13 @@ pub fn run() {
             };
             let state = Arc::new(BackendState::new(data_dir.clone(), log_dir));
             app.manage(state.clone());
-            app.manage(session_store::SessionStore::new(&data_dir));
+            // Arc so async commands can clone the handle into spawn_blocking
+            // instead of doing synced file IO on the main thread.
+            app.manage(Arc::new(session_store::SessionStore::new(&data_dir)));
             let preferences_dir = data_dir.parent().ok_or("data directory has no parent")?;
-            app.manage(preferences::PreferencesStore::new(preferences_dir));
+            app.manage(Arc::new(preferences::PreferencesStore::new(
+                preferences_dir,
+            )));
             app.manage(CloseGate::default());
             let notice = Arc::new(Mutex::new(None));
             app.manage(StartupNotice(notice.clone()));
@@ -132,7 +136,9 @@ pub fn run() {
     app.run(|handle, event| {
         if let tauri::RunEvent::ExitRequested { .. } = event {
             if let Some(state) = handle.try_state::<Arc<BackendState>>() {
-                backend::stop_backend(&state);
+                // Exit must never block the main thread on a stuck backend;
+                // the signals run inline, the reaping on a background thread.
+                backend::stop_backend_on_exit(&state);
             }
         }
     });
@@ -185,7 +191,9 @@ fn on_close_requested(
     window: &tauri::WebviewWindow,
     api: &tauri::CloseRequestApi,
 ) {
-    let action = app.state::<preferences::PreferencesStore>().close_action();
+    let action = app
+        .state::<Arc<preferences::PreferencesStore>>()
+        .close_action();
     match app.state::<CloseGate>().on_close_requested(action) {
         CloseDecision::Allow => {}
         CloseDecision::Minimize => {
@@ -294,7 +302,9 @@ where
 fn decode_args<T: DeserializeOwned>(body: &tauri::ipc::InvokeBody) -> Result<T, String> {
     match body {
         tauri::ipc::InvokeBody::Json(value) if value.is_object() => {
-            serde_json::from_value(value.clone()).map_err(|_| "请求参数格式错误".into())
+            // Deserialize straight from the borrowed value; the old clone
+            // duplicated the whole JSON body per command call.
+            T::deserialize(value).map_err(|_| "请求参数格式错误".into())
         }
         _ => Err("请求参数格式错误".into()),
     }
@@ -513,56 +523,76 @@ fn api_cancel(
 }
 
 #[tauri::command]
-fn session_read(
+async fn session_read(
     window: tauri::WebviewWindow,
-    store: tauri::State<'_, session_store::SessionStore>,
+    store: tauri::State<'_, Arc<session_store::SessionStore>>,
     ipc: tauri::ipc::Request<'_>,
 ) -> Result<session_store::SessionData, String> {
     let _: EmptyArgs = command_args(&window, &ipc)?;
-    store.read().map_err(|_| "无法读取保存的账号".into())
+    let store = store.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        store.read().map_err(|_| "无法读取保存的账号".to_string())
+    })
+    .await
+    .map_err(|_| "无法读取保存的账号".to_string())?
 }
 
 #[tauri::command]
-fn session_remember_login(
+async fn session_remember_login(
     window: tauri::WebviewWindow,
-    store: tauri::State<'_, session_store::SessionStore>,
+    store: tauri::State<'_, Arc<session_store::SessionStore>>,
     ipc: tauri::ipc::Request<'_>,
 ) -> Result<session_store::SessionData, String> {
     let args: LoginArgs = command_args(&window, &ipc)?;
-    store
-        .remember_login(&args.username)
-        .map_err(|error| match error {
-            session_store::SessionError::Validation(_) => "账号格式错误".into(),
-            _ => "无法保存账号，请重试".into(),
-        })
+    let store = store.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        store
+            .remember_login(&args.username)
+            .map_err(|error| match error {
+                session_store::SessionError::Validation(_) => "账号格式错误".into(),
+                _ => "无法保存账号，请重试".into(),
+            })
+    })
+    .await
+    .map_err(|_| "无法保存账号，请重试".to_string())?
 }
 
 #[tauri::command]
-fn session_remember_task(
+async fn session_remember_task(
     window: tauri::WebviewWindow,
-    store: tauri::State<'_, session_store::SessionStore>,
+    store: tauri::State<'_, Arc<session_store::SessionStore>>,
     ipc: tauri::ipc::Request<'_>,
 ) -> Result<session_store::SessionData, String> {
     let args: TaskArgs = command_args(&window, &ipc)?;
-    store.remember_task(args.task).map_err(|error| match error {
-        session_store::SessionError::Validation(_) => "任务信息格式错误".into(),
-        session_store::SessionError::NoLogin | session_store::SessionError::AccountMismatch => {
-            "任务账号不匹配".into()
-        }
-        session_store::SessionError::Io(_) => "无法保存账号，请重试".into(),
+    let store = store.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        store.remember_task(args.task).map_err(|error| match error {
+            session_store::SessionError::Validation(_) => "任务信息格式错误".into(),
+            session_store::SessionError::NoLogin | session_store::SessionError::AccountMismatch => {
+                "任务账号不匹配".into()
+            }
+            session_store::SessionError::Io(_) => "无法保存账号，请重试".into(),
+        })
     })
+    .await
+    .map_err(|_| "无法保存账号，请重试".to_string())?
 }
 
 #[tauri::command]
-fn session_clear(
+async fn session_clear(
     window: tauri::WebviewWindow,
-    store: tauri::State<'_, session_store::SessionStore>,
+    store: tauri::State<'_, Arc<session_store::SessionStore>>,
     ipc: tauri::ipc::Request<'_>,
 ) -> Result<session_store::SessionData, String> {
     let _: EmptyArgs = command_args(&window, &ipc)?;
-    store
-        .clear()
-        .map_err(|_| "无法清除保存的账号，请重试".into())
+    let store = store.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        store
+            .clear()
+            .map_err(|_| "无法清除保存的账号，请重试".to_string())
+    })
+    .await
+    .map_err(|_| "无法清除保存的账号，请重试".to_string())?
 }
 
 #[tauri::command]
@@ -579,7 +609,7 @@ fn close_prompt_shown(
 fn close_choice(
     window: tauri::WebviewWindow,
     gate: tauri::State<'_, CloseGate>,
-    store: tauri::State<'_, preferences::PreferencesStore>,
+    store: tauri::State<'_, Arc<preferences::PreferencesStore>>,
     state: tauri::State<'_, Arc<BackendState>>,
     ipc: tauri::ipc::Request<'_>,
 ) -> Result<(), String> {
@@ -614,31 +644,41 @@ fn close_choice(
 }
 
 #[tauri::command]
-fn preferences_read(
+async fn preferences_read(
     window: tauri::WebviewWindow,
-    store: tauri::State<'_, preferences::PreferencesStore>,
+    store: tauri::State<'_, Arc<preferences::PreferencesStore>>,
     ipc: tauri::ipc::Request<'_>,
 ) -> Result<PreferencesView, String> {
     let _: EmptyArgs = command_args(&window, &ipc)?;
-    Ok(PreferencesView {
-        close_action: store.close_action().as_str(),
+    let store = store.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        Ok(PreferencesView {
+            close_action: store.close_action().as_str(),
+        })
     })
+    .await
+    .map_err(|_| "无法读取关闭方式".to_string())?
 }
 
 #[tauri::command]
-fn preferences_write(
+async fn preferences_write(
     window: tauri::WebviewWindow,
-    store: tauri::State<'_, preferences::PreferencesStore>,
+    store: tauri::State<'_, Arc<preferences::PreferencesStore>>,
     ipc: tauri::ipc::Request<'_>,
 ) -> Result<PreferencesView, String> {
     let args: PreferencesArgs = command_args(&window, &ipc)?;
     let action = preferences::CloseAction::parse(&args.close_action).ok_or("关闭方式无效")?;
-    store
-        .set_close_action(action)
-        .map_err(|_| "无法保存关闭方式，请重试")?;
-    Ok(PreferencesView {
-        close_action: action.as_str(),
+    let store = store.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        store
+            .set_close_action(action)
+            .map_err(|_| "无法保存关闭方式，请重试")?;
+        Ok(PreferencesView {
+            close_action: action.as_str(),
+        })
     })
+    .await
+    .map_err(|_| "无法保存关闭方式，请重试".to_string())?
 }
 
 #[cfg(test)]

@@ -484,7 +484,6 @@ name = "chaoxing-desktop"
 version = "1.3.0"
 dependencies = [
  "getrandom 0.2.17",
- "regex",
  "rfd",
  "serde",
  "serde_json",
