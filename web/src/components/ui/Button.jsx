@@ -7,7 +7,6 @@ const Button = React.forwardRef(({ className, variant = 'default', size = 'defau
     default: 'bg-brand text-white hover:bg-brand-dark shadow-sm',
     destructive: 'bg-danger text-white hover:bg-danger/90 shadow-sm',
     outline: 'border border-line bg-white text-ink hover:bg-soft',
-    secondary: 'bg-soft text-ink hover:bg-line',
     ghost: 'text-body hover:bg-soft hover:text-ink',
   };
 

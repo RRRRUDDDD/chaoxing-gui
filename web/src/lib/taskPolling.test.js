@@ -10,9 +10,60 @@ const deferred = () => {
   return { promise, resolve, reject };
 };
 
-afterEach(() => vi.useRealTimers());
+afterEach(() => {
+  vi.useRealTimers();
+  delete document.hidden; // remove the own-property override, restoring jsdom's getter
+});
+
+const setHidden = (hidden) => {
+  Object.defineProperty(document, 'hidden', { configurable: true, get: () => hidden });
+  document.dispatchEvent(new Event('visibilitychange'));
+};
 
 describe('task polling', () => {
+  it('slows down while hidden, catches up when visible and ignores flips after disposal', async () => {
+    vi.useFakeTimers();
+    // A round fires three requests (status, details, logs); count rounds by calls.
+    const api = { get: vi.fn(() => Promise.resolve(ok({ status: 'running' }))) };
+    const stop = startTaskPolling({ api, taskId: 'one', intervalMs: 2000, hiddenIntervalMs: 15000 });
+    try {
+      await vi.advanceTimersByTimeAsync(0);
+      expect(api.get).toHaveBeenCalledTimes(3);
+      setHidden(true);
+      await vi.advanceTimersByTimeAsync(2000);
+      expect(api.get).toHaveBeenCalledTimes(3);
+      await vi.advanceTimersByTimeAsync(13000);
+      expect(api.get).toHaveBeenCalledTimes(6);
+      setHidden(false);
+      await vi.advanceTimersByTimeAsync(1999);
+      expect(api.get).toHaveBeenCalledTimes(6);
+      await vi.advanceTimersByTimeAsync(1);
+      expect(api.get).toHaveBeenCalledTimes(9);
+    } finally {
+      stop();
+    }
+    setHidden(true);
+    await vi.advanceTimersByTimeAsync(60000);
+    expect(api.get).toHaveBeenCalledTimes(9);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('never schedules a second round while one is in flight, even across visibility flips', async () => {
+    vi.useFakeTimers();
+    const pending = deferred();
+    const api = { get: vi.fn(() => pending.promise) };
+    const stop = startTaskPolling({ api, taskId: 'one' });
+    try {
+      setHidden(true);
+      setHidden(false);
+      await vi.advanceTimersByTimeAsync(60000);
+      expect(api.get).toHaveBeenCalledTimes(1);
+    } finally {
+      stop();
+    }
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it('waits for every request before scheduling another round', async () => {
     vi.useFakeTimers();
     const status = deferred();

@@ -220,7 +220,9 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
   const knownTotal = Number.isFinite(taskStatus?.total) && taskStatus.total > 0;
   const progress = knownTotal ? Math.max(0, Math.min(100, ((taskStatus.progress || 0) / taskStatus.total) * 100)) : 0;
   const terminal = isTerminalStatus(taskStatus?.status) || missing;
-  const activeJobs = !terminal && taskDetails?.active_jobs ? Object.values(taskDetails.active_jobs) : [];
+  // Object.entries keeps the backend's stable courseId:jobid keys so a reordered
+  // poll cannot make the progress bar animation morph into the wrong row.
+  const activeJobs = !terminal && taskDetails?.active_jobs ? Object.entries(taskDetails.active_jobs) : [];
   // Offer the stop only where it can act: a live task, not a preview, and not
   // while recovery still owns the task.
   const canStop = !!onStop && !preview && !terminal && !recovering && !recoveryError
@@ -514,9 +516,9 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
                   </span>
                 </h2>
                 <div className="space-y-3">
-                  {activeJobs.map((job, index) => (
+                  {activeJobs.map(([jobKey, job]) => (
                     <div
-                      key={index}
+                      key={jobKey}
                       className="rounded-lg border border-line p-4 transition-shadow duration-200 hover:shadow-card"
                     >
                       <div className="flex items-start justify-between gap-3">

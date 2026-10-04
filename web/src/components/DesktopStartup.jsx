@@ -13,7 +13,7 @@ const messages = {
   unavailable: ['无法读取服务状态', '请稍后重新检查。如果问题持续，请关闭应用后重新打开。'],
 };
 
-export default function DesktopStartup({ children, intervalMs = 1000 }) {
+export default function DesktopStartup({ children, intervalMs = 1000, readyIntervalMs = 4000 }) {
   const [runtime] = useState(() => {
     try { return isTauriDesktop() ? 'desktop' : 'web'; }
     catch { return 'unavailable'; }
@@ -44,14 +44,16 @@ export default function DesktopStartup({ children, intervalMs = 1000 }) {
         setPhase(status.phase);
         setHostError(typeof status.error === 'string' ? status.error : '');
         setNotice(typeof status.notice === 'string' ? status.notice : '');
-        if (['starting', 'ready', 'stopping'].includes(status.phase)) timer = setTimeout(poll, intervalMs);
+        // The business app only depends on HTTP once ready; the watch merely
+        // detects service death, so it can afford a slower cadence.
+        if (['starting', 'ready', 'stopping'].includes(status.phase)) timer = setTimeout(poll, status.phase === 'ready' ? readyIntervalMs : intervalMs);
       } catch {
         if (!disposed) setPhase('unavailable');
       }
     };
     poll();
     return () => { disposed = true; clearTimeout(timer); };
-  }, [runtime, intervalMs, checkVersion]);
+  }, [runtime, intervalMs, readyIntervalMs, checkVersion]);
 
   if (phase === 'ready') return <>
     {notice && <div role="status" className="border-b border-warning/30 bg-warning/5 px-6 py-3 text-sm text-body">{notice}</div>}

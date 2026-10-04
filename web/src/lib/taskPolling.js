@@ -20,10 +20,14 @@ function responseBody(response) {
   return response.data;
 }
 
+// A hidden tab still runs live tasks; slow the cadence down instead of stopping
+// so the terminal round is eventually observed. Never called in non-DOM tests.
+const isHidden = () => typeof document !== 'undefined' && document.hidden === true;
+
 // A round includes status and all dependent snapshots. Schedule only after it settles;
 // a terminal status still needs its final details/logs, including retries on failure.
 export function startTaskPolling({
-  api, taskId, includeDetails = true, intervalMs = 2000,
+  api, taskId, includeDetails = true, intervalMs = 2000, hiddenIntervalMs = 15000,
   onStatus = () => {}, onDetails = () => {}, onLogs = () => {},
   onError = () => {}, onMissing = () => {},
 }) {
@@ -32,9 +36,23 @@ export function startTaskPolling({
   const taskPath = `/task/${encodeURIComponent(taskId)}`;
   let timer;
   let logState = { logs: [], cursor: 0, truncated: false };
+  const nextDelay = () => (isHidden() ? hiddenIntervalMs : intervalMs);
+  // timer is armed only between rounds (cleared when it fires), so a visibility
+  // flip during an in-flight round is a no-op instead of a duplicate schedule.
+  const schedule = () => {
+    timer = setTimeout(() => { timer = null; poll(); }, nextDelay());
+  };
+  const onVisibilityChange = () => {
+    if (!signal.aborted && timer) {
+      clearTimeout(timer);
+      schedule();
+    }
+  };
+  if (typeof document !== 'undefined') document.addEventListener('visibilitychange', onVisibilityChange);
   const stop = () => {
     controller.abort();
     clearTimeout(timer);
+    if (typeof document !== 'undefined') document.removeEventListener('visibilitychange', onVisibilityChange);
   };
   const missing = () => { stop(); onMissing(); };
 
@@ -74,7 +92,7 @@ export function startTaskPolling({
       finished = false;
       onError(error?.response?.data?.msg || error?.message || '获取任务信息失败，将自动重试');
     }
-    if (!signal.aborted && !finished) timer = setTimeout(poll, intervalMs);
+    if (!signal.aborted && !finished) schedule();
   };
 
   poll();

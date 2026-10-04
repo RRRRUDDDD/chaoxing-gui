@@ -12,8 +12,8 @@ const deferred = () => {
   return { promise, resolve, reject };
 };
 const tick = (time = 0) => act(async () => { await vi.advanceTimersByTimeAsync(time); });
-const show = (strict = false) => {
-  const content = <DesktopStartup intervalMs={100}><div>业务界面</div></DesktopStartup>;
+const show = (strict = false, extra = {}) => {
+  const content = <DesktopStartup intervalMs={100} readyIntervalMs={100} {...extra}><div>业务界面</div></DesktopStartup>;
   return render(strict ? <React.StrictMode>{content}</React.StrictMode> : content);
 };
 
@@ -43,6 +43,17 @@ describe('desktop startup', () => {
     expect(screen.getByRole('alert').textContent).toContain('服务');
     expect(screen.getByRole('alert').textContent).toContain('exit code fixture');
     expect(screen.getByRole('button', { name: '重新检查' })).toBeTruthy();
+  });
+
+  it('slows the readiness watch down once the service is ready', async () => {
+    desktopBridge.backendStatus.mockResolvedValue({ phase: 'ready' });
+    show(false, { readyIntervalMs: 1000 });
+    await tick();
+    expect(desktopBridge.backendStatus).toHaveBeenCalledOnce();
+    await tick(100);
+    expect(desktopBridge.backendStatus).toHaveBeenCalledOnce();
+    await tick(900);
+    expect(desktopBridge.backendStatus).toHaveBeenCalledTimes(2);
   });
 
   it('serializes slow status queries, including StrictMode effect replay', async () => {
