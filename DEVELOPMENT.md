@@ -140,7 +140,7 @@ Tauri 正式版数据与日志位置见 [README](README.md#数据与升级)。�
 
 - 参考 Samueli924/chaoxing 的 [#637](https://github.com/Samueli924/chaoxing/pull/637)、[#625](https://github.com/Samueli924/chaoxing/pull/625)、[#626](https://github.com/Samueli924/chaoxing/pull/626)、[#630](https://github.com/Samueli924/chaoxing/pull/630) 和 [#631](https://github.com/Samueli924/chaoxing/pull/631)，按本地 OCS、会话与任务架构移植，不依赖被忽略的 `chaoxing/` 参考目录。
 - `api/privacy.py` 在 Loguru 的共享 core 安装 patcher，覆盖直接导入 logger 和动态任务 sink。认证配置及 Cookie 值只登记在内存；`task_id` 作为内部路由键不得改写。通知目标与恢复配置不脱敏改写，正文、公开错误和日志脱敏；异常只保留清洗后的类型、说明和栈帧位置，不传递原始 traceback。
-- `api/work_result.py` 只读提交前记录基线与提交后新增记录，按记录逐行配对次数/分数，缺失和并发多条新记录不猜测。最多三次结果列表读取，等待可取消，GET 有超时，不重放提交 POST；只读页面可能存在平台变体，未验证关联的成绩一律未知。成绩与逐题解析能力不改变提交结果，不假设 100 是通用满分，不回写缓存或恢复旧 AI feedback。
+- `api/work_result.py` 只读提交前记录基线与提交后新增记录，按记录逐行配对次数/分数，缺失和并发多条新记录不猜测。最多三次结果列表读取，间隔约 4/8 秒以覆盖平台异步生成成绩，等待可取消，GET 有超时，不重放提交 POST；只读页面可能存在平台变体，未验证关联的成绩一律未知，并按未见新增记录/成绩尚未生成/并发多条区分原因。成绩与逐题解析能力不改变提交结果，不假设 100 是通用满分，不回写缓存或恢复旧 AI feedback。
 - `CourseTools.iter_card_pages` 供资源扫描与复核共享原始页遍历；`read_only=True` 只允许三个课程/卡片读取端点，不自动处理验证码。严格模式遇到锁定、解析异常或无明确结束证据时失败，扫描器原有非严格模式保持兼容。
 - `api/verification.py` 使用读取前后快照、明确平台总进度和原始附件交叉核对；不调用会写空页面进度的 `get_job_list`。缺失/不一致/不支持的任务保持 unknown，未完成为 pending，全量证据一致为 confirmed，取消为 cancelled。复核仅表示观测时的平台任务状态，不证明答题正确性或后续统计稳定。
 - `CourseResult.verification` 独立于章节执行结果。Web 未确认时记 partial，但保留成功任务计数，不伪造任务失败、不进入重试队列；CLI 同样不通知全部完成。旧的无 verification 历史详情仍可查看，不重跑历史任务。公开详情沿用现有 JSON 传输，无新路由或 IPC 操作。

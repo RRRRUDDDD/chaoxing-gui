@@ -47,26 +47,45 @@ class WorkResultTests(unittest.TestCase):
         reader.session.post.assert_not_called()
         self.assertTrue(all(call.kwargs['allow_redirects'] is False for call in reader.session.get.call_args_list))
 
+    def test_score_appearing_on_a_later_attempt_is_still_confirmed(self):
+        detail = '<div class="TiMu singleQuesId" data="1"><span>我的答案：</span><div>A</div></div>'
+        reader = self.reader([records((1, 50)), records((1, 50)),
+                              records((1, 50), (2, None)), records((1, 50), (2, 75)), detail])
+        reader.capture_baseline()
+        result = reader.check()
+        self.assertEqual(result['result_status'], 'confirmed')
+        self.assertEqual(result['score'], 75)
+        self.assertEqual(reader.wait.call_count, 2)
+
     def test_stale_records_are_never_reported_as_current(self):
         reader = self.reader([records((1, 100))] * 4)
         reader.capture_baseline()
-        self.assertEqual(reader.check()['result_status'], 'unknown')
+        result = reader.check()
+        self.assertEqual(result['result_status'], 'unknown')
+        self.assertEqual(result['reason'], '未见本次提交新增的作答记录')
         self.assertEqual(reader.session.get.call_count, 4)
         self.assertEqual(reader.wait.call_count, 2)
 
     def test_unknown_baseline_does_not_attribute_a_record(self):
         reader = self.reader(['<html>unrecognized</html>'])
         reader.capture_baseline()
-        self.assertEqual(reader.check()['result_status'], 'unknown')
+        result = reader.check()
+        self.assertEqual(result['result_status'], 'unknown')
+        self.assertEqual(result['reason'], '无法确认本次提交对应的作答记录')
         self.assertEqual(reader.session.get.call_count, 1)
 
     def test_missing_score_and_concurrent_records_are_not_confirmed(self):
-        for rows in [((1, 80), (2, None)), ((1, 80), (2, 90), (3, 100))]:
+        cases = [
+            (((1, 80), (2, None)), '已定位本次提交对应的作答记录，成绩尚未生成'),
+            (((1, 80), (2, 90), (3, 100)), '发现2条新增作答记录，无法确认对应关系'),
+        ]
+        for rows, reason in cases:
             reader = self.reader([records((1, 80))] + [records(*rows)] * 3)
             reader.capture_baseline()
             result = reader.check()
             self.assertEqual(result['result_status'], 'unknown')
             self.assertIsNone(result['score'])
+            self.assertEqual(result['reason'], reason)
 
     def test_timeout_and_cancellation_do_not_resubmit(self):
         reader = self.reader([records((1, 80))])

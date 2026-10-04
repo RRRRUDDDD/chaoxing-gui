@@ -11,6 +11,9 @@ from api.session import HTTP_TIMEOUT
 
 _RECORDS = 'https://mooc1.chaoxing.com/mooc-ans/work/record-list'
 _DETAIL = 'https://mooc1.chaoxing.com/mooc-ans/work/record-detail'
+# 平台在提交后异步生成作答记录与成绩，实测 1.5 秒内必然查不到，改用递增间隔拉长窗口。
+_RECHECK_ATTEMPTS = 3
+_RECHECK_INTERVALS = (4.0, 8.0)
 
 
 def parse_records(text):
@@ -98,8 +101,9 @@ class WorkResultReader:
             return
         try:
             self.baseline = parse_records(self._read(_RECORDS))
+            logger.debug('提交前作答记录基线：{}', dict(sorted(self.baseline.items())))
         except Exception as exc:
-            logger.debug('提交前作答记录不可用: {}', type(exc).__name__)
+            logger.debug('提交前作答记录不可用: {}: {}', type(exc).__name__, exc)
 
     def check(self):
         result = {'submitted': True, 'result_status': 'unknown', 'score': None,
@@ -108,31 +112,43 @@ class WorkResultReader:
             return {**result, 'result_status': 'cancelled', 'reason': '已停止成绩回查'}
         if self.baseline is None:
             return result
-        for attempt in range(3):
+        saw_new_record = False
+        for attempt in range(_RECHECK_ATTEMPTS):
             try:
                 records = parse_records(self._read(_RECORDS))
-                new = set(records) - set(self.baseline)
-                # More than one new record could be a concurrent submission elsewhere.
-                if len(new) == 1 and next(iter(new)) > max(self.baseline, default=-1):
-                    times = next(iter(new))
-                    score = records[times]
-                    if score is not None:
-                        result.update(result_status='confirmed', score=score,
-                                      reason='已读取本次提交后新增记录的成绩')
-                        try:
-                            rows = parse_detail(self._read(_DETAIL, times=str(times), isdisplaytable='0',
-                                                           firstHeader='2', isWork='false', workSystem='0', archive='false'))
-                            result['unknown'] = sum(not row['parse_ok'] for row in rows) if rows else None
-                        except InterruptedError:
-                            return {**result, 'result_status': 'cancelled', 'reason': '已停止成绩回查'}
-                        except Exception:
-                            result['reason'] += '；逐题详情未能确认'
-                        return result
-                if attempt < 2 and self.wait(0.5):
-                    return {**result, 'result_status': 'cancelled', 'reason': '已停止成绩回查'}
             except InterruptedError:
                 return {**result, 'result_status': 'cancelled', 'reason': '已停止成绩回查'}
             except Exception as exc:
                 result['reason'] = '成绩回查失败: ' + type(exc).__name__
                 break
+            new = set(records) - set(self.baseline)
+            logger.debug('成绩回查第{}/{}次：平台共{}条记录，新增{}，对应成绩{}',
+                         attempt + 1, _RECHECK_ATTEMPTS, len(records), sorted(new),
+                         [records[times] for times in sorted(new)])
+            # More than one new record could be a concurrent submission elsewhere.
+            if len(new) > 1:
+                result['reason'] = '发现{}条新增作答记录，无法确认对应关系'.format(len(new))
+                break
+            if len(new) == 1 and next(iter(new)) > max(self.baseline, default=-1):
+                times = next(iter(new))
+                score = records[times]
+                if score is not None:
+                    result.update(result_status='confirmed', score=score,
+                                  reason='已读取本次提交后新增记录的成绩')
+                    try:
+                        rows = parse_detail(self._read(_DETAIL, times=str(times), isdisplaytable='0',
+                                                       firstHeader='2', isWork='false', workSystem='0', archive='false'))
+                        result['unknown'] = sum(not row['parse_ok'] for row in rows) if rows else None
+                    except InterruptedError:
+                        return {**result, 'result_status': 'cancelled', 'reason': '已停止成绩回查'}
+                    except Exception:
+                        result['reason'] += '；逐题详情未能确认'
+                    return result
+                saw_new_record = True
+            if attempt < _RECHECK_ATTEMPTS - 1 and self.wait(_RECHECK_INTERVALS[attempt]):
+                return {**result, 'result_status': 'cancelled', 'reason': '已停止成绩回查'}
+        if saw_new_record:
+            result['reason'] = '已定位本次提交对应的作答记录，成绩尚未生成'
+        elif result['reason'] == '无法确认本次提交对应的作答记录':
+            result['reason'] = '未见本次提交新增的作答记录'
         return result
