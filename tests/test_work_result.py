@@ -57,12 +57,24 @@ class WorkResultTests(unittest.TestCase):
         self.assertEqual(result['score'], 75)
         self.assertEqual(reader.wait.call_count, 2)
 
+    def test_in_place_score_update_on_the_same_attempt_is_confirmed(self):
+        # 平台对章节测验不新增序号，而是把提交前 0 分占位的同一条记录原地更新为成绩。
+        detail = '<div class="TiMu singleQuesId" data="1"><span>我的答案：</span><div>A</div></div>'
+        reader = self.reader([records((1, 0)), records((1, 100)), detail])
+        reader.capture_baseline()
+        result = reader.check()
+        self.assertEqual(result['result_status'], 'confirmed')
+        self.assertEqual(result['score'], 100)
+        self.assertEqual(result['reason'], '已读取本次提交更新的作答记录成绩')
+        self.assertEqual(reader.wait.call_count, 0)
+        reader.session.post.assert_not_called()
+
     def test_stale_records_are_never_reported_as_current(self):
         reader = self.reader([records((1, 100))] * 4)
         reader.capture_baseline()
         result = reader.check()
         self.assertEqual(result['result_status'], 'unknown')
-        self.assertEqual(result['reason'], '未见本次提交新增的作答记录')
+        self.assertEqual(result['reason'], '未见本次提交引起的作答记录变化')
         self.assertEqual(reader.session.get.call_count, 4)
         self.assertEqual(reader.wait.call_count, 2)
 
@@ -77,7 +89,8 @@ class WorkResultTests(unittest.TestCase):
     def test_missing_score_and_concurrent_records_are_not_confirmed(self):
         cases = [
             (((1, 80), (2, None)), '已定位本次提交对应的作答记录，成绩尚未生成'),
-            (((1, 80), (2, 90), (3, 100)), '发现2条新增作答记录，无法确认对应关系'),
+            (((1, 80), (2, 90), (3, 100)), '发现2条与本次提交相关的作答记录，无法确认对应关系'),
+            (((1, 90), (2, 95)), '发现2条与本次提交相关的作答记录，无法确认对应关系'),
         ]
         for rows, reason in cases:
             reader = self.reader([records((1, 80))] + [records(*rows)] * 3)
