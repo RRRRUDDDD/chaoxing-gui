@@ -851,7 +851,7 @@ class TikuOcs(Tiku):
                 report["elapsed_ms"] = round((time.monotonic() - started) * 1000)
                 if report["status"] != "selected":
                     if report.get("message"):
-                        logger.info("题库 {}: {}（题库提示：{}）", report["source"], report["status"], report["message"])
+                        logger.error("题库 {}: {}（题库提示：{}）", report["source"], report["status"], report["message"])
                     else:
-                        logger.info("题库 {}: {}", report["source"], report["status"])
+                        logger.error("题库 {}: {}", report["source"], report["status"])
         return None

@@ -91,7 +91,7 @@ class HandlerTests(unittest.TestCase):
         report = tiku.query_diagnostics[0]
         self.assertEqual(report['status'], 'no_answer')
         self.assertEqual(report['message'], '题库次数余额不足，请前往 个人中心')
-        log.info.assert_called_once_with('题库 {}: {}（题库提示：{}）', '言溪题库', 'no_answer', report['message'])
+        log.error.assert_called_once_with('题库 {}: {}（题库提示：{}）', '言溪题库', 'no_answer', report['message'])
 
     def test_documented_handlers(self):
         single = compile_handler("return (res)=> res.code === 1 ? [res.question,res.answer] : undefined")
@@ -311,7 +311,7 @@ class CertificateTests(unittest.TestCase):
         tiku = self.bank()
         with patch.object(tiku._session, "request", side_effect=requests.exceptions.SSLError("bad cert")),                 patch("api.ocs_tiku.logger") as log:
             self.assertIsNone(tiku._query({"title": "题", "type": "single", "options": ""}))
-        message = log.error.call_args.args[0]
+        message = log.error.call_args_list[0].args[0]
         self.assertIn("示例题库", message)
         self.assertIn("关闭证书校验", message)
 
@@ -447,7 +447,7 @@ class QueryDiagnosticsTests(unittest.TestCase):
         response.json.return_value = payload
         with patch.object(bank._session, 'request', return_value=response), patch('api.ocs_tiku.logger') as log:
             answer = bank._query(question or {'title': 'Q'})
-        messages = [call.args[0].format(*call.args[1:]) for call in log.info.call_args_list]
+        messages = [call.args[0].format(*call.args[1:]) for call in log.error.call_args_list]
         return answer, messages
 
     def test_no_answer_messages_are_provider_neutral(self):
