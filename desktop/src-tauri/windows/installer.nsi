@@ -688,6 +688,12 @@ Section WebView2
   ${EndIf}
 SectionEnd
 
+; SHCNE_ASSOCCHANGED makes the shell drop its icon cache, so shortcuts that
+; reference the replaced exe pick up the new embedded icon immediately.
+!macro RefreshShellIcons
+  System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0, p 0, p 0)'
+!macroend
+
 Section Install
   !ifmacrodef NSIS_HOOK_PREINSTALL
     !insertmacro NSIS_HOOK_PREINSTALL
@@ -782,6 +788,10 @@ Section Install
   ${OrIf} ${Silent}
     Call CreateOrUpdateDesktopShortcut
   ${EndIf}
+
+  ; An in-place binary replacement leaves Explorer's icon cache showing the
+  ; old icon for shortcuts that point at the exe; ask the shell to rebuild.
+  !insertmacro RefreshShellIcons
 
   !ifmacrodef NSIS_HOOK_POSTINSTALL
     !insertmacro NSIS_HOOK_POSTINSTALL
@@ -1016,4 +1026,6 @@ Function CreateOrUpdateDesktopShortcut
 
   CreateShortcut "$DESKTOP\${PRODUCTNAME}.lnk" "$INSTDIR\${MAINBINARYNAME}.exe"
   !insertmacro SetLnkAppUserModelId "$DESKTOP\${PRODUCTNAME}.lnk"
+  ; Created after Section Install already ran, so flush the cache here too.
+  !insertmacro RefreshShellIcons
 FunctionEnd
