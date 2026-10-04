@@ -215,6 +215,14 @@ test('NSIS production table checks every emitted payload kind before install and
   assert.ok(uninstall.indexOf('NSIS_HOOK_PREUNINSTALL') < uninstall.indexOf('Delete '));
   assert.match(text, /MUI_FINISHPAGE_RUN_NOTCHECKED/);
   assert.match(text, /ExecWait '\"\$6\" \$\{WEBVIEW2INSTALLERARGS\} \/install'/);
+  // FileFunc.nsh in the bundled NSIS 3.11 already defines RefreshShellIcons:
+  // redefining it fails makensis, and !insertmacro of theirs is an empty no-op,
+  // so the icon-cache flush must stay on the project-prefixed name.
+  assert.doesNotMatch(text, /!macro RefreshShellIcons\b/);
+  assert.match(text, /!macro ChaoxingRefreshShellIcons[\s\S]*?SHChangeNotify/);
+  assert.match(install, /!insertmacro ChaoxingRefreshShellIcons/);
+  const shortcuts = text.slice(text.indexOf('Function CreateOrUpdateDesktopShortcut'));
+  assert.match(shortcuts, /!insertmacro ChaoxingRefreshShellIcons/);
 });
 
 windowsTest('NSIS guards allow normal Chinese and space paths for install and uninstall while retaining data', async t => {

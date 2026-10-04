@@ -690,7 +690,9 @@ SectionEnd
 
 ; SHCNE_ASSOCCHANGED makes the shell drop its icon cache, so shortcuts that
 ; reference the replaced exe pick up the new embedded icon immediately.
-!macro RefreshShellIcons
+; FileFunc.nsh (NSIS 3.11) already defines a RefreshShellIcons macro whose
+; !insertmacro form is an empty no-op, so this must keep a project prefix.
+!macro ChaoxingRefreshShellIcons
   System::Call 'shell32::SHChangeNotify(i 0x08000000, i 0, p 0, p 0)'
 !macroend
 
@@ -791,7 +793,7 @@ Section Install
 
   ; An in-place binary replacement leaves Explorer's icon cache showing the
   ; old icon for shortcuts that point at the exe; ask the shell to rebuild.
-  !insertmacro RefreshShellIcons
+  !insertmacro ChaoxingRefreshShellIcons
 
   !ifmacrodef NSIS_HOOK_POSTINSTALL
     !insertmacro NSIS_HOOK_POSTINSTALL
@@ -1027,5 +1029,5 @@ Function CreateOrUpdateDesktopShortcut
   CreateShortcut "$DESKTOP\${PRODUCTNAME}.lnk" "$INSTDIR\${MAINBINARYNAME}.exe"
   !insertmacro SetLnkAppUserModelId "$DESKTOP\${PRODUCTNAME}.lnk"
   ; Created after Section Install already ran, so flush the cache here too.
-  !insertmacro RefreshShellIcons
+  !insertmacro ChaoxingRefreshShellIcons
 FunctionEnd
