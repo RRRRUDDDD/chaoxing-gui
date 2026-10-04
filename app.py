@@ -33,6 +33,7 @@ from api.base import Chaoxing, Account
 from api.answer import Tiku
 from api.exceptions import InputFormatError, LoginError
 from api.logger import logger
+from api.paths import data_dir
 from api.privacy import redact
 from api.task_logging import task_log_sink
 from api.notification import Notification
@@ -70,9 +71,7 @@ HOST = "127.0.0.1"
 if not TAURI_MODE:
     CORS(app, origins=[f"http://localhost:{PORT}", f"http://127.0.0.1:{PORT}"])
 # 桌面宿主指定数据目录；独立 exe 写到程序旁，开发模式写到脚本目录。
-DATA_DIR = os.environ.get("CHAOXING_DATA_DIR") or (
-    os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else SCRIPT_DIR
-)
+DATA_DIR = data_dir()
 
 # Web 配置文件路径
 CONFIG_FILE = os.path.join(DATA_DIR, "web_config.json")

@@ -409,6 +409,9 @@ class JobProcessor:
         self._sentinel = ChapterTask(sys.maxsize, {})
         self._workers = []
         self._retry_worker = None
+        # Created in run(): one course-wide pool whose threads keep their
+        # thread-local HTTP sessions alive across every chapter and job.
+        self._job_executor = None
         self._started = False
 
     def run(self):
@@ -420,6 +423,7 @@ class JobProcessor:
         for task in self.tasks:
             self.task_queue.put(task)
         watcher = None
+        self._job_executor = ThreadPoolExecutor(max_workers=5, thread_name_prefix='chaoxing-job')
         try:
             watcher = self._start_cancel_watcher()
             self._retry_worker = self._start_thread(self.retry_thread, 'chaoxing-retry')
@@ -439,6 +443,8 @@ class JobProcessor:
                 self.retry_queue.put(self._sentinel)
             for thread in self.threads:
                 thread.join()
+            if self._job_executor is not None:
+                self._job_executor.shutdown()
 
     def _start_cancel_watcher(self):
         """Poll an external stop request so workers react within a second.
@@ -511,7 +517,8 @@ class JobProcessor:
                         else:
                             with _session_context(self.chaoxing):
                                 task.result = process_chapter(self.chaoxing, self.course, task.point,
-                                                              self.speed, self.config)
+                                                              self.speed, self.config,
+                                                              job_executor=self._job_executor)
                     except BaseException as exc:
                         logger.error('章节处理异常: {} -> {}', task.point.get('title'), exc)
                         task.point['_error'] = str(exc)
@@ -571,7 +578,8 @@ class JobProcessor:
 
 
 def process_chapter(chaoxing: Chaoxing, course: dict[str, Any], point: dict[str, Any],
-                    speed: float, config: dict[str, Any] | None = None) -> ChapterResult:
+                    speed: float, config: dict[str, Any] | None = None,
+                    job_executor: ThreadPoolExecutor | None = None) -> ChapterResult:
     """Process every job and retain counts without treating skipped work as done."""
     config = config or {}
     cancel_check = config.get('cancel_check')
@@ -630,20 +638,24 @@ def process_chapter(chaoxing: Chaoxing, course: dict[str, Any], point: dict[str,
     video_progress_callback = config.get('video_progress_callback')
 
     def run_job(job):
-        try:
-            # Queued jobs must not start after the user asked to stop.
-            if stopped():
-                return StudyResult.SKIPPED
-            with _session_context(chaoxing):
-                result = process_job(chaoxing, course, job, job_info, speed,
-                                     progress_callback=video_progress_callback,
-                                     cancel_check=cancel_check)
-                return result if isinstance(result, StudyResult) else StudyResult.ERROR
-        finally:
-            _close_thread_session(chaoxing)
+        # Queued jobs must not start after the user asked to stop.
+        if stopped():
+            return StudyResult.SKIPPED
+        # copy_context() carries the session manager binding; this thread's
+        # session stays open across jobs so its pooled connections get reused.
+        with _session_context(chaoxing):
+            result = process_job(chaoxing, course, job, job_info, speed,
+                                 progress_callback=video_progress_callback,
+                                 cancel_check=cancel_check)
+            return result if isinstance(result, StudyResult) else StudyResult.ERROR
 
     if pending:
-        with ThreadPoolExecutor(max_workers=min(5, len(pending))) as executor:
+        if job_executor is not None:
+            executor_context = nullcontext(job_executor)
+        else:
+            # Standalone callers (tests) keep the old per-chapter pool.
+            executor_context = ThreadPoolExecutor(max_workers=min(5, len(pending)))
+        with executor_context as executor:
             futures = [(key, executor.submit(copy_context().run, run_job, job))
                        for key, job in pending.items()]
             for key, future in futures:

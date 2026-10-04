@@ -1,11 +1,25 @@
+import os
 import sys
 
 from loguru import logger
 from tqdm import tqdm
 
+from api.paths import data_dir
 from api.privacy import patch_record
 
 _console_sink_id = None
+
+# Full upstream payloads used to reach the file sink at TRACE level and blow
+# through the 10 MB rotations; high-volume call sites wrap them in this.
+LOG_PAYLOAD_LIMIT = 2048
+
+
+def truncated(value, limit=LOG_PAYLOAD_LIMIT):
+    """Cap a high-volume payload before it reaches the rotating file sink."""
+    text = value if isinstance(value, str) else repr(value)
+    if len(text) <= limit:
+        return text
+    return f"{text[:limit]}...[truncated, total {len(text)} chars]"
 
 
 def _console_sink(message):
@@ -37,5 +51,6 @@ def set_console_level(level="INFO"):
 logger.configure(patcher=patch_record)
 logger.remove()
 set_console_level()
-# Without retention loguru keeps every rotated file forever.
-logger.add("chaoxing.log", rotation="10 MB", retention=5, level="TRACE")
+# Resolve against the shared data directory so test runs (which import this
+# module from the repository root) never create ./chaoxing.log.
+logger.add(os.path.join(data_dir(), "chaoxing.log"), rotation="10 MB", retention=5, level="TRACE")

@@ -19,6 +19,7 @@ from api.captcha import CAPTCHA_PROTOCOL_VERIFIED, CxCaptcha, is_captcha_respons
 from api.cipher import AESCipher
 from api.config import GlobalConst as gc
 from api.cookies import save_cookies
+from api.logger import truncated
 from api.privacy import register_secret
 from api.work_result import WorkResultReader
 from api.session import HTTP_TIMEOUT, SessionManager
@@ -527,7 +528,7 @@ class Chaoxing:
                 if is_captcha_response(resp):
                     break
                 if resp.status_code == 200:
-                    logger.trace(resp.text)
+                    logger.trace(truncated(resp.text))
                     return resp.json()["isPassed"], 200
                 elif resp.status_code == 403:
                     logger.warning("出现403报错, 正常尝试切换rt")
@@ -545,7 +546,7 @@ class Chaoxing:
             return False, 403
 
         if resp.status_code == 200:
-            logger.trace(resp.text)
+            logger.trace(truncated(resp.text))
             return resp.json()["isPassed"], 200
 
         elif resp.status_code == 403:
@@ -697,10 +698,14 @@ class Chaoxing:
                         if refreshed_meta:
                             # FIXME: Maybe it should be considered an error if those keys aren't present in the refreshed meta, so we perhaps shouldn't use get()
                             _dtoken = refreshed_meta.get("dtoken", _dtoken)
-                            _duration = refreshed_meta.get("duration", duration)
-                            play_time = refreshed_meta.get("playTime", play_time)
+                            # The refreshed duration must feed the next enc/clipTime,
+                            # otherwise every later report replays the stale value
+                            # and keeps hitting 403 until the task is skipped.
+                            duration = refreshed_meta.get("duration", duration)
+                            # The /ananas/status response has no playTime field, so
+                            # the in-flight play position always stays authoritative.
 
-                            logger.debug("Refreshed token: {}, duration: {}, play time: {}", _dtoken, _duration, play_time)
+                            logger.debug("Refreshed token: {}, duration: {}", _dtoken, duration)
                             continue
 
                     elif not passed and state != 200:
@@ -949,7 +954,7 @@ class Chaoxing:
             """Fill one answer; True only when it came from the question bank."""
             if _is_cancelled(cancel_check):
                 return False
-            logger.debug(f"当前题目信息 -> {q}")
+            logger.debug("当前题目信息 -> {}", truncated(q))
             # 添加搜题延迟 #428 - 默认0s延迟
             query_delay = self.kwargs.get("query_delay", 0)
             if query_delay:

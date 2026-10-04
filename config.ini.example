@@ -47,11 +47,20 @@ verify_ssl = true
 
 
 [notification]
-# 通知类型: disable, pushplus, bark, dingtalk, feishu, wechat
-type = disable
+# 通知服务商，留空表示禁用外部通知。可选值（与代码中的类名一致）:
+# ServerChan - Server酱 (https://sct.ftqq.com)
+# Qmsg       - Qmsg酱 (https://qmsg.zendee.cn)
+# Bark       - Bark (iOS, https://github.com/Finb/Bark)
+# Telegram   - Telegram Bot
+# Windows    - Windows 系统通知（Toast，仅 Windows 可用，无需下方参数）
+provider =
 
-# PushPlus Token（当 type=pushplus 时）
-pushplus_token = 
+# 推送地址（ServerChan/Qmsg/Bark/Telegram 需要）:
+# ServerChan: https://sctapi.ftqq.com/<SendKey>.send
+# Qmsg:       https://qmsg.zendee.cn/send/<key>
+# Bark:       https://api.day.app/<key>
+# Telegram:   https://api.telegram.org/bot<token>/sendMessage
+url =
 
-# Bark 推送地址（当 type=bark 时）
-bark_url = 
+# Telegram 聊天 ID（仅 Telegram 需要）
+tg_chat_id =

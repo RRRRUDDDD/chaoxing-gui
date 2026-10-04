@@ -87,6 +87,45 @@ class StudyResultTests(unittest.TestCase):
     def test_disabled_question_provider_is_a_skip(self):
         self.assertEqual(self.client.study_work(COURSE, {}, {}), StudyResult.SKIPPED)
 
+    def test_forbidden_recovery_feeds_refreshed_duration_into_later_reports(self):
+        session = SimpleNamespace(get=Mock(return_value=Mock(json=Mock(return_value={
+            'status': 'success', 'duration': 100, 'dtoken': 'old-token'}))), cookies=[])
+        job = {'name': 'video', 'playTime': 91000, 'objectid': 'obj', 'jobid': 'j',
+               'otherinfo': '{}', 'videoFaceCaptureEnc': '', 'attDuration': 60,
+               'attDurationEnc': '', 'rt': '0.9'}
+        with patch.object(self.client.session_manager, 'get_session', return_value=session), \
+             patch.object(self.client, 'video_progress_log',
+                          side_effect=[(False, 200), (False, 200), (False, 403), (True, 200)]) as log, \
+             patch.object(self.client, '_recover_after_forbidden',
+                          return_value={'dtoken': 'new-token', 'duration': 250}), \
+             patch('api.base.time.sleep'), \
+             patch('api.base._open_progress', return_value=Mock()):
+            result = self.client.study_video(COURSE, job, {}, 1)
+        self.assertEqual(result, StudyResult.SUCCESS)
+        self.assertEqual(log.call_count, 4)
+        # The report after recovery must use the refreshed duration/token;
+        # replaying the stale ones kept failing with 403.
+        self.assertEqual(log.call_args_list[3].args[5], 250)
+        self.assertEqual(log.call_args_list[3].args[4], 'new-token')
+
+    def test_forbidden_recovery_without_playtime_keeps_the_play_position(self):
+        session = SimpleNamespace(get=Mock(return_value=Mock(json=Mock(return_value={
+            'status': 'success', 'duration': 100, 'dtoken': 'old-token'}))), cookies=[])
+        job = {'name': 'video', 'playTime': 91000, 'objectid': 'obj', 'jobid': 'j',
+               'otherinfo': '{}', 'videoFaceCaptureEnc': '', 'attDuration': 60,
+               'attDurationEnc': '', 'rt': '0.9'}
+        with patch.object(self.client.session_manager, 'get_session', return_value=session), \
+             patch.object(self.client, 'video_progress_log',
+                          side_effect=[(False, 200), (False, 200), (False, 403), (True, 200)]) as log, \
+             patch.object(self.client, '_recover_after_forbidden',
+                          return_value={'dtoken': 'new-token', 'duration': 250}), \
+             patch('api.base.time.sleep'), \
+             patch('api.base._open_progress', return_value=Mock()):
+            self.client.study_video(COURSE, job, {}, 1)
+        # /ananas/status has no playTime field, so the in-flight position (91s)
+        # must survive the refresh instead of being reset by a stale default.
+        self.assertEqual(log.call_args_list[3].args[6], 91)
+
     def exercise_work(self, *, save_only=False, expired=False, query_error=False, undecodable=False, supplied_question=None, answer="A"):
         question = {'id': 'q1', 'title': 'Offline question', 'type': 'single',
                     'options': 'A. first\nB. second', 'answerField': {}}
