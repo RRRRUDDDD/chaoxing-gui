@@ -114,6 +114,38 @@ Tauri 正式版数据与日志位置见 [README](README.md#数据与升级)。�
 
 直接使用题库 API 的调用方应在任务线程结束后调用 `Tiku.close()`，多个进程不要同时写同一个缓存文件。
 
+### OCS 兼容范围
+
+题库适配层位于 `api/ocs_tiku.py`，回归位于 `tests/test_ocs_tiku.py`。
+
+- handler 使用受限表达式解析器，支持数组、对象字面量（标识符/字符串键、嵌套、尾随逗号）、三元表达式、属性访问及已有白名单方法。不支持任意语句、展开、计算属性或方法定义；不提供浏览器/系统 API。长度与嵌套限制用于控制解析资源。
+- 解析错误包含题库序号、名称、字段路径和字符位置，不回显 handler 或凭据。单个配置错误隔离；顶层格式错误、订阅失败、数量超限或全部配置无效仍禁用题库。
+- `contentType` 仅控制响应 JSON/text 解析。请求 `type` 默认 fetch；GM 模式下 `Content-Type: application/x-www-form-urlencoded` 使用表单，否则 POST 使用 JSON。fetch 模式 POST 使用 JSON，不因响应类型切换为表单。不自动补写用户未设置的 JSON Content-Type 请求头。
+- GET 的 data 覆盖 URL 同名查询参数；URL 占位符值编码；嵌套 data 支持递归替换且不修改原配置。只有 data 第一层 handler 被编译。
+- 结构化结果由 `normalize_results()` 统一保留 `question/answer/extra_data`；`select_answer()` 仍返回字符串或 None，缓存/回填接口不变。元数据不写入答案缓存，也不改变 AI 答案选择策略。
+- 基础环境为 `title/options/type`，缺省图片环境为 `images=[]`、`suggestion_title=""`、`suggestion_options=""`，未知题型为 unknown。调用方可提供通过校验的扩展值。
+- `api/question_images.py` 负责原图文本提取、受限下载、真实 PNG 转码及 `[图片N]` 映射。采集层在 OCR 前保留原图位置；仅引用图片扩展的 POST 配置才按需转换，同题多题库复用。失败图片不占编号，原文保留；相同 URL 去重、不同 URL 即使内容相同也保留位置。答案中的图片编号按本题映射还原。
+- 图片下载仅接受 `https://p.ananas.chaoxing.com`（443），拒绝用户信息、其他端口及重定向。单图上限 5 MiB、每题 20 张、总请求体 16 MiB、16MP 像素、下载超时 8 秒；小图按比例放大至短边至少 14px。data URL 同样验证大小与真实像素，不将账号凭据发送到未知图片主机。其他图片主机目前按失败回退，不静默扩大允许范围。
+- `Tiku.query_diagnostics` 是当前题的有界诊断快照（每题库最多 20 条候选摘要），保留来源、阶段、状态、耗时、选中结果和 ai/tags；缓存命中明确标记 cache，不借用上一题来源。异常不打印完整 URL/请求/响应，摘要脱敏且截长，不记录 base64。此快照不新增磁盘存储或 UI 面板。
+- `no_answer` 可附带 `message`：取前 20 条 handler 结果中首条无答案且非空的字符串说明（`[说明, undefined]`），经 HTML 转纯文本、控制字符清理、凭证/URL/base64 脱敏后限制为单行 256 字符，并追加到现有任务日志供界面展示。没有说明时保留状态提示，不从原始响应猜测原因，也不硬编码供应商业务码。提示不参与答案选择或缓存；失败后仍继续查询后续题库。
+- 候选筛选与回填共同使用 `api/answer_check.py` 的 `match_answer()`：完整文本精确命中优先、严格字母格式其次；长文本模糊匹配门槛 0.85、领先差值 0.10，短字符串/公式/图片 URL 必须精确匹配。数字、否定词与运算符差异阻止模糊匹配；重复/歧义选项和不完整多选不计入覆盖率。该策略是保守匹配，不是答案正确性证明。
+- 选择题选项按标签与行解析，答案按题型拆分；简答/程序正文保持多行及语法符号。多空题按页面现有的 `answer{id}_N` 数量分别回填，数量不匹配走既有无答案流程。保存/提交开关、随机兜底和覆盖率阈值保持不变。
+- 含图片的缓存键增加原图 URL 身份，文字题原键不变；不缓存 base64 或元数据，已有图片缓存不保证命中。
+
+稳定协议参考 OCS `4.0` 提交 `890686a5e54f9a6d52d1169bae9ea5971e0863c7`；图片扩展参考 **dev** 提交 `419541ee6eea89cfac334717f24bed56cc63fe66` 的 `answerer-env.ts`、`work.ts`、`answer.wrapper.handler.ts`，不是稳定版 4.15.3 的保证。仍只支持受限 handler 表达式，不执行任意 JavaScript。
+
+专项测试：`tests/test_ocs_tiku.py`、`tests/test_question_images.py`、`tests/test_answer_matching.py`，另由 OCR/缓存/实际 study_work Mock 测试保护调用链。离线测试不验证真实题库 token、额度、线上准确率或供应方服务。
+
+### 上游兼容移植：隐私与只读结果确认
+
+- 参考 Samueli924/chaoxing 的 [#637](https://github.com/Samueli924/chaoxing/pull/637)、[#625](https://github.com/Samueli924/chaoxing/pull/625)、[#626](https://github.com/Samueli924/chaoxing/pull/626)、[#630](https://github.com/Samueli924/chaoxing/pull/630) 和 [#631](https://github.com/Samueli924/chaoxing/pull/631)，按本地 OCS、会话与任务架构移植，不依赖被忽略的 `chaoxing/` 参考目录。
+- `api/privacy.py` 在 Loguru 的共享 core 安装 patcher，覆盖直接导入 logger 和动态任务 sink。认证配置及 Cookie 值只登记在内存；`task_id` 作为内部路由键不得改写。通知目标与恢复配置不脱敏改写，正文、公开错误和日志脱敏；异常只保留清洗后的类型、说明和栈帧位置，不传递原始 traceback。
+- `api/work_result.py` 只读提交前记录基线与提交后新增记录，按记录逐行配对次数/分数，缺失和并发多条新记录不猜测。最多三次结果列表读取，等待可取消，GET 有超时，不重放提交 POST；只读页面可能存在平台变体，未验证关联的成绩一律未知。成绩与逐题解析能力不改变提交结果，不假设 100 是通用满分，不回写缓存或恢复旧 AI feedback。
+- `CourseTools.iter_card_pages` 供资源扫描与复核共享原始页遍历；`read_only=True` 只允许三个课程/卡片读取端点，不自动处理验证码。严格模式遇到锁定、解析异常或无明确结束证据时失败，扫描器原有非严格模式保持兼容。
+- `api/verification.py` 使用读取前后快照、明确平台总进度和原始附件交叉核对；不调用会写空页面进度的 `get_job_list`。缺失/不一致/不支持的任务保持 unknown，未完成为 pending，全量证据一致为 confirmed，取消为 cancelled。复核仅表示观测时的平台任务状态，不证明答题正确性或后续统计稳定。
+- `CourseResult.verification` 独立于章节执行结果。Web 未确认时记 partial，但保留成功任务计数，不伪造任务失败、不进入重试队列；CLI 同样不通知全部完成。旧的无 verification 历史详情仍可查看，不重跑历史任务。公开详情沿用现有 JSON 传输，无新路由或 IPC 操作。
+- 定向回归：`test_privacy`、`test_work_result`、`test_verification`、`test_study_results`、`test_answer_matching`、`test_ocs_tiku`，并覆盖任务日志、恢复、资源扫描及前端状态展示。所有夹具使用合成 HTML、mock 请求与临时文件，不代表真实平台在线验收。
+
 ### 任务记录迁移
 
 任务恢复记录保存在 `study_tasks/<任务 ID>.json`，检查点只写入当前任务。

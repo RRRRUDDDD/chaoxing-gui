@@ -95,7 +95,7 @@ describe('course selection', () => {
     fireEvent.click(first);
     fireEvent.click(screen.getByRole('button', { name: '开始学习' }));
     expect(start.mock.calls[0][0].course_list).toEqual(['1']);
-    fireEvent.click(screen.getByRole('button', { name: '保存当前配置' }));
+    fireEvent.click(screen.getByRole('button', { name: '保存为默认配置' }));
     await screen.findByText('配置已保存');
     const payload = api.post.mock.calls.find(([url]) => url === '/config')[1];
     expect(payload.selectedCoursesByAccount).toEqual({ alice: ['1'] });
@@ -126,6 +126,28 @@ describe('course selection', () => {
     render(<CourseSelection userInfo={account} onStartStudy={vi.fn()} />);
     await screen.findByText('暂无课程');
     expect(screen.getByRole('button', { name: '开始学习' }).disabled).toBe(true);
+  });
+
+  it('keeps course-selection drafts across a progress round trip without saving them', async () => {
+    services();
+    await sessionStore.rememberLogin('alice');
+    render(<App />);
+    await screen.findByRole('button', { name: /Course one/ });
+    // 恢复的选择是 ['1', '2']：点掉 Course one，只留 Course two，再调一个参数。
+    fireEvent.click(screen.getByRole('button', { name: /Course one/ }));
+    fireEvent.change(screen.getByLabelText('播放倍速'), { target: { value: '1.6' } });
+    const configCalls = () => api.post.mock.calls.filter(([url]) => url === '/config').length;
+    expect(configCalls()).toBe(0);
+    fireEvent.click(screen.getByRole('button', { name: '开始学习' }));
+    await screen.findByText('task-one');
+    fireEvent.click(screen.getByRole('button', { name: '返回课程选择' }));
+    await screen.findByRole('button', { name: '返回运行任务' });
+    expect(screen.getByRole('radio', { name: '自动学习' }).checked).toBe(true);
+    expect(screen.getByLabelText('播放倍速').value).toBe('1.6');
+    expect(screen.getByRole('button', { name: /Course one/ }).getAttribute('aria-pressed')).toBe('false');
+    expect(screen.getByRole('button', { name: /Course two/ }).getAttribute('aria-pressed')).toBe('true');
+    expect(configCalls()).toBe(0);
+    expect(screen.getByText('有未保存的更改')).toBeTruthy();
   });
 });
 
@@ -480,7 +502,7 @@ it.each(['courses', 'progress'])('keeps the %s preview usable without backend re
   await screen.findByText('preview-task');
   fireEvent.click(screen.getByRole('button', { name: '返回课程选择' }));
   await screen.findByRole('button', { name: '开始学习' });
-  fireEvent.click(screen.getByRole('button', { name: '保存当前配置' }));
+  fireEvent.click(screen.getByRole('button', { name: '保存为默认配置' }));
   expect(api.get).not.toHaveBeenCalled();
   expect(api.post).not.toHaveBeenCalled();
   expect(localStorage.getItem(SESSION_KEY)).toBeNull();

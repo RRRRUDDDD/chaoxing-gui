@@ -87,9 +87,11 @@ class StudyResultTests(unittest.TestCase):
     def test_disabled_question_provider_is_a_skip(self):
         self.assertEqual(self.client.study_work(COURSE, {}, {}), StudyResult.SKIPPED)
 
-    def exercise_work(self, *, save_only=False, expired=False, query_error=False, undecodable=False):
+    def exercise_work(self, *, save_only=False, expired=False, query_error=False, undecodable=False, supplied_question=None, answer="A"):
         question = {'id': 'q1', 'title': 'Offline question', 'type': 'single',
                     'options': 'A. first\nB. second', 'answerField': {}}
+        if supplied_question is not None:
+            question = supplied_question
         if undecodable:
             question['undecodable'] = True
         questions = {'questions': [question]}
@@ -97,7 +99,7 @@ class StudyResultTests(unittest.TestCase):
         provider.DISABLE = False
         provider.COVER_RATE = 0
         provider.get_submit_params = Mock(return_value='1' if save_only else '')
-        provider.query = Mock(side_effect=RuntimeError('query failed')) if query_error else Mock(return_value='A')
+        provider.query = Mock(side_effect=RuntimeError('query failed')) if query_error else Mock(return_value=answer)
         self.client.tiku = provider
         session = Mock()
         session.get.return_value = Mock(text='<form>offline</form>', status_code=200)
@@ -116,7 +118,26 @@ class StudyResultTests(unittest.TestCase):
             result = self.client.study_work(COURSE, job, info)
         self.provider = provider
         self.question = question
+        self.posted_form = session.post.call_args.kwargs['data']
         return result
+
+    def test_ambiguous_answer_does_not_increase_coverage(self):
+        q = {'id': 'q1', 'title': 'Q', 'type': 'single',
+             'options': 'A. TCP/IP' + chr(10) + 'B. UDP', 'answerField': {}}
+        self.exercise_work(save_only=True, supplied_question=q, answer='TCP')
+        self.assertEqual(q['answerSourceq1'], 'random')
+        self.assertEqual(self.posted_form['answerq1'], '')
+
+    def test_completion_answers_reach_individual_form_fields(self):
+        q = {'id': 'q1', 'title': 'Q', 'type': 'completion', 'options': '',
+             'answerField': {'answerq1_0': '', 'answerq1_1': '', 'answertypeq1': '2'}}
+        self.exercise_work(save_only=True, supplied_question=q, answer='甲#乙')
+        self.assertEqual(self.posted_form['answerq1_0'], '甲')
+        self.assertEqual(self.posted_form['answerq1_1'], '乙')
+        self.assertEqual(q['answerSourceq1'], 'cover')
+        self.exercise_work(save_only=True, supplied_question=q, answer='甲')
+        self.assertEqual(q['answerSourceq1'], 'random')
+        self.assertEqual(self.posted_form['answerq1_0'], '')
 
     def test_saved_but_unsubmitted_work_is_skipped(self):
         self.assertEqual(self.exercise_work(save_only=True), StudyResult.SKIPPED)
@@ -126,6 +147,22 @@ class StudyResultTests(unittest.TestCase):
 
     def test_submitted_work_is_completed(self):
         self.assertEqual(self.exercise_work(), StudyResult.SUCCESS)
+
+    def test_result_reader_never_checks_saved_or_failed_submissions(self):
+        with patch('api.base.WorkResultReader') as reader:
+            self.exercise_work(save_only=True)
+            reader.assert_not_called()
+            self.exercise_work(expired=True)
+            reader.return_value.check.assert_not_called()
+
+    def test_result_reader_is_informational_after_success(self):
+        with patch('api.base.WorkResultReader') as reader:
+            reader.return_value.check.return_value = {
+                'result_status': 'unknown', 'score': None, 'reason': 'timeout',
+            }
+            self.assertEqual(self.exercise_work(), StudyResult.SUCCESS)
+            reader.return_value.capture_baseline.assert_called_once()
+            reader.return_value.check.assert_called_once()
 
     def test_undecodable_question_skips_the_question_bank(self):
         self.exercise_work(undecodable=True)

@@ -71,12 +71,12 @@ it('does not show an expired prompt and keeps focus inside', async () => {
 
   await prompt(2);
   const buttons = screen.getAllByRole('button');
-  const box = screen.getByLabelText('记住我的选择');
-  box.focus();
+  const cancel = screen.getByRole('button', { name: '取消关闭窗口' });
+  cancel.focus();
   fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Tab' });
   expect(document.activeElement).toBe(buttons[0]);
   fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Tab', shiftKey: true });
-  expect(document.activeElement).toBe(box);
+  expect(document.activeElement).toBe(cancel);
 });
 
 it('warns next to exit only while a task runs and shows a failed save', async () => {

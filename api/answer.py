@@ -13,8 +13,9 @@ from pathlib import Path
 from re import sub
 from typing import Optional
 
-from api.answer_check import check_answer
+from api.answer_check import check_answer, match_answer
 from api.logger import logger
+from api.privacy import register_config
 from api.decode import _ocr_image_to_text
 
 
@@ -110,6 +111,8 @@ class CacheDAO:
             "type": normalize(q_info.get("type")),
             "options": [normalize(option) for option in _prepare_option_lines(q_info.get("options"))],
         }
+        if q_info.get("_image_context", {}).get("urls"):
+            payload["image_urls"] = q_info["_image_context"]["urls"]
         encoded = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf8")
         return cls.KEY_PREFIX + hashlib.sha256(encoded).hexdigest()
 
@@ -241,6 +244,7 @@ class Tiku:
     true_list = []
     false_list = []
     def __init__(self) -> None:
+        self.query_diagnostics = []
         self._name = None
         self._conf = None
         self._cache_dao: Optional[CacheDAO] = None
@@ -322,6 +326,7 @@ class Tiku:
         pass
 
     def config_set(self,config):
+        register_config(config)
         self._conf = config
 
     def _get_conf(self):
@@ -338,6 +343,7 @@ class Tiku:
             return None
         
     def query(self,q_info:dict) -> Optional[str]:
+        self.query_diagnostics = []
         if self.DISABLE:
             return None
 
@@ -360,7 +366,11 @@ class Tiku:
         cache_dao = CacheDAO.get_shared()
         self._cache_dao = cache_dao
         answer = cache_dao.get_cache(cache_key)
+        if answer and q_info.get('options') and q_info.get('type') in ('single', 'multiple'):
+            if match_answer(answer, q_info).answer is None:
+                answer = None
         if answer:
+            self.query_diagnostics = [{"source": "cache", "status": "selected"}]
             logger.info(f"从缓存中获取答案：{q_info['title']} -> {answer}")
             return answer.strip()
         else:
@@ -369,7 +379,10 @@ class Tiku:
                 answer = answer.strip()
                 logger.info(f"从{self.name}获取答案：{q_info['title']} -> {answer}")
 
-                if check_answer(answer, q_info['type'], self):
+                valid = (match_answer(answer, q_info, self.true_list, self.false_list).answer is not None
+                         if q_info.get('options') or q_info['type'] == 'completion'
+                         else check_answer(answer, q_info['type'], self))
+                if valid:
                     cache_dao.add_cache(cache_key, answer)
                     return answer
                 else:

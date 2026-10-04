@@ -3,6 +3,8 @@ import sys
 from loguru import logger
 from tqdm import tqdm
 
+from api.privacy import patch_record
+
 _console_sink_id = None
 
 
@@ -32,6 +34,7 @@ def set_console_level(level="INFO"):
     _console_sink_id = logger.add(_console_sink, level=level, colorize=_is_tty(sys.stderr), enqueue=True)
 
 
+logger.configure(patcher=patch_record)
 logger.remove()
 set_console_level()
 # Without retention loguru keeps every rotated file forever.
