@@ -20,6 +20,8 @@ function App() {
   const [monitorError, setMonitorError] = useState('');
   const [taskNotice, setTaskNotice] = useState(null);
   const [recovery, setRecovery] = useState(null);
+  // 选课页的草稿只保留在当前会话：去过一次后保持挂载，往返进度页不丢失、也不写盘。
+  const [coursesVisited, setCoursesVisited] = useState(false);
   const startingRef = useRef(false);
   const loggingOutRef = useRef(false);
   const startController = useRef(null);
@@ -37,6 +39,10 @@ function App() {
     recoveryController.current?.abort();
     stopController.current?.abort();
   }, []);
+
+  useEffect(() => {
+    if (step === 'courses') setCoursesVisited(true);
+  }, [step]);
 
   const recoverTask = useCallback(async (id, info) => {
     if (loggingOutRef.current || !validTaskId(id)) return;
@@ -246,20 +252,23 @@ function App() {
   return (
     <div className="App">
       {step === 'login' && <Login onLoginSuccess={handleLoginSuccess} />}
-      {step === 'courses' && (
-        <CourseSelection
-          key={userInfo.username}
-          userInfo={userInfo}
-          onStartStudy={handleStartStudy}
-          onLogout={handleLogout}
-          starting={starting}
-          loggingOut={loggingOut}
-          startError={startError || currentRecovery?.error || monitorError || currentTaskNotice}
-          activeTaskId={taskId}
-          taskRunning={taskRunning}
-          onReturnToTask={() => { if (!loggingOutRef.current) setStep('progress'); }}
-          preview={isPreview}
-        />
+      {(step === 'courses' || (coursesVisited && userInfo)) && (
+        <div hidden={step !== 'courses'}>
+          <CourseSelection
+            key={userInfo?.username}
+            active={step === 'courses'}
+            userInfo={userInfo}
+            onStartStudy={handleStartStudy}
+            onLogout={handleLogout}
+            starting={starting}
+            loggingOut={loggingOut}
+            startError={startError || currentRecovery?.error || monitorError || currentTaskNotice}
+            activeTaskId={taskId}
+            taskRunning={taskRunning}
+            onReturnToTask={() => { if (!loggingOutRef.current) setStep('progress'); }}
+            preview={isPreview}
+          />
+        </div>
       )}
       {step === 'progress' && taskId && (
         <StudyProgress

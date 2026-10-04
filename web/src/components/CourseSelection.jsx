@@ -3,9 +3,8 @@ import Button from './ui/Button';
 import Label from './ui/Label';
 import Select from './ui/Select';
 import NumberInput from './ui/NumberInput';
-import AdvancedSettings from './AdvancedSettings';
-import TikuConfigEditor from './TikuConfigEditor';
-import CourseToolSettings, { validateVisits } from './CourseToolSettings';
+import { TikuSettings, AppSettings } from './AdvancedSettings';
+import CourseToolSettings, { TaskTypePicker, courseToolLabels, validateVisits } from './CourseToolSettings';
 import RepositoryLink from './RepositoryLink';
 import {
   BookOpen, SlidersHorizontal, LogOut, Play, Save, Loader2,
@@ -14,15 +13,21 @@ import {
 import api from '../api/axios';
 import { configSnapshot, defaultSettings, normalizeCourses, restoreCourseSelection, restoreSettings } from '../lib/courseSelection';
 
-const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOut = false, startError, activeTaskId, taskRunning = false, onReturnToTask, preview = false }) => {
+const taskHeadings = {
+  study: '选择课程并配置学习参数',
+  visits: '选择课程并提交学习次数',
+  video_time: '选择课程并读取视频列表',
+  reading_time: '选择课程并读取阅读任务',
+  download: '选择课程并读取资源列表',
+};
+
+const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOut = false, startError, activeTaskId, taskRunning = false, onReturnToTask, preview = false, active = true }) => {
   const [courses, setCourses] = useState([]);
   const [selectedCourses, setSelectedCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null);
   const [savedSnapshot, setSavedSnapshot] = useState(null);
-  const [editingTiku, setEditingTiku] = useState(false);
-  const editorTrigger = useRef(null);
   const [query, setQuery] = useState('');
   const [settings, setSettings] = useState(defaultSettings);
   const [taskType, setTaskType] = useState('study');
@@ -58,7 +63,6 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
     setSaveStatus(null);
     setSaving(false);
     setSavedSnapshot(null);
-    setEditingTiku(false);
     saveController.current?.abort();
     setQuery('');
     setSelectionNotice('');
@@ -110,9 +114,6 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
   const currentSnapshot = useMemo(() => configSnapshot(settings, username, selectedCourses), [settings, username, selectedCourses]);
   const dirty = savedSnapshot !== null && currentSnapshot !== savedSnapshot;
   useEffect(() => { setSaveStatus(null); }, [currentSnapshot]);
-  useEffect(() => {
-    if (!editingTiku) editorTrigger.current?.focus();
-  }, [editingTiku]);
 
   const toggleCourse = (courseId) => {
     setSelectedCourses((prev) =>
@@ -131,7 +132,8 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
   }, [courses, query]);
 
   const selectedCount = selectedCourses.length;
-  const canSelect = !loading && loadedAccount === username && !loadError && !loggingOut;
+  // 页面被 App 隐藏保留草稿时，不允许任何选择或保存动作继续生效。
+  const canSelect = active && !loading && loadedAccount === username && !loadError && !loggingOut;
   const validOptions = taskType !== 'visits' || Object.values(validateVisits(toolOptions)).every((error) => !error);
   const canStart = canSelect && courses.length > 0 && selectedCount > 0 && validOptions && Object.keys(invalidFields).length === 0 && !starting && !taskRunning;
   const startLabel = { study: '开始学习', visits: '开始提交次数', video_time: '读取视频列表', reading_time: '读取阅读任务', download: '读取资源列表' }[taskType];
@@ -141,7 +143,7 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
   }, [canSelect, filteredCourses]);
 
   useEffect(() => {
-    if (!canSelect || !filteredCourses.length) return undefined;
+    if (!active || !canSelect || !filteredCourses.length) return undefined;
     const onKeyDown = (event) => {
       if (event.defaultPrevented || !(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey || event.key.toLowerCase() !== 'a') return;
       if (event.target?.closest?.('input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"]')) return;
@@ -150,10 +152,10 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [canSelect, filteredCourses.length, selectAllVisible]);
+  }, [active, canSelect, filteredCourses.length, selectAllVisible]);
 
   const handleStartStudy = () => {
-    if (!canStart) return;
+    if (!active || !canStart) return;
     if (taskType === 'study') {
       onStartStudy({ ...settings, course_list: selectedCourses });
     } else if (taskType === 'visits') {
@@ -167,7 +169,7 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
   };
 
   const handleSaveConfig = async () => {
-    if (loggingOut || loading || saving || loadError || loadedAccount !== username) return;
+    if (!active || loggingOut || loading || saving || loadError || loadedAccount !== username) return;
     const snapshot = currentSnapshot;
     if (preview) {
       setSavedSnapshot(snapshot);
@@ -239,12 +241,19 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
       </header>
 
       <main className="course-main page-shell py-5">
-        {/* 页首 */}
-        <div className="course-heading mb-5 shrink-0 animate-stagger-up">
-          <h1 className="text-2xl font-semibold tracking-tight">选择课程并配置学习参数</h1>
-          <p className="mt-1.5 text-sm text-faint">
-            {selectionNotice || '请至少选择一门课程；未选课程时无法开始学习'}
-          </p>
+        {/* 页首：标题随所选功能变化，功能选择放在工作区上方 */}
+        <div className="course-heading mb-4 flex shrink-0 flex-wrap items-end justify-between gap-x-8 gap-y-3 animate-stagger-up">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-semibold tracking-tight">{taskHeadings[taskType]}</h1>
+            <p className="mt-1.5 text-sm text-faint">
+              {selectionNotice || '请至少选择一门课程；未选课程时无法开始学习'}
+            </p>
+          </div>
+          <TaskTypePicker
+            taskType={taskType}
+            onTaskTypeChange={setTaskType}
+            disabled={starting || loggingOut || !!loadError}
+          />
         </div>
 
         {activeTaskId && (
@@ -260,8 +269,7 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
           </div>
         )}
 
-        {editingTiku && <TikuConfigEditor settings={settings} onChange={setSettings} onBack={() => setEditingTiku(false)} />}
-        <div hidden={editingTiku} className="course-body grid grid-cols-1 gap-5 md:grid-cols-[minmax(0,1fr)_clamp(19.5rem,32vw,30rem)] 2xl:gap-8">
+        <div className="course-body grid grid-cols-1 gap-5 md:grid-cols-[minmax(0,1fr)_clamp(19.5rem,32vw,30rem)] 2xl:gap-8">
           {/* 左:课程列表 */}
           <section
             aria-label="课程列表"
@@ -352,26 +360,25 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
 
           {/* 右:配置面板，配置区限高滚动，操作卡始终可见 */}
           <aside
-            aria-label="学习配置"
+            aria-label="任务配置"
             className="course-config flex min-h-0 flex-col gap-3 animate-stagger-up"
             style={{ animationDelay: '160ms' }}
           >
             <div className="course-parameters flex min-h-0 flex-1 flex-col rounded-xl border border-line bg-white shadow-card">
               <div className="flex shrink-0 items-center gap-2 border-b border-line px-5 py-3.5">
                 <SlidersHorizontal className="h-4 w-4 text-brand" aria-hidden="true" />
-                <h2 className="text-[15px] font-semibold">学习配置</h2>
+                <h2 className="text-[15px] font-semibold">本次任务 · {courseToolLabels[taskType]}</h2>
               </div>
 
-              <div className="min-h-0 overflow-y-auto overscroll-contain" tabIndex={0} aria-label="学习参数">
-                <div className="p-5">
+              <div className="min-h-0 overflow-y-auto overscroll-contain" tabIndex={0} aria-label="任务参数">
+                <div className="space-y-5 p-5">
                   <CourseToolSettings
-                    taskType={taskType} onTaskTypeChange={setTaskType}
+                    taskType={taskType}
                     options={toolOptions} onOptionsChange={setToolOptions}
                     disabled={starting || loggingOut || !!loadError}
                   />
-                </div>
 
-                {taskType === 'study' && <div className="space-y-5 border-t border-line p-5">
+                  {taskType === 'study' && <>
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <Label htmlFor="speed">播放倍速</Label>
@@ -419,11 +426,13 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
                     </Select>
                   </div>
 
+                  <TikuSettings settings={settings} onChange={setSettings} onFieldValidity={setFieldValid} />
+                  </>}
+
                   <div className="border-t border-line pt-5">
-                    <AdvancedSettings settings={settings} onChange={setSettings} onFieldValidity={setFieldValid}
-                      onEditTiku={(trigger) => { editorTrigger.current = trigger; setEditingTiku(true); }} />
+                    <AppSettings settings={settings} onChange={setSettings} />
                   </div>
-                </div>}
+                </div>
               </div>
             </div>
 
@@ -442,7 +451,8 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
                 )}
               </Button>
               <p className="text-center text-xs text-faint">{taskRunning ? '当前任务结束后可开始新任务' : selectedCount ? `将${taskType === 'study' ? '学习' : '处理'}已勾选的 ${selectedCount} 门课程` : '请至少勾选一门课程'}</p>
-              {taskType === 'study' && <Button variant="outline" className="w-full" size="sm" onClick={handleSaveConfig} disabled={loggingOut || saving || !!loadError}>
+              {taskType === 'study' && <Button variant="outline" className="w-full" size="sm" onClick={handleSaveConfig} disabled={loggingOut || saving || !!loadError}
+                title="保存课程选择与学习参数，下次进入本页时自动恢复为默认">
                 {saving ? (
                   <>
                     <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
@@ -451,7 +461,7 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
                 ) : (
                   <>
                     <Save className="h-3.5 w-3.5" aria-hidden="true" />
-                    保存当前配置
+                    保存为默认配置
                   </>
                 )}
               </Button>}

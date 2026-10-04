@@ -79,16 +79,16 @@ describe('course tool configuration', () => {
     const start = vi.fn();
     render(<CourseSelection userInfo={account} onStartStudy={start} />);
     await screen.findByRole('button', { name: /模拟课程一/ });
-    expect(screen.getByLabelText('执行功能').value).toBe('study');
+    expect(screen.getByRole('radio', { name: '自动学习' }).checked).toBe(true);
     expect(screen.getByRole('button', { name: '开始学习' }).disabled).toBe(true);
-    fireEvent.change(screen.getByLabelText('执行功能'), { target: { value: 'visits' } });
+    fireEvent.click(screen.getByRole('radio', { name: '学习次数' }));
     expect(screen.getByRole('button', { name: '开始提交次数' }).disabled).toBe(true);
     fireEvent.click(screen.getByRole('button', { name: /模拟课程一/ }));
     fireEvent.change(screen.getByLabelText('每门课程提交次数'), { target: { value: '12' } });
     fireEvent.change(screen.getByLabelText('提交间隔（秒）'), { target: { value: '5' } });
     fireEvent.click(screen.getByRole('button', { name: '开始提交次数' }));
     expect(start).toHaveBeenCalledExactlyOnceWith({ task_type: 'visits', course_list: ['one'], tool_options: { count: 12, interval: 5 } });
-    fireEvent.change(screen.getByLabelText('执行功能'), { target: { value: 'study' } });
+    fireEvent.click(screen.getByRole('radio', { name: '自动学习' }));
     expect(screen.getByLabelText('播放倍速')).toBeTruthy();
   });
 
@@ -96,7 +96,7 @@ describe('course tool configuration', () => {
     selectionServices({ selectedCoursesByAccount: { alice: ['one'] } });
     const start = vi.fn();
     render(<CourseSelection userInfo={account} onStartStudy={start} />);
-    fireEvent.change(await screen.findByLabelText('执行功能'), { target: { value: 'visits' } });
+    fireEvent.click(await screen.findByRole('radio', { name: '学习次数' }));
     for (const [label, values, valid] of [
       ['每门课程提交次数', ['', '0', '-1', '1001', '1.5'], '1000'],
       ['提交间隔（秒）', ['', '0', '3601', '2.5'], '3600'],
@@ -115,11 +115,11 @@ describe('course tool configuration', () => {
     expect(start.mock.lastCall[0].tool_options).toEqual({ count: 1000, interval: 3600 });
   });
 
-  it.each([['video_time', '读取视频列表'], ['download', '读取资源列表']])('starts a %s catalog for the selected courses', async (purpose, label) => {
+  it.each([['video_time', '视频时长', '读取视频列表'], ['download', '资源下载', '读取资源列表']])('starts a %s catalog for the selected courses', async (purpose, choice, label) => {
     selectionServices();
     const start = vi.fn();
     render(<CourseSelection userInfo={account} onStartStudy={start} />);
-    fireEvent.change(await screen.findByLabelText('执行功能'), { target: { value: purpose } });
+    fireEvent.click(await screen.findByRole('radio', { name: choice }));
     expect(screen.getByRole('button', { name: label }).disabled).toBe(true);
     fireEvent.click(screen.getByRole('button', { name: /模拟课程二/ }));
     fireEvent.click(screen.getByRole('button', { name: label }));
@@ -129,14 +129,14 @@ describe('course tool configuration', () => {
   it('resets tool configuration and courses when the account changes', async () => {
     selectionServices();
     const view = render(<CourseSelection userInfo={account} onStartStudy={vi.fn()} />);
-    fireEvent.change(await screen.findByLabelText('执行功能'), { target: { value: 'visits' } });
+    fireEvent.click(await screen.findByRole('radio', { name: '学习次数' }));
     fireEvent.change(screen.getByLabelText('每门课程提交次数'), { target: { value: '44' } });
     fireEvent.click(screen.getByRole('button', { name: /模拟课程一/ }));
     view.rerender(<CourseSelection userInfo={{ ...account, username: 'bob' }} onStartStudy={vi.fn()} />);
     await screen.findByRole('button', { name: /模拟课程一/ });
-    expect(screen.getByLabelText('执行功能').value).toBe('study');
+    expect(screen.getByRole('radio', { name: '自动学习' }).checked).toBe(true);
     expect(screen.getByRole('button', { name: '开始学习' }).disabled).toBe(true);
-    fireEvent.change(screen.getByLabelText('执行功能'), { target: { value: 'visits' } });
+    fireEvent.click(screen.getByRole('radio', { name: '学习次数' }));
     expect(screen.getByLabelText('每门课程提交次数').value).toBe('10');
   });
 });
@@ -327,7 +327,7 @@ function appServices({ purpose = 'download', followup } = {}) {
 async function openCatalog(purpose = 'download') {
   await sessionStore.rememberLogin('alice');
   render(<App />);
-  fireEvent.change(await screen.findByLabelText('执行功能'), { target: { value: purpose } });
+  fireEvent.click(await screen.findByRole('radio', { name: purpose === 'video_time' ? '视频时长' : '资源下载' }));
   fireEvent.click(screen.getByRole('button', { name: purpose === 'video_time' ? '读取视频列表' : '读取资源列表' }));
   await screen.findByRole('checkbox', { name: '选择资源 课程视频' });
   await waitFor(() => expect(screen.getByRole('checkbox', { name: '选择资源 课程视频' }).disabled).toBe(false));
@@ -348,7 +348,8 @@ describe('shared App start lifecycle', () => {
     expect(starts[1][1]).toEqual({ ...account, task_type: purpose, course_list: ['one'], tool_options: { source_task_id: 'catalog-task', resource_ids: ['video-one'], ...(purpose === 'video_time' ? { minutes: 0.1 } : {}) } });
     await waitFor(async () => expect((await sessionStore.read()).activeTask).toEqual({ username: 'alice', taskId: 'next-task' }));
     fireEvent.click(screen.getByRole('button', { name: '返回课程选择' }));
-    expect((await screen.findByRole('button', { name: '开始学习' })).disabled).toBe(true);
+    // 会话草稿保留所选功能：返回后不再是默认的“开始学习”，但仍禁止并发启动。
+    expect((await screen.findByRole('button', { name: purpose === 'video_time' ? '读取视频列表' : '读取资源列表' })).disabled).toBe(true);
   });
 
   it.each([404, 500])('shows a %s follow-up failure on the catalog progress page and allows retry', async (status) => {

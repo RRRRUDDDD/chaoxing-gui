@@ -148,7 +148,7 @@ describe('shared task flow over real Axios transports', () => {
     let view = mount();
     const start = await screen.findByRole('button', { name: '开始学习' });
     expect(start.disabled).toBe(false);
-    fireEvent.click(screen.getByRole('button', { name: '保存当前配置' }));
+    fireEvent.click(screen.getByRole('button', { name: '保存为默认配置' }));
     await screen.findByText('配置已保存');
     expect(fixture.calls.find((call) => call.method === 'POST' && call.path === '/api/config').payload.selectedCoursesByAccount).toEqual({ alice: ['one'] });
     fireEvent.click(start);

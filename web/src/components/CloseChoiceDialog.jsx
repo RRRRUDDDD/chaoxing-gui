@@ -100,7 +100,7 @@ export function CloseChoiceDialog({ taskRunning = false }) {
         <div className="mt-5 space-y-2">
           {CHOICES.map(({ action, label, icon: Icon }) => (
             <div key={action}>
-              <Button type="button" variant={action === 'exit' ? 'outline' : 'default'} disabled={busy}
+              <Button type="button" variant={action === 'minimize' ? 'default' : 'outline'} disabled={busy}
                 className="w-full justify-start" onClick={() => void choose(action)}>
                 <Icon className="h-4 w-4" aria-hidden="true" />{label}
               </Button>
@@ -116,6 +116,12 @@ export function CloseChoiceDialog({ taskRunning = false }) {
           记住我的选择
         </label>
         {error && <p role="alert" className="mt-3 text-xs text-danger">{error}</p>}
+        <div className="mt-4 border-t border-line pt-3">
+          <Button type="button" variant="ghost" disabled={busy} className="w-full"
+            onClick={() => void choose('cancel')} aria-label="取消关闭窗口">
+            取消，继续使用
+          </Button>
+        </div>
       </div>
     </div>
   );

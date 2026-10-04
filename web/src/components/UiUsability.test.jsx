@@ -36,7 +36,7 @@ it('tracks real modifications and clears stale success, ignoring click order', a
   expect(screen.getByText('有未保存的更改')).toBeTruthy();
   fireEvent.click(first);
   expect(screen.queryByText('有未保存的更改')).toBeNull();
-  fireEvent.click(screen.getByRole('button', { name: '保存当前配置' }));
+  fireEvent.click(screen.getByRole('button', { name: '保存为默认配置' }));
   await screen.findByText('配置已保存');
   fireEvent.change(screen.getByLabelText('播放倍速'), { target: { value: '1.5' } });
   expect(screen.queryByText('配置已保存')).toBeNull();
@@ -49,7 +49,7 @@ it.each(['business', 'network'])('renders a %s save failure as an alert, retaini
   fireEvent.click(screen.getByRole('button', { name: /First course/ }));
   if (kind === 'business') api.post.mockResolvedValueOnce({ data: { status: false, msg: '无法保存配置' } });
   else api.post.mockRejectedValueOnce(new Error('offline'));
-  fireEvent.click(screen.getByRole('button', { name: '保存当前配置' }));
+  fireEvent.click(screen.getByRole('button', { name: '保存为默认配置' }));
   const alert = await screen.findByRole('alert');
   expect(alert.className).toContain('text-danger');
   expect(screen.getByText('有未保存的更改')).toBeTruthy();
@@ -59,7 +59,7 @@ it('acknowledges only the request snapshot when editing continues during save', 
   const pending = deferred();
   api.post.mockReturnValueOnce(pending.promise);
   fireEvent.click(screen.getByRole('button', { name: /First course/ }));
-  fireEvent.click(screen.getByRole('button', { name: '保存当前配置' }));
+  fireEvent.click(screen.getByRole('button', { name: '保存为默认配置' }));
   expect(screen.getByRole('button', { name: '保存中' }).disabled).toBe(true);
   fireEvent.change(screen.getByLabelText('播放倍速'), { target: { value: '1.5' } });
   await act(async () => pending.resolve(ok({})));
@@ -73,7 +73,7 @@ it.each(['success', 'failure'])('ignores a late save %s after changing accounts'
   const pending = deferred();
   api.post.mockReturnValueOnce(pending.promise);
   fireEvent.click(screen.getByRole('button', { name: /First course/ }));
-  fireEvent.click(screen.getByRole('button', { name: '保存当前配置' }));
+  fireEvent.click(screen.getByRole('button', { name: '保存为默认配置' }));
   const signal = api.post.mock.calls.find(([url]) => url === '/config')[2].signal;
   view.rerender(<CourseSelection userInfo={{ ...account, username: 'bob' }} onStartStudy={vi.fn()} />);
   await screen.findByRole('button', { name: /First course/ });
@@ -83,40 +83,48 @@ it.each(['success', 'failure'])('ignores a late save %s after changing accounts'
   expect(screen.queryByRole('alert')).toBeNull();
   expect(screen.queryByText('有未保存的更改')).toBeNull();
 });
-it('keeps wide editor text and numeric drafts without saving or disrupting disclosure focus', async () => {
+it('keeps bank text and numeric drafts across disclosure changes without saving', async () => {
   await mountCourses();
-  const outer = screen.getByRole('button', { name: '展开高级配置' });
-  expect(screen.queryByRole('button', { name: '展开题库配置' })).toBeNull();
+  const outer = screen.getByRole('button', { name: '展开答题设置' });
   fireEvent.click(outer);
-  fireEvent.click(screen.getByRole('button', { name: '展开题库配置' }));
-  expect(screen.getByRole('button', { name: '展开任务通知' })).toBeTruthy();
-  const bankPanel = document.getElementById(screen.getByRole('button', { name: '收起题库配置' }).getAttribute('aria-controls'));
-  expect(bankPanel.querySelector('button').parentElement.querySelector('p')).toBeNull();
   const delay = screen.getByRole('spinbutton', { name: '查询延迟（秒）' });
   fireEvent.change(delay, { target: { value: '1.50' } });
-  delay.focus();
+  const bank = screen.getByLabelText('题库配置');
+  fireEvent.change(bank, { target: { value: 'https://example.com/subscription' } });
+  bank.focus();
   fireEvent.click(outer);
   expect(document.activeElement).toBe(outer);
   expect(document.getElementById(outer.getAttribute('aria-controls')).hidden).toBe(true);
   expect(screen.queryByRole('spinbutton', { name: '查询延迟（秒）' })).toBeNull();
   fireEvent.click(outer);
   expect(screen.getByRole('spinbutton', { name: '查询延迟（秒）' }).value).toBe('1.50');
-  const trigger = screen.getByRole('button', { name: '展开编辑' });
-  fireEvent.click(trigger);
-  expect(screen.queryByRole('button', { name: '开始学习' })).toBeNull();
-  expect(screen.getByText(/编辑时不会请求订阅链接/)).toBeTruthy();
-  fireEvent.change(screen.getByLabelText('题库配置'), { target: { value: 'https://example.com/subscription' } });
-  fireEvent.click(screen.getByRole('button', { name: '返回配置面板' }));
-  expect(document.activeElement).toBe(trigger);
-  expect(delay.value).toBe('1.50');
-  fireEvent.click(trigger);
   expect(screen.getByLabelText('题库配置').value).toBe('https://example.com/subscription');
+  expect(screen.getByText(/编辑时不会请求订阅链接/)).toBeTruthy();
   expect(api.post.mock.calls.every(([url]) => url === '/courses')).toBe(true);
+});
+it('puts the task-type choice above the workspace, retitles the page and summarizes answer settings', async () => {
+  await mountCourses();
+  const heading = screen.getByRole('heading', { level: 1 });
+  expect(heading.textContent).toBe('选择课程并配置学习参数');
+  expect(screen.getByRole('radio', { name: '自动学习' }).checked).toBe(true);
+  expect(screen.getByText('未配置')).toBeTruthy();
+  fireEvent.click(screen.getByRole('radio', { name: '学习次数' }));
+  expect(heading.textContent).toBe('选择课程并提交学习次数');
+  expect(screen.queryByLabelText('播放倍速')).toBeNull();
+  fireEvent.click(screen.getByRole('radio', { name: '自动学习' }));
+  fireEvent.click(screen.getByRole('button', { name: '展开答题设置' }));
+  // 摘要跟随题库配置状态：填入题库后反映提交方式。
+  fireEvent.change(screen.getByLabelText('题库配置'), { target: { value: 'https://example.com/subscription' } });
+  expect(screen.getByText('仅保存答案')).toBeTruthy();
+  fireEvent.change(screen.getByLabelText('自动提交答题'), { target: { value: 'true' } });
+  expect(screen.getByText('自动提交')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: '收起答题设置' }));
+  expect(screen.getByText('自动提交')).toBeTruthy();
 });
 it('preview save updates only local state and demo totals match course details', async () => {
   const view = render(<CourseSelection userInfo={account} preview />);
   fireEvent.click(await screen.findByRole('button', { name: /大学英语/ }));
-  fireEvent.click(screen.getByRole('button', { name: '保存当前配置' }));
+  fireEvent.click(screen.getByRole('button', { name: '保存为默认配置' }));
   expect(screen.getByText('演示配置已保存')).toBeTruthy();
   expect(screen.queryByText('有未保存的更改')).toBeNull();
   view.unmount();
@@ -165,7 +173,7 @@ it('cancels an in-flight configuration save when unmounted', async () => {
   const view = await mountCourses();
   const pending = deferred();
   api.post.mockReturnValueOnce(pending.promise);
-  fireEvent.click(screen.getByRole('button', { name: '保存当前配置' }));
+  fireEvent.click(screen.getByRole('button', { name: '保存为默认配置' }));
   const signal = api.post.mock.calls.find(([url]) => url === '/config')[2].signal;
   view.unmount();
   expect(signal.aborted).toBe(true);

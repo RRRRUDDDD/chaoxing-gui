@@ -231,6 +231,7 @@ Tauri 安装/便携目录
 
 ### P4：候选版与回归（2–3 人日）
 
+
 - 在 Win10/Win11 x64 干净虚拟机执行下节矩阵，包括无 WebView2、有/无网络、不同权限、非默认安装路径、旧数据、卸载和回滚。
 - 先发单独命名的候选产物，使用与正式数据隔离的测试 profile；候选安装和旧版并存不覆盖程序目录。
 - 业务自动化以 mock/fixture 为主。需要真实上游联调时使用获准测试账号，只做明确范围的 smoke，不让测试默认启动真实批量学习。
@@ -329,7 +330,7 @@ WebView2 权限和安装/进程树行为不能只靠 jsdom 或假子进程通过
 以下文本用于在新对话中开始迁移实施；发送前，本次工作仍仅为规划。
 
 ```text
-请接手 chaoxing-gui 桌面版从 Electron 迁移到 Tauri 2 的实施，从既有计划的 P0 开始实际编码和验证，按验收门槛继续推进 P1–P5，不要只重新生成一份计划。
+/plan 请接手 chaoxing-gui 桌面版从 Electron 迁移到 Tauri 2 的实施，从既有计划的 P0 开始实际编码和验证，按验收门槛继续推进 P1–P5，不要只重新生成一份计划。
 仓库：E:\Downloads\45\chaoxing-gui，Windows / PowerShell。先检查当前 git status、HEAD 和已有实施任务，保留用户改动；已有进度则续接，不重做已验证工作。
 必读：.ccg/tasks/archive/2026-09/electron-to-tauri-migration-plan/plan.md、同目录 review.md、research/synthesis.md，以及当前 AGENTS.md（若存在）、.ccg/spec/backend/index.md、.ccg/spec/frontend/index.md。
 交接时仅完成规划，没有 Tauri 实现。源码调研基线 5899b5f，计划首次归档提交 a56274e；这些是历史参考，不要求回退代码。发现后续变更时先核对影响。

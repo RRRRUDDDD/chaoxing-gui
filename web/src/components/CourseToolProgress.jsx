@@ -162,7 +162,7 @@ function CourseToolContent({ taskId, username, taskStatus, tool, catalogReady = 
       </section>
 
       {taskType === 'catalog' && (
-        <section className={sectionCls} aria-label="资源选择">
+        <section id="resource-selection" tabIndex={-1} className={`${sectionCls} focus:outline-none focus-visible:ring-4 focus-visible:ring-brand/15`} aria-label="资源选择">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <h2 className="flex items-center gap-2 text-[15px] font-semibold">
               <FileText className="h-4 w-4 text-brand" aria-hidden="true" />
