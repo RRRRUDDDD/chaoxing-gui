@@ -648,7 +648,7 @@ async function syntheticBusiness(app, record) {
   await course.waitFor();
   assert.equal(await course.getAttribute('aria-pressed'), 'true');
   assert.equal(await page.getByRole('button', { name: /P2 测试课程二/ }).getAttribute('aria-pressed'), 'false');
-  await activate(page.getByRole('button', { name: '保存当前配置' }));
+  await activate(page.getByRole('button', { name: '保存为默认配置' }));
   await page.getByText('配置已保存', { exact: true }).waitFor();
   await activate(page.getByRole('button', { name: '开始学习', exact: true }));
   await page.getByText('p2-existing-task', { exact: true }).waitFor();
