@@ -8,10 +8,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class PortableScriptTests(unittest.TestCase):
     def test_only_one_portable_build_entry_remains(self):
-        self.assertFalse((ROOT / 'build_portable.bat').exists())
-        quick = (ROOT / 'quick_build.bat').read_text(encoding='utf-8')
-        self.assertIn('clean_and_build_portable.bat', quick)
-        self.assertNotIn('运行 build_portable.bat', quick)
+        for removed in ('build_portable.bat', 'quick_build.bat'):
+            self.assertFalse((ROOT / removed).exists())
         readme = (ROOT / 'README.md').read_text(encoding='utf-8')
         self.assertIn('(DEVELOPMENT.md)', readme)
         guide = (ROOT / 'DEVELOPMENT.md').read_text(encoding='utf-8')
