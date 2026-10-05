@@ -3,6 +3,8 @@ use std::io::Read;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
+use crate::api_proxy::valid_task_id;
+
 /// Session file schema — 1:1 port of desktop/session-store.js (v1, strict).
 /// exactKeys semantics from the JS original: unknown fields are invalid.
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -118,13 +120,6 @@ fn valid_username(u: &str) -> bool {
         && u.encode_utf16().count() <= 128
         && u.trim_matches(js_whitespace) == u
         && !u.chars().any(|c| c <= '\u{001f}' || c == '\u{007f}')
-}
-
-fn valid_task_id(t: &str) -> bool {
-    !t.is_empty()
-        && t.len() <= 128
-        && t.chars()
-            .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
 }
 
 /// Validate a parsed SessionData against the strict schema from session-store.js.

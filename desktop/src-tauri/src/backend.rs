@@ -248,15 +248,32 @@ impl BackendState {
         self.fail_locked(msg);
     }
 
-    // Caller owns lifecycle_lock. Stopping/Stopped must never become Failed/Ready.
-    fn fail_locked(&self, msg: String) {
+    // Stopping/Stopped must never become Failed/Ready. Returns false without
+    // changing anything when the current phase forbids the transition.
+    fn mark_failed(&self, msg: &str) -> bool {
         let mut phase = self.phase.lock().unwrap_or_else(|e| e.into_inner());
         if !matches!(*phase, BackendPhase::Starting | BackendPhase::Ready) {
+            return false;
+        }
+        *self.error.lock().unwrap_or_else(|e| e.into_inner()) = Some(msg.to_string());
+        *phase = BackendPhase::Failed;
+        true
+    }
+
+    /// Startup-thread failure before the backend process exists (migration,
+    /// launch errors): there is no child, job, port or request channel to clean
+    /// up, so only the phase transition and the host log are needed.
+    pub fn fail_launch(&self, msg: String) {
+        if self.mark_failed(&msg) {
+            self.host_log(&format!("[host] failed: {msg}"));
+        }
+    }
+
+    // Caller owns lifecycle_lock. Stopping/Stopped must never become Failed/Ready.
+    fn fail_locked(&self, msg: String) {
+        if !self.mark_failed(&msg) {
             return;
         }
-        *self.error.lock().unwrap_or_else(|e| e.into_inner()) = Some(msg.clone());
-        *phase = BackendPhase::Failed;
-        drop(phase);
         self.requests
             .lock()
             .unwrap_or_else(|e| e.into_inner())

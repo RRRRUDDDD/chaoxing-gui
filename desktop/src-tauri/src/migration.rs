@@ -281,17 +281,31 @@ fn publish_directory(staging: &File, destination: &Path) -> io::Result<()> {
 /// is the userData path. canonicalize() adds a Win32 verbatim prefix; Electron's
 /// title normally does not contain it. Preserve UTF-16 while removing the prefix.
 fn window_title(path: &Path) -> Vec<u16> {
+    // UTF-16 spellings of the `\\?\` and `\\?\UNC\` verbatim prefixes.
+    const BACKSLASH: u16 = b'\\' as u16;
+    const SLASH: u16 = b'/' as u16;
+    const VERBATIM_PREFIX: [u16; 4] = [BACKSLASH, BACKSLASH, b'?' as u16, BACKSLASH];
+    const VERBATIM_UNC_PREFIX: [u16; 8] = [
+        BACKSLASH,
+        BACKSLASH,
+        b'?' as u16,
+        BACKSLASH,
+        b'U' as u16,
+        b'N' as u16,
+        b'C' as u16,
+        BACKSLASH,
+    ];
     let wide: Vec<u16> = path.as_os_str().encode_wide().collect();
-    let mut title = if wide.starts_with(&[92, 92, 63, 92, 85, 78, 67, 92]) {
-        [vec![92, 92], wide[8..].to_vec()].concat()
-    } else if wide.starts_with(&[92, 92, 63, 92]) {
+    let mut title = if wide.starts_with(&VERBATIM_UNC_PREFIX) {
+        [vec![BACKSLASH, BACKSLASH], wide[8..].to_vec()].concat()
+    } else if wide.starts_with(&VERBATIM_PREFIX) {
         wide[4..].to_vec()
     } else {
         wide
     };
     for character in &mut title {
-        if *character == 47 {
-            *character = 92;
+        if *character == SLASH {
+            *character = BACKSLASH;
         }
     }
     title.push(0);

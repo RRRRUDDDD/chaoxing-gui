@@ -99,7 +99,7 @@ pub fn run() {
                 if import_legacy {
                     match migration::migrate(&data_dir) {
                         Ok(migration::MigrationOutcome::DeferredLegacyRunning) => {
-                            state_phase_fail(&state, "请先关闭旧版桌面应用，再关闭此窗口并重新打开，以导入原有数据。".into());
+                            state.fail_launch("请先关闭旧版桌面应用，再关闭此窗口并重新打开，以导入原有数据。".into());
                             return;
                         }
                         Ok(migration::MigrationOutcome::ImportedButSessionInvalid(reason)) => {
@@ -109,7 +109,7 @@ pub fn run() {
                         Ok(outcome) => state.host_log(&format!("[migration] {outcome:?}")),
                         Err(error) => {
                             state.host_log(&format!("[migration] failed: {error}"));
-                            state_phase_fail(&state, "旧数据导入失败，原有数据已保留。请检查数据目录权限后重新打开应用。".into());
+                            state.fail_launch("旧数据导入失败，原有数据已保留。请检查数据目录权限后重新打开应用。".into());
                             return;
                         }
                     }
@@ -120,7 +120,7 @@ pub fn run() {
                             state.host_log(&format!("[host] backend start failed: {error}"));
                         }
                     }
-                    Err(error) => state_phase_fail(&state, error),
+                    Err(error) => state.fail_launch(error),
                 }
             });
             Ok(())
@@ -249,19 +249,6 @@ fn launch_backend(app: &tauri::AppHandle) -> Result<backend::BackendLaunch, Stri
         return Ok(backend::BackendLaunch::Frozen(path));
     }
     backend::detect_launch(app)
-}
-
-fn state_phase_fail(state: &Arc<BackendState>, message: String) {
-    let mut phase = state.phase.lock().unwrap_or_else(|e| e.into_inner());
-    if !matches!(
-        *phase,
-        backend::BackendPhase::Starting | backend::BackendPhase::Ready
-    ) {
-        return;
-    }
-    *state.error.lock().unwrap_or_else(|e| e.into_inner()) = Some(message.clone());
-    *phase = backend::BackendPhase::Failed;
-    state.host_log(&format!("[host] failed: {message}"));
 }
 
 fn allowed_navigation(url: &tauri::Url) -> bool {

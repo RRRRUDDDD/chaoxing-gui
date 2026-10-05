@@ -28,8 +28,11 @@ tauri = { version = "=2.11.5", features = ["tray-icon"] }
 tauri-plugin-single-instance = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-ureq = { version = "2", default-features = false, features = ["json"] }
-rfd = { version = "0.15", default-features = false, features = ["xdg-portal"] }
+ureq = { version = "2", default-features = false }
+rfd = { version = "0.15", default-features = false }
+# Win32_Security and Win32_Graphics_Gdi stay: windows-rs gates every API on the
+# features of all types in its signature, and CreateJobObjectW (PSECURITY_ATTRIBUTES)
+# and WNDCLASSW (HBRUSH) resolve only with them enabled.
 windows = { version = "0.62", features = ["Win32_Foundation", "Win32_System_JobObjects", "Win32_System_Threading", "Win32_Security", "Win32_UI_WindowsAndMessaging", "Win32_UI_Shell", "Win32_Graphics_Gdi", "Win32_Storage_FileSystem"] }
 getrandom = "0.2"
 

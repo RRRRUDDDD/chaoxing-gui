@@ -36,8 +36,8 @@ impl<'de> Deserialize<'de> for ApiRequest {
         struct Fields {
             #[serde(deserialize_with = "string_operation")]
             operation: ApiOperation,
-            // This key must exist even when its value is null.
-            #[serde(deserialize_with = "required_payload")]
+            // This key must exist even when its value is null; a plain Value
+            // field without #[serde(default)] already enforces that.
             payload: serde_json::Value,
             request_id: u64,
             #[serde(default, deserialize_with = "present_option")]
@@ -63,12 +63,6 @@ fn string_operation<'de, D: Deserializer<'de>>(deserializer: D) -> Result<ApiOpe
     ApiOperation::deserialize(serde::de::value::StringDeserializer::<D::Error>::new(
         operation,
     ))
-}
-
-fn required_payload<'de, D: Deserializer<'de>>(
-    deserializer: D,
-) -> Result<serde_json::Value, D::Error> {
-    serde_json::Value::deserialize(deserializer)
 }
 
 // Omission is allowed; an explicitly supplied null is not an operation option.
