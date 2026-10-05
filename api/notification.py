@@ -7,7 +7,7 @@ import configparser
 import subprocess
 import sys
 from abc import ABC, abstractmethod
-from typing import Dict, Optional
+from typing import Callable, Dict, Optional
 from xml.sax.saxutils import escape
 
 import requests
@@ -106,6 +106,30 @@ class NotificationService(ABC):
                 return True
         return False
 
+    def _post(self, provider: str, ok: Optional[Callable[[dict], bool]] = None, **kwargs) -> bool:
+        """
+        HTTP 通知服务共用的发送路径：POST 后校验状态码与 JSON 响应。
+
+        Args:
+            provider: 日志中显示的服务名（如 "Server酱"）
+            ok: 可选的响应级成功判定；为 None 时任何可解析的 JSON 都视为送达
+        """
+        try:
+            response = requests.post(self.url, timeout=NOTIFICATION_TIMEOUT, **kwargs)
+            response.raise_for_status()
+            result = response.json()
+        except requests.RequestException as exc:
+            logger.error("{}通知发送失败: {}", provider, exc)
+            return False
+        except ValueError as exc:
+            logger.error("{}返回数据解析失败: {}", provider, exc)
+            return False
+        if ok is not None and not ok(result):
+            logger.error("{}通知发送失败: {}", provider, result)
+            return False
+        logger.info("{}通知发送成功: {}", provider, result)
+        return True
+
 
 class DefaultNotification(NotificationService):
     """
@@ -136,10 +160,10 @@ class DefaultNotification(NotificationService):
             if not provider_name:
                 raise KeyError("未指定通知服务提供商")
 
-            # 获取对应的通知服务类
-            provider_class = globals().get(provider_name)
+            # 获取对应的通知服务类（仅注册表白名单内的类名可实例化）
+            provider_class = PROVIDER_REGISTRY.get(provider_name)
             if not provider_class:
-                logger.error(f"未找到名为 {provider_name} 的通知服务提供商")
+                logger.error("未找到名为 {} 的通知服务提供商", provider_name)
                 self.disabled = True
                 return self
 
@@ -176,25 +200,10 @@ class ServerChan(NotificationService):
         Args:
             message: 要发送的消息内容
         """
-        params = {
-            'text': message,  # 兼容两个版本的Server酱
-            'desp': message,
-        }
-        headers = {
-            'Content-Type': 'application/json;charset=utf-8'
-        }
-
-        try:
-            response = requests.post(self.url, json=params, headers=headers, timeout=NOTIFICATION_TIMEOUT)
-            response.raise_for_status()
-            result = response.json()
-            logger.info(f"Server酱通知发送成功: {result}")
-            return True
-        except requests.RequestException as e:
-            logger.error(f"Server酱通知发送失败: {e}")
-        except ValueError as e:
-            logger.error(f"Server酱返回数据解析失败: {e}")
-        return False
+        # text 与 desp 同时携带消息，兼容两个版本的Server酱
+        return self._post("Server酱",
+                          json={"text": message, "desp": message},
+                          headers={"Content-Type": "application/json;charset=utf-8"})
 
 
 class Qmsg(NotificationService):
@@ -219,20 +228,9 @@ class Qmsg(NotificationService):
         Args:
             message: 要发送的消息内容
         """
-        params = {'msg': message}
-        headers = {'Content-Type': 'application/json;charset=utf-8'}
-
-        try:
-            response = requests.post(self.url, params=params, headers=headers, timeout=NOTIFICATION_TIMEOUT)
-            response.raise_for_status()
-            result = response.json()
-            logger.info(f"Qmsg酱通知发送成功: {result}")
-            return True
-        except requests.RequestException as e:
-            logger.error(f"Qmsg酱通知发送失败: {e}")
-        except ValueError as e:
-            logger.error(f"Qmsg酱返回数据解析失败: {e}")
-        return False
+        return self._post("Qmsg酱",
+                          params={"msg": message},
+                          headers={"Content-Type": "application/json;charset=utf-8"})
 
 
 class Bark(NotificationService):
@@ -257,19 +255,7 @@ class Bark(NotificationService):
         Args:
             message: 要发送的消息内容
         """
-        params = {'body': message}
-
-        try:
-            response = requests.post(self.url, params=params, timeout=NOTIFICATION_TIMEOUT)
-            response.raise_for_status()
-            result = response.json()
-            logger.info(f"Bark通知发送成功: {result}")
-            return True
-        except requests.RequestException as e:
-            logger.error(f"Bark通知发送失败: {e}")
-        except ValueError as e:
-            logger.error(f"Bark返回数据解析失败: {e}")
-        return False
+        return self._post("Bark", params={"body": message})
 
 class Telegram(NotificationService):
     """
@@ -293,25 +279,12 @@ class Telegram(NotificationService):
         Args:
             message: 要发送的消息内容
         """
-        params = {
-            'chat_id': self.tg_chat_id,
-            'text': message,
-            'parse_mode': 'HTML'
-        }
-
-        try:
-            response = requests.post(self.url, data=params, timeout=NOTIFICATION_TIMEOUT)
-            response.raise_for_status()
-            result = response.json()
-            if result.get('ok'):
-                logger.info(f"Telegram通知发送成功: {result}")
-                return True
-            logger.error(f"Telegram通知发送失败: {result}")
-        except requests.RequestException as e:
-            logger.error(f"Telegram通知发送失败: {e}")
-        except ValueError as e:
-            logger.error(f"Telegram返回数据解析失败: {e}")
-        return False
+        # parse_mode=HTML 要求正文先转义，防止消息里的 <>& 被当作标签解析
+        return self._post("Telegram",
+                          data={"chat_id": self.tg_chat_id,
+                                "text": escape(message),
+                                "parse_mode": "HTML"},
+                          ok=lambda result: bool(result.get("ok")))
 
 class Windows(NotificationService):
     """
@@ -331,7 +304,7 @@ class Windows(NotificationService):
         ok, err = self._run_powershell(self._build_script("Windows 系统通知已启用"))
         if not ok:
             self.disabled = True
-            logger.error(f"Windows系统通知不可用，已忽略该通知服务: {err}")
+            logger.error("Windows系统通知不可用，已忽略该通知服务: {}", err)
             return
 
         logger.info("已初始化Windows系统通知服务")
@@ -396,8 +369,14 @@ class Windows(NotificationService):
         if ok:
             logger.info("Windows系统通知发送成功")
         else:
-            logger.error(f"Windows系统通知发送失败: {err}")
+            logger.error("Windows系统通知发送失败: {}", err)
         return ok
+
+
+# provider 白名单：get_notification_from_config 只接受这些类名，避免 globals() 查找误实例化无关对象。
+PROVIDER_REGISTRY: Dict[str, type] = {
+    provider.__name__: provider for provider in (ServerChan, Qmsg, Bark, Telegram, Windows)
+}
 
 
 # 为了向后兼容，保留原来的Notification类

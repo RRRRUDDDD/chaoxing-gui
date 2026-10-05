@@ -347,7 +347,8 @@ class CompatibilityTests(unittest.TestCase):
         with requests.Session() as session, patch("api.ocs_tiku.logger") as log:
             wrappers = load_wrappers({"wrappers": [invalid, _wrapper()]}, session)
             self.assertEqual(len(wrappers), 1)
-            message = log.warning.call_args.args[0]
+            warning = log.warning.call_args
+            message = warning.args[0].format(*warning.args[1:])
             for value in ("第 1 个", "坏配置", "data.images.handler", "字符位置"):
                 self.assertIn(value, message)
             self.assertNotIn(secret, message)

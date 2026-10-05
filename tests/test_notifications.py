@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 
 import requests
 
-from api.notification import Bark, Qmsg, ServerChan, Telegram, NOTIFICATION_TIMEOUT
+from api.notification import PROVIDER_REGISTRY, Bark, Qmsg, ServerChan, Telegram, NOTIFICATION_TIMEOUT
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -43,7 +43,9 @@ class NotificationConfigContractTests(unittest.TestCase):
 
     def test_config_example_notification_keys_match_the_code(self):
         consumed_keys = {'provider', 'url', 'tg_chat_id'}
-        provider_names = {'ServerChan', 'Qmsg', 'Bark', 'Telegram', 'Windows'}
+        expected_names = {'ServerChan', 'Qmsg', 'Bark', 'Telegram', 'Windows'}
+        self.assertEqual(set(PROVIDER_REGISTRY), expected_names,
+                         'PROVIDER_REGISTRY 必须恰好包含五个通知服务类名')
         parser = configparser.ConfigParser()
         with open(os.path.join(ROOT, 'config.ini.example'), encoding='utf8') as fh:
             parser.read_file(fh)
@@ -54,7 +56,7 @@ class NotificationConfigContractTests(unittest.TestCase):
                              f'config.ini.example 出现代码不消费的键: {set(section) - consumed_keys}')
 
         provider = section.get('provider', '').strip()
-        self.assertTrue(provider == '' or provider in provider_names,
+        self.assertTrue(provider == '' or provider in PROVIDER_REGISTRY,
                         f'provider 示例值 {provider!r} 不是可实例化的通知服务类名')
 
 

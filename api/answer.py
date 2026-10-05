@@ -62,7 +62,7 @@ def _apply_ocr_to_title_if_needed(q_info: dict) -> None:
         try:
             text = _ocr_image_to_text(src) or ""
         except Exception as exc:
-            logger.debug(f"题目图片 OCR 调用异常: {exc}")
+            logger.debug("题目图片 OCR 调用异常: {}", exc)
 
         if text:
             return f"[公式: {text}]"
@@ -71,7 +71,7 @@ def _apply_ocr_to_title_if_needed(q_info: dict) -> None:
 
     new_title = _IMG_TAG_PATTERN.sub(_repl, title)
     if new_title != title:
-        logger.debug(f"题目图片 OCR 处理后标题：{new_title}")
+        logger.debug("题目图片 OCR 处理后标题：{}", new_title)
         q_info["title"] = new_title
 
 class CacheDAO:
@@ -122,6 +122,9 @@ class CacheDAO:
         with cls._shared_lock:
             if cls._shared_instance is None:
                 cls._shared_instance = cls(file)
+            elif cls._shared_instance.cache_file != Path(file):
+                # 单例只绑定首次传入的文件；后续不同 file 参数会被忽略，必须显式暴露而非静默。
+                logger.error("题库缓存单例已绑定 {}，忽略后续请求的 {}", cls._shared_instance.cache_file, file)
             return cls._shared_instance
 
     def _read_cache(self) -> dict:
@@ -140,7 +143,7 @@ class CacheDAO:
                     if not isinstance(data, dict):
                         raise ValueError("cache root must be an object")
                 except (ValueError, UnicodeDecodeError) as e:
-                    logger.error(f"缓存文件读取失败: {e}, 尝试恢复...")
+                    logger.error("缓存文件读取失败: {}, 尝试恢复...", e)
                     data = None
                     # 尝试从原始二进制中以 utf-8 忽略错误地恢复有效 JSON 段
                     try:
@@ -161,12 +164,12 @@ class CacheDAO:
                             bak_name = f"{self.cache_file.name}.bak.{int(time.time())}"
                             bak_path = self.cache_file.with_name(bak_name)
                             shutil.copy2(self.cache_file, bak_path)
-                            logger.error(f"缓存文件已损坏，已备份为: {bak_path}，将使用空缓存继续运行")
+                            logger.error("缓存文件已损坏，已备份为: {}，将使用空缓存继续运行", bak_path)
                         except Exception as ex:
-                            logger.error(f"备份损坏缓存失败: {ex}")
+                            logger.error("备份损坏缓存失败: {}", ex)
                         data = {}
             except Exception as e:
-                logger.error(f"读取缓存异常: {e}")
+                logger.error("读取缓存异常: {}", e)
                 data = {}
             self._memory_cache = data
             return self._memory_cache
@@ -180,13 +183,14 @@ class CacheDAO:
                 parent.mkdir(parents=True, exist_ok=True)
                 fd, tmp_path = tempfile.mkstemp(prefix=self.cache_file.name, dir=str(parent))
                 with os.fdopen(fd, "w", encoding="utf8") as fp:
-                    json.dump(data, fp, ensure_ascii=False, indent=4)
+                    # 机器读写的键值缓存用紧凑序列化，体积远比可读性重要。
+                    json.dump(data, fp, ensure_ascii=False, separators=(",", ":"))
                     fp.flush()
                     os.fsync(fp.fileno())
                 os.replace(tmp_path, str(self.cache_file))
                 return True
             except Exception as exc:
-                logger.error(f"缓存原子写入失败，保留待写数据: {exc}")
+                logger.error("缓存原子写入失败，保留待写数据: {}", exc)
                 return False
             finally:
                 if tmp_path and os.path.exists(tmp_path):
@@ -241,14 +245,15 @@ class Tiku:
     DISABLE = False     # 停用标志
     SUBMIT = False      # 提交标志
     COVER_RATE = 0.8    # 覆盖率
-    true_list = []
-    false_list = []
     def __init__(self) -> None:
         self.query_diagnostics = []
         self._name = None
         self._conf = None
         self._cache_dao: Optional[CacheDAO] = None
         self._close_lock = threading.Lock()
+        # 判断题映射表由 init_tiku() 按配置填充；放实例属性避免各题库实例共享可变默认值。
+        self.true_list: list[str] = []
+        self.false_list: list[str] = []
 
     def close(self) -> bool:
         """任务线程退出后调用：flush 答案并关闭本题库拥有的网络资源。"""
@@ -257,7 +262,7 @@ class Tiku:
                 cache = self._cache_dao if self._cache_dao is not None else CacheDAO.get_shared()
                 flushed = cache.flush()
             except Exception as exc:
-                logger.warning(f"关闭题库时缓存 flush 失败: {exc}")
+                logger.warning("关闭题库时缓存 flush 失败: {}", exc)
                 flushed = False
             closed = set()
             for name in ("_session",):
@@ -271,7 +276,7 @@ class Tiku:
                 try:
                     resource.close()
                 except Exception as exc:
-                    logger.warning(f"关闭题库 {name} 失败: {exc}")
+                    logger.warning("关闭题库 {} 失败: {}", name, exc)
             return flushed
 
     @property
@@ -351,7 +356,7 @@ class Tiku:
         q_info = dict(q_info)
 
         # 预处理, 去除【单选题】这样与标题无关的字段
-        logger.debug(f"原始标题：{q_info['title']}")
+        logger.debug("原始标题：{}", q_info['title'])
 
         # 检测并处理题目中的图片链接：使用本地 OCR 将公式图片转为文本
         _apply_ocr_to_title_if_needed(q_info)
@@ -360,7 +365,7 @@ class Tiku:
 
         q_info['title'] = sub(r'^\d+', '', q_info['title'])
         q_info['title'] = sub(r'（\d+\.\d+分）$', '', q_info['title'])
-        logger.debug(f"处理后标题：{q_info['title']}")
+        logger.debug("处理后标题：{}", q_info['title'])
 
         # 先过缓存
         cache_dao = CacheDAO.get_shared()
@@ -371,13 +376,13 @@ class Tiku:
                 answer = None
         if answer:
             self.query_diagnostics = [{"source": "cache", "status": "selected"}]
-            logger.info(f"从缓存中获取答案：{q_info['title']} -> {answer}")
+            logger.info("从缓存中获取答案：{} -> {}", q_info['title'], answer)
             return answer.strip()
         else:
             answer = self._query(q_info)
             if answer and answer.strip():
                 answer = answer.strip()
-                logger.info(f"从{self.name}获取答案：{q_info['title']} -> {answer}")
+                logger.info("从{}获取答案：{} -> {}", self.name, q_info['title'], answer)
 
                 valid = (match_answer(answer, q_info, self.true_list, self.false_list).answer is not None
                          if q_info.get('options') or q_info['type'] == 'completion'
@@ -386,10 +391,10 @@ class Tiku:
                     cache_dao.add_cache(cache_key, answer)
                     return answer
                 else:
-                    logger.info(f"从{self.name}获取到的答案类型与题目类型不符，已舍弃")
+                    logger.info("从{}获取到的答案类型与题目类型不符，已舍弃", self.name)
                     return None
 
-            logger.error(f"从{self.name}获取答案失败：{q_info['title']}")
+            logger.error("从{}获取答案失败：{}", self.name, q_info['title'])
         return None
 
 
@@ -434,7 +439,7 @@ class Tiku:
             return False
         else:
             # 无法判断, 随机选择
-            logger.error(f'无法判断答案 -> {answer} 对应的是正确还是错误, 请自行判断并加入配置文件重启脚本, 本次将会随机选择选项')
+            logger.error('无法判断答案 -> {} 对应的是正确还是错误, 请自行判断并加入配置文件重启脚本, 本次将会随机选择选项', answer)
             return random.choice([True,False])
 
     def get_submit_params(self):

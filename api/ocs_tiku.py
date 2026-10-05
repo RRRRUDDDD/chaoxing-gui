@@ -12,6 +12,7 @@ import sys
 import time
 import unicodedata
 import warnings
+from difflib import SequenceMatcher
 from html import unescape
 from typing import Any, Callable, Mapping
 from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
@@ -22,6 +23,7 @@ from urllib3.exceptions import InsecureRequestWarning
 
 from api.logger import logger
 from api.privacy import register_config, register_secret
+from api.answer import Tiku
 from api.answer_check import match_answer
 from api.question_images import build_image_env, restore_image_answer, validate_images, MAX_TOTAL_BYTES
 from api.session import get_current_session
@@ -180,7 +182,7 @@ def load_wrappers(conf: Mapping[str, Any], session: requests.Session) -> list[di
             wrappers.append(normalize_wrapper(item))
         except (ValueError, RecursionError) as exc:
             message = str(exc) if isinstance(exc, ValueError) else "配置嵌套过深"
-            logger.warning(f"第 {index} 个题库配置已跳过: {message}")
+            logger.warning("第 {} 个题库配置已跳过: {}", index, message)
     if raw and not wrappers:
         raise ValueError("所有题库配置均无效，请查看逐项诊断")
     return wrappers
@@ -261,9 +263,11 @@ def request_wrapper(wrapper: Mapping[str, Any], env: Mapping[str, Any], session:
     data = resolve_data(wrapper["data"], env)
     url = substitute(wrapper["url"], env, encode=True)
     _check_http_url(url)
-    if len(json.dumps(data, ensure_ascii=False).encode("utf-8")) > MAX_TOTAL_BYTES:
+    # 单次编码同时用于体积上限、data:image 检测和 JSON 正文；非有限浮点在此一并拒绝。
+    payload = json.dumps(data, ensure_ascii=False, allow_nan=False)
+    if len(payload.encode("utf-8")) > MAX_TOTAL_BYTES:
         raise ValueError("request_body_limit")
-    if wrapper["method"] == "get" and "data:image/" in json.dumps(data):
+    if wrapper["method"] == "get" and "data:image/" in payload:
         raise ValueError("images_require_post")
     if wrapper["method"] == "get":
         parts = urlsplit(url)
@@ -273,7 +277,7 @@ def request_wrapper(wrapper: Mapping[str, Any], env: Mapping[str, Any], session:
     else:
         content_type = next((value for key, value in headers.items() if key.lower() == "content-type"), "")
         form = wrapper["request_type"] == "GM_xmlhttpRequest" and content_type == "application/x-www-form-urlencoded"
-        body = data if form else json.dumps(data, ensure_ascii=False, allow_nan=False).encode("utf-8")
+        body = data if form else payload.encode("utf-8")
         response = _send(session, "post", url, data=body, headers=headers, timeout=30)
     try:
         response.raise_for_status()
@@ -677,10 +681,6 @@ def compile_handler(source: str) -> Callable[[Any], Any]:
     except RecursionError:
         raise parser._error("表达式过于复杂") from None
 
-from difflib import SequenceMatcher
-
-from api.answer import Tiku
-
 
 def _similarity(question: Any, title: str) -> float:
     if not question:
@@ -778,12 +778,12 @@ class TikuOcs(Tiku):
                 for secret in wrapper["secret_values"]:
                     register_secret(secret)
         except requests.exceptions.SSLError:
-            logger.error(f"{ssl_error_message('订阅')}，已忽略题库功能")
+            logger.error("{}，已忽略题库功能", ssl_error_message("订阅"))
             self.wrappers = []
             self.DISABLE = True
             return
         except (ValueError, requests.RequestException, json.JSONDecodeError) as exc:
-            logger.error(f"题库配置无效，已忽略题库功能: {exc}")
+            logger.error("题库配置无效，已忽略题库功能: {}", exc)
             self.wrappers = []
             self.DISABLE = True
             return
@@ -855,7 +855,7 @@ class TikuOcs(Tiku):
                 if selected:
                     report["status"] = "selected"
                     report["selected"] = _result_summary(selected, wrapper["secret_values"])
-                    logger.info(f"从{report['source']}获取候选答案")
+                    logger.info("从{}获取候选答案", report["source"])
                     return selected["answer"]
                 report["status"] = "unmatched" if any(row["answer"] for row in rows) else "no_answer"
                 if report["status"] == "no_answer":
