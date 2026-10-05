@@ -17,7 +17,7 @@ use std::io::{BufRead, BufReader, Write};
 use std::os::windows::process::CommandExt;
 use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -30,8 +30,14 @@ const HEALTH_TIMEOUT: Duration = Duration::from_millis(2000);
 const STOP_GRACE: Duration = Duration::from_secs(5);
 const POLL_INTERVAL: Duration = Duration::from_millis(25);
 const API_TIMEOUT: Duration = Duration::from_secs(30);
+/// Per-line read cap on backend stdout; longer lines are dropped to backend.log.
 const MAX_HANDSHAKE_LINE: usize = 8192;
 const MAX_HEALTH_BODY: usize = 64 * 1024;
+/// api_request reads response bodies in chunks of this size, re-checking
+/// cancellation between chunks instead of after the whole 30s read.
+const API_READ_CHUNK: usize = 64 * 1024;
+/// Consecutive API timeouts before watchdog_after_timeout probes /api/health.
+const WATCHDOG_TIMEOUT_STREAK: u32 = 3;
 const MAX_INFLIGHT_REQUESTS: usize = 64;
 const MAX_RECENT_REQUESTS: usize = 1024;
 const RECENT_REQUEST_TTL: Duration = Duration::from_secs(60);
@@ -81,6 +87,8 @@ pub struct BackendState {
     /// agent per request re-created its pool on every call.
     health_agent: ureq::Agent,
     api_agent: ureq::Agent,
+    /// Consecutive api_request timeouts; reset on definitive liveness evidence.
+    timeout_streak: AtomicU32,
 }
 
 #[derive(Clone, Copy)]
@@ -158,7 +166,14 @@ impl RequestRegistry {
             return true;
         }
         if !self.closed {
-            self.remember(id, RecentResult::Cancelled, Instant::now());
+            let now = Instant::now();
+            self.prune(now);
+            // Never overwrite an existing tombstone: a late cancel must not
+            // turn a completed request's "already completed" rejection into a
+            // phantom Cancelled. Expired tombstones were just pruned above.
+            if !self.recent.contains_key(&id) {
+                self.remember(id, RecentResult::Cancelled, now);
+            }
         }
         false
     }
@@ -216,6 +231,7 @@ impl BackendState {
             stop_lock: Mutex::new(()),
             health_agent: loopback_agent(HEALTH_TIMEOUT),
             api_agent: loopback_agent(API_TIMEOUT),
+            timeout_streak: AtomicU32::new(0),
         }
     }
 
@@ -387,10 +403,10 @@ impl LogFile {
     }
 }
 
-fn random_hex(bytes: usize) -> String {
+fn random_hex(bytes: usize) -> Result<String, getrandom::Error> {
     let mut buf = vec![0u8; bytes];
-    getrandom::getrandom(&mut buf).expect("OS RNG failed");
-    buf.iter().map(|b| format!("{b:02x}")).collect()
+    getrandom::getrandom(&mut buf)?;
+    Ok(buf.iter().map(|b| format!("{b:02x}")).collect())
 }
 
 /// Handshake line shape: {"ready":"chaoxing-ready","version":1,"port":N,"instanceId":"..."}
@@ -409,6 +425,31 @@ enum Handshake {
     Eof,
 }
 
+/// Read one physical line from `reader`, bounded to `max + 1` bytes so a
+/// backend stuck printing without newlines cannot balloon host memory.
+/// Returns `None` at EOF (or on a read error). The line terminator is
+/// stripped; a string longer than `max` means the physical line was cut at
+/// the cap and continues past it. Invalid UTF-8 degrades to replacement
+/// characters instead of failing the whole handshake thread.
+fn read_bounded_line<R: BufRead>(reader: &mut R, max: usize) -> Option<String> {
+    let mut raw = Vec::new();
+    let count = reader
+        .by_ref()
+        .take(max as u64 + 1)
+        .read_until(b'\n', &mut raw)
+        .ok()?;
+    if count == 0 {
+        return None;
+    }
+    if raw.last() == Some(&b'\n') {
+        raw.pop();
+        if raw.last() == Some(&b'\r') {
+            raw.pop();
+        }
+    }
+    Some(String::from_utf8_lossy(&raw).into_owned())
+}
+
 /// Read stdout lines until the ready marker (or EOF). Non-ready lines are
 /// appended to backend.log. Runs on a dedicated thread until EOF so the
 /// pipe never fills up.
@@ -422,35 +463,46 @@ fn read_handshake(
 ) {
     let (tx, rx) = std::sync::mpsc::channel();
     let handle = std::thread::spawn(move || {
-        let reader = BufReader::new(stdout);
-        let mut lines = reader.lines();
-        while let Some(line) = lines.next() {
-            let line = match line {
-                Ok(l) => l,
-                Err(_) => break,
-            };
+        let mut reader = BufReader::new(stdout);
+        let mut oversized_dropped = 0usize;
+        let mut ready_sent = false;
+        while let Some(line) = read_bounded_line(&mut reader, MAX_HANDSHAKE_LINE) {
             if line.len() > MAX_HANDSHAKE_LINE {
-                log.append(&format!("[oversized line dropped: {} bytes]", line.len()));
+                // Cap hit without a newline: still inside the same physical
+                // line. Drop the chunks and report the total once.
+                oversized_dropped += line.len();
                 continue;
             }
-            if let Ok(r) = serde_json::from_str::<ReadyLine>(&line) {
-                if r.ready == "chaoxing-ready"
-                    && r.version == 1
-                    && r.instance_id == expected_instance
-                {
-                    let _ = tx.send(Handshake::Ready(r));
-                    // Keep draining stdout to EOF so the pipe doesn't fill.
-                    for rest in lines.by_ref().flatten() {
-                        log.append(&format!("[stdout] {rest}"));
+            if oversized_dropped > 0 {
+                log.append(&format!(
+                    "[oversized line dropped: {oversized_dropped} bytes]"
+                ));
+                oversized_dropped = 0;
+            }
+            if !ready_sent {
+                if let Ok(r) = serde_json::from_str::<ReadyLine>(&line) {
+                    if r.ready == "chaoxing-ready"
+                        && r.version == 1
+                        && r.instance_id == expected_instance
+                    {
+                        let _ = tx.send(Handshake::Ready(r));
+                        ready_sent = true;
+                        continue;
                     }
-                    return;
+                    log.append(&format!("[stdout] invalid ready line: {line}"));
+                    continue;
                 }
-                log.append(&format!("[stdout] invalid ready line: {line}"));
-                continue;
             }
             log.append(&format!("[stdout] {line}"));
         }
-        let _ = tx.send(Handshake::Eof);
+        if oversized_dropped > 0 {
+            log.append(&format!(
+                "[oversized line dropped: {oversized_dropped} bytes]"
+            ));
+        }
+        if !ready_sent {
+            let _ = tx.send(Handshake::Eof);
+        }
     });
     (rx, handle)
 }
@@ -493,10 +545,12 @@ pub fn detect_launch(app: &tauri::AppHandle) -> Result<BackendLaunch, String> {
     if resource.is_file() {
         Ok(BackendLaunch::Frozen(resource))
     } else if cfg!(debug_assertions) {
-        // Dev fallback: repo layout — desktop/src-tauri → ../../app.py
-        let app_py = std::env::current_dir()
-            .ok()
-            .and_then(|d| d.ancestors().nth(2).map(|p| p.join("app.py")))
+        // Dev fallback: resolved at compile time so it works from any cwd —
+        // CARGO_MANIFEST_DIR (desktop/src-tauri) → ../../app.py
+        let app_py = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .ancestors()
+            .nth(2)
+            .map(|p| p.join("app.py"))
             .ok_or("cannot locate repo app.py")?;
         if !app_py.is_file() {
             return Err(format!(
@@ -529,8 +583,16 @@ pub fn start_backend(state: &Arc<BackendState>, launch: BackendLaunch) -> Result
         }
     }
 
-    let token = random_hex(32);
-    let instance_id = random_hex(8);
+    let token = random_hex(32).map_err(|e| {
+        let message = format!("生成随机 token 失败: {e}");
+        state.fail(message.clone());
+        message
+    })?;
+    let instance_id = random_hex(8).map_err(|e| {
+        let message = format!("生成随机 instanceId 失败: {e}");
+        state.fail(message.clone());
+        message
+    })?;
 
     let job = Job::create().map_err(|e| {
         state.fail(format!("创建 Job Object 失败: {e}"));
@@ -701,7 +763,14 @@ fn health_until_ready(
             .call()
         {
             Ok(resp) => {
-                if resp.status() == 200 {
+                let status = resp.status();
+                if status == 401 || status == 403 {
+                    // The backend answers 401 for every token/host guard miss
+                    // (api/desktop_runtime.py); polling cannot fix that, so
+                    // fail instead of burning the whole start deadline.
+                    return Err(format!("health 探测返回 {status}：token 校验失败"));
+                }
+                if status == 200 {
                     let mut body = Vec::new();
                     let read = resp
                         .into_reader()
@@ -857,8 +926,10 @@ pub fn ensure_ready(state: &BackendState) -> Result<(), ProxyError> {
 }
 
 /// Forward one whitelisted operation to the backend over loopback HTTP.
-/// A cancelled worker can still occupy its HTTP socket for at most 30 seconds.
-/// Keep its ID guarded until the entire response body settles, then drop the result.
+/// The response body is read in bounded chunks with cancellation re-checked
+/// between them, so a cancelled worker frees its HTTP socket almost
+/// immediately instead of holding it for the whole 30s timeout. Keep its ID
+/// guarded until the entire response body settles, then drop the result.
 pub fn api_request(
     state: &Arc<BackendState>,
     op: ApiOperation,
@@ -875,7 +946,6 @@ pub fn api_request(
         request_id,
     };
     request.validate()?;
-    ensure_ready(state)?;
     let path = crate::api_proxy::build_path(op, request.task_id.as_deref(), request.after)
         .map_err(|reason| ProxyError::InvalidRequest { reason })?;
     // Serialize registration with stop: it either refuses or is included in close().
@@ -936,10 +1006,31 @@ pub fn api_request(
             });
         }
         let mut body = Vec::new();
-        let read = resp
-            .into_reader()
-            .take(crate::api_proxy::MAX_RESPONSE_BODY as u64 + 1)
-            .read_to_end(&mut body);
+        let mut read = Ok(());
+        {
+            let mut reader = resp
+                .into_reader()
+                .take(crate::api_proxy::MAX_RESPONSE_BODY as u64 + 1);
+            // Chunked read with a cancellation check between chunks: without
+            // it a cancel would have to wait out the 30s body timeout.
+            loop {
+                if flag.load(Ordering::Acquire) {
+                    break;
+                }
+                match reader
+                    .by_ref()
+                    .take(API_READ_CHUNK as u64)
+                    .read_to_end(&mut body)
+                {
+                    Ok(0) => break,
+                    Ok(_) => {}
+                    Err(error) => {
+                        read = Err(error);
+                        break;
+                    }
+                }
+            }
+        }
         // Cancellation takes precedence over a late successful/error body or read error.
         if flag.load(Ordering::Acquire) {
             return Err(ProxyError::Cancelled);
@@ -961,6 +1052,14 @@ pub fn api_request(
         Ok(ProxyResponse { status, body })
     })();
 
+    match &result {
+        Err(ProxyError::Timeout { .. }) => watchdog_after_timeout(state, port),
+        // Only definitive liveness evidence resets the streak; a cancelled
+        // request says nothing about backend health.
+        Err(ProxyError::Cancelled) => {}
+        _ => state.timeout_streak.store(0, Ordering::Relaxed),
+    }
+
     // Serialize completion with cancellation, including JSON parsing time.
     if state
         .requests
@@ -971,6 +1070,34 @@ pub fn api_request(
         Err(ProxyError::Cancelled)
     } else {
         result
+    }
+}
+
+/// Hung-backend watchdog: after WATCHDOG_TIMEOUT_STREAK consecutive API
+/// timeouts, probe /api/health on the short health timeout. If even the cheap
+/// probe fails, mark the backend Failed instead of leaving the user with
+/// endless 30s timeouts; a healthy probe resets the streak (alive, just slow).
+fn watchdog_after_timeout(state: &BackendState, port: u16) {
+    let streak = state.timeout_streak.fetch_add(1, Ordering::Relaxed) + 1;
+    if streak < WATCHDOG_TIMEOUT_STREAK {
+        return;
+    }
+    let token = state
+        .token
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .clone();
+    let url = format!("http://127.0.0.1:{port}/api/health");
+    match state
+        .health_agent
+        .get(&url)
+        .set("X-Auth-Token", &token)
+        .call()
+    {
+        Ok(resp) if resp.status() == 200 => {
+            state.timeout_streak.store(0, Ordering::Relaxed);
+        }
+        _ => state.fail(format!("后端连续 {streak} 次请求超时且健康检查无响应")),
     }
 }
 
@@ -1057,8 +1184,52 @@ mod tests {
     }
 
     #[test]
+    fn cancel_does_not_overwrite_a_completed_tombstone() {
+        let mut requests = RequestRegistry::default();
+        let flag = requests.register(7).unwrap();
+        requests.finish(7, &flag);
+        assert!(matches!(
+            requests.register(7),
+            Err(ProxyError::InvalidRequest { .. })
+        ));
+        // A late cancel must not turn the completed tombstone into Cancelled.
+        assert!(!requests.cancel(7));
+        assert!(matches!(
+            requests.register(7),
+            Err(ProxyError::InvalidRequest { .. })
+        ));
+        // An expired tombstone must not block a fresh early cancellation.
+        requests.recent.insert(
+            8,
+            (Instant::now() - RECENT_REQUEST_TTL, RecentResult::Completed),
+        );
+        assert!(!requests.cancel(8));
+        assert!(matches!(requests.register(8), Err(ProxyError::Cancelled)));
+    }
+
+    #[test]
+    fn bounded_line_reader_caps_runaway_lines() {
+        let mut input = b"short\n".to_vec();
+        input.extend(std::iter::repeat_n(b'x', MAX_HANDSHAKE_LINE * 2 + 10));
+        input.push(b'\n');
+        input.extend_from_slice(b"after\r\n");
+        let mut reader = std::io::Cursor::new(input);
+        let mut lines = Vec::new();
+        while let Some(line) = read_bounded_line(&mut reader, MAX_HANDSHAKE_LINE) {
+            lines.push(line);
+        }
+        assert_eq!(lines.first().map(String::as_str), Some("short"));
+        assert_eq!(lines.last().map(String::as_str), Some("after"));
+        // The oversized physical line comes back in cap-sized chunks whose
+        // reassembly is the original content.
+        let middle = &lines[1..lines.len() - 1];
+        assert!(middle.len() >= 2, "runaway line must be split: {middle:?}");
+        assert_eq!(middle.concat(), "x".repeat(MAX_HANDSHAKE_LINE * 2 + 10));
+    }
+
+    #[test]
     fn log_file_rotates_once_past_the_limit_and_keeps_one_copy() {
-        let dir = std::env::temp_dir().join(format!("chaoxing-log-{}", random_hex(8)));
+        let dir = std::env::temp_dir().join(format!("chaoxing-log-{}", random_hex(8).unwrap()));
         let path = dir.join("nested").join("backend.log");
         let log = LogFile::with_limit(path.clone(), 64);
         log.append("first line that fills most of the limit ........");
