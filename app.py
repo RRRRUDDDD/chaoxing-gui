@@ -10,6 +10,7 @@ if __name__ == "__main__" and sys.argv[1:2] == ["--check-captcha-ocr"]:
     raise SystemExit(check_captcha_ocr(sys.argv[2] if len(sys.argv) == 3 else None))
 
 from flask import Flask, request, jsonify, send_from_directory
+from werkzeug.exceptions import NotFound
 from flask_cors import CORS
 import threading
 import time
@@ -891,20 +892,17 @@ def serve_index():
 @app.route('/<path:path>')
 def serve_static(path):
     """服务静态文件，支持 SPA 客户端路由"""
-    if os.path.exists(STATIC_DIR):
-        # 如果请求的是 API 路径，跳过（已被上面的路由处理）
-        if path.startswith('api/'):
-            return jsonify({'status': False, 'msg': 'Not Found'}), 404
-        
-        # 尝试提供静态文件
-        file_path = os.path.join(STATIC_DIR, path)
-        if os.path.exists(file_path) and os.path.isfile(file_path):
-            return send_from_directory(STATIC_DIR, path)
-        
-        # 对于 SPA 客户端路由，返回 index.html
+    if not os.path.exists(STATIC_DIR):
+        return jsonify({'status': False, 'msg': '前端未构建'}), 404
+    # 如果请求的是 API 路径，跳过（已被上面的路由处理）
+    if path.startswith('api/'):
+        return jsonify({'status': False, 'msg': 'Not Found'}), 404
+
+    # 尝试提供静态文件；未命中时回退到 SPA 客户端路由
+    try:
+        return send_from_directory(STATIC_DIR, path)
+    except NotFound:
         return send_from_directory(STATIC_DIR, 'index.html')
-    
-    return jsonify({'status': False, 'msg': '前端未构建'}), 404
 
 
 
@@ -920,9 +918,9 @@ def wait_for_server_ready(url: str, timeout: int = 60) -> bool:
     start = time.time()
     while time.time() - start < timeout:
         try:
-            urllib.request.urlopen(url, timeout=1)
-            return True
-        except:
+            with urllib.request.urlopen(url, timeout=1):
+                return True
+        except Exception:
             time.sleep(0.5)
     return False
 

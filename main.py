@@ -98,6 +98,16 @@ def parse_args():
     return parser.parse_args()
 
 
+def _config_number(section, key, value, convert):
+    """config.ini 数值转换, 坏值给可定位的报错而不是裸 traceback"""
+    try:
+        return convert(value)
+    except (TypeError, ValueError) as exc:
+        raise InputFormatError(
+            f"config.ini [{section}] {key} 必须为数字, 当前值: {value!r}"
+        ) from exc
+
+
 def load_config_from_file(config_path):
     """从配置文件加载设置"""
     config = configparser.ConfigParser()
@@ -115,14 +125,14 @@ def load_config_from_file(config_path):
             common_config["course_list"] = [item.strip() for item in common_config["course_list"].split(",") if item.strip()]
         # 处理speed，将字符串转换为浮点数
         if "speed" in common_config:
-            common_config["speed"] = float(common_config["speed"])
+            common_config["speed"] = _config_number("common", "speed", common_config["speed"], float)
         if "jobs" in common_config:
-            common_config["jobs"] = int(common_config["jobs"])
+            common_config["jobs"] = _config_number("common", "jobs", common_config["jobs"], int)
         # 处理notopen_action，设置默认值为retry
         if "notopen_action" not in common_config:
             common_config["notopen_action"] = "retry"
         if "retry_interval" in common_config:
-            common_config["retry_interval"] = float(common_config["retry_interval"])
+            common_config["retry_interval"] = _config_number("common", "retry_interval", common_config["retry_interval"], float)
         else:
             common_config["retry_interval"] = 1.0
         if "use_cookies" in common_config:
@@ -138,7 +148,7 @@ def load_config_from_file(config_path):
         # 处理数值类型转换
         for key in ["delay", "cover_rate"]:
             if key in tiku_config:
-                tiku_config[key] = float(tiku_config[key])
+                tiku_config[key] = _config_number("tiku", key, tiku_config[key], float)
 
     # 检查并读取notification节
     if config.has_section("notification"):
@@ -157,7 +167,7 @@ def build_config_from_args(args):
         "speed": args.speed if args.speed else 1.0,
         "jobs": args.jobs,
         "notopen_action": args.notopen_action if args.notopen_action else "retry",
-        "retry_interval": args.retry_interval or 1.0,
+        "retry_interval": args.retry_interval if args.retry_interval is not None else 1.0,
     }
     return common_config, {}, {}
 
@@ -560,17 +570,28 @@ class JobProcessor:
                 if task is self._sentinel:
                     return
                 try:
-                    interrupted = self._stop.wait(self.retry_interval)
-                    if self.cancelled():
-                        task.result = _cancel_chapter(task.point)
-                        self._finish_task(task)
-                    elif interrupted:
+                    try:
+                        interrupted = self._stop.wait(self.retry_interval)
+                        if self.cancelled():
+                            task.result = _cancel_chapter(task.point)
+                            self._finish_task(task)
+                        elif interrupted:
+                            task.result = ChapterResult.ERROR
+                            self._finish_task(task)
+                        else:
+                            # Transfer before acknowledging the previous attempt:
+                            # join() must not return while a retry is outstanding.
+                            self.task_queue.put(task)
+                    except Exception as exc:
+                        # A dead retry thread would strand queued retries and
+                        # hang task_queue/retry_queue joins forever; keep the
+                        # thread serving and record the chapter as failed.
+                        logger.exception('重试调度异常: {}', task.point.get('title'))
                         task.result = ChapterResult.ERROR
-                        self._finish_task(task)
-                    else:
-                        # Transfer before acknowledging the previous attempt:
-                        # join() must not return while a retry is outstanding.
-                        self.task_queue.put(task)
+                        try:
+                            self._finish_task(task)
+                        except Exception:
+                            logger.exception('重试任务收尾失败: {}', task.point.get('title'))
                 finally:
                     self.task_queue.task_done()
             finally:
@@ -792,6 +813,9 @@ def main():
     except KeyboardInterrupt as e:
         logger.error(f"错误: 程序被用户手动中断, {e}")
         return 130
+    except InputFormatError as e:
+        logger.error(f"配置或输入错误: {e}")
+        return 2
     except BaseException as e:
         logger.error(f"错误: {type(e).__name__}: {e}")
         logger.error(traceback.format_exc())
