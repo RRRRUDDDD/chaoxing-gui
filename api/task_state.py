@@ -423,8 +423,14 @@ class TaskStore:
             logger.warning("清理过期任务文件 {} 失败：{}", task_id, type(exc).__name__)
 
     @contextmanager
-    def edit(self, task_id: str):
-        """Yield mutable state only while the store lock is held."""
+    def edit(self, task_id: str, *, sanitize: Callable[[_Task], None] | None = None):
+        """Yield mutable state only while the store lock is held.
+
+        By default every error field in status and details is scrubbed after
+        the edit. Hot per-chunk writers pass ``sanitize`` to scrub only the
+        subtree they actually changed; API readers and checkpoints still
+        sanitize full snapshots, so narrowing cannot leak unsanitized text.
+        """
         with self._lock:
             self._cleanup_locked()
             task = self._tasks.get(task_id)
@@ -433,8 +439,11 @@ class TaskStore:
             try:
                 yield task
             finally:
-                sanitize_errors(task.status)
-                sanitize_errors(task.details)
+                if sanitize is None:
+                    sanitize_errors(task.status)
+                    sanitize_errors(task.details)
+                else:
+                    sanitize(task)
 
     def get_status(self, task_id: str) -> dict:
         with self.edit(task_id) as task:

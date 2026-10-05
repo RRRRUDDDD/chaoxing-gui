@@ -283,6 +283,57 @@ class CourseToolTaskTests(unittest.TestCase):
         self.assertEqual(restarted.get_status(task_id)["stats"]["completed_tasks"], 1)
         self.assertEqual(restarted.get_details(task_id)["tool"]["total_units"], 5)
 
+    def test_resumed_download_counts_restored_bytes_during_next_transfer(self):
+        task_id, config = self.create(
+            "download", {"source_task_id": "source", "resource_ids": ["resource1", "resource2"]},
+            [RESOURCE, dict(RESOURCE, id="resource2", name="第二资源")],
+        )
+        directory = tasks.download_directory(self.data_dir, task_id, create=True)
+        target = directory / "video.mp4"
+        target.write_bytes(b"video")
+        with self.store.edit(task_id) as task:
+            task.details["tool"]["results"] = [{"id": "resource1", "status": "completed", "bytes": 5, "path": target.name}]
+        self.store.checkpoint(task_id)
+        restarted = TaskStore(state_file=self.state_file)
+        self.addCleanup(restarted.close)
+        details = tasks.restored_details(config, restarted.get_details(task_id), self.data_dir, task_id)
+        restarted.resume(task_id, "alice", tasks.initial_status(config, details), details)
+        self.service.scan_course.return_value = [
+            dict(RESOURCE, _attachment={"dtoken": "private-token"}),
+            dict(RESOURCE, id="resource2", name="第二资源", _attachment={"dtoken": "private-token"}),
+        ]
+        observed = []
+
+        def download(course, resource, directory, on_progress=None):
+            for received in (1, 2):
+                on_progress(received, 3)
+                observed.append(restarted.get_details(task_id)["tool"]["completed_units"])
+            return {"path": str(directory / "second.mp4"), "name": "second.mp4", "bytes": 3}
+
+        self.service.download_resource.side_effect = download
+        tasks.run_tool_task(task_id, restarted, config, self.data_dir, self.factory)
+        # 首个分块起 completed_units 就必须包含已恢复的 5 字节，而不是只显示当前文件。
+        self.assertEqual(observed, [6, 7])
+        self.assertEqual(restarted.get_details(task_id)["tool"]["completed_units"], 8)
+        self.assertEqual(restarted.get_status(task_id)["status"], "completed")
+
+    def test_terminal_state_clears_the_stale_current_card(self):
+        task_id, config = self.create(
+            "video_time", {"source_task_id": "source", "resource_ids": ["resource1"], "minutes": 0.1}, [RESOURCE],
+        )
+        residue = []
+
+        def failing_watch(course, resource, seconds, on_progress=None):
+            residue.append(self.store.get_details(task_id)["tool"]["current"])
+            raise tasks.CheckpointError("保存执行记录失败，已停止后续操作；请检查数据目录")
+
+        self.service.watch_video.side_effect = failing_watch
+        tasks.run_tool_task(task_id, self.store, config, self.data_dir, self.factory)
+        # 异常路径绕过 record()，先证明残留确实出现过，再断言终态已清理。
+        self.assertTrue(residue and residue[0] is not None)
+        self.assertEqual(self.store.get_status(task_id)["status"], "error")
+        self.assertIsNone(self.store.get_details(task_id)["tool"]["current"])
+
     def test_catalog_budget_reserves_complete_ascii_encoded_download_results(self):
         _, config = self.create("catalog", {"purpose": "download"})
         details = tasks.initial_details(config, [])

@@ -52,6 +52,8 @@ _LOCKED = re.compile(r"章节未开放|章节已锁定|该章节尚未开放|请
 # count from the study page, that placeholder marks the end of the chapter.
 _CARD_PLACEHOLDER = re.compile(r"""\bmArg\s*=\s*(['"])\1""")
 MAX_PROBED_CARD_PAGES = 30
+# 同一章节的卡片页逐页拉取时的轻量间隔，降低触发风控/验证码的频率。
+CARD_PAGE_THROTTLE_SECONDS = 0.25
 _REDIRECTS = {301, 302, 303, 307, 308}
 _SUCCESS = {"true", "1", "200", "success", "ok"}
 
@@ -360,7 +362,10 @@ class CourseTools:
             "chapter_id": chapter["id"], "chapter_title": chapter["title"],
             "name": name, "kind": kind, "downloadable": bool(object_id),
             "watchable": bool(kind == "video" and object_id and job_id),
-            "_attachment": deepcopy(attachment), "_defaults": deepcopy(defaults),
+            "_attachment": deepcopy(attachment),
+            # 本资源接管该对象：scan_course 传入的是整页共享的一份副本，
+            # 之后任何代码都不得原地修改 _defaults。
+            "_defaults": defaults,
         }
         try:
             duration = _number(attachment.get("duration", prop.get("duration")))
@@ -396,6 +401,8 @@ class CourseTools:
         if not probing and (not re.fullmatch(r"\d{1,5}", raw_count) or int(raw_count) > 10000):
             raise RuntimeError(f"章节“{chapter['title']}”的实际页数无法读取")
         for page in range(MAX_PROBED_CARD_PAGES if probing else int(raw_count)):
+            if page:
+                self._wait(CARD_PAGE_THROTTLE_SECONDS)
             self._check_cancelled()
             params = {**self._course_params(course), "knowledgeid": chapter["id"],
                       "num": page, "v": "20160407-1", "mooc2": 1}
@@ -422,10 +429,12 @@ class CourseTools:
         resources = {}
         for completed, chapter in enumerate(chapters, 1):
             for page, data in self.iter_card_pages(course, chapter):
+                # 每页只做一份 defaults 私有副本，页内全部附件共享（_resource 接管该对象）。
+                defaults = deepcopy(data.get("defaults", {}))
                 for index, attachment in enumerate(data.get("attachments", [])):
                     self._check_cancelled()
                     resource = self._resource(
-                        course, chapter, attachment, data.get("defaults", {}), page, index,
+                        course, chapter, attachment, defaults, page, index,
                     )
                     if resource is not None:
                         previous = resources.get(resource["id"])

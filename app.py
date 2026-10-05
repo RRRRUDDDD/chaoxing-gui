@@ -35,7 +35,7 @@ from api.answer import Tiku
 from api.exceptions import InputFormatError, LoginError
 from api.logger import logger
 from api.paths import data_dir
-from api.privacy import redact
+from api.privacy import redact, sanitize_errors
 from api.task_logging import task_log_sink
 from api.notification import Notification
 from api.task_state import TaskAlreadyRunning, TaskNotFound, TaskStore
@@ -434,7 +434,11 @@ class _StudyProgress:
 
     def video_progress(self, course, job, current_time, duration):
         now = time.time()
-        with self.store.edit(self.task_id) as task:
+        # 心跳只改 active_jobs；擦洗范围收窄，避免每个心跳全树扫描 details。
+        with self.store.edit(
+            self.task_id,
+            sanitize=lambda task: sanitize_errors(task.details.get("active_jobs")),
+        ) as task:
             active = task.details["active_jobs"]
             expired = [key for key, info in active.items() if now - info["timestamp"] > 10]
             for key in expired:

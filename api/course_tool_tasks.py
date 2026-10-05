@@ -14,6 +14,7 @@ import time
 from api.exceptions import LoginError
 from api.fs_policy import reject_links
 from api.logger import logger
+from api.privacy import sanitize_errors
 from api.task_logging import task_log_sink
 from api.task_state import TaskNotFound
 
@@ -275,6 +276,11 @@ def create_service(client, cancel_check, purpose=None):
     return CourseTools(client, cancel_check=cancel_check)
 
 
+def _sanitize_current(task):
+    """分块级热路径写入只有计数器与 current 小卡片，擦洗范围收窄到 current。"""
+    sanitize_errors(task.details.get("tool", {}).get("current"))
+
+
 class _Progress:
     def __init__(self, store, task_id, config):
         self.store, self.task_id, self.config = store, task_id, config
@@ -283,6 +289,10 @@ class _Progress:
                        "reading_time": "seconds", "download": "bytes"}[self.kind]
         self.completed = 0
         self._last_save = 0
+        # 已记录行（含断点恢复行）的累计量：update() 增量累加，
+        # 不再随每个下载分块对 results 全表重算。
+        with store.edit(task_id) as task:
+            self._recorded = sum(result.get(self.metric, 0) for result in task.details["tool"]["results"])
 
     def begin(self, course, item, total, unit=None):
         self.completed = 0
@@ -293,14 +303,14 @@ class _Progress:
 
     def update(self, completed, total, *, count_units=True):
         self.completed = max(0, completed)
-        with self.store.edit(self.task_id) as task:
+        with self.store.edit(self.task_id, sanitize=_sanitize_current) as task:
             tool = task.details["tool"]
             if tool["current"] is not None:
                 tool["current"].update(completed=self.completed, total=total)
             if count_units:
-                tool["completed_units"] = sum(result.get(self.metric, 0) for result in tool["results"]) + self.completed
+                tool["completed_units"] = self._recorded + self.completed
                 if self.kind == "catalog":
-                    tool["total_units"] = sum(result.get("chapters", 0) for result in tool["results"]) + (total or 0)
+                    tool["total_units"] = self._recorded + (total or 0)
         now = time.monotonic()
         if count_units and (self.kind == "visits" or now - self._last_save >= 5):
             _checkpoint(self.store, self.task_id)
@@ -325,7 +335,8 @@ class _Progress:
         with self.store.edit(self.task_id) as task:
             tool = task.details["tool"]
             tool["results"].append(row)
-            tool["completed_units"] = sum(result.get(self.metric, 0) for result in tool["results"])
+            self._recorded += row[self.metric]
+            tool["completed_units"] = self._recorded
             tool["current"] = None
             _refresh_counts(task.status, task.details)
         _checkpoint(self.store, self.task_id)
@@ -434,6 +445,14 @@ def run_tool_task(task_id, store, config, data_dir, client_factory):
                     outcome, error = "cancelled", None
                     logger.info("课程工具已停止，已完成的记录和下载文件已保留")
     finally:
+        # 已无 worker 会再回到 record()；终态不得残留"正在处理"的卡片。
+        try:
+            with store.edit(task_id) as task:
+                tool = task.details.get("tool")
+                if tool is not None:
+                    tool["current"] = None
+        except TaskNotFound:
+            pass
         store.finish(task_id, outcome, error=error)
 
 

@@ -186,6 +186,17 @@ class ScanTests(OfflineToolsCase):
         self.assertEqual(first["id"], second["id"])
         self.assertNotEqual(first["name"], second["name"])
 
+    def test_attachments_on_one_page_share_one_defaults_snapshot(self):
+        audio = {"type": "video", "property": {"module": "insertaudio", "objectid": "audio", "name": "音频"}}
+        self.session.get.side_effect = [
+            Response(course_page()), Response('<input id="cardcount" value="1">'),
+            Response(card_page([VIDEO, audio])),
+        ]
+        found = self.tools.scan_course(COURSE)
+        self.assertEqual([item["kind"] for item in found], ["video", "audio"])
+        # 每页一份 defaults 副本由页内全部资源共享（_resource 接管，不再逐附件深拷贝）。
+        self.assertIs(found[0]["_defaults"], found[1]["_defaults"])
+
     def test_locked_chapters_are_logged_and_counted_without_opening_them(self):
         responses = [
             Response(course_page(((101, "锁定章节", True), (102, "可读章节", False)))),

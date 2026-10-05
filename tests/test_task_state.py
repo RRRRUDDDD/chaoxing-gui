@@ -5,6 +5,7 @@ import unittest
 from unittest.mock import patch
 from uuid import UUID
 
+from api.privacy import sanitize_errors
 from api.task_state import TaskAlreadyRunning, TaskNotFound, TaskStore
 
 
@@ -121,6 +122,20 @@ class TaskStoreTests(unittest.TestCase):
             thread.join(timeout=3)
             self.assertFalse(thread.is_alive())
         self.assertEqual(self.store.get_status(task_id)["progress"], 600)
+
+    @patch("api.privacy._secrets", set())
+    def test_edit_can_narrow_error_scrubbing_to_the_changed_subtree(self):
+        task_id = self.create()
+        with self.store.edit(
+            task_id, sanitize=lambda task: sanitize_errors(task.details["jobs"]),
+        ) as task:
+            task.details["jobs"] = {"j1": {"error": "13812345678"}}
+            task.status["error"] = "13812345678"
+        # 声明的子树在存储内的活状态已被擦洗（非出口快照补的）。
+        self.assertEqual(self.store._tasks[task_id].details["jobs"]["j1"]["error"], "[redacted account]")
+        # 窄域调用者对未声明子树自负其责：活状态不擦洗，出口快照仍兜底。
+        self.assertEqual(self.store._tasks[task_id].status["error"], "13812345678")
+        self.assertEqual(self.store.get_status(task_id)["error"], "[redacted account]")
 
     def test_terminal_ttl_removes_status_details_and_logs_together(self):
         task_id = self.create()
