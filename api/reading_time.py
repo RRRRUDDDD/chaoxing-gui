@@ -15,7 +15,7 @@ from urllib.parse import parse_qs, urlsplit
 from loguru import logger
 
 from api.course_tools import CourseTools, _check_html, _scalar, _number
-from api.reading_browser import NotReadingPage, READING_URL_MESSAGES, scroll_book
+from api.reading_browser import NotReadingPage, TaskPointPage, READING_URL_MESSAGES, scroll_book
 from api.url_policy import canonical_https_url
 
 
@@ -187,7 +187,7 @@ class ReadingTools(CourseTools):
     @staticmethod
     def _parse_read_page(text):
         if _task_point_html(text):
-            raise RuntimeError("当前页面是视频或其他任务点，不是阅读页")
+            raise TaskPointPage("当前页面是视频或其他任务点，不是阅读页")
         soup = _check_html(text, "专题阅读任务")
         tips = soup.select(".readTips span")
         values = [_text_number(node.get_text(" ", strip=True)) for node in tips]
@@ -226,9 +226,7 @@ class ReadingTools(CourseTools):
             self._check_cancelled()
             try:
                 self._read_metadata(course, resource)
-            except RuntimeError as exc:
-                if "不是阅读页" not in str(exc):
-                    raise
+            except TaskPointPage:
                 logger.info("跳过非阅读页面：{}", resource.get("name") or resource.get("id"))
                 continue
             result.append(resource)
@@ -331,7 +329,7 @@ class ReadingTools(CourseTools):
                 # cancellation and post-progress failures must not be replayed.
                 last_error = exc
         else:
-            if last_error is not None and "不是阅读页" in str(last_error):
+            if isinstance(last_error, TaskPointPage):
                 raise last_error
             raise RuntimeError("没有可读取的专题书籍") from last_error
 

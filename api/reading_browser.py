@@ -35,8 +35,13 @@ _STATE_JS = (
     "iframe[src*='/ananas/modules/read/index'],"
     ".ans-insertvideo-online,.ans-insertaudio,.insertdoc-online-ppt,.insertdoc-online-pdf,.ans-book\");"
     "const box = document.querySelector('#courseMainBox');"
-    "const html = document.documentElement ? document.documentElement.innerHTML : '';"
-    "const reporter = !!document.querySelector(\"script[src*='logs.js']\") || html.indexOf('/multimedia/readlog') !== -1;"
+    "const readlog = '/multimedia/readlog';"
+    "let reporter = !!document.querySelector(\"script[src*='logs.js'],[src*='\" + readlog + \"'],[href*='\" + readlog + \"']\");"
+    "if (!reporter) {"
+    "for (const script of document.scripts) {"
+    "if ((script.text || '').indexOf(readlog) !== -1) { reporter = true; break; }"
+    "}"
+    "}"
     "const taskPoint = !!task;"
     "const chapters = [];"
     "for (const link of document.querySelectorAll(\"a[href*='ztnodedetailcontroller/visitnodedetail']\")) {"
@@ -63,6 +68,14 @@ READING_URL_MESSAGES = UrlMessages(
 
 class NotReadingPage(RuntimeError):
     """A book has no readable body; no reading progress has been reported."""
+
+
+class TaskPointPage(NotReadingPage):
+    """The URL is a shell around a video/document/other task point, not a book."""
+
+
+class CdpTimeout(RuntimeError):
+    """A CDP command outlived its deadline; the websocket may be unusable."""
 
 
 def allow_reading_url(value):
@@ -333,7 +346,7 @@ def scroll_book(url, cookies, seconds, on_progress=None, wait=None, check=None, 
                 saw_task = saw_task or bool(isinstance(state, dict) and state.get("taskPoint"))
             if not found:
                 if saw_task:
-                    raise NotReadingPage("当前页面是视频或其他任务点，不是阅读页")
+                    raise TaskPointPage("当前页面是视频或其他任务点，不是阅读页")
                 raise NotReadingPage("阅读页没有可滚动的正文")
         return scroll_reading_page(
             page, seconds, on_progress=on_progress, wait=wait, check=check,
@@ -404,7 +417,7 @@ class CdpSocket:
             if data.get("error"):
                 raise RuntimeError("阅读浏览器指令失败")
             return data.get("result") or {}
-        raise RuntimeError("阅读浏览器指令超时")
+        raise CdpTimeout("阅读浏览器指令超时")
 
     def _send(self, opcode, data):
         mask = os.urandom(4)
@@ -432,7 +445,7 @@ class CdpSocket:
             # A timed-out read may leave half a frame buffered, so the
             # connection cannot be reused.
             self.close()
-            raise RuntimeError("阅读浏览器指令超时") from None
+            raise CdpTimeout("阅读浏览器指令超时") from None
 
     def _read_exact(self, size, deadline):
         while len(self._buf) < size:
@@ -520,11 +533,13 @@ def _devtools_ready(log_path, process, port):
 class ChromeReadingPage:
     """One temporary browser window signed in with the current account."""
 
-    def __init__(self, process, socket_client, profile, log_file=None):
+    def __init__(self, process, socket_client, profile, log_file=None, port=None, target_id=None):
         self._process = process
         self._socket = socket_client
         self._profile = profile
         self._log = log_file
+        self._port = port
+        self._target_id = target_id
 
     @classmethod
     def open(cls, cookies):
@@ -553,8 +568,8 @@ class ChromeReadingPage:
             browser_name = str(version.get("Browser") or "")
             if "Chrome" not in browser_name and "Edg" not in browser_name:
                 raise RuntimeError("阅读浏览器没有启动")
-            page = _page_target(port)
-            client = CdpSocket(page["webSocketDebuggerUrl"], port)
+            target = _page_target(port)
+            client = CdpSocket(target["webSocketDebuggerUrl"], port)
             try:
                 client.call("Network.enable")
                 accepted = 0
@@ -566,8 +581,8 @@ class ChromeReadingPage:
             except BaseException:
                 client.close()
                 raise
-            page = cls(process, client, profile, log_file)
-            return page
+            return cls(process, client, profile, log_file,
+                       port=port, target_id=target.get("id"))
         except BaseException:
             if process is not None and process.poll() is None:
                 _stop_process(process)
@@ -578,9 +593,31 @@ class ChromeReadingPage:
             _remove_profile(profile)
             raise
 
+    def _call(self, method, params=None):
+        """Run one CDP command, reconnecting once after a transient timeout."""
+        try:
+            return self._socket.call(method, params)
+        except CdpTimeout:
+            if not self._reconnect():
+                raise
+            return self._socket.call(method, params)
+
+    def _reconnect(self):
+        """Reopen the debugger websocket on the same page target; False if gone."""
+        target = _find_page_target(self._port, self._target_id)
+        if not target:
+            return False
+        try:
+            client = CdpSocket(target["webSocketDebuggerUrl"], self._port)
+        except (OSError, RuntimeError):
+            return False
+        self._socket.close()
+        self._socket = client
+        return True
+
     def goto(self, url):
         url = allow_reading_url(url)
-        self._socket.call("Page.navigate", {"url": url})
+        self._call("Page.navigate", {"url": url})
         deadline = time.monotonic() + 20
         last_error = None
         while time.monotonic() < deadline:
@@ -597,7 +634,7 @@ class ChromeReadingPage:
         raise RuntimeError("阅读页打开超时") from last_error
 
     def evaluate(self, expression):
-        result = self._socket.call("Runtime.evaluate", {
+        result = self._call("Runtime.evaluate", {
             "expression": expression, "returnByValue": True,
         })
         if result.get("exceptionDetails"):
@@ -645,6 +682,16 @@ def _page_target(port):
     if not isinstance(created, dict) or not created.get("webSocketDebuggerUrl"):
         raise RuntimeError("阅读浏览器没有打开页面")
     return created
+
+
+def _find_page_target(port, target_id):
+    """Find the remembered page target if it is still alive (never create one)."""
+    if not port or not target_id:
+        return None
+    for page in _debugger_json(port, "/json/list") or []:
+        if isinstance(page, dict) and page.get("id") == target_id and page.get("webSocketDebuggerUrl"):
+            return page
+    return None
 
 
 

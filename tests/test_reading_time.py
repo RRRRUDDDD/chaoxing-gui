@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 from api.reading_time import ReadingTools
-from api.reading_browser import NotReadingPage
+from api.reading_browser import NotReadingPage, TaskPointPage
 from api.course_tools import ToolCancelled
 
 
@@ -82,6 +82,7 @@ class ReadingProtocolTests(unittest.TestCase):
             with self.subTest(page=page):
                 with self.assertRaises(RuntimeError) as raised:
                     self.service._parse_read_page(page)
+                self.assertIsInstance(raised.exception, TaskPointPage)
                 self.assertIn("不是阅读页", str(raised.exception))
         self.assertEqual(self.service._parse_read_page(READ_PAGE)["required_minutes"], 60)
 
@@ -120,10 +121,13 @@ class ReadingProtocolTests(unittest.TestCase):
 
     def test_all_books_unreadable_preserves_error_messages(self):
         self.session.cookies = []
-        for message, expected in (("不是阅读页", "不是阅读页"), ("阅读页没有可滚动的正文", "没有可读取的专题书籍")):
-            with self.subTest(message=message):
+        for error, expected in (
+                (TaskPointPage("当前页面是视频或其他任务点，不是阅读页"), "不是阅读页"),
+                (NotReadingPage("不是阅读页"), "没有可读取的专题书籍"),
+                (NotReadingPage("阅读页没有可滚动的正文"), "没有可读取的专题书籍")):
+            with self.subTest(error=error):
                 self.responses("<html>index</html>", "<html>index</html>")
-                with patch("api.reading_time.scroll_book", side_effect=NotReadingPage(message)) as scroll:
+                with patch("api.reading_time.scroll_book", side_effect=error) as scroll:
                     with self.assertRaisesRegex(RuntimeError, expected):
                         self.service.watch_reading(COURSE, {**RESOURCE, "_books": self.books()}, 10)
                 self.assertEqual(scroll.call_count, 2)

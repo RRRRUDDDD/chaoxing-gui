@@ -16,7 +16,8 @@ from requests.cookies import RequestsCookieJar
 import tempfile
 
 from api.reading_browser import (
-    CdpSocket, NotReadingPage, allow_reading_url, browser_executable, cdp_cookies, chrome_command,
+    CdpSocket, CdpTimeout, ChromeReadingPage, NotReadingPage, TaskPointPage,
+    allow_reading_url, browser_executable, cdp_cookies, chrome_command,
     _CONTENT_JS, _STATE_JS, _ScrollPlan, _load_next_chapter,
     navigation_ready, scroll_book, scroll_expression, scroll_reading_page,
 )
@@ -195,6 +196,7 @@ class ReadingBrowserTests(unittest.TestCase):
         with self.assertRaises(RuntimeError) as raised:
             scroll_book(BOOK, cookies(), 5, opener=lambda jar: page)
         self.assertIn("不是阅读页", str(raised.exception))
+        self.assertIsInstance(raised.exception, TaskPointPage)
         self.assertEqual(page.scripts, [])
         self.assertTrue(page.closed)
 
@@ -208,6 +210,11 @@ class ReadingBrowserTests(unittest.TestCase):
         self.assertNotIn("new Event", expression)
         self.assertIn("insertvideo", _STATE_JS)
         self.assertIn("logs.js", _STATE_JS)
+
+    def test_state_js_inspects_the_dom_without_serializing_the_page(self):
+        self.assertIn("logs.js", _STATE_JS)
+        self.assertIn("/multimedia/readlog", _STATE_JS)
+        self.assertNotIn("innerHTML", _STATE_JS)
 
     def test_reading_box_is_not_replaced_by_a_chapter_link(self):
         page = Page({"hasBox": True, "reading": True, "chapter": "https://evil.example/steal"})
@@ -379,6 +386,44 @@ class ReadingBrowserTests(unittest.TestCase):
             CdpSocket("ws://example.com/devtools/page/1", 80)
         with self.assertRaises(RuntimeError):
             CdpSocket("ws://127.0.0.1:9/devtools/page/1", 10)
+
+
+class ChromeReadingPageReconnectTests(unittest.TestCase):
+    TARGETS = [{"id": "T1", "webSocketDebuggerUrl": "ws://127.0.0.1:9222/devtools/page/T1"}]
+
+    def page(self, socket_client):
+        return ChromeReadingPage(None, socket_client, "profile-unused",
+                                 port=9222, target_id="T1")
+
+    def test_transient_timeout_reconnects_to_the_same_target_and_retries(self):
+        dead, fresh = Mock(), Mock()
+        dead.call.side_effect = CdpTimeout("阅读浏览器指令超时")
+        fresh.call.return_value = {"result": {"value": 42}}
+        with patch("api.reading_browser._debugger_json", return_value=self.TARGETS), \
+             patch("api.reading_browser.CdpSocket", return_value=fresh) as socket_cls:
+            self.assertEqual(self.page(dead).evaluate("1+1"), 42)
+        socket_cls.assert_called_once_with("ws://127.0.0.1:9222/devtools/page/T1", 9222)
+        dead.close.assert_called_once_with()
+        self.assertEqual(fresh.call.call_count, 1)
+
+    def test_missing_target_lets_the_timeout_stand(self):
+        dead = Mock()
+        dead.call.side_effect = CdpTimeout("阅读浏览器指令超时")
+        with patch("api.reading_browser._debugger_json", return_value=[]):
+            with self.assertRaises(CdpTimeout):
+                self.page(dead).evaluate("1+1")
+        dead.close.assert_not_called()
+
+    def test_retry_after_reconnect_times_out_only_once_more(self):
+        dead, fresh = Mock(), Mock()
+        dead.call.side_effect = CdpTimeout("阅读浏览器指令超时")
+        fresh.call.side_effect = CdpTimeout("阅读浏览器指令超时")
+        with patch("api.reading_browser._debugger_json", return_value=self.TARGETS), \
+             patch("api.reading_browser.CdpSocket", return_value=fresh):
+            with self.assertRaises(CdpTimeout):
+                self.page(dead).evaluate("1+1")
+        self.assertEqual(fresh.call.call_count, 1)
+        dead.close.assert_called_once_with()
 
 
 class ChapterScrollingTests(unittest.TestCase):

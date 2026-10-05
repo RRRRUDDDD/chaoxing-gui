@@ -6,6 +6,9 @@ class LiveProcessor:
     @staticmethod
     def run_live(live: Live, speed: float = 1.0, cancel_check=None):
         """循环提交直播时长，直到达到总时长"""
+        if not speed or speed <= 0:
+            logger.error("直播倍速无效，必须大于零: {}", speed)
+            return False
         if _is_cancelled(cancel_check):
             return False
         # 获取直播状态（包含总时长）
