@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { isTauriDesktop } from '../lib/desktopBridge';
 
 export default function ExternalLink({ href, openDesktop, children, errorMessage = '无法打开浏览器，请复制链接后手动访问', ...props }) {

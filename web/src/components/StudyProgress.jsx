@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import Button from './ui/Button';
 import CountUp from './CountUp';
 import RepositoryLink from './RepositoryLink';
@@ -46,14 +46,15 @@ const previewStatus = () => {
     start_time: Date.now() / 1000 - 372,
   };
 };
+const previewLogs = [
+  { seq: 1, timestamp: Date.now() / 1000 - 60, level: 'success', message: '演示任务已完成' },
+  { seq: 2, timestamp: Date.now() / 1000 - 30, level: 'info', message: '所有课程均已处理完毕' },
+];
 
 const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMissing, onStop, onStartStudy, starting = false, startError = '', actionsDisabled = false, recovering = false, recoveryError = '', onRetryRecovery, preview = false }) => {
   const [taskStatus, setTaskStatus] = useState(preview ? previewStatus() : null);
   const [taskDetails, setTaskDetails] = useState(preview ? previewDetails : null);
-  const [logs, setLogs] = useState(preview ? [
-    { seq: 1, timestamp: Date.now() / 1000 - 60, level: 'success', message: '演示任务已完成' },
-    { seq: 2, timestamp: Date.now() / 1000 - 30, level: 'info', message: '所有课程均已处理完毕' },
-  ] : []);
+  const [logs, setLogs] = useState(preview ? previewLogs : []);
   const [logsTruncated, setLogsTruncated] = useState(false);
   const [finalDetailsReady, setFinalDetailsReady] = useState(preview);
   const [pollError, setPollError] = useState('');
@@ -65,7 +66,9 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
   const actionGeneration = useRef(0);
   const [expandedCourses, setExpandedCourses] = useState(new Set());
   const callbacks = useRef({ onStatus, onMissing });
-  callbacks.current = { onStatus, onMissing };
+  useEffect(() => {
+    callbacks.current = { onStatus, onMissing };
+  });
   const stopPending = stopping || taskStatus?.cancel_requested === true;
   const isToolTask = ['visits', 'catalog', 'video_time', 'reading_time', 'download'].includes(taskStatus?.task_type);
   const isReadingTask = taskStatus?.task_type === 'reading_time';

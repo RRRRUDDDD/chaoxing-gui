@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Button from './ui/Button';
 import Input from './ui/Input';
 import Label from './ui/Label';
@@ -16,7 +16,9 @@ const Login = ({ onLoginSuccess }) => {
   const userRef = useRef(null);
   const requestRef = useRef(null);
   const successRef = useRef(onLoginSuccess);
-  successRef.current = onLoginSuccess;
+  useEffect(() => {
+    successRef.current = onLoginSuccess;
+  });
 
   const doLogin = useCallback(async (u, p, { useCookies = false, signal }) => {
     setError('');

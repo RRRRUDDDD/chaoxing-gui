@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Input from './Input';
 import { cn } from '../../lib/utils';
 
@@ -23,7 +23,9 @@ const NumberInput = ({ id, value, onValueChange, onValidityChange, min, max, ste
   const hintId = `${id}-hint`;
 
   const onValidityChangeRef = useRef(onValidityChange);
-  onValidityChangeRef.current = onValidityChange;
+  useEffect(() => {
+    onValidityChangeRef.current = onValidityChange;
+  });
   useEffect(() => {
     onValidityChangeRef.current?.(!error);
     return () => onValidityChangeRef.current?.(true);

@@ -57,7 +57,7 @@ export function startTaskPolling({
   const missing = () => { stop(); onMissing(); };
 
   const poll = async () => {
-    let finished = false;
+    let finished;
     try {
       const status = responseBody(await api.get(taskPath, { signal })).data;
       if (signal.aborted) return;

@@ -3,6 +3,7 @@ import { desktopBridge, getSessionBridge } from './desktopBridge';
 export const SAVED_LOGIN_KEY = 'chaoxing_saved_login';
 export const SESSION_KEY = 'chaoxing_session_v1';
 const emptySession = () => ({ version: 1, login: null, activeTask: null });
+// eslint-disable-next-line no-control-regex -- 有意拒绝包含控制字符的输入
 const usernameValue = (value) => typeof value === 'string' && value.trim().length > 0 && value.trim().length <= 128 && !/[\u0000-\u001f\u007f]/.test(value) ? value.trim() : null;
 export const validTaskId = (value) => typeof value === 'string' && /^[a-zA-Z0-9_-]{1,128}$/.test(value);
 const exactKeys = (value, keys) => value !== null && typeof value === 'object' && !Array.isArray(value)

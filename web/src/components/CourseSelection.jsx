@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Button from './ui/Button';
 import Label from './ui/Label';
 import Select from './ui/Select';
@@ -186,7 +186,7 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
         setSavedSnapshot(snapshot);
         setSaveStatus({ type: 'success', message: configSavedMessage, snapshot });
       }
-    } catch (err) {
+    } catch {
       if (!controller.signal.aborted) setSaveStatus({ type: 'error', message: '保存请求失败，请重试' });
     } finally {
       if (!controller.signal.aborted) setSaving(false);

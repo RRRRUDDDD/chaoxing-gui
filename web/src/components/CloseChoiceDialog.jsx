@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { Minimize2, PanelBottomClose, Power } from 'lucide-react';
 import Button from './ui/Button';
 import { desktopBridge, isTauriDesktop } from '../lib/desktopBridge';

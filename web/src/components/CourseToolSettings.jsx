@@ -1,4 +1,4 @@
-import React, { useState, useId } from 'react';
+import { useState, useId } from 'react';
 import { FolderOpen, Loader2 } from 'lucide-react';
 import Button from './ui/Button';
 import Input from './ui/Input';

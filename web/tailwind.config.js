@@ -24,10 +24,6 @@ export default {
         danger: "hsl(var(--danger))",
         warning: { DEFAULT: "hsl(var(--warning))", ink: "hsl(var(--warning-ink))" },
       },
-      fontFamily: {
-        sans: ['"Inter"', '"Noto Sans SC"', 'system-ui', 'sans-serif'],
-        mono: ['"IBM Plex Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
-      },
       boxShadow: {
         card: '0 1px 2px 0 rgb(16 24 40 / 0.04), 0 1px 3px 0 rgb(16 24 40 / 0.06)',
         lift: '0 4px 8px -2px rgb(16 24 40 / 0.08), 0 2px 4px -2px rgb(16 24 40 / 0.04)',

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AlertCircle, Loader2, RefreshCw } from 'lucide-react';
 import { desktopBridge, isTauriDesktop } from '../lib/desktopBridge';
 import { recheckLabel } from '../lib/uiText';

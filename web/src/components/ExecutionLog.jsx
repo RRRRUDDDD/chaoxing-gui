@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollText } from 'lucide-react';
 import Button from './ui/Button';
 import { LOG_LIMIT } from '../lib/taskPolling';

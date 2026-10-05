@@ -1,4 +1,3 @@
-import React from 'react';
 import { Github } from 'lucide-react';
 import { desktopBridge } from '../lib/desktopBridge';
 import ExternalLink from './ExternalLink';

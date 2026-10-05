@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import Login from './components/Login';
 import CourseSelection from './components/CourseSelection';
 import StudyProgress from './components/StudyProgress';

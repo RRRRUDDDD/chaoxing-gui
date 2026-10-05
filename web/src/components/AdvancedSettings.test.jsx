@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 const bridge = vi.hoisted(() => ({ readPreferences: vi.fn(), writePreferences: vi.fn(), tauri: false }));

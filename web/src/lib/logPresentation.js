@@ -16,7 +16,7 @@ export function redactLogText(text) {
     .replace(/\b(https?:\/\/)[^\s/]+@/gi, '$1[REDACTED]@')
     .replace(/\b((?:set-cookie|cookie|authorization|proxy-authorization)["']?\s*[=:]\s*)[^\r\n]+/gi, '$1[REDACTED]')
     .replace(/(["']?(?:password|passwd|pwd|token|access[_-]?token|refresh[_-]?token|api[_-]?key|secret|client[_-]?secret)["']?\s*(?:=|:)\s*)(?:"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|[^\s&,;}]+)/gi, '$1[REDACTED]')
-    .replace(/\bBearer\s+[A-Za-z0-9._~+\/-]+=*/gi, 'Bearer [REDACTED]');
+    .replace(/\bBearer\s+[A-Za-z0-9._~+/-]+=*/gi, 'Bearer [REDACTED]');
 }
 
 export function logTime(timestamp) {

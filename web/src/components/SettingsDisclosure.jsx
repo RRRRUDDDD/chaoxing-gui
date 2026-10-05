@@ -1,4 +1,4 @@
-import React, { useId, useRef, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 import { ChevronDown } from 'lucide-react';
 
 // Keep the subtree mounted so number drafts survive disclosure changes.

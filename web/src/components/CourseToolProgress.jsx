@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { BookOpen, Download, FileText, FolderOpen, Loader2, MonitorPlay, Search } from 'lucide-react';
 import api from '../api/axios';
 import { validTaskId } from '../lib/sessionStore';
@@ -64,10 +64,8 @@ function CourseToolContent({ taskId, username, taskStatus, tool, catalogReady = 
   const readingTask = taskType === 'reading_time';
   const durationId = readingCatalog ? 'reading-minutes' : 'video-minutes';
   const StartIcon = readingCatalog ? BookOpen : purpose === 'video_time' ? MonitorPlay : Download;
-  const resources = useMemo(() => {
-    const items = Array.isArray(tool?.resources) ? tool.resources : [];
-    return purpose === 'video_time' ? items.filter((item) => item.kind === 'video') : items;
-  }, [tool?.resources, purpose]);
+  const toolResources = Array.isArray(tool?.resources) ? tool.resources : [];
+  const resources = purpose === 'video_time' ? toolResources.filter((item) => item.kind === 'video') : toolResources;
   const results = Array.isArray(tool?.results) ? tool.results : [];
   const courseIds = new Set((Array.isArray(tool?.course_ids) ? tool.course_ids : []).map(String));
   const available = (resource) => typeof resource.id === 'string' && !!resource.id
