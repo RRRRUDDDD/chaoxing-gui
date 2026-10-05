@@ -1,3 +1,4 @@
+#Requires -Version 7.0
 [CmdletBinding()]
 param(
     [Parameter(Mandatory = $true)][string]$HostPath,
@@ -11,18 +12,15 @@ param(
     [switch]$DisposableWindowsUser,
     [ValidateRange(1, 600)][int]$TimeoutSeconds = 150
 )
-$ErrorActionPreference = 'Stop'
-Set-StrictMode -Version Latest
-$p3Node = (Get-Command node -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
-$p3Args = @(
-    (Join-Path $PSScriptRoot 'p3-smoke.mjs'), '--kind', 'tauri',
+. (Join-Path $PSScriptRoot 'p3-wrapper-common.ps1')
+$scriptArguments = @(
+    '--kind', 'tauri',
     '--host-path', $HostPath, '--backend-directory', $BackendDirectory,
     '--fake-backend-directory', $FakeBackendDirectory, '--evidence-directory', $EvidenceDirectory,
     '--configuration', $Configuration, '--scenario', $Scenario,
-    '--timeout-seconds', [string]$TimeoutSeconds, '--powershell-path', (Join-Path $PSHOME 'pwsh.exe')
+    '--timeout-seconds', [string]$TimeoutSeconds
 )
-if ($NestedJob) { $p3Args += '--nested-job' }
-if ($UsePackagedLayout) { $p3Args += '--use-packaged-layout' }
-if ($DisposableWindowsUser) { $p3Args += '--disposable-windows-user' }
-& $p3Node @p3Args
-if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+if ($NestedJob) { $scriptArguments += '--nested-job' }
+if ($UsePackagedLayout) { $scriptArguments += '--use-packaged-layout' }
+if ($DisposableWindowsUser) { $scriptArguments += '--disposable-windows-user' }
+Invoke-P3NodeScript -ScriptName 'p3-smoke.mjs' -ScriptArguments $scriptArguments

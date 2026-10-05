@@ -92,16 +92,7 @@ try {
     Assert-PackageInventoryManifest $payloadManifest $payloadInventory
     $backendManifest = Read-ZipManifest $zip 'backend-manifest.json'
     Assert-PackageManifestHeader $backendManifest 'chaoxing-backend' $packageVersion 'chaoxing-backend.exe'
-    $backendInventory = @{
-        files = @(foreach ($file in $files.Values) {
-            if ($file.path.StartsWith('backend/', [StringComparison]::Ordinal)) {
-                @{ path = $file.path.Substring(8); length = $file.length; sha256 = $file.sha256 }
-            }
-        })
-        directories = @(foreach ($directory in $directories) {
-            if ($directory.StartsWith('backend/', [StringComparison]::Ordinal)) { $directory.Substring(8) }
-        })
-    }
+    $backendInventory = Get-PackageSubtreeInventory -Inventory @{ files = @($files.Values); directories = @($directories.ToArray()) } -Prefix 'backend'
     Assert-PackageInventoryManifest $backendManifest $backendInventory
     if (@($backendInventory.files | Where-Object { $_.path.StartsWith('_internal/web/dist/assets/', [StringComparison]::Ordinal) -and $_.length -gt 0 }).Count -eq 0) {
         throw 'Missing embedded web resources in package.'

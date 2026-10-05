@@ -2,6 +2,9 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+# pyproject.toml [project] version is parsed by regex because PowerShell has no
+# TOML parser; desktop/scripts/version.py (tomllib) is the canonical reader, and
+# CI runs its --check before packaging. Keep this contract compatible with it.
 function Get-PackageVersion {
     param([string]$Version)
     $projectFile = Join-Path $PSScriptRoot '../../pyproject.toml'
@@ -215,6 +218,20 @@ function Assert-PackageInventoryManifest {
         if (-not $actualDirectories.Contains($directory)) { throw "Missing manifest payload directory: $directory" }
     }
     if ($Manifest.directories.Count -ne $Inventory.directories.Count) { throw 'Manifest does not cover every payload directory.' }
+}
+
+function Get-PackageSubtreeInventory {
+    # Project an inventory onto the entries under a directory prefix, with the
+    # prefix stripped, so nested payload manifests can be verified in place.
+    param([Parameter(Mandatory)]$Inventory, [Parameter(Mandatory)][string]$Prefix)
+    Assert-PackageRelativePath $Prefix
+    $prefix = "$Prefix/"
+    return [ordered]@{
+        files = @($Inventory.files | Where-Object { $_.path.StartsWith($prefix, [StringComparison]::Ordinal) } | ForEach-Object {
+            @{ path = $_.path.Substring($prefix.Length); length = $_.length; sha256 = $_.sha256 }
+        })
+        directories = @($Inventory.directories | Where-Object { $_.StartsWith($prefix, [StringComparison]::Ordinal) } | ForEach-Object { $_.Substring($prefix.Length) })
+    }
 }
 
 function Copy-PackageTree {

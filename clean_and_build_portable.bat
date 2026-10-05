@@ -203,6 +203,8 @@ if errorlevel 1 (
 
 REM 安装 OCR 依赖（完整版默认安装）
 echo    安装 OCR 依赖 paddlepaddle...
+REM paddlepaddle 不固定版本：CPU 专用源安装最新稳定 3.x，与下方 paddleocr>=3.7.0,<3.8.0
+REM 配套（paddleocr 3.x 需要 paddlepaddle 3.x）；升级 paddleocr 时需一并复核。
 "%PYTHON_EXE%" -m pip install --no-warn-script-location paddlepaddle -i https://www.paddlepaddle.org.cn/packages/stable/cpu/
 if errorlevel 1 (
     echo    ⚠️  paddlepaddle 安装失败，便携版将无法使用本地 OCR

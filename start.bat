@@ -31,6 +31,8 @@ echo [2/5] 检查 OCR 依赖 (paddlepaddle / paddleocr)...
 python -c "import paddle" 2>nul
 if errorlevel 1 (
     echo    ⚠️  OCR 依赖 paddlepaddle 未安装，正在安装...
+    REM paddlepaddle 不固定版本：CPU 专用源安装最新稳定 3.x，与 paddleocr>=3.7.0,<3.8.0
+    REM 配套（paddleocr 3.x 需要 paddlepaddle 3.x）；升级 paddleocr 时需一并复核。
     pip install paddlepaddle -i https://www.paddlepaddle.org.cn/packages/stable/cpu/
     if errorlevel 1 (
         echo    ❌ OCR 依赖 paddlepaddle 安装失败！

@@ -396,16 +396,7 @@ $p3Payload = @{ files=@($p3Inventory.files | Where-Object { $_.path -cne $p3Extr
 Assert-PackageInventoryManifest $p3Manifest $p3Payload
 $p3BackendManifest = Read-PackageJson (Join-Path $p3Request.directory 'backend-manifest.json')
 Assert-PackageManifestHeader $p3BackendManifest 'chaoxing-backend' $p3Version 'chaoxing-backend.exe'
-$p3BackendInventory = @{
-  files=@(foreach ($p3File in $p3Inventory.files) {
-    if ($p3File.path.StartsWith('backend/', [StringComparison]::Ordinal)) {
-      @{ path=$p3File.path.Substring(8); length=$p3File.length; sha256=$p3File.sha256 }
-    }
-  })
-  directories=@(foreach ($p3Directory in $p3Inventory.directories) {
-    if ($p3Directory.StartsWith('backend/', [StringComparison]::Ordinal)) { $p3Directory.Substring(8) }
-  })
-}
+$p3BackendInventory = Get-PackageSubtreeInventory -Inventory $p3Inventory -Prefix 'backend'
 Assert-PackageInventoryManifest $p3BackendManifest $p3BackendInventory
 Assert-BackendLayout (Join-Path $p3Request.directory 'backend') $p3BackendInventory
 @{ directory=$p3Request.directory; mode=$p3Request.mode; manifestKind=$p3ManifestKind; version=$p3Version; files=$p3Payload.files.Count; backendFiles=$p3BackendInventory.files.Count; manifestSha256=$p3ManifestHash } | ConvertTo-Json -Compress

@@ -130,14 +130,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-logs/
-saves/
-build/
-!desktop/build/
-dist/
-*.spec
-!chaoxing.spec
-!chaoxing-backend.spec
 
 # python-uv.lock
 # just like Pipfile.lock,
@@ -158,9 +150,6 @@ config.ini
 chaoxing.log
 config*.ini
 .chaoxing.log
-./config.ini
-./chaoxing.log
-./cookies.txt
 .idea/
 .vscode/
 cache.json
@@ -169,6 +158,8 @@ study_tasks.json
 study_tasks.json.migrated
 study_tasks/
 study_tasks.json.*.tmp
+logs/
+saves/
 
 # Portable build
 chaoxing_portable/
@@ -187,6 +178,8 @@ desktop/node_modules/
 desktop/backend/
 desktop/release/
 desktop/*.log
+# Tracked NSIS assets; un-ignores the build/ rule above for this subtree only.
+!desktop/build/
 
 # Tauri (desktop/src-tauri)
 desktop/src-tauri/target/
