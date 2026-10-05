@@ -1,19 +1,7 @@
-import React, { createContext, useCallback, useContext, useEffect, useId, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { Minimize2, PanelBottomClose, Power } from 'lucide-react';
 import Button from './ui/Button';
 import { desktopBridge, isTauriDesktop } from '../lib/desktopBridge';
-
-const RunningContext = createContext(null);
-
-// App reports whether a task is running; outside the provider this is a no-op.
-export function useReportTaskRunning(running) {
-  const setRunning = useContext(RunningContext);
-  useEffect(() => {
-    if (!setRunning) return undefined;
-    setRunning(running);
-    return () => setRunning(false);
-  }, [setRunning, running]);
-}
 
 const CHOICES = [
   { action: 'minimize', label: '最小化', icon: Minimize2 },
@@ -21,7 +9,7 @@ const CHOICES = [
   { action: 'exit', label: '退出程序', icon: Power },
 ];
 
-export function CloseChoiceDialog({ taskRunning = false }) {
+export function CloseChoiceDialog() {
   const [promptId, setPromptId] = useState(null);
   const [remember, setRemember] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -104,9 +92,6 @@ export function CloseChoiceDialog({ taskRunning = false }) {
                 className="w-full justify-start" onClick={() => void choose(action)}>
                 <Icon className="h-4 w-4" aria-hidden="true" />{label}
               </Button>
-              {action === 'exit' && taskRunning && (
-                <p className="mt-1 text-xs text-warning-ink">正在运行的任务会中断，下次启动可恢复。</p>
-              )}
             </div>
           ))}
         </div>
@@ -129,11 +114,10 @@ export function CloseChoiceDialog({ taskRunning = false }) {
 
 // Mounted outside the startup screen so a close during startup is still asked.
 export default function CloseChoice({ children }) {
-  const [running, setRunning] = useState(false);
   return (
-    <RunningContext.Provider value={setRunning}>
+    <>
       {children}
-      {isTauriDesktop() && <CloseChoiceDialog taskRunning={running} />}
-    </RunningContext.Provider>
+      {isTauriDesktop() && <CloseChoiceDialog />}
+    </>
   );
 }

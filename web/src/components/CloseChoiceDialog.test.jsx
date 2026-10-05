@@ -13,7 +13,7 @@ vi.mock('../lib/desktopBridge', () => ({
   desktopBridge: bridge,
   isTauriDesktop: () => true,
 }));
-import CloseChoice, { CloseChoiceDialog, useReportTaskRunning } from './CloseChoiceDialog';
+import CloseChoiceDialog from './CloseChoiceDialog';
 
 beforeEach(() => {
   bridge.handler = null;
@@ -79,17 +79,9 @@ it('does not show an expired prompt and keeps focus inside', async () => {
   expect(document.activeElement).toBe(cancel);
 });
 
-it('warns next to exit only while a task runs and shows a failed save', async () => {
-  function Reporter({ running }) {
-    useReportTaskRunning(running);
-    return null;
-  }
-  const view = render(<CloseChoice><Reporter running={false} /></CloseChoice>);
+it('keeps the dialog open and shows an alert when saving the choice fails', async () => {
+  render(<CloseChoiceDialog />);
   await prompt();
-  expect(screen.queryByText(/正在运行的任务会中断/)).toBeNull();
-  view.rerender(<CloseChoice><Reporter running /></CloseChoice>);
-  expect(screen.getByText('正在运行的任务会中断，下次启动可恢复。')).toBeTruthy();
-
   bridge.closeChoice.mockRejectedValueOnce('无法保存关闭方式，请重试');
   fireEvent.click(screen.getByLabelText('记住我的选择'));
   fireEvent.click(screen.getByRole('button', { name: '最小化' }));
