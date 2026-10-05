@@ -750,8 +750,12 @@ def _extract_points_from_chapter(chapter_unit) -> List[Dict[str, Any]]:
         point = raw_point.div
         if "id" not in point.attrs:
             continue
-            
-        point_id = re.findall(r"^cur(\d{1,20})$", point.attrs["id"])[0]
+
+        id_match = re.fullmatch(r"cur(\d{1,20})", point.attrs["id"])
+        if id_match is None:
+            logger.warning("跳过未识别的章节点 id: {}", point.attrs["id"])
+            continue
+        point_id = id_match.group(1)
         point_title = point.select_one("a.clicktitle").text.replace("\n", "").strip()
         
         # 提取任务数量

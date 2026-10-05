@@ -8,7 +8,7 @@ import requests
 
 import main
 from api.base import Account, Chaoxing, StudyResult
-from api.decode import card_page_has_payload, decode_course_card
+from api.decode import card_page_has_payload, decode_course_card, decode_course_point
 
 
 def card_page(attachments, **defaults):
@@ -306,8 +306,22 @@ class DecodeJobResultIntegrationTests(unittest.TestCase):
             self.assertEqual(result, main.ChapterResult.ERROR)
             self.assertEqual(self.chapter["_task_stats"], {"total": 1, "completed": 0, "failed": 1, "skipped": 0})
         run.assert_called_once()
-        self.empty.assert_called_once_with(self.course, self.chapter)
+        self.empty.assert_called_once_with(self.course, self.chapter, cancel_check=None)
         done.assert_not_called()
+
+
+class CoursePointDecodeTests(unittest.TestCase):
+    def test_unrecognized_point_id_is_skipped_with_a_warning(self):
+        html = """
+        <div class="chapter_unit">
+          <li><div id="cur1"><a class="clicktitle">第一章</a></div></li>
+          <li><div id="weird-2"><a class="clicktitle">第二章</a></div></li>
+          <li><div><a class="clicktitle">无 id</a></div></li>
+        </div>
+        """
+        result = decode_course_point(html)
+        self.assertEqual([p["id"] for p in result["points"]], ["1"])
+        self.assertEqual([p["title"] for p in result["points"]], ["第一章"])
 
 
 if __name__ == "__main__":

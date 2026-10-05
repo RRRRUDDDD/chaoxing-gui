@@ -8,6 +8,7 @@ from http.cookiejar import Cookie
 from pathlib import Path
 
 import requests
+from loguru import logger
 
 from api.config import GlobalConst as gc
 
@@ -91,7 +92,8 @@ def use_cookies(account=None):
                     parts = item.split("=", 1)
                     if len(parts) == 2:
                         cookies[parts[0]] = parts[1]
-        except Exception:
+        except Exception as exc:
+            logger.warning("读取 cookie 文件 {} 失败, 已按无 cookie 处理: {}", path, exc)
             return {}
 
         return cookies

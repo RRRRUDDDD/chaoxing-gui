@@ -88,7 +88,7 @@ class StudyResultTests(unittest.TestCase):
         self.assertEqual(self.client.study_work(COURSE, {}, {}), StudyResult.SKIPPED)
 
     def test_forbidden_recovery_feeds_refreshed_duration_into_later_reports(self):
-        session = SimpleNamespace(get=Mock(return_value=Mock(json=Mock(return_value={
+        session = SimpleNamespace(get=Mock(return_value=Mock(status_code=200, json=Mock(return_value={
             'status': 'success', 'duration': 100, 'dtoken': 'old-token'}))), cookies=[])
         job = {'name': 'video', 'playTime': 91000, 'objectid': 'obj', 'jobid': 'j',
                'otherinfo': '{}', 'videoFaceCaptureEnc': '', 'attDuration': 60,
@@ -109,7 +109,7 @@ class StudyResultTests(unittest.TestCase):
         self.assertEqual(log.call_args_list[3].args[4], 'new-token')
 
     def test_forbidden_recovery_without_playtime_keeps_the_play_position(self):
-        session = SimpleNamespace(get=Mock(return_value=Mock(json=Mock(return_value={
+        session = SimpleNamespace(get=Mock(return_value=Mock(status_code=200, json=Mock(return_value={
             'status': 'success', 'duration': 100, 'dtoken': 'old-token'}))), cookies=[])
         job = {'name': 'video', 'playTime': 91000, 'objectid': 'obj', 'jobid': 'j',
                'otherinfo': '{}', 'videoFaceCaptureEnc': '', 'attDuration': 60,

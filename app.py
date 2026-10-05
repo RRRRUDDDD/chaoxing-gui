@@ -539,7 +539,7 @@ def _run_study_task(task_id, store, common_config, tiku_config, notification_con
                         if not result["status"]:
                             raise LoginError(result.get("msg", "登录失败"))
                         courses = main_module.filter_courses(
-                            chaoxing.get_course_list(), common_config["course_list"], interactive=False
+                            chaoxing.get_course_list(cancel_check=cancelled), common_config["course_list"], interactive=False
                         )
                         if cancelled():
                             return

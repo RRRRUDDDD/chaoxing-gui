@@ -273,6 +273,85 @@ class ChaoxingCaptchaTests(unittest.TestCase):
         self.assertEqual(session.get.call_count, 2)
 
 
+    def test_course_list_post_is_resent_after_the_pass(self):
+        session = Mock()
+        session.get.return_value = response(200, "<div></div>")
+        session.post.side_effect = [verify_page(), response(200, "courses")]
+        with patch.object(self.client.session_manager, "get_session", return_value=session), \
+                patch.object(self.client, "solve_captcha", return_value=True), \
+                patch("api.base.decode_course_list", return_value=[{"courseId": "1"}]) as decode, \
+                patch("api.base.decode_course_folder", return_value=[]):
+            courses = self.client.get_course_list()
+        self.assertEqual(courses, [{"courseId": "1"}])
+        self.assertEqual(session.post.call_count, 2)
+        decode.assert_called_once_with("courses")
+
+    def test_course_list_post_captcha_failure_raises_and_never_decodes(self):
+        session = Mock()
+        session.post.return_value = verify_page()
+        with patch.object(self.client.session_manager, "get_session", return_value=session), \
+                patch.object(self.client, "solve_captcha", return_value=False), \
+                patch("api.base.decode_course_list") as decode:
+            with self.assertRaises(requests.RequestException):
+                self.client.get_course_list()
+        decode.assert_not_called()
+
+    def test_read_page_is_read_again_after_the_pass(self):
+        session = Mock()
+        session.get.side_effect = [verify_page(), response(200, '{"msg": "ok"}')]
+        with patch.object(self.client.session_manager, "get_session", return_value=session), \
+                patch.object(self.client, "solve_captcha", return_value=True):
+            result = self.client.study_read({"courseId": "k", "clazzId": "c"},
+                                            {"jobid": "j", "jtoken": "t"}, {"knowledgeid": "1"})
+        self.assertEqual(result, StudyResult.SUCCESS)
+        self.assertEqual(session.get.call_count, 2)
+
+    def test_read_captcha_failure_is_an_error_result_without_resend(self):
+        session = Mock()
+        session.get.return_value = verify_page()
+        with patch.object(self.client.session_manager, "get_session", return_value=session), \
+                patch.object(self.client, "solve_captcha", return_value=False):
+            result = self.client.study_read({"courseId": "k", "clazzId": "c"},
+                                            {"jobid": "j", "jtoken": "t"}, {"knowledgeid": "1"})
+        self.assertEqual(result, StudyResult.ERROR)
+        self.assertEqual(session.get.call_count, 1, "a failed pass must not resend the read")
+
+    def test_document_captcha_failure_is_an_error_result(self):
+        session = Mock()
+        session.get.return_value = verify_page()
+        job = {"jobid": "d", "jtoken": "t", "otherinfo": "nodeId_9-x"}
+        with patch.object(self.client.session_manager, "get_session", return_value=session), \
+                patch.object(self.client, "solve_captcha", return_value=False):
+            result = self.client.study_document({"courseId": "k", "clazzId": "c"}, job)
+        self.assertEqual(result, StudyResult.ERROR)
+
+    def test_empty_page_captcha_failure_is_an_error_result(self):
+        session = Mock()
+        session.get.return_value = verify_page()
+        course = {"courseId": "k", "clazzId": "c", "cpi": "p"}
+        with patch.object(self.client.session_manager, "get_session", return_value=session), \
+                patch.object(self.client, "solve_captcha", return_value=False):
+            result = self.client.study_emptypage(course, {"id": "1", "title": "chapter"})
+        self.assertEqual(result, StudyResult.ERROR)
+
+    def test_video_info_first_fetch_passes_the_verification_page(self):
+        session = Mock()
+        session.cookies = []
+        info = Mock(status_code=200, json=Mock(return_value={"status": "success", "duration": 60, "dtoken": "t"}))
+        session.get.side_effect = [verify_page(), info]
+        job = {"name": "video", "playTime": 0, "objectid": "o", "jobid": "j", "otherinfo": "{}",
+               "videoFaceCaptureEnc": "", "attDuration": "", "attDurationEnc": "", "rt": "0.9"}
+        course = {"clazzId": "c", "courseId": "k", "cpi": "p", "title": "C"}
+        with patch.object(self.client.session_manager, "get_session", return_value=session), \
+                patch.object(self.client, "solve_captcha", return_value=True), \
+                patch.object(self.client, "video_progress_log", return_value=(True, 200)) as log, \
+                patch("api.base._open_progress", return_value=Mock()):
+            result = self.client.study_video(course, job, {}, 1)
+        self.assertEqual(result, StudyResult.SUCCESS)
+        self.assertEqual(session.get.call_count, 2)
+        self.assertEqual(log.call_count, 2)
+
+
 class CourseToolCaptchaTests(unittest.TestCase):
     def setUp(self):
         self.session = Mock()

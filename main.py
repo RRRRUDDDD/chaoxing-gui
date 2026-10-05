@@ -250,7 +250,7 @@ def process_job(chaoxing: Chaoxing, course: dict, job: dict, job_info: dict, spe
     # 文档任务
     elif job["type"] == "document":
         logger.trace(f"识别到文档任务, 任务章节: {course['title']} 任务ID: {job['jobid']}")
-        return chaoxing.study_document(course, job)
+        return chaoxing.study_document(course, job, cancel_check=cancel_check)
     # 测验任务
     elif job["type"] == "workid":
         logger.trace(f"识别到章节检测任务, 任务章节: {course['title']}")
@@ -258,7 +258,7 @@ def process_job(chaoxing: Chaoxing, course: dict, job: dict, job_info: dict, spe
     # 阅读任务
     elif job["type"] == "read":
         logger.trace(f"识别到阅读任务, 任务章节: {course['title']}")
-        return chaoxing.study_read(course, job, job_info)
+        return chaoxing.study_read(course, job, job_info, cancel_check=cancel_check)
     # 直播任务
     elif job["type"] == "live":
         logger.trace(f"识别到直播任务, 任务章节: {course['title']} 任务ID: {job['jobid']}")

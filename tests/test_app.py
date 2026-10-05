@@ -211,7 +211,7 @@ class WebAppTests(unittest.TestCase):
             [{"type": "read", "jobid": result.name} for result in (StudyResult.SUCCESS, StudyResult.ERROR, StudyResult.SKIPPED)],
             {},
         )
-        self.chaoxing.study_read.side_effect = lambda course, job, info: StudyResult[job["jobid"]]
+        self.chaoxing.study_read.side_effect = lambda course, job, info, cancel_check=None: StudyResult[job["jobid"]]
         task_id, status = self.state(self.start())
         self.assertEqual(status["status"], "partial")
         stats = status["stats"]

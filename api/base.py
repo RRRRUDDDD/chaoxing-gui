@@ -31,7 +31,7 @@ from api.decode import (
     decode_course_folder,
     decode_questions_info,
 )
-from api.exceptions import MaxRetryExceeded
+from api.exceptions import CaptchaNotPassed, MaxRetryExceeded
 
 
 def _is_cancelled(cancel_check):
@@ -41,6 +41,11 @@ def _is_cancelled(cancel_check):
         except Exception as exc:
             logger.debug("读取停止信号失败: {}", exc)
     return False
+
+
+# 登录页只会带这两个特征; 单独的 "login" 一词在正常课程页脚本里也会出现,
+# 旧启发式会误判有效会话为失效 (多余地触发重登录)。
+_LOGIN_PAGE_MARKERS = ("passport2.chaoxing.com", "fanyalogin")
 
 
 def _wait_for_cancel(seconds, cancel_check):
@@ -99,6 +104,115 @@ def _open_progress(total, initial, desc):
     except OSError as exc:
         logger.debug("进度条不可用，改为静默执行: {}", exc)
         return _SilentProgress(initial)
+
+
+def _multi_cut(answer: str, origin_html: str = ""):
+    """
+    将多选题答案字符串按特定字符进行切割, 并返回切割后的答案列表
+
+    参数:
+    answer(str): 多选题答案字符串.
+
+    返回:
+    list[str]: 切割后的答案列表,如果无法切割, 则返回默认的选项列表None
+
+    注意:
+    如果无法从网页中提取题目信息,将记录警告日志并返回None
+    """
+    # ',' 在常规被正确划分的选项中出现, 导致无法正确划分选项 (#391),
+    # 因此先由 cut() 按 '\n' 匹配, 匹配不到再按照其他字符匹配
+    res = cut(answer)
+    if res is None:
+        logger.warning(
+            f"未能从网页中提取题目信息, 以下为相关信息：\n\t{answer}\n\n{origin_html}\n"
+        )  # 尝试输出网页内容和选项信息
+        logger.warning("未能正确提取题目选项信息! 请反馈并提供以上信息")
+        return None
+    else:
+        return res
+
+
+def _random_answer(q: dict, options: str, origin_html: str = "") -> str:
+    """题库没有可用答案时的随机作答。"""
+    answer = ""
+    if not options:
+        return answer
+
+    if q["type"] == "multiple":
+        logger.debug(f"当前选项列表[cut前] -> {options}")
+        _op_list = _multi_cut(options, origin_html)
+        logger.debug(f"当前选项列表[cut后] -> {_op_list}")
+
+        if not _op_list:
+            logger.error(
+                "选项为空, 未能正确提取题目选项信息! 请反馈并提供以上信息"
+            )
+            return answer
+
+        available_options = len(_op_list)
+        select_count = 0
+
+        # 根据可用选项数量调整可能选择的选项数
+        if available_options <= 1:
+            select_count = available_options
+        else:
+            max_possible = min(4, available_options)
+            min_possible = min(2, available_options)
+
+            weights_map = {
+                2: [1.0],
+                3: [0.3, 0.7],
+                4: [0.1, 0.5, 0.4],
+                5: [0.1, 0.4, 0.3, 0.2],
+            }
+
+            weights = weights_map.get(max_possible, [0.3, 0.4, 0.3])
+            possible_counts = list(range(min_possible, max_possible + 1))
+
+            weights = weights[:len(possible_counts)]
+
+            weights_sum = sum(weights)
+            if weights_sum > 0:
+                weights = [w / weights_sum for w in weights]
+
+            select_count = random.choices(possible_counts, weights=weights, k=1)[0]
+
+        selected_options = random.sample(_op_list, select_count) if select_count > 0 else []
+
+        for option in selected_options:
+            answer += option[:1]  # 取首字为答案，例如A或B
+
+        answer = "".join(sorted(answer))
+    elif q["type"] == "single":
+        answer = random.choice(options.split("\n"))[:1]  # 取首字为答案, 例如A或B
+    # 判断题处理
+    elif q["type"] == "judgement":
+        answer = "true" if random.choice([True, False]) else "false"
+    logger.info(f"随机选择 -> {answer}")
+    return answer
+
+
+def _fill_answers_into_form(questions: dict, is_save: bool):
+    """将每道题的 answerField 写回提交表单。
+
+    - is_save=True: 仅在 answerSource 为 cover 时写入答案（随机答案留空）。
+    - is_save=False: 所有 answer* 字段直接写入（提交时保留随机答案）。
+    """
+    for q in questions["questions"]:
+        src = q.get(f'answerSource{q["id"]}', "")
+        # 写入所有 answer* 字段（包括 answer{id}, answer{id}_0 等）
+        for key, val in q["answerField"].items():
+            if not isinstance(key, str) or not key.startswith("answer"):
+                continue
+            if is_save:
+                questions[key] = val if src == "cover" else ""
+            else:
+                questions[key] = val
+
+        # 写入 answertype{id}
+        answertype_key = f'answertype{q["id"]}'
+        if answertype_key in q["answerField"]:
+            questions[answertype_key] = q["answerField"][answertype_key]
 
 
 class Account:
@@ -278,7 +392,7 @@ class Chaoxing:
         if resp.status_code != 200:
             return False
 
-        if "passport2.chaoxing.com" in resp.text or "login" in resp.text.lower():
+        if "passport2.chaoxing.com" in resp.url or any(marker in resp.text for marker in _LOGIN_PAGE_MARKERS):
             return False
 
         self._root_course_list_html = resp.text
@@ -300,7 +414,7 @@ class Chaoxing:
             return uid
         raise ValueError("Cannot get uid !")
 
-    def get_course_list(self):
+    def get_course_list(self, cancel_check=None):
         _session = self.session_manager.get_session()
         _url = "https://mooc2-ans.chaoxing.com/mooc2-ans/visit/courselistdata"
         _data = {"courseType": 1, "courseFolderId": 0, "query": "", "superstarClass": 0}
@@ -314,7 +428,7 @@ class Chaoxing:
         cached = self._root_course_list_html
         self._root_course_list_html = None
         if cached is None:
-            _resp = _session.post(_url, headers=_headers, data=_data)
+            _resp = self._post_past_captcha(_session, _url, cancel_check, headers=_headers, data=_data)
             _resp.raise_for_status()
             cached = _resp.text
         # logger.trace(f"原始课程列表内容:\n{cached}")
@@ -322,7 +436,7 @@ class Chaoxing:
         course_list = decode_course_list(cached)
 
         _interaction_url = "https://mooc2-ans.chaoxing.com/mooc2-ans/visit/interaction"
-        _interaction_resp = _session.get(_interaction_url)
+        _interaction_resp = self._get_past_captcha(_session, _interaction_url, cancel_check)
         _interaction_resp.raise_for_status()
         course_folder = decode_course_folder(_interaction_resp.text)
         for folder in course_folder:
@@ -332,7 +446,7 @@ class Chaoxing:
                 "query": "",
                 "superstarClass": 0,
             }
-            _resp = _session.post(_url, data=_data)
+            _resp = self._post_past_captcha(_session, _url, cancel_check, data=_data)
             _resp.raise_for_status()
             course_list += decode_course_list(_resp.text)
         return course_list
@@ -398,7 +512,7 @@ class Chaoxing:
         if _is_cancelled(cancel_check):
             return [], {}
         if not job_list and not passed_jobs:
-            result = self.study_emptypage(course, point)
+            result = self.study_emptypage(course, point, cancel_check=cancel_check)
             if result != StudyResult.SUCCESS:
                 raise RequestException(f"空页面任务失败: {point.get('title', point.get('id'))}")
             job_info['empty'] = True
@@ -407,23 +521,30 @@ class Chaoxing:
 
         return job_list, job_info
 
-    def _get_past_captcha(self, session, url, cancel_check=None, **kwargs):
-        """GET a page; after a verification page, pass it and read again.
+    def _request_past_captcha(self, session, send, url, cancel_check=None, **kwargs):
+        """Send a read-only request; after a verification page, pass it and retry.
 
         Reads here have no side effects, so a second attempt is safe. A page
-        that is still a verification page raises: it is never page content.
+        that is still a verification page raises CaptchaNotPassed: it is never
+        page content.
         """
-        response = session.get(url, **kwargs)
+        response = send(url, **kwargs)
         if not is_captcha_response(response):
             return response
         logger.warning("请求触发验证码")
         if self.solve_captcha(cancel_check) and not _is_cancelled(cancel_check):
             response.close()
-            response = session.get(url, **kwargs)
+            response = send(url, **kwargs)
             if not is_captcha_response(response):
                 return response
         response.close()
-        raise RequestException("验证码未通过，请在浏览器中手动完成验证后重试")
+        raise CaptchaNotPassed()
+
+    def _get_past_captcha(self, session, url, cancel_check=None, **kwargs):
+        return self._request_past_captcha(session, session.get, url, cancel_check, **kwargs)
+
+    def _post_past_captcha(self, session, url, cancel_check=None, **kwargs):
+        return self._request_past_captcha(session, session.post, url, cancel_check, **kwargs)
 
     def get_enc(self, clazzId, jobid, objectId, playingTime, duration, userid):
         return md5(
@@ -568,7 +689,8 @@ class Chaoxing:
         return False, resp.status_code
 
 
-    def _refresh_video_status(self, session: requests.Session, job: dict, _type: Literal["Video", "Audio"]) -> Optional[dict]:
+    def _refresh_video_status(self, session: requests.Session, job: dict, _type: Literal["Video", "Audio"],
+                              cancel_check=None) -> Optional[dict]:
         self.rate_limiter.limit_rate(random_time=True, random_max=0.2)
         headers = gc.VIDEO_HEADERS if _type == "Video" else gc.AUDIO_HEADERS
         info_url = (
@@ -576,7 +698,7 @@ class Chaoxing:
             f"k={self.get_fid()}&flag=normal"
         )
         try:
-            resp = session.get(info_url, timeout=8, headers=headers)
+            resp = self._get_past_captcha(session, info_url, cancel_check, timeout=8, headers=headers)
         except RequestException as exc:
             logger.debug("刷新视频状态失败: {}", exc)
             return None
@@ -597,14 +719,11 @@ class Chaoxing:
 
         return None
 
-    def _recover_after_forbidden(self, session: requests.Session, job: dict, _type: Literal["Video", "Audio"]):
+    def _recover_after_forbidden(self, session: requests.Session, job: dict, _type: Literal["Video", "Audio"],
+                                 cancel_check=None):
         # Keep this login instance's session. The account's persisted file may
         # have been updated by a different login while this course was running.
-        refreshed = self._refresh_video_status(session, job, _type)
-        if refreshed:
-            return refreshed
-
-        return None
+        return self._refresh_video_status(session, job, _type, cancel_check)
 
 
     def study_video(
@@ -622,13 +741,12 @@ class Chaoxing:
         _session = self.session_manager.get_session()
 
         headers = gc.VIDEO_HEADERS if _type == "Video" else gc.AUDIO_HEADERS
-        _info_url = f"https://mooc1.chaoxing.com/ananas/status/{_job['objectid']}?k={self.get_fid()}&flag=normal"
-        _video_info = _session.get(_info_url, headers=headers).json()
+        _video_info = self._refresh_video_status(_session, _job, _type, cancel_check)
         if _is_cancelled(cancel_check):
             return StudyResult.SKIPPED
 
-        if _video_info["status"] != "success":
-            logger.error(f"Unknown status: {_video_info['status']}")
+        if _video_info is None:
+            logger.error("获取视频信息失败, 跳过任务: {}", _job["name"])
             return StudyResult.ERROR
 
         _dtoken = _video_info["dtoken"]
@@ -694,7 +812,7 @@ class Chaoxing:
                         )
                         if _wait_for_cancel(random.uniform(2, 4), cancel_check):
                             return StudyResult.SKIPPED
-                        refreshed_meta = self._recover_after_forbidden(_session, _job, _type)
+                        refreshed_meta = self._recover_after_forbidden(_session, _job, _type, cancel_check)
                         if refreshed_meta:
                             # FIXME: Maybe it should be considered an error if those keys aren't present in the refreshed meta, so we perhaps shouldn't use get()
                             _dtoken = refreshed_meta.get("dtoken", _dtoken)
@@ -743,7 +861,7 @@ class Chaoxing:
             except OSError as exc:
                 logger.debug("进度条关闭失败: {}", exc)
 
-    def study_document(self, _course, _job) -> StudyResult:
+    def study_document(self, _course, _job, cancel_check=None) -> StudyResult:
         """
         Study a document in Chaoxing platform.
 
@@ -759,183 +877,126 @@ class Chaoxing:
                 - jtoken: Authentication token for the job
 
         Returns:
-            requests.Response: Response object from the GET request
-
-        Note:
-            This method requires the following helper functions:
-            - init_session(): To initialize a new session
-            - get_timestamp(): To get current timestamp
-            - re module for regular expression matching
+            StudyResult: SUCCESS when the document read is acknowledged
         """
         _session = self.session_manager.get_session()
         _url = f"https://mooc1.chaoxing.com/ananas/job/document?jobid={_job['jobid']}&knowledgeid={re.findall(r'nodeId_(.*?)-', _job['otherinfo'])[0]}&courseid={_course['courseId']}&clazzid={_course['clazzId']}&jtoken={_job['jtoken']}&_dc={get_timestamp()}"
-        _resp = _session.get(_url)
+        try:
+            _resp = self._get_past_captcha(_session, _url, cancel_check)
+        except CaptchaNotPassed:
+            return StudyResult.ERROR
         if _resp.status_code != 200:
             return StudyResult.ERROR
         else:
             return StudyResult.SUCCESS
 
+    def _fetch_work_page(self, session, url, params, cancel_check, max_retries=3, delay=1):
+        """拉取章节检测页面, 直到响应能解码出题目; 返回 (response, questions)。
+
+        FIXME: Use tenacity for retrying.
+        """
+        retries = 0
+        while retries < max_retries:
+            if _is_cancelled(cancel_check):
+                return None, None
+            try:
+                _resp = self._get_past_captcha(session, url, cancel_check, params=params)
+                if _is_cancelled(cancel_check):
+                    return None, None
+
+                # 未创建完成该测验则不进行答题，目前遇到的情况是未创建完成等同于没题目
+                if '教师未创建完成该测验' in _resp.text:
+                    raise PermissionError("教师未创建完成该测验")
+
+                with self.session_manager.context():
+                    questions = decode_questions_info(_resp.text)
+
+                if _resp.status_code == 200 and questions.get("questions"):
+                    return (_resp, questions)
+
+                logger.warning(
+                    f"无效响应 (Code: {getattr(_resp, 'status_code', 'Unknown')}), 重试中... ({retries + 1}/{max_retries})")
+
+            except requests.exceptions.RequestException as e:
+                logger.warning(f"请求失败: {str(e)[:50]}, 重试中... ({retries + 1}/{max_retries})")
+            retries += 1
+            if _wait_for_cancel(delay * (2 ** retries), cancel_check):
+                return None, None
+        raise MaxRetryExceeded(f"超过最大重试次数 ({max_retries})")
+
+    def _handle_work_question(self, q, cancel_check, origin_html) -> bool:
+        """Fill one answer; True only when it came from the question bank."""
+        if _is_cancelled(cancel_check):
+            return False
+        logger.debug("当前题目信息 -> {}", truncated(q))
+        # 添加搜题延迟 #428 - 默认0s延迟
+        query_delay = self.kwargs.get("query_delay", 0)
+        if query_delay:
+            if _wait_for_cancel(query_delay, cancel_check):
+                return False
+        if _is_cancelled(cancel_check):
+            return False
+        # An undecodable encrypted font goes straight to the no-answer path.
+        res = None if q.get("undecodable") else self.tiku.query(q)
+        if _is_cancelled(cancel_check):
+            return False
+        answer = ""
+        found = False
+        if not res:
+            # 随机答题
+            answer = _random_answer(q, q["options"], origin_html)
+            q[f'answerSource{q["id"]}'] = "random"
+        else:
+            matched = match_answer(res, q, self.tiku.true_list, self.tiku.false_list)
+            answer = matched.answer or ""
+            if matched.fields:
+                q["answerField"].update(matched.fields)
+
+            if not answer:  # 检查 answer 是否为空
+                logger.warning(f"找到答案但答案未能匹配 -> {res}\t随机选择答案")
+                answer = _random_answer(q, q["options"], origin_html)  # 如果为空，则随机选择答案
+                q[f'answerSource{q["id"]}'] = "random"
+            else:
+                logger.info(f"成功获取到答案：{answer}")
+                q[f'answerSource{q["id"]}'] = "cover"
+                found = True
+        # 填充答案
+        q["answerField"][f'answer{q["id"]}'] = answer
+        logger.info(f'{q["title"]} 填写答案为 {answer}')
+        return found
+
 
     def study_work(self, _course, _job, _job_info, cancel_check=None) -> StudyResult:
-        # FIXME: 这一块可以单独搞一个类出来了，方法里面又套方法，每一次调用都会创建新的方法，十分浪费
         if _is_cancelled(cancel_check) or not self.tiku or self.tiku.DISABLE:
             return StudyResult.SKIPPED
-        _ORIGIN_HTML_CONTENT = ""  # 用于配合输出网页源码, 帮助修复#391错误
-
-        def random_answer(q: dict, options: str) -> str:
-            answer = ""
-            if not options:
-                return answer
-
-            if q["type"] == "multiple":
-                logger.debug(f"当前选项列表[cut前] -> {options}")
-                _op_list = multi_cut(options)
-                logger.debug(f"当前选项列表[cut后] -> {_op_list}")
-
-                if not _op_list:
-                    logger.error(
-                        "选项为空, 未能正确提取题目选项信息! 请反馈并提供以上信息"
-                    )
-                    return answer
-
-                available_options = len(_op_list)
-                select_count = 0
-
-                # 根据可用选项数量调整可能选择的选项数
-                if available_options <= 1:
-                    select_count = available_options
-                else:
-                    max_possible = min(4, available_options)
-                    min_possible = min(2, available_options)
-
-                    weights_map = {
-                        2: [1.0],
-                        3: [0.3, 0.7],
-                        4: [0.1, 0.5, 0.4],
-                        5: [0.1, 0.4, 0.3, 0.2],
-                    }
-
-                    weights = weights_map.get(max_possible, [0.3, 0.4, 0.3])
-                    possible_counts = list(range(min_possible, max_possible + 1))
-
-                    weights = weights[:len(possible_counts)]
-
-                    weights_sum = sum(weights)
-                    if weights_sum > 0:
-                        weights = [w / weights_sum for w in weights]
-
-                    select_count = random.choices(possible_counts, weights=weights, k=1)[0]
-
-                selected_options = random.sample(_op_list, select_count) if select_count > 0 else []
-
-                for option in selected_options:
-                    answer += option[:1]  # 取首字为答案，例如A或B
-
-                answer = "".join(sorted(answer))
-            elif q["type"] == "single":
-                answer = random.choice(options.split("\n"))[:1]  # 取首字为答案, 例如A或B
-            # 判断题处理
-            elif q["type"] == "judgement":
-                # answer = self.tiku.jugement_select(_answer)
-                answer = "true" if random.choice([True, False]) else "false"
-            logger.info(f"随机选择 -> {answer}")
-            return answer
-
-        def multi_cut(answer: str):
-            """
-            将多选题答案字符串按特定字符进行切割, 并返回切割后的答案列表
-
-            参数:
-            answer(str): 多选题答案字符串.
-
-            返回:
-            list[str]: 切割后的答案列表,如果无法切割, 则返回默认的选项列表None
-
-            注意:
-            如果无法从网页中提取题目信息,将记录警告日志并返回None
-            """
-            # ',' 在常规被正确划分的选项中出现, 导致无法正确划分选项 (#391),
-            # 因此先由 cut() 按 '\n' 匹配, 匹配不到再按照其他字符匹配
-            res = cut(answer)
-            if res is None:
-                logger.warning(
-                    f"未能从网页中提取题目信息, 以下为相关信息：\n\t{answer}\n\n{_ORIGIN_HTML_CONTENT}\n"
-                )  # 尝试输出网页内容和选项信息
-                logger.warning("未能正确提取题目选项信息! 请反馈并提供以上信息")
-                return None
-            else:
-                return res
-
-        # FIXME: Use tenacity for retrying
-        def with_retry(max_retries=3, delay=1):
-            def decorator(func):
-                def wrapper(*args, **kwargs):
-                    retries = 0
-                    while retries < max_retries:
-                        if _is_cancelled(cancel_check):
-                            return None, None
-                        try:
-                            _resp = func(*args, **kwargs)
-                            if _is_cancelled(cancel_check):
-                                return None, None
-
-                            # 未创建完成该测验则不进行答题，目前遇到的情况是未创建完成等同于没题目
-                            if '教师未创建完成该测验' in _resp.text:
-                                raise PermissionError("教师未创建完成该测验")
-
-                            with self.session_manager.context():
-                                questions = decode_questions_info(_resp.text)
-
-                            if _resp.status_code == 200 and questions.get("questions"):
-                                return (_resp, questions)
-
-                            logger.warning(
-                                f"无效响应 (Code: {getattr(_resp, 'status_code', 'Unknown')}), 重试中... ({retries + 1}/{max_retries})")
-
-                        except requests.exceptions.RequestException as e:
-                            logger.warning(f"请求失败: {str(e)[:50]}, 重试中... ({retries + 1}/{max_retries})")
-                        retries += 1
-                        if _wait_for_cancel(delay * (2 ** retries), cancel_check):
-                            return None, None
-                    raise MaxRetryExceeded(f"超过最大重试次数 ({max_retries})")
-
-                return wrapper
-
-            return decorator
-
         # 学习通这里根据参数差异能重定向至两个不同接口, 需要定向至https://mooc1.chaoxing.com/mooc-ans/workHandle/handle
         _session = self.session_manager.get_session()
 
         _url = "https://mooc1.chaoxing.com/mooc-ans/api/work"
 
-        @with_retry(max_retries=3, delay=1)
-        def fetch_response():
-            return self._get_past_captcha(
-                _session, _url, cancel_check,
-                params={
-                    "api": "1",
-                    "workId": _job["jobid"].replace("work-", ""),
-                    "jobid": _job["jobid"],
-                    "originJobId": _job["jobid"],
-                    "needRedirect": "true",
-                    "skipHeader": "true",
-                    "knowledgeid": str(_job_info["knowledgeid"]),
-                    "ktoken": _job_info["ktoken"],
-                    "cpi": _job_info["cpi"],
-                    "ut": "s",
-                    "clazzId": _course["clazzId"],
-                    "type": "",
-                    "enc": _job["enc"],
-                    "mooc2": "1",
-                    "courseid": _course["courseId"],
-                }
-            )
+        params = {
+            "api": "1",
+            "workId": _job["jobid"].replace("work-", ""),
+            "jobid": _job["jobid"],
+            "originJobId": _job["jobid"],
+            "needRedirect": "true",
+            "skipHeader": "true",
+            "knowledgeid": str(_job_info["knowledgeid"]),
+            "ktoken": _job_info["ktoken"],
+            "cpi": _job_info["cpi"],
+            "ut": "s",
+            "clazzId": _course["clazzId"],
+            "type": "",
+            "enc": _job["enc"],
+            "mooc2": "1",
+            "courseid": _course["courseId"],
+        }
 
         final_resp = {}
         questions = {}
 
         try:
-            final_resp, questions = fetch_response()
+            final_resp, questions = self._fetch_work_page(_session, _url, params, cancel_check)
         except Exception as e:
             if _is_cancelled(cancel_check):
                 return StudyResult.SKIPPED
@@ -944,58 +1005,17 @@ class Chaoxing:
 
         if _is_cancelled(cancel_check):
             return StudyResult.SKIPPED
-        _ORIGIN_HTML_CONTENT = final_resp.text  # 用于配合输出网页源码, 帮助修复#391错误
+        origin_html = final_resp.text  # 用于配合输出网页源码, 帮助修复#391错误
 
         # 搜题
         total_questions = len(questions["questions"])
         found_answers = 0
 
-        def _handle_question(q) -> bool:
-            """Fill one answer; True only when it came from the question bank."""
-            if _is_cancelled(cancel_check):
-                return False
-            logger.debug("当前题目信息 -> {}", truncated(q))
-            # 添加搜题延迟 #428 - 默认0s延迟
-            query_delay = self.kwargs.get("query_delay", 0)
-            if query_delay:
-                if _wait_for_cancel(query_delay, cancel_check):
-                    return False
-            if _is_cancelled(cancel_check):
-                return False
-            # An undecodable encrypted font goes straight to the no-answer path.
-            res = None if q.get("undecodable") else self.tiku.query(q)
-            if _is_cancelled(cancel_check):
-                return False
-            answer = ""
-            found = False
-            if not res:
-                # 随机答题
-                answer = random_answer(q, q["options"])
-                q[f'answerSource{q["id"]}'] = "random"
-            else:
-                matched = match_answer(res, q, self.tiku.true_list, self.tiku.false_list)
-                answer = matched.answer or ""
-                if matched.fields:
-                    q["answerField"].update(matched.fields)
-
-                if not answer:  # 检查 answer 是否为空
-                    logger.warning(f"找到答案但答案未能匹配 -> {res}\t随机选择答案")
-                    answer = random_answer(q, q["options"])  # 如果为空，则随机选择答案
-                    q[f'answerSource{q["id"]}'] = "random"
-                else:
-                    logger.info(f"成功获取到答案：{answer}")
-                    q[f'answerSource{q["id"]}'] = "cover"
-                    found = True
-            # 填充答案
-            q["answerField"][f'answer{q["id"]}'] = answer
-            logger.info(f'{q["title"]} 填写答案为 {answer}')
-            return found
-
         for q in questions["questions"]:
             if _is_cancelled(cancel_check):
                 return StudyResult.SKIPPED
             with self.session_manager.context():
-                found_answers += _handle_question(q)
+                found_answers += self._handle_work_question(q, cancel_check, origin_html)
         if _is_cancelled(cancel_check):
             return StudyResult.SKIPPED
         cover_rate = (found_answers / total_questions) * 100
@@ -1010,33 +1030,11 @@ class Chaoxing:
             questions["pyFlag"] = "1"
             logger.info(f"章节检测题库覆盖率低于{self.tiku.COVER_RATE * 100:.0f}% ，不予提交")
 
-        def _fill_answers_into_form(is_save: bool):
-            """将每道题的 answerField 写回提交表单。
-
-            - is_save=True: 仅在 answerSource 为 cover 时写入答案（随机答案留空）。
-            - is_save=False: 所有 answer* 字段直接写入（提交时保留随机答案）。
-            """
-            for q in questions["questions"]:
-                src = q.get(f'answerSource{q["id"]}', "")
-                # 写入所有 answer* 字段（包括 answer{id}, answer{id}_0 等）
-                for key, val in q["answerField"].items():
-                    if not isinstance(key, str) or not key.startswith("answer"):
-                        continue
-                    if is_save:
-                        questions[key] = val if src == "cover" else ""
-                    else:
-                        questions[key] = val
-
-                # 写入 answertype{id}
-                answertype_key = f'answertype{q["id"]}'
-                if answertype_key in q["answerField"]:
-                    questions[answertype_key] = q["answerField"][answertype_key]
-
         # 组建提交表单
         if questions["pyFlag"] == "1":
-            _fill_answers_into_form(is_save=True)
+            _fill_answers_into_form(questions, is_save=True)
         else:
-            _fill_answers_into_form(is_save=False)
+            _fill_answers_into_form(questions, is_save=False)
 
         del questions["questions"]
 
@@ -1098,21 +1096,26 @@ class Chaoxing:
                 logger.warning("章节测验已提交，成绩未确认：{}", result["reason"])
         return StudyResult.SKIPPED if questions["pyFlag"] == "1" else StudyResult.SUCCESS
 
-    def study_read(self, _course, _job, _job_info) -> StudyResult:
+    def study_read(self, _course, _job, _job_info, cancel_check=None) -> StudyResult:
         """
         阅读任务学习, 仅完成任务点, 并不增长时长
         """
         _session = self.session_manager.get_session()
-        _resp = _session.get(
-            url="https://mooc1.chaoxing.com/ananas/job/readv2",
-            params={
-                "jobid": _job["jobid"],
-                "knowledgeid": _job_info["knowledgeid"],
-                "jtoken": _job["jtoken"],
-                "courseid": _course["courseId"],
-                "clazzid": _course["clazzId"],
-            },
-        )
+        try:
+            _resp = self._get_past_captcha(
+                _session,
+                "https://mooc1.chaoxing.com/ananas/job/readv2",
+                cancel_check,
+                params={
+                    "jobid": _job["jobid"],
+                    "knowledgeid": _job_info["knowledgeid"],
+                    "jtoken": _job["jtoken"],
+                    "courseid": _course["courseId"],
+                    "clazzid": _course["clazzId"],
+                },
+            )
+        except CaptchaNotPassed:
+            return StudyResult.ERROR
         if _resp.status_code != 200:
             logger.error(f"阅读任务学习失败 -> [{_resp.status_code}]{_resp.text}")
             return StudyResult.ERROR
@@ -1121,22 +1124,28 @@ class Chaoxing:
             logger.info(f"阅读任务学习 -> {_resp_json['msg']}")
             return StudyResult.SUCCESS
 
-    def study_emptypage(self, _course, point):
+    def study_emptypage(self, _course, point, cancel_check=None) -> StudyResult:
         _session = self.session_manager.get_session()
         # &cpi=0&verificationcode=&mooc2=1&microTopicId=0&editorPreview=0
-        _resp = _session.get(
-            url="https://mooc1.chaoxing.com/mooc-ans/mycourse/studentstudyAjax",
-            params={
-                "courseId": _course["courseId"],
-                "clazzid": _course["clazzId"],
-                "chapterId": point["id"],
-                "cpi": _course["cpi"],
-                "verificationcode": "",
-                "mooc2": 1,
-                "microTopicId": 0,
-                "editorPreview": 0,
-            },
-        )
+        try:
+            _resp = self._get_past_captcha(
+                _session,
+                "https://mooc1.chaoxing.com/mooc-ans/mycourse/studentstudyAjax",
+                cancel_check,
+                params={
+                    "courseId": _course["courseId"],
+                    "clazzid": _course["clazzId"],
+                    "chapterId": point["id"],
+                    "cpi": _course["cpi"],
+                    "verificationcode": "",
+                    "mooc2": 1,
+                    "microTopicId": 0,
+                    "editorPreview": 0,
+                },
+            )
+        except CaptchaNotPassed:
+            logger.error(f"空页面任务失败 -> {point['title']}")
+            return StudyResult.ERROR
         if _resp.status_code != 200:
             logger.error(f"空页面任务失败 -> [{_resp.status_code}]{point['title']}")
             return StudyResult.ERROR

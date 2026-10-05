@@ -51,7 +51,8 @@ class CourseListReuseTests(unittest.TestCase):
         self.addCleanup(client.close)
         session = client.session_manager.get_session()
         session.cookies.set("_uid", "alice")
-        response = Mock(status_code=200, text="<div>courses</div>")
+        response = Mock(status_code=200, url="https://mooc2-ans.chaoxing.com/mooc2-ans/visit/courselistdata",
+                        text="<div>courses</div>")
         with patch.object(client.session_manager, "update_cookies"), \
                 patch.object(session, "post", return_value=response) as post, \
                 patch.object(session, "get", return_value=Mock(status_code=200, text="")), \

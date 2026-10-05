@@ -29,6 +29,13 @@ class SessionManager:
         self._closed = False
 
     def get_session(self):
+        # Fast path: a thread-local hit with fresh cookies needs no lock; only
+        # first use, cookie republish and shutdown take the global RLock.
+        session = getattr(self._local, 'session', None)
+        if (session is not None
+                and self._local.revision == self._revision
+                and not self._closed):
+            return session
         with self._lock:
             if self._closed:
                 raise RuntimeError('HTTP session manager is closed')

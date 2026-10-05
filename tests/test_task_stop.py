@@ -183,6 +183,7 @@ class StudyOperationStopTests(OfflineStopTests):
         super().setUp()
         self.cancel = threading.Event()
         self.chaoxing = Chaoxing(account=Account("offline-stop", "unused"), tiku=None)
+        self.chaoxing.rate_limiter = Mock()
         self.addCleanup(self.chaoxing.close)
         self.session = Mock()
         self.patch("api.base.tqdm", return_value=Mock())
@@ -200,6 +201,7 @@ class StudyOperationStopTests(OfflineStopTests):
     def video(self, **overrides):
         job = {"type": "video", "jobid": "video-1", "objectid": "object-1", "name": "Offline video", "playTime": 0}
         job.update(overrides)
+        self.session.get.return_value.status_code = 200
         self.session.get.return_value.json.return_value = {
             "status": "success", "dtoken": "offline", "duration": 1800, "crc": "crc", "key": "key",
         }

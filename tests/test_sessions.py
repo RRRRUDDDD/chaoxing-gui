@@ -7,9 +7,10 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 import requests
+from loguru import logger
 
 from api.base import Account, Chaoxing
-from api.cookies import save_cookies, use_cookies
+from api.cookies import _cookie_path, save_cookies, use_cookies
 from api.session import HTTP_TIMEOUT, SessionManager, get_current_session
 
 
@@ -113,7 +114,8 @@ class SessionTests(unittest.TestCase):
             save_cookies(session, 'alice')
         client = Chaoxing(account=Account('alice', ''), tiku=None)
         self.addCleanup(client.close)
-        response = Mock(status_code=200, text='<div>course list</div>')
+        response = Mock(status_code=200, url='https://mooc2-ans.chaoxing.com/mooc2-ans/visit/courselistdata',
+                        text='<div>course list</div>')
         with patch.object(client.session_manager.get_session(), 'post', return_value=response):
             self.assertTrue(client.login(login_with_cookies=True)['status'])
         self.assertEqual(client.get_uid(), 'alice')
@@ -142,7 +144,8 @@ class SessionTests(unittest.TestCase):
         def validate(*args, **kwargs):
             session.cookies.set('_uid', 'alice', domain='.chaoxing.com', path='/')
             session.cookies.set('token', 'rotated', domain='.chaoxing.com', path='/')
-            return Mock(status_code=200, text='course list')
+            return Mock(status_code=200, url='https://mooc2-ans.chaoxing.com/mooc2-ans/visit/courselistdata',
+                        text='course list')
         with patch.object(session, 'post', side_effect=validate):
             self.assertTrue(client.login(login_with_cookies=True)['status'])
         self.assertEqual(client.get_uid(), 'alice')
@@ -175,6 +178,73 @@ class SessionTests(unittest.TestCase):
         session.cookies.set('_uid', 'alice', domain='.chaoxing.com')
         session.cookies.set('_uid', 'alice', domain='mooc1.chaoxing.com')
         self.assertEqual(client.get_uid(), 'alice')
+
+    def test_cookie_validation_tightened_login_page_heuristic(self):
+        client = Chaoxing(account=Account('alice', ''), tiku=None)
+        self.addCleanup(client.close)
+        client.session_manager.set_cookies({'_uid': 'alice'})
+        session = client.session_manager.get_session()
+        url = 'https://mooc2-ans.chaoxing.com/mooc2-ans/visit/courselistdata'
+
+        def page(text, target=url):
+            return Mock(status_code=200, url=target, text=text)
+
+        # 正常课程页里出现 "login" 字样不再误判为失效会话。
+        with patch.object(session, 'post',
+                          return_value=page('<script>if (!user) showLogin()</script>')):
+            self.assertTrue(client._validate_cookie_session())
+        for text, target in (
+            ('<form action="https://passport2.chaoxing.com/fanyalogin">', url),
+            ('<script src="//passport2.chaoxing.com/login"></script>', url),
+            ('clean text', 'https://passport2.chaoxing.com/fanyalogin'),
+        ):
+            with patch.object(session, 'post', return_value=page(text, target)):
+                self.assertFalse(client._validate_cookie_session())
+
+    def test_thread_local_hit_does_not_take_the_global_lock(self):
+        manager = SessionManager('alice')
+        self.addCleanup(manager.close)
+        manager.set_cookies({'_uid': 'alice'})
+
+        class CountingLock:
+            def __init__(self, lock):
+                self._lock = lock
+                self.acquires = 0
+
+            def acquire(self, *args):
+                self.acquires += 1
+                return self._lock.acquire(*args)
+
+            def release(self):
+                self._lock.release()
+
+            def __enter__(self):
+                return self.acquire()
+
+            def __exit__(self, *args):
+                self.release()
+
+        counting = CountingLock(manager._lock)
+        manager._lock = counting
+        first = manager.get_session()
+        self.assertEqual(counting.acquires, 1, 'first use builds the session under the lock')
+        self.assertIs(first, manager.get_session())
+        self.assertEqual(counting.acquires, 1, 'a fresh thread-local hit must skip the lock')
+        manager.set_cookies({'_uid': 'bob'})
+        self.assertIs(first, manager.get_session())
+        self.assertEqual(first.cookies.get('_uid'), 'bob')
+
+    def test_corrupt_account_cookie_file_warns_and_returns_empty(self):
+        path = _cookie_path('alice')
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text('{"version": 1, "cookies": [', encoding='utf-8')
+        records = []
+        handler = logger.add(records.append, level='WARNING')
+        try:
+            self.assertEqual(use_cookies('alice'), {})
+        finally:
+            logger.remove(handler)
+        self.assertTrue(any('cookie' in str(record) for record in records))
 
 
 if __name__ == '__main__':
