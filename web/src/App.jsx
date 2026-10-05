@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import Login from './components/Login';
 import CourseSelection from './components/CourseSelection';
 import StudyProgress from './components/StudyProgress';
@@ -8,7 +8,8 @@ import { isTerminalStatus, startTaskPolling } from './lib/taskPolling';
 import { expiredTaskMessage } from './lib/uiText';
 
 function App() {
-  const previewMode = new URLSearchParams(window.location.search).get('preview');
+  // 预览模式由初始 URL 决定且整个会话不变：只解析一次，避免每次渲染重建 URLSearchParams。
+  const previewMode = useMemo(() => new URLSearchParams(window.location.search).get('preview'), []);
   const isPreview = previewMode === 'courses' || previewMode === 'progress';
   const [step, setStep] = useState(isPreview ? previewMode : 'login');
   const [userInfo, setUserInfo] = useState(isPreview ? { username: '138****0000', password: '', use_cookies: true } : null);
@@ -261,7 +262,8 @@ function App() {
             onLogout={handleLogout}
             starting={starting}
             loggingOut={loggingOut}
-            startError={startError || currentRecovery?.error || monitorError || currentTaskNotice}
+            startError={startError || currentRecovery?.error || monitorError}
+            notice={currentTaskNotice}
             activeTaskId={taskId}
             taskRunning={taskRunning}
             onReturnToTask={() => { if (!loggingOutRef.current) setStep('progress'); }}

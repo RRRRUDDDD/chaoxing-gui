@@ -3,6 +3,10 @@ import { desktopBridge } from '../lib/desktopBridge';
 
 const MAX_LOG_CURSOR = 0xffffffff;
 const TASK_ID = '[a-zA-Z0-9_-]{1,128}';
+const ROUTES = { 'post /login': 'login', 'post /courses': 'courses', 'get /config': 'configRead', 'post /config': 'configWrite', 'post /start': 'start' };
+const TASK_ACTION_RE = new RegExp(`^/task/(${TASK_ID})/(resume|stop|open-downloads)$`);
+const TASK_GET_RE = new RegExp(`^/task/(${TASK_ID})(/details)?$`);
+const TASK_LOGS_RE = new RegExp(`^/logs/(${TASK_ID})$`);
 let lastRequestId;
 
 function nextRequestId() {
@@ -27,19 +31,18 @@ function requestOperation(config) {
   const [rawPath, ...queryParts] = config.url.split('?');
   const path = rawPath.startsWith('/api/') ? rawPath.slice(4) : rawPath;
   const method = (config.method || 'get').toLowerCase();
-  const routes = { 'post /login': 'login', 'post /courses': 'courses', 'get /config': 'configRead', 'post /config': 'configWrite', 'post /start': 'start' };
-  let operation = routes[`${method} ${path}`];
+  let operation = ROUTES[`${method} ${path}`];
   let taskId;
   if (!operation && method === 'post') {
-    const task = path.match(new RegExp(`^/task/(${TASK_ID})/(resume|stop|open-downloads)$`));
+    const task = path.match(TASK_ACTION_RE);
     if (task) {
       operation = { resume: 'taskResume', stop: 'taskStop', 'open-downloads': 'taskOpenDownloads' }[task[2]];
       taskId = task[1];
     }
   }
   if (!operation && method === 'get') {
-    const task = path.match(new RegExp(`^/task/(${TASK_ID})(/details)?$`));
-    const logs = path.match(new RegExp(`^/logs/(${TASK_ID})$`));
+    const task = path.match(TASK_GET_RE);
+    const logs = path.match(TASK_LOGS_RE);
     if (task) { operation = task[2] ? 'taskDetails' : 'taskStatus'; taskId = task[1]; }
     else if (logs) { operation = 'taskLogs'; taskId = logs[1]; }
   }

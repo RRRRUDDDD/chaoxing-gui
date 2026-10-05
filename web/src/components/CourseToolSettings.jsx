@@ -11,7 +11,7 @@ export const courseToolLabels = {
   video_time: '视频时长', reading_time: '阅读时长', download: '资源下载',
 };
 
-export const taskTypeOrder = ['study', 'visits', 'video_time', 'reading_time', 'download'];
+const taskTypeOrder = ['study', 'visits', 'video_time', 'reading_time', 'download'];
 
 // 决策顺序第一环：先选本次要做什么，再挑课程和参数。
 const TaskTypePicker = ({ taskType, onTaskTypeChange, disabled = false }) => {
@@ -63,9 +63,12 @@ const CourseToolSettings = ({ taskType, options, onOptionsChange, disabled = fal
   const [downloadDir, setDownloadDir] = useState(() => loadDownloadDir());
   const [picking, setPicking] = useState(false);
   const canPickFolder = isTauriDesktop();
+  // 输入过程只更新本地状态，失焦时才写 localStorage，避免逐键同步落盘。
   const handleDownloadDirChange = (event) => {
     setDownloadDir(event.target.value);
-    saveDownloadDir(event.target.value);
+  };
+  const handleDownloadDirBlur = () => {
+    saveDownloadDir(downloadDir);
   };
   const handlePickDownloadDir = async () => {
     if (!canPickFolder || picking) return;
@@ -124,6 +127,7 @@ const CourseToolSettings = ({ taskType, options, onOptionsChange, disabled = fal
                 value={downloadDir}
                 disabled={disabled}
                 onChange={handleDownloadDirChange}
+                onBlur={handleDownloadDirBlur}
                 aria-describedby="download-dir-hint"
                 spellCheck={false}
               />

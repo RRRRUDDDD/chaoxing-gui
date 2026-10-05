@@ -22,7 +22,7 @@ const taskHeadings = {
   download: '选择课程并读取资源列表',
 };
 
-const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOut = false, startError, activeTaskId, taskRunning = false, onReturnToTask, preview = false, active = true }) => {
+const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOut = false, startError, notice = '', activeTaskId, taskRunning = false, onReturnToTask, preview = false, active = true }) => {
   const [courses, setCourses] = useState([]);
   const [selectedCourses, setSelectedCourses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -462,6 +462,15 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
                 >
                   <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                   <span>{startError}</span>
+                </div>
+              )}
+              {notice && (
+                <div
+                  role="alert"
+                  className="flex items-start gap-2 rounded-lg bg-warning/10 px-3 py-2.5 text-xs leading-relaxed text-body animate-fade-in"
+                >
+                  <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning-ink" aria-hidden="true" />
+                  <span>{notice}</span>
                 </div>
               )}
               {dirty && <p role="status" className="text-center text-xs text-warning-ink">有未保存的更改</p>}

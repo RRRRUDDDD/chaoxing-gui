@@ -73,12 +73,16 @@ function CourseToolContent({ taskId, username, taskStatus, tool, catalogReady = 
   const available = (resource) => typeof resource.id === 'string' && !!resource.id
     && courseIds.has(String(resource.course_id))
     && (readingCatalog ? resource.readable === true : purpose === 'video_time' ? resource.watchable === true : purpose === 'download' && resource.downloadable === true);
-  const selected = resources.filter((resource) => selectedIds.includes(resource.id) && available(resource));
-  const filtered = resources.filter((resource) => {
-    const matchesKind = kind === 'all' || resource.kind === kind;
-    const searchText = [resource.name, resource.course_title, resource.chapter_title].filter(Boolean).join(' ').toLowerCase();
-    return matchesKind && searchText.includes(query.trim().toLowerCase());
-  });
+  const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+  const selected = resources.filter((resource) => selectedIdSet.has(resource.id) && available(resource));
+  const filtered = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return resources.filter((resource) => {
+      const matchesKind = kind === 'all' || resource.kind === kind;
+      const searchText = [resource.name, resource.course_title, resource.chapter_title].filter(Boolean).join(' ').toLowerCase();
+      return matchesKind && searchText.includes(needle);
+    });
+  }, [resources, kind, query]);
   const minutesError = durationTask ? validateMinutes(minutes) : '';
   const ready = catalogReady && ['completed', 'partial'].includes(taskStatus.status);
   const busy = starting || submitting;
@@ -195,35 +199,38 @@ function CourseToolContent({ taskId, username, taskStatus, tool, catalogReady = 
             <Button variant="ghost" size="sm" disabled={!canSelect || !selected.length} onClick={() => setSelectedIds([])}>清空选择</Button>
           </div>
           <ul className="max-h-[32rem] divide-y divide-line overflow-y-auto rounded-lg border border-line">
-            {filtered.map((resource) => (
-              <li key={resource.id}>
-                <label className={`flex items-start gap-3 p-3.5 ${canSelect && available(resource) ? 'cursor-pointer hover:bg-soft' : 'text-faint'}`}>
-                  <input
-                    type="checkbox" aria-label={`选择资源 ${resource.name}`}
-                    checked={selected.some((item) => item.id === resource.id)}
-                    disabled={!canSelect || !available(resource)}
-                    onChange={(event) => setSelectedIds((previous) => event.target.checked ? [...new Set([...previous, resource.id])] : previous.filter((id) => id !== resource.id))}
-                    className="mt-0.5 h-4 w-4 shrink-0 rounded accent-brand focus-visible:ring-4 focus-visible:ring-brand/15"
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span className="block break-words text-sm font-medium">{resource.name}</span>
-                    <span className="mt-1 block text-xs text-faint">{resource.course_title} · {resource.chapter_title}</span>
-                    <span className="mt-1 block text-xs text-faint">
-                      {readingCatalog ? '阅读任务' : kinds[resource.kind] || '资源'}
-                      {resource.duration != null && ` · ${formatToolAmount(resource.duration, '秒')}`}
-                      {!available(resource) && (readingCatalog ? ' · 不可阅读' : purpose === 'video_time' ? ' · 不可累计时长' : ' · 不可下载')}
-                    </span>
-                    {readingCatalog && (
-                      <span className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-body">
-                        <span>平台现有：{formatToolAmount(resource.read_minutes, '分钟')}</span>
-                        <span>要求：{formatToolAmount(resource.required_minutes, '分钟')}</span>
-                        <span>书籍：{formatToolAmount(resource.book_count, '本')}</span>
+            {filtered.map((resource) => {
+              const usable = available(resource);
+              return (
+                <li key={resource.id}>
+                  <label className={`flex items-start gap-3 p-3.5 ${canSelect && usable ? 'cursor-pointer hover:bg-soft' : 'text-faint'}`}>
+                    <input
+                      type="checkbox" aria-label={`选择资源 ${resource.name}`}
+                      checked={selectedIdSet.has(resource.id) && usable}
+                      disabled={!canSelect || !usable}
+                      onChange={(event) => setSelectedIds((previous) => event.target.checked ? [...new Set([...previous, resource.id])] : previous.filter((id) => id !== resource.id))}
+                      className="mt-0.5 h-4 w-4 shrink-0 rounded accent-brand focus-visible:ring-4 focus-visible:ring-brand/15"
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="block break-words text-sm font-medium">{resource.name}</span>
+                      <span className="mt-1 block text-xs text-faint">{resource.course_title} · {resource.chapter_title}</span>
+                      <span className="mt-1 block text-xs text-faint">
+                        {readingCatalog ? '阅读任务' : kinds[resource.kind] || '资源'}
+                        {resource.duration != null && ` · ${formatToolAmount(resource.duration, '秒')}`}
+                        {!usable && (readingCatalog ? ' · 不可阅读' : purpose === 'video_time' ? ' · 不可累计时长' : ' · 不可下载')}
                       </span>
-                    )}
-                  </span>
-                </label>
-              </li>
-            ))}
+                      {readingCatalog && (
+                        <span className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-body">
+                          <span>平台现有：{formatToolAmount(resource.read_minutes, '分钟')}</span>
+                          <span>要求：{formatToolAmount(resource.required_minutes, '分钟')}</span>
+                          <span>书籍：{formatToolAmount(resource.book_count, '本')}</span>
+                        </span>
+                      )}
+                    </span>
+                  </label>
+                </li>
+              );
+            })}
             {!filtered.length && <li className="p-8 text-center text-sm text-faint">{resources.length ? '没有匹配的资源' : ready ? readingCatalog ? '未找到阅读任务，请查看执行结果或选择其他课程。' : '未找到可用资源，请查看执行结果或选择其他课程。' : '暂无资源'}</li>}
           </ul>
 

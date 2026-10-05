@@ -136,6 +136,9 @@ describe('course tool configuration', () => {
     expect(pick.disabled).toBe(true);
     expect(pick.getAttribute('title')).toContain('桌面版');
     fireEvent.change(screen.getByLabelText('下载目录'), { target: { value: ' E:\\CourseFiles ' } });
+    // 输入过程不落盘，失焦时才保存。
+    expect(localStorage.getItem('chaoxing_download_dir')).toBeNull();
+    fireEvent.blur(screen.getByLabelText('下载目录'));
     expect(localStorage.getItem('chaoxing_download_dir')).toBe('E:\\CourseFiles');
   });
 

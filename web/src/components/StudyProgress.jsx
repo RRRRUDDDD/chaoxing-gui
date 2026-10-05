@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Button from './ui/Button';
 import CountUp from './CountUp';
 import RepositoryLink from './RepositoryLink';
@@ -217,6 +217,14 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
   };
 
   const statusInfo = getStatusInfo();
+  // 每次轮询都会整体重渲染明细：已完成章节计数只随 taskDetails 变化，预计算一次供各课程行取用。
+  const courseDoneCounts = useMemo(() => {
+    const counts = new Map();
+    for (const course of taskDetails?.courses || []) {
+      counts.set(course.id, course.chapters ? course.chapters.filter((c) => ['completed', 'empty'].includes(chapterState(c))).length : 0);
+    }
+    return counts;
+  }, [taskDetails]);
   const knownTotal = Number.isFinite(taskStatus?.total) && taskStatus.total > 0;
   const progress = knownTotal ? Math.max(0, Math.min(100, ((taskStatus.progress || 0) / taskStatus.total) * 100)) : 0;
   const terminal = isTerminalStatus(taskStatus?.status) || missing;
@@ -562,7 +570,7 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
                 <div className="divide-y divide-line px-2.5 py-2">
                   {taskDetails.courses.map((course) => {
                     const open = expandedCourses.has(course.id);
-                    const done = course.chapters ? course.chapters.filter((c) => ['completed', 'empty'].includes(chapterState(c))).length : 0;
+                    const done = courseDoneCounts.get(course.id) ?? 0;
                     const total = course.chapters?.length || 0;
                     return (
                       <div key={course.id}>
@@ -599,16 +607,19 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
                         })()}
                         {open && total > 0 && (
                           <ol className="mb-2 space-y-0.5 rounded-lg bg-soft/50 px-2.5 py-2">
-                            {course.chapters.map((chapter, idx) => (
-                              <li key={chapter.id} className="flex items-center gap-3 rounded px-2 py-1.5 text-[13px] hover:bg-white">
-                                <span className="w-5 shrink-0 font-mono text-[11px] text-faint tnum">{idx + 1}.</span>
-                                <span className="flex-1 min-w-0 break-words text-body">{chapter.title}</span>
-                                <span className={`flex shrink-0 items-center gap-1 text-xs ${resultColor(chapterState(chapter))}`}>
-                                  {getCourseStatusIcon(chapterState(chapter))}
-                                  {resultLabels[chapterState(chapter)] || '等待中'}
-                                </span>
-                              </li>
-                            ))}
+                            {course.chapters.map((chapter, idx) => {
+                              const state = chapterState(chapter);
+                              return (
+                                <li key={chapter.id} className="flex items-center gap-3 rounded px-2 py-1.5 text-[13px] hover:bg-white">
+                                  <span className="w-5 shrink-0 font-mono text-[11px] text-faint tnum">{idx + 1}.</span>
+                                  <span className="flex-1 min-w-0 break-words text-body">{chapter.title}</span>
+                                  <span className={`flex shrink-0 items-center gap-1 text-xs ${resultColor(state)}`}>
+                                    {getCourseStatusIcon(state)}
+                                    {resultLabels[state] || '等待中'}
+                                  </span>
+                                </li>
+                              );
+                            })}
                           </ol>
                         )}
                       </div>
