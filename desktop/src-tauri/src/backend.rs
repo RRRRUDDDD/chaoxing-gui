@@ -508,15 +508,21 @@ fn read_handshake(
 }
 
 /// Drain stderr into backend.log on a background thread (never let the pipe fill).
+/// Uses `read_bounded_line` so native crash output (often non-UTF-8, e.g. GBK
+/// on Chinese Windows) degrades to replacement characters instead of killing
+/// the drain thread, and runaway lines are capped per read.
+fn drain_stderr_lines<R: BufRead>(mut reader: R, log: Arc<LogFile>) {
+    while let Some(line) = read_bounded_line(&mut reader, MAX_HANDSHAKE_LINE) {
+        log.append(&format!("[stderr] {line}"));
+    }
+}
+
 fn drain_stderr(
     stderr: std::process::ChildStderr,
     log: Arc<LogFile>,
 ) -> std::thread::JoinHandle<()> {
     std::thread::spawn(move || {
-        let reader = BufReader::new(stderr);
-        for line in reader.lines().map_while(Result::ok) {
-            log.append(&format!("[stderr] {line}"));
-        }
+        drain_stderr_lines(BufReader::new(stderr), log);
     })
 }
 
@@ -1225,6 +1231,29 @@ mod tests {
         let middle = &lines[1..lines.len() - 1];
         assert!(middle.len() >= 2, "runaway line must be split: {middle:?}");
         assert_eq!(middle.concat(), "x".repeat(MAX_HANDSHAKE_LINE * 2 + 10));
+    }
+
+    #[test]
+    fn stderr_drain_survives_invalid_utf8_and_runaway_lines() {
+        let dir = std::env::temp_dir().join(format!("chaoxing-stderr-{}", random_hex(8).unwrap()));
+        let log = Arc::new(LogFile::with_limit(dir.join("backend.log"), 1024 * 1024));
+        let mut input = b"before\n".to_vec();
+        input.push(0xFF); // invalid UTF-8, e.g. GBK crash output
+        input.push(b'\n');
+        input.extend(std::iter::repeat_n(b'y', MAX_HANDSHAKE_LINE + 100));
+        input.extend_from_slice(b"\nafter\n");
+        drain_stderr_lines(std::io::Cursor::new(input), log);
+        let content = std::fs::read_to_string(dir.join("backend.log")).unwrap();
+        assert!(content.contains("[stderr] before"));
+        assert!(
+            content.contains('\u{FFFD}'),
+            "invalid UTF-8 must degrade to a replacement character: {content:?}"
+        );
+        assert!(
+            content.contains("[stderr] after"),
+            "drain must keep reading to EOF after bad bytes and a runaway line: {content:?}"
+        );
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]
