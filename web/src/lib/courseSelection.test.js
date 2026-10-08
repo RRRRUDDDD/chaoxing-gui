@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { restoreCourseSelection, configSnapshot } from './courseSelection';
+import { restoreCourseSelection, configSnapshot, updateTikuSettings } from './courseSelection';
 
 const courses = [{ courseId: '1' }, { courseId: '2' }];
 
@@ -24,4 +24,13 @@ it('compares selection as a set and settings by value', () => {
   expect(configSnapshot({ tiku_config: { config: '[]' }, speed: 1 }, 'alice', ['2', '1', '1'])).toBe(baseline);
   expect(configSnapshot({ speed: 2, tiku_config: { config: '[]' } }, 'alice', ['1', '2'])).not.toBe(baseline);
   expect(configSnapshot({ speed: 1, tiku_config: { config: '[]' } }, 'bob', ['1', '2'])).not.toBe(baseline);
+});
+
+it('keeps wrapper and subscription keys when saving edited tiku settings', () => {
+  const wrappers = [{ name: 'bank', url: 'https://example.test/search', handler: 'return r => r.answer' }];
+  const settings = { tiku_config: { wrappers, subscription: 'https://example.test/list.json', delay: 1 } };
+  const updated = updateTikuSettings(settings, 'delay', 2);
+  expect(updated.tiku_config.wrappers).toBe(wrappers);
+  expect(updated.tiku_config.subscription).toBe('https://example.test/list.json');
+  expect(updated.tiku_config.delay).toBe(2);
 });
