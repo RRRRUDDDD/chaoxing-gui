@@ -667,6 +667,19 @@ class QueryDiagnosticsTests(unittest.TestCase):
                 self.assertEqual(bank.query_diagnostics[0]['status'], 'no_answer')
         self.assertEqual(requests_sent.call_count, 5)
 
+    def test_request_context_errors_do_not_open_the_circuit(self):
+        config = _wrapper(method='get', url='https://example.test/search?q=${title}')
+        bank = self.bank([config])
+        requests_sent = Mock(side_effect=lambda *a, **k: Mock(json=lambda: {'code': 1, 'question': 'Q', 'answer': 'A'}))
+        with patch.object(bank._session, 'request', requests_sent), patch('api.ocs_tiku.logger'):
+            for _ in range(3):
+                self.assertIsNone(bank._query({'title': '题' * 300}))
+                self.assertEqual(bank.query_diagnostics[0]['status'], 'request_context_error')
+                self.assertEqual(bank.query_diagnostics[0]['error'], 'RequestContextError')
+            self.assertEqual(bank._query({'title': 'Q'}), 'A')
+            self.assertEqual(bank.query_diagnostics[0]['status'], 'selected')
+        self.assertEqual(requests_sent.call_count, 1)
+
 
 class AdditionalCompatibilityTests(unittest.TestCase):
     def test_authentication_and_handler_failures_are_separate(self):

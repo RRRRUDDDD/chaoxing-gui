@@ -59,6 +59,15 @@ class LoadConfigFromFileTest(unittest.TestCase):
         self.assertEqual(common_config["retry_interval"], 1.0)
         self.assertEqual(tiku_config, {})
 
+    def test_percent_in_values_is_not_interpolated(self):
+        path = self._config_path(
+            "[common]\npassword = abc%123def\n"
+            "[tiku]\nconfig = https://example.com/sub%2Fkey\n"
+        )
+        common_config, tiku_config, _ = main.load_config_from_file(path)
+        self.assertEqual(common_config["password"], "abc%123def")
+        self.assertEqual(tiku_config["config"], "https://example.com/sub%2Fkey")
+
 
 if __name__ == "__main__":
     unittest.main()

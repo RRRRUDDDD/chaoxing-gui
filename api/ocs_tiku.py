@@ -51,6 +51,10 @@ class ResponseParseError(ValueError):
     pass
 
 
+class RequestContextError(ValueError):
+    """题目上下文导致的请求无法发出（题干过长等），题库本身健康，不计入熔断。"""
+
+
 def question_env(q_info: Mapping[str, Any]) -> dict[str, Any]:
     options = q_info.get("options")
     if isinstance(options, list):
@@ -113,7 +117,7 @@ def _check_http_url(url: str) -> str:
     if parts.scheme not in ("http", "https") or not parts.netloc:
         raise ValueError("题库地址只允许 http 或 https")
     if len(cleaned) > 2000:
-        raise ValueError("题库地址过长")
+        raise RequestContextError("题库地址过长")
     return cleaned
 
 
@@ -258,7 +262,7 @@ def resolve_data(data: Mapping[str, Any], env: Mapping[str, Any]) -> dict[str, A
 def request_wrapper(wrapper: Mapping[str, Any], env: Mapping[str, Any], session: requests.Session) -> Any:
     if wrapper["method"] == "get" and env.get("images"):
         if wrapper["uses_images"] or "${images}" in wrapper["url"]:
-            raise ValueError("images_require_post")
+            raise RequestContextError("images_require_post")
     headers = {key: substitute(value, env) for key, value in wrapper["headers"].items()}
     data = resolve_data(wrapper["data"], env)
     url = substitute(wrapper["url"], env, encode=True)
@@ -266,9 +270,9 @@ def request_wrapper(wrapper: Mapping[str, Any], env: Mapping[str, Any], session:
     # 单次编码同时用于体积上限、data:image 检测和 JSON 正文；非有限浮点在此一并拒绝。
     payload = json.dumps(data, ensure_ascii=False, allow_nan=False)
     if len(payload.encode("utf-8")) > MAX_TOTAL_BYTES:
-        raise ValueError("request_body_limit")
+        raise RequestContextError("request_body_limit")
     if wrapper["method"] == "get" and "data:image/" in payload:
-        raise ValueError("images_require_post")
+        raise RequestContextError("images_require_post")
     if wrapper["method"] == "get":
         parts = urlsplit(url)
         query = [(key, value) for key, value in parse_qsl(parts.query, keep_blank_values=True) if key not in data]
@@ -875,6 +879,10 @@ class TikuOcs(Tiku):
                 report["status"] = "response_parse_error"
             except requests.RequestException:
                 report["status"] = "network_error"
+            except RequestContextError as exc:
+                # 题目本身过大/图片需 post 等与题库健康无关，不进入熔断集合。
+                report["status"] = "request_context_error"
+                report["error"] = type(exc).__name__
             except Exception as exc:
                 report["status"] = {"context": "invalid_context", "request": "request_or_response_error",
                                     "handler": "handler_error", "match": "matching_error"}[report["stage"]]
