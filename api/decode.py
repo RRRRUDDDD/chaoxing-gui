@@ -20,7 +20,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import List, Dict, Tuple, Any, Optional, Union
 
-from bs4 import BeautifulSoup, NavigableString
+from bs4 import BeautifulSoup, Comment, Declaration, Doctype, NavigableString, ProcessingInstruction
 
 from api.exceptions import FontDecodeError
 from api.font_decoder import FontDecoder
@@ -1202,6 +1202,8 @@ def _extract_title(element, font_decoder=None) -> str:
     # 收集元素中的所有文本和图片
     content = []
     for item in element.descendants:
+        if isinstance(item, (Comment, ProcessingInstruction, Declaration, Doctype)):
+            continue
         if isinstance(item, NavigableString):
             content.append(item.string or "")
         elif item.name == "img":

@@ -10,6 +10,10 @@ from api import question_images as images
 from api.answer import CacheDAO
 from api.decode import _process_question
 
+# Suppress Pillow's DecompressionBombError warning noise during tests that
+# deliberately trigger it.
+Image.MAX_IMAGE_PIXELS = None
+
 URL = 'https://p.ananas.chaoxing.com/one.png'
 SECOND = 'https://p.ananas.chaoxing.com/two.png'
 
@@ -85,6 +89,37 @@ class QuestionImagesTests(unittest.TestCase):
         self.assertEqual(q['_image_context']['urls'], [URL, SECOND])
         other = {**q, '_image_context': {**q['_image_context'], 'urls': [SECOND]}}
         self.assertNotEqual(CacheDAO.question_key(q), CacheDAO.question_key(other))
+
+    def test_decompression_bomb_is_translated_to_value_error(self):
+        # Build a tiny PNG whose declared dimensions claim a huge pixel count,
+        # so Pillow raises DecompressionBombError on .size access.
+        huge = io.BytesIO()
+        with Image.new('RGB', (1, 1), 'white') as base:
+            base.save(huge, format='PNG')
+        huge_png = huge.getvalue()
+        # Patch MAX_PIXELS so the size check passes but the bomb trigger hits.
+        with patch.object(images, 'MAX_PIXELS', 0), \
+             self.assertRaises(ValueError):
+            images.png_data_url(huge_png)
+
+    def test_total_bytes_limit_breaks_early(self):
+        fixed = 'data:image/png;base64,AAAA'
+        # Two distinct URLs so dedup keeps both; set a low total limit that
+        # triggers on the first image (26 bytes > 13 byte cap).
+        q = {'_image_context': {'title': '', 'options': '', 'urls': [URL, SECOND]}}
+        with patch.object(images, 'png_data_url', return_value=fixed), \
+             patch.object(images, 'download_image', return_value=b'\x89PNG\r\n\x1a\n'), \
+             patch.object(images, 'MAX_TOTAL_BYTES', len(fixed) // 2):
+            env, urls, warnings = images.build_image_env(q)
+        self.assertEqual(urls, [])
+        self.assertIn('image_total_limit', warnings)
+
+    def test_non_text_nodes_are_excluded_from_extraction(self):
+        html = '<div data="1"><div class="TiMu" data="0"></div><div class="Zy_TItle"><!-- secret -->题目<img src="%s"></div><ul><li>A. <img src="%s"></li></ul></div>' % (URL, SECOND)
+        with patch('api.decode._ocr_image_to_text', return_value='formula'):
+            q = _process_question(BeautifulSoup(html, 'lxml').div)
+        # The comment must not leak into the extracted text.
+        self.assertNotIn('secret', q['title'])
 
     def test_all_failed_and_count_limits(self):
         q = {'_image_context': {'title': URL, 'urls': [URL, SECOND]}}

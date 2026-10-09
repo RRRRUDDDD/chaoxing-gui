@@ -11,6 +11,7 @@ import requests
 from loguru import logger
 
 from api.config import GlobalConst as gc
+from api.paths import data_dir
 
 
 cookie_lock = threading.RLock()
@@ -26,7 +27,7 @@ def _serialize_cookie(cookie):
 
 
 def _cookie_path(account=None):
-    legacy = Path(gc.COOKIES_PATH)
+    legacy = Path(data_dir()) / gc.COOKIES_PATH
     if account:
         account_key = sha256(str(account).strip().encode('utf-8')).hexdigest()
         return legacy.parent / '.cookies' / f'{account_key}.json'

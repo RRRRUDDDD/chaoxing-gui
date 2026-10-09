@@ -68,6 +68,11 @@ class LoadConfigFromFileTest(unittest.TestCase):
         self.assertEqual(common_config["password"], "abc%123def")
         self.assertEqual(tiku_config["config"], "https://example.com/sub%2Fkey")
 
+    def test_missing_config_file_raises_located_error(self):
+        with self.assertRaises(InputFormatError) as ctx:
+            main.load_config_from_file("/nonexistent/path/config.ini")
+        self.assertIn("配置文件不存在或无法读取", str(ctx.exception))
+
 
 if __name__ == "__main__":
     unittest.main()

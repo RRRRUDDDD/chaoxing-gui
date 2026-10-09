@@ -11,6 +11,7 @@ from loguru import logger
 
 from api.base import Account, Chaoxing
 from api.cookies import _cookie_path, save_cookies, use_cookies
+from api.paths import data_dir
 from api.session import HTTP_TIMEOUT, SessionManager, get_current_session
 
 
@@ -245,6 +246,15 @@ class SessionTests(unittest.TestCase):
         finally:
             logger.remove(handler)
         self.assertTrue(any('cookie' in str(record) for record in records))
+
+    def test_legacy_cookie_path_anchors_to_data_dir_not_cwd(self):
+        # gc.COOKIES_PATH is patched to an absolute temp path; the legacy path
+        # must resolve *through* data_dir (not CWD), so when the patch value
+        # is a bare filename it lands inside data_dir.
+        from api import cookies as ck
+        with patch('api.cookies.gc.COOKIES_PATH', 'cookies.txt'), \
+             patch('os.getcwd', return_value='/tmp/should_not_be_used'):
+            self.assertEqual(ck._cookie_path(), Path(data_dir()) / 'cookies.txt')
 
 
 if __name__ == '__main__':

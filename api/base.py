@@ -819,7 +819,7 @@ class Chaoxing:
                             # The refreshed duration must feed the next enc/clipTime,
                             # otherwise every later report replays the stale value
                             # and keeps hitting 403 until the task is skipped.
-                            duration = refreshed_meta.get("duration", duration)
+                            duration = int(refreshed_meta.get("duration", duration))
                             # The /ananas/status response has no playTime field, so
                             # the in-flight play position always stays authoritative.
 

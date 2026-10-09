@@ -108,6 +108,24 @@ class StudyResultTests(unittest.TestCase):
         self.assertEqual(log.call_args_list[3].args[5], 250)
         self.assertEqual(log.call_args_list[3].args[4], 'new-token')
 
+    def test_forbidden_recovery_accepts_string_duration_from_platform(self):
+        session = SimpleNamespace(get=Mock(return_value=Mock(status_code=200, json=Mock(return_value={
+            'status': 'success', 'duration': 100, 'dtoken': 'old-token'}))), cookies=[])
+        job = {'name': 'video', 'playTime': 91000, 'objectid': 'obj', 'jobid': 'j',
+               'otherinfo': '{}', 'videoFaceCaptureEnc': '', 'attDuration': 60,
+               'attDurationEnc': '', 'rt': '0.9'}
+        with patch.object(self.client.session_manager, 'get_session', return_value=session), \
+             patch.object(self.client, 'video_progress_log',
+                          side_effect=[(False, 200), (False, 200), (False, 403), (True, 200)]) as log, \
+             patch.object(self.client, '_recover_after_forbidden',
+                          return_value={'dtoken': 'new-token', 'duration': '250'}), \
+             patch('api.base.time.sleep'), \
+             patch('api.base._open_progress', return_value=Mock()):
+            result = self.client.study_video(COURSE, job, {}, 1)
+        self.assertEqual(result, StudyResult.SUCCESS)
+        # The string duration must be coerced to int before feeding enc/clipTime.
+        self.assertEqual(log.call_args_list[3].args[5], 250)
+
     def test_forbidden_recovery_without_playtime_keeps_the_play_position(self):
         session = SimpleNamespace(get=Mock(return_value=Mock(status_code=200, json=Mock(return_value={
             'status': 'success', 'duration': 100, 'dtoken': 'old-token'}))), cookies=[])

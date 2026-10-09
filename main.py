@@ -112,7 +112,8 @@ def load_config_from_file(config_path):
     """从配置文件加载设置"""
     # 值可能含 %（密码、URL 编码），禁用插值避免 InterpolationSyntaxError
     config = configparser.ConfigParser(interpolation=None)
-    config.read(config_path, encoding="utf8")
+    if not config.read(config_path, encoding="utf8"):
+        raise InputFormatError(f"配置文件不存在或无法读取: {config_path}")
     
     common_config: dict[str, Any] = {}
     tiku_config: dict[str, Any] = {}

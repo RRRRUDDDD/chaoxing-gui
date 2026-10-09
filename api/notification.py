@@ -4,6 +4,7 @@
 """
 
 import configparser
+import re
 import subprocess
 import sys
 from abc import ABC, abstractmethod
@@ -317,6 +318,11 @@ class Windows(NotificationService):
         Args:
             message: 通知内容（调用方需保证已 XML 转义）
         """
+        # Neutralize PowerShell here-string terminators ('@ at line starts)
+        # so multi-line messages (e.g. tracebacks) don't prematurely close
+        # the template or allow command injection. Replace the leading quote
+        # with a space so '@... becomes  @... — no longer a terminator.
+        safe = re.sub(r"(?m)^[ \t]*'@", " ", message)
         return (
             "[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, "
             "ContentType = WindowsRuntime] | Out-Null; "
@@ -324,7 +330,7 @@ class Windows(NotificationService):
             "ContentType = WindowsRuntime] | Out-Null; "
             "$xmlText = @'\n"
             '<toast><visual><binding template="ToastGeneric">'
-            f"<text>{message}</text>"
+            f"<text>{safe}</text>"
             '</binding></visual></toast>\n'
             "'@; "
             "$xml = New-Object Windows.Data.Xml.Dom.XmlDocument; "

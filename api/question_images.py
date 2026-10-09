@@ -5,7 +5,7 @@ import re
 from urllib.parse import urlsplit
 
 import requests
-from bs4 import NavigableString
+from bs4 import Comment, Declaration, Doctype, NavigableString, ProcessingInstruction
 from PIL import Image
 
 from api.config import GlobalConst as gc
@@ -62,25 +62,31 @@ def download_image(url, session=None):
 def png_data_url(content):
     if not content or len(content) > MAX_IMAGE_BYTES:
         raise ValueError('image_too_large_or_empty')
-    with Image.open(io.BytesIO(content)) as source:
-        width, height = source.size
-        if width < 1 or height < 1 or width * height > MAX_PIXELS:
-            raise ValueError('image_pixel_limit')
-        scale = max(1, MIN_DIMENSION / min(width, height))
-        size = (round(width * scale), round(height * scale))
-        if size[0] * size[1] > MAX_PIXELS:
-            raise ValueError('image_pixel_limit')
-        image = source.convert('RGBA')
-        if scale > 1:
-            resized = image.resize(size, Image.Resampling.LANCZOS)
-            image.close()
-            image = resized
-        try:
-            with io.BytesIO() as output:
-                image.save(output, format='PNG')
-                data = output.getvalue()
-        finally:
-            image.close()
+    try:
+        with Image.open(io.BytesIO(content)) as source:
+            width, height = source.size
+            if width < 1 or height < 1 or width * height > MAX_PIXELS:
+                raise ValueError('image_pixel_limit')
+            scale = max(1, MIN_DIMENSION / min(width, height))
+            size = (round(width * scale), round(height * scale))
+            if size[0] * size[1] > MAX_PIXELS:
+                raise ValueError('image_pixel_limit')
+            image = source.convert('RGBA')
+            if scale > 1:
+                resized = image.resize(size, Image.Resampling.LANCZOS)
+                image.close()
+                image = resized
+            try:
+                with io.BytesIO() as output:
+                    image.save(output, format='PNG')
+                    data = output.getvalue()
+            finally:
+                image.close()
+    except Image.DecompressionBombError:
+        # Pillow raises this (a plain Exception subclass) for images whose
+        # decoded pixel count exceeds Image.MAX_IMAGE_PIXELS. Translate it so
+        # callers' `except (ValueError, OSError)` is sufficient.
+        raise ValueError('image_pixel_limit') from None
     if len(data) > MAX_IMAGE_BYTES:
         raise ValueError('image_too_large')
     return 'data:image/png;base64,' + base64.b64encode(data).decode('ascii')
@@ -118,6 +124,8 @@ def extract_image_text(element):
         return '', []
     parts, urls = [], []
     for node in element.descendants:
+        if isinstance(node, (Comment, ProcessingInstruction, Declaration, Doctype)):
+            continue
         if isinstance(node, NavigableString):
             parts.append(str(node))
         elif node.name == 'img':
@@ -144,14 +152,18 @@ def build_image_env(question, session=None):
     images, uploaded, failures = [], [], []
     total = 0
     for url in urls[:MAX_IMAGES]:
+        if total > MAX_TOTAL_BYTES:
+            failures.append('image_total_limit')
+            break
         try:
             data = validate_data_url(url) if url.startswith('data:') else png_data_url(download_image(url, session))
             total += len(data)
             if total > MAX_TOTAL_BYTES:
-                raise ValueError('image_total_limit')
+                failures.append('image_total_limit')
+                break
             images.append(data)
             uploaded.append(url)
-        except (ValueError, OSError, requests.RequestException, Image.DecompressionBombError):
+        except (ValueError, OSError, requests.RequestException):
             failures.append('image_conversion_failed')
     if len(urls) > MAX_IMAGES:
         failures.append('image_count_limit')

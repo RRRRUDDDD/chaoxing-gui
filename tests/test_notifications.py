@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 
 import requests
 
-from api.notification import PROVIDER_REGISTRY, Bark, Qmsg, ServerChan, Telegram, NOTIFICATION_TIMEOUT
+from api.notification import PROVIDER_REGISTRY, Bark, Qmsg, ServerChan, Telegram, Windows, NOTIFICATION_TIMEOUT
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -38,7 +38,55 @@ class NotificationTests(unittest.TestCase):
         post.assert_not_called()
 
 
-class NotificationConfigContractTests(unittest.TestCase):
+class WindowsToastHereStringTests(unittest.TestCase):
+    def test_leading_at_quote_terminator_is_neutralized(self):
+        script = Windows._build_script("line one\n'@evil\nline two")
+        # The here-string terminator (@\n followed by ';) must appear only once,
+        # as the template's own closing terminator — not from message content.
+        inner = script.split("$xmlText = @'", 1)[1].split("'@;", 1)[0]
+        self.assertNotIn("'@\n", inner)
+        # The '@ prefix in the message must be replaced with a space so it
+        # can't act as a terminator.
+        self.assertIn("evil", inner)
+        self.assertNotIn("'@", inner)
+
+    def test_clean_multiline_message_is_preserved(self):
+        script = Windows._build_script("hello\nworld")
+        self.assertIn("hello\nworld", script)
+
+
+class TelegramContractTests(unittest.TestCase):
+    def test_failure_returns_false_and_retries(self):
+        service = Telegram()
+        service.url = 'https://example.invalid/notification'
+        service.tg_chat_id = 'cid'
+        bad = Mock(status_code=500)
+        bad.raise_for_status.side_effect = requests.HTTPError('500')
+        ok = Mock(status_code=200)
+        ok.raise_for_status.return_value = None
+        ok.json.return_value = {'ok': False}
+        with patch('api.notification.requests.post', side_effect=[bad, ok]) as post:
+            self.assertFalse(service.send('retry fails'))
+        self.assertEqual(post.call_count, 2)
+        for call in post.call_args_list:
+            self.assertEqual(call.kwargs['timeout'], NOTIFICATION_TIMEOUT)
+
+    def test_special_characters_are_escaped(self):
+        service = Telegram()
+        service.url = 'https://example.invalid/notification'
+        service.tg_chat_id = 'cid'
+        ok = Mock(status_code=200)
+        ok.raise_for_status.return_value = None
+        ok.json.return_value = {'ok': True}
+        with patch('api.notification.requests.post', return_value=ok) as post:
+            service.send('<tag>&"weird"')
+        body = post.call_args.kwargs['data']
+        self.assertNotIn('<tag>', body)
+        self.assertIn('&lt;tag&gt;', body['text'])
+        self.assertIn('&amp;', body['text'])
+
+
+if __name__ == '__main__':
     """config.ini.example must only advertise keys the code actually reads."""
 
     def test_config_example_notification_keys_match_the_code(self):
