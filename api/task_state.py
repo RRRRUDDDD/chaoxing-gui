@@ -2,7 +2,7 @@
 
 from collections import deque
 from contextlib import contextmanager
-from copy import deepcopy
+from copy import deepcopy  # Defensive isolation for dict snapshots; shallow copy insufficient due to nested mutables + sanitize_errors in-place mutation.
 from dataclasses import dataclass, field
 from heapq import heappop, heappush
 import json

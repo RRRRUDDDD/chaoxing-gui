@@ -24,15 +24,21 @@ use std::time::{Duration, Instant};
 const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 /// Whole start window (handshake + health) per plan.md §4.1.
 const START_DEADLINE: Duration = Duration::from_secs(120);
+/// Interval between consecutive health probe attempts.
 const HEALTH_INTERVAL: Duration = Duration::from_millis(300);
+/// HTTP timeout for each individual /api/health request.
 const HEALTH_TIMEOUT: Duration = Duration::from_millis(2000);
 /// Grace period after stdin EOF before TerminateJobObject.
 const STOP_GRACE: Duration = Duration::from_secs(5);
+/// Sleep interval used in tight wait loops: between health probes (inner
+/// loop of health_until_ready) and during backend reaping in reap_backend/stop_backend.
 const POLL_INTERVAL: Duration = Duration::from_millis(25);
+/// HTTP timeout for general API requests proxied through the desktop backend.
 const API_TIMEOUT: Duration = Duration::from_secs(30);
 /// Per-line read cap on backend stdout; lines longer than this are split into
 /// cap-sized chunks (with the total byte count logged in backend.log).
 const MAX_HANDSHAKE_LINE: usize = 8192;
+/// Maximum response body size accepted from the /api/health endpoint.
 const MAX_HEALTH_BODY: usize = 64 * 1024;
 /// api_request reads response bodies in chunks of this size, re-checking
 /// cancellation between chunks instead of after the whole 30s read.

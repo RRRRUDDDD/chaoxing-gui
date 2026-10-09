@@ -7,6 +7,7 @@ import time
 from enum import Enum
 from hashlib import md5
 from typing import Optional, Literal
+from urllib.parse import urlencode
 
 import requests
 from loguru import logger
@@ -139,9 +140,9 @@ def _random_answer(q: dict, options: str, origin_html: str = "") -> str:
         return answer
 
     if q["type"] == "multiple":
-        logger.debug(f"当前选项列表[cut前] -> {options}")
+        logger.debug("当前选项列表[cut前] -> {}", options)
         _op_list = _multi_cut(options, origin_html)
-        logger.debug(f"当前选项列表[cut后] -> {_op_list}")
+        logger.debug("当前选项列表[cut后] -> {}", _op_list)
 
         if not _op_list:
             logger.error(
@@ -889,7 +890,16 @@ class Chaoxing:
             StudyResult: SUCCESS when the document read is acknowledged
         """
         _session = self.session_manager.get_session()
-        _url = f"https://mooc1.chaoxing.com/ananas/job/document?jobid={_job['jobid']}&knowledgeid={re.findall(r'nodeId_(.*?)-', _job['otherinfo'])[0]}&courseid={_course['courseId']}&clazzid={_course['clazzId']}&jtoken={_job['jtoken']}&_dc={get_timestamp()}"
+        node_match = re.findall(r'nodeId_(.*?)-', _job['otherinfo'])
+        knowledge_id = node_match[0] if node_match else ''
+        _url = "https://mooc1.chaoxing.com/ananas/job/document?" + urlencode({
+            "jobid": _job['jobid'],
+            "knowledgeid": knowledge_id,
+            "courseid": _course['courseId'],
+            "clazzid": _course['clazzId'],
+            "jtoken": _job['jtoken'],
+            "_dc": get_timestamp(),
+        })
         try:
             _resp = self._get_past_captcha(_session, _url, cancel_check)
         except CaptchaNotPassed:

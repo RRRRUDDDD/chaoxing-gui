@@ -226,7 +226,11 @@ class CacheDAO:
                 self.flush()
 
 
-# TODO: 重构此部分代码，将此类改为抽象类，加载题库方法改为静态方法，禁止直接初始化此类
+# NOTE: Tiku serves as a base class / factory. It is instantiated in main.py
+# to load config, then get_tiku_from_config() returns a concrete subclass
+# (TikuOcs). Making _query abstract via ABCMeta would break this factory pattern
+# since Tiku() cannot be instantiated with abstractmethods. Future refactor
+# could move get_tiku_from_config to a classmethod to allow ABCMeta usage.
 
 def _has_ocs_tiku_config(conf) -> bool:
     if not isinstance(conf, dict):
@@ -395,7 +399,6 @@ class Tiku:
 
             logger.error("从{}获取答案失败：{}", self.name, q_info['title'])
         return None
-
 
 
     def _query(self, q_info:dict) -> Optional[str]:
