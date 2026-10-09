@@ -30,7 +30,8 @@ const HEALTH_TIMEOUT: Duration = Duration::from_millis(2000);
 const STOP_GRACE: Duration = Duration::from_secs(5);
 const POLL_INTERVAL: Duration = Duration::from_millis(25);
 const API_TIMEOUT: Duration = Duration::from_secs(30);
-/// Per-line read cap on backend stdout; longer lines are dropped to backend.log.
+/// Per-line read cap on backend stdout; lines longer than this are split into
+/// cap-sized chunks (with the total byte count logged in backend.log).
 const MAX_HANDSHAKE_LINE: usize = 8192;
 const MAX_HEALTH_BODY: usize = 64 * 1024;
 /// api_request reads response bodies in chunks of this size, re-checking
@@ -425,11 +426,12 @@ enum Handshake {
     Eof,
 }
 
-/// Read one physical line from `reader`, bounded to `max + 1` bytes so a
-/// backend stuck printing without newlines cannot balloon host memory.
-/// Returns `None` at EOF (or on a read error). The line terminator is
-/// stripped; a string longer than `max` means the physical line was cut at
-/// the cap and continues past it. Invalid UTF-8 degrades to replacement
+/// Read up to `max + 1` bytes from `reader` up to and including the next newline.
+/// This bounds a backend stuck printing without newlines from ballooning host
+/// memory. Returns `None` at EOF (or on a read error). The line terminator is
+/// stripped. If more than `max` bytes were read, the physical line exceeds the
+/// cap — the caller (e.g. `read_handshake`) is responsible for accumulating the
+/// split chunks and logging the overrun; invalid UTF-8 degrades to replacement
 /// characters instead of failing the whole handshake thread.
 fn read_bounded_line<R: BufRead>(reader: &mut R, max: usize) -> Option<String> {
     let mut raw = Vec::new();

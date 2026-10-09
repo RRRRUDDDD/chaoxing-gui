@@ -253,7 +253,9 @@ class StudyResult(Enum):
     SKIPPED = 4
 
     def is_failure(self):
-        return self not in {StudyResult.SUCCESS, StudyResult.SKIPPED}
+        return self not in StudyResult._NON_FAILURE
+
+StudyResult._NON_FAILURE = frozenset({StudyResult.SUCCESS, StudyResult.SKIPPED})
 
 class Chaoxing:
     def __init__(self, account: Account = None, tiku: Tiku = None, **kwargs):

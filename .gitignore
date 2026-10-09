@@ -141,7 +141,6 @@ poetry.lock
 # Custom files
 .ccg/
 .firecrawl/
-chaoxing/
 .cookies.txt
 cookies.txt
 .cookies/
