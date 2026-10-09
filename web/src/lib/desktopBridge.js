@@ -21,6 +21,8 @@ export const desktopBridge = Object.freeze({
   closeChoice: (action, remember) => invoke('close_choice', { action, remember }),
   readPreferences: () => invoke('preferences_read'),
   writePreferences: (closeAction) => invoke('preferences_write', { closeAction }),
+  checkUpdate: () => invoke('check_update'),
+  installUpdate: (downloadUrl, version) => invoke('install_update', { downloadUrl, version }),
 });
 
 export function getSessionBridge() {

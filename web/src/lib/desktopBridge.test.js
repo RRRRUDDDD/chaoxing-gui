@@ -38,6 +38,7 @@ describe('desktop bridge', () => {
       ['session_read'], ['session_remember_login', { username: 'alice' }],
       ['session_remember_task', { task }], ['session_remember_task', { task: null }], ['session_clear'],
     ]);
+    // check_update and install_update are tested in the close/preference test below.
   });
 
   it('propagates initialization and command errors instead of selecting browser persistence', async () => {
@@ -77,9 +78,12 @@ describe('desktop bridge', () => {
     await desktopBridge.closeChoice('tray', true);
     await desktopBridge.readPreferences();
     await desktopBridge.writePreferences('exit');
+    await desktopBridge.checkUpdate();
+    await desktopBridge.installUpdate('https://example.test/setup.exe', '1.4.0');
     expect(core.invoke.mock.calls).toEqual([
       ['close_prompt_shown', { promptId: 5 }], ['close_choice', { action: 'tray', remember: true }],
       ['preferences_read'], ['preferences_write', { closeAction: 'exit' }],
+      ['check_update'], ['install_update', { downloadUrl: 'https://example.test/setup.exe', version: '1.4.0' }],
     ]);
   });
 });

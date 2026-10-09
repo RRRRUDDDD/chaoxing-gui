@@ -3,6 +3,7 @@ pub mod backend;
 pub mod migration;
 pub mod preferences;
 pub mod session_store;
+pub mod updater;
 pub mod window_close;
 pub mod windows_job;
 
@@ -128,7 +129,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             backend_status, open_repository, open_ocs_docs, pick_download_dir, api_request,
             api_cancel, session_read, session_remember_login, session_remember_task, session_clear,
-            close_prompt_shown, close_choice, preferences_read, preferences_write
+            close_prompt_shown, close_choice, preferences_read, preferences_write,
+            check_update, install_update
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application");
@@ -666,6 +668,48 @@ async fn preferences_write(
     })
     .await
     .map_err(|_| "无法保存关闭方式，请重试".to_string())?
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+struct UpdateArgs {
+    download_url: String,
+    version: String,
+}
+
+/// Check for a newer release on GitHub. Returns `Ok(None)` when the current
+/// version is already the latest.
+#[tauri::command]
+async fn check_update(
+    window: tauri::WebviewWindow,
+    state: tauri::State<'_, Arc<BackendState>>,
+    ipc: tauri::ipc::Request<'_>,
+) -> Result<Option<updater::UpdateInfo>, String> {
+    let _: EmptyArgs = command_args(&window, &ipc)?;
+    let state = state.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || updater::fetch_latest(&state))
+        .await
+        .map_err(|_| "更新检查执行失败".to_string())?
+}
+
+/// Download the installer for the given version and relaunch it with
+/// `/UPDATE /P /R` for a silent in-place upgrade. The host exits after
+/// spawning the installer.
+#[tauri::command]
+async fn install_update(
+    window: tauri::WebviewWindow,
+    state: tauri::State<'_, Arc<BackendState>>,
+    ipc: tauri::ipc::Request<'_>,
+) -> Result<(), String> {
+    let args: UpdateArgs = command_args(&window, &ipc)?;
+    let state = state.inner().clone();
+    let download_url = args.download_url;
+    let version = args.version;
+    tauri::async_runtime::spawn_blocking(move || {
+        updater::perform_install(&state, &download_url, &version)
+    })
+    .await
+    .map_err(|_| "更新安装执行失败".to_string())?
 }
 
 #[cfg(test)]

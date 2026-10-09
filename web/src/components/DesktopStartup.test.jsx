@@ -3,9 +3,9 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import DesktopStartup from './DesktopStartup';
 import { desktopBridge, isTauriDesktop } from '../lib/desktopBridge';
-import { recheckLabel } from '../lib/uiText';
+import { recheckLabel, updateLabels } from '../lib/uiText';
 
-vi.mock('../lib/desktopBridge', () => ({ isTauriDesktop: vi.fn(), desktopBridge: { backendStatus: vi.fn() } }));
+vi.mock('../lib/desktopBridge', () => ({ isTauriDesktop: vi.fn(), desktopBridge: { backendStatus: vi.fn(), checkUpdate: vi.fn() } }));
 const deferred = () => {
   let resolve;
   let reject;
@@ -18,7 +18,7 @@ const show = (strict = false, extra = {}) => {
   return render(strict ? <React.StrictMode>{content}</React.StrictMode> : content);
 };
 
-beforeEach(() => { vi.useFakeTimers(); isTauriDesktop.mockReset().mockReturnValue(true); desktopBridge.backendStatus.mockReset(); });
+beforeEach(() => { vi.useFakeTimers(); isTauriDesktop.mockReset().mockReturnValue(true); desktopBridge.backendStatus.mockReset(); desktopBridge.checkUpdate.mockReset().mockResolvedValue(null); });
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); });
 
 describe('desktop startup', () => {
@@ -160,5 +160,59 @@ describe('desktop startup', () => {
     await tick();
     expect(screen.getByText('业务界面')).toBeTruthy();
     expect(screen.getByRole('status').textContent).toContain('旧账号记录无法导入');
+  });
+
+  it('checks for updates once the backend is ready', async () => {
+    desktopBridge.backendStatus.mockResolvedValue({ phase: 'ready' });
+    show();
+    await tick();
+    await tick(10);
+    expect(desktopBridge.checkUpdate).toHaveBeenCalledOnce();
+    expect(desktopBridge.checkUpdate).toHaveResolvedWith(null);
+  });
+
+  it('does not check for updates in the browser runtime', async () => {
+    isTauriDesktop.mockReturnValue(false);
+    show();
+    await tick(1000);
+    expect(desktopBridge.checkUpdate).not.toHaveBeenCalled();
+  });
+
+  it('shows an update banner when a newer version is available', async () => {
+    desktopBridge.backendStatus.mockResolvedValue({ phase: 'ready' });
+    desktopBridge.checkUpdate.mockResolvedValue({
+      version: '1.4.0',
+      notes: '## 更新内容',
+      downloadUrl: 'https://github.com/RRRRUDDDD/chaoxing-gui/releases/download/v1.4.0/chaoxing-gui-setup-1.4.0-windows-x64.exe',
+      size: 44977885,
+    });
+    show();
+    await tick();
+    await tick(10);
+    expect(screen.getByText((content, element) => element.textContent === `${updateLabels.title} 1.4.0`)).toBeTruthy();
+    expect(screen.getByRole('button', { name: updateLabels.action })).toBeTruthy();
+    expect(screen.getByText('业务界面')).toBeTruthy();
+  });
+
+  it('hides the update banner when the current version is up-to-date', async () => {
+    desktopBridge.backendStatus.mockResolvedValue({ phase: 'ready' });
+    desktopBridge.checkUpdate.mockResolvedValue(null);
+    show();
+    await tick();
+    await tick(10);
+    expect(screen.queryByText(updateLabels.title)).toBeNull();
+    expect(screen.getByText('业务界面')).toBeTruthy();
+  });
+
+  it('shows a checking state while the update check is in flight', async () => {
+    desktopBridge.backendStatus.mockResolvedValue({ phase: 'ready' });
+    const pending = deferred();
+    desktopBridge.checkUpdate.mockReturnValue(pending.promise);
+    show();
+    await tick();
+    expect(screen.getByText(updateLabels.checking)).toBeTruthy();
+    await act(async () => pending.resolve(null));
+    await tick(10);
+    expect(screen.queryByText(updateLabels.checking)).toBeNull();
   });
 });

@@ -13,3 +13,10 @@ export const saveDefaultLabel = '保存为默认配置';
 export const configSavedMessage = '配置已保存';
 export const expiredTaskMessage = '上次任务已过期或没有可恢复的记录，请重新选择课程。';
 export const logRole = 'log';
+export const updateLabels = {
+  title: '发现新版本',
+  action: '立即更新',
+  checking: '检查更新中…',
+  upToDate: '已是最新版本',
+  error: '检查更新失败',
+};

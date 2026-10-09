@@ -11,7 +11,7 @@ import path from 'node:path';
 import { createInterface } from 'node:readline';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
-import { configSavedMessage, expiredTaskMessage, logRole, loginLabels, recheckLabel, saveDefaultLabel, startStudyLabel } from '../../web/src/lib/uiText.js';
+import { configSavedMessage, expiredTaskMessage, logRole, loginLabels, recheckLabel, saveDefaultLabel, startStudyLabel, updateLabels } from '../../web/src/lib/uiText.js';
 
 const exec = promisify(execFile);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');

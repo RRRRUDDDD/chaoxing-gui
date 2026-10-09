@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { AlertCircle, Loader2, RefreshCw } from 'lucide-react';
+import { AlertCircle, Loader2, RefreshCw, Download } from 'lucide-react';
 import { desktopBridge, isTauriDesktop } from '../lib/desktopBridge';
-import { recheckLabel } from '../lib/uiText';
+import { recheckLabel, updateLabels } from '../lib/uiText';
 import Button from './ui/Button';
 
 const phases = new Set(['starting', 'ready', 'stopping', 'stopped', 'failed']);
@@ -24,6 +24,10 @@ export default function DesktopStartup({ children, intervalMs = 1000, readyInter
   const [hostError, setHostError] = useState('');
   const [notice, setNotice] = useState('');
   const requestRef = useRef(null);
+
+  const [updateInfo, setUpdateInfo] = useState(null);
+  const [updateState, setUpdateState] = useState('idle'); // idle | checking | available | error | installing
+  const updateChecked = useRef(false);
 
   useEffect(() => {
     if (runtime === 'web' || (runtime === 'unavailable' && checkVersion === 0)) return undefined;
@@ -68,8 +72,44 @@ export default function DesktopStartup({ children, intervalMs = 1000, readyInter
     return () => { disposed = true; clearTimeout(timer); };
   }, [runtime, intervalMs, readyIntervalMs, checkVersion]);
 
+  // Check for updates once the backend is ready.
+  useEffect(() => {
+    if (phase !== 'ready' || runtime !== 'desktop' || updateChecked.current || updateState !== 'idle') return;
+    updateChecked.current = true;
+    setUpdateState('checking');
+    desktopBridge
+      .checkUpdate()
+      .then((info) => {
+        if (info) {
+          setUpdateInfo(info);
+          setUpdateState('available');
+        } else {
+          setUpdateState('up-to-date');
+        }
+      })
+      .catch(() => setUpdateState('error'));
+  }, [phase, runtime, updateState]);
+
   if (phase === 'ready') return <>
     {notice && <div role="status" className="border-b border-warning/30 bg-warning/5 px-6 py-3 text-sm text-body">{notice}</div>}
+    {updateState === 'checking' && (
+      <div role="status" className="border-b border-brand/20 bg-brand/5 px-6 py-2.5 text-sm text-body">
+        <span className="inline-flex items-center gap-1.5"><Loader2 className="h-3.5 w-3.5 animate-spin" />{updateLabels.checking}</span>
+      </div>
+    )}
+    {updateState === 'available' && updateInfo && (
+      <div role="status" className="border-b border-brand/30 bg-brand/5 px-6 py-3 text-sm">
+        <div className="mb-2 font-medium text-brand">{updateLabels.title} {updateInfo.version}</div>
+        <p className="mb-3 text-xs text-body">点击下载并安装新版本，安装完成后自动重启。</p>
+        <Button size="sm" onClick={() => {
+          setUpdateState('installing');
+          desktopBridge.installUpdate(updateInfo.downloadUrl, updateInfo.version).catch(() => {});
+        }}>
+          <Download className="h-3.5 w-3.5" aria-hidden="true" />
+          {updateLabels.action}
+        </Button>
+      </div>
+    )}
     {children}
   </>;
   const failed = ['failed', 'stopped', 'unavailable'].includes(phase);

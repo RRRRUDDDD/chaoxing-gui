@@ -17,6 +17,8 @@
     "allow-close-choice",
     "allow-preferences-read",
     "allow-preferences-write",
+    "allow-check-update",
+    "allow-install-update",
     "core:event:allow-listen",
     "core:event:allow-unlisten"
   ]

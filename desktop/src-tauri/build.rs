@@ -15,6 +15,8 @@ fn main() {
             "close_choice",
             "preferences_read",
             "preferences_write",
+            "check_update",
+            "install_update",
         ]),
     ))
     .unwrap();
