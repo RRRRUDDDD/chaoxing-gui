@@ -12,7 +12,6 @@ export default {
         body: "hsl(var(--body))",
         faint: "hsl(var(--faint))",
         canvas: "hsl(var(--canvas))",
-        surface: "hsl(var(--surface))",
         soft: "hsl(var(--soft))",
         line: "hsl(var(--line))",
         brand: {

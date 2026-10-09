@@ -580,7 +580,7 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
                           type="button"
                           onClick={() => toggleCourse(course.id)}
                           aria-expanded={open}
-                          className="flex w-full items-center gap-3 rounded-lg px-2.5 py-3 text-left transition-colors duration-150 hover:bg-soft focus-visible:bg-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand"
+                          className="group flex w-full items-center gap-3 rounded-lg px-2.5 py-3 text-left transition-colors duration-150 hover:bg-soft focus-visible:bg-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand"
                         >
                           {getCourseStatusIcon(course.status)}
                           <span title={course.title} className="min-w-0 flex-1 break-words text-sm font-medium">{course.title}</span>

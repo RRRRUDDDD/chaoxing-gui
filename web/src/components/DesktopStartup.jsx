@@ -29,6 +29,7 @@ export default function DesktopStartup({ children, intervalMs = 1000, readyInter
     if (runtime === 'web' || (runtime === 'unavailable' && checkVersion === 0)) return undefined;
     let disposed = false;
     let timer;
+    let consecutiveFailures = 0;
     const poll = async () => {
       try {
         // StrictMode replays effects. Reuse the in-flight read so only the live
@@ -42,6 +43,7 @@ export default function DesktopStartup({ children, intervalMs = 1000, readyInter
         const status = await requestRef.current;
         if (disposed) return;
         if (!status || !phases.has(status.phase)) throw new Error('Invalid service status');
+        consecutiveFailures = 0;
         setPhase(status.phase);
         setHostError(typeof status.error === 'string' ? status.error : '');
         setNotice(typeof status.notice === 'string' ? status.notice : '');
@@ -49,7 +51,17 @@ export default function DesktopStartup({ children, intervalMs = 1000, readyInter
         // detects service death, so it can afford a slower cadence.
         if (['starting', 'ready', 'stopping'].includes(status.phase)) timer = setTimeout(poll, status.phase === 'ready' ? readyIntervalMs : intervalMs);
       } catch {
-        if (!disposed) setPhase('unavailable');
+        if (disposed) return;
+        // A single transient read failure (IPC jitter) should not tear down the
+        // entire business app. Retry once on the current interval before
+        // surfacing the unavailable state.
+        consecutiveFailures++;
+        if (consecutiveFailures >= 2) {
+          setPhase('unavailable');
+          setHostError('');
+        } else {
+          timer = setTimeout(poll, intervalMs);
+        }
       }
     };
     poll();

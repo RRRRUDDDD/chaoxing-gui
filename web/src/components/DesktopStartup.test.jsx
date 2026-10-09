@@ -86,11 +86,24 @@ describe('desktop startup', () => {
     expect(screen.getByText('业务界面')).toBeTruthy();
   });
 
-  it.each([new Error('invoke error'), { phase: 'unknown' }, undefined])('fails visibly when status cannot be read or validated (%s)', async (value) => {
+  it.each([new Error('invoke error'), { phase: 'unknown' }, undefined])('retries on a transient status read failure instead of tearing down the app (%s)', async (value) => {
     if (value instanceof Error) desktopBridge.backendStatus.mockRejectedValue(value);
     else desktopBridge.backendStatus.mockResolvedValue(value);
     show();
     await tick();
+    // First failure: a retry is scheduled, not the unavailable state.
+    expect(screen.queryByText('业务界面')).toBeNull();
+    expect(screen.queryByRole('button', { name: recheckLabel })).toBeNull();
+    expect(vi.getTimerCount()).toBe(1);
+  });
+
+  it.each([new Error('invoke error'), { phase: 'unknown' }, undefined])('goes unavailable only after two consecutive failures (%s)', async (value) => {
+    if (value instanceof Error) desktopBridge.backendStatus.mockRejectedValue(value);
+    else desktopBridge.backendStatus.mockResolvedValue(value);
+    show();
+    await tick();
+    expect(vi.getTimerCount()).toBe(1);
+    await tick(100);
     expect(screen.getByRole('alert').textContent).toContain('无法读取服务状态');
     expect(screen.queryByText('业务界面')).toBeNull();
     expect(screen.getByRole('button', { name: recheckLabel })).toBeTruthy();
