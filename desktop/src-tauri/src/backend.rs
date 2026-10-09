@@ -854,11 +854,7 @@ fn claim_for_stop(state: &BackendState) -> Option<(Option<Child>, Option<Job>)> 
 /// Kill the child process, wait up to 500 ms, then set phase to Stopped.
 /// Shared by `stop_backend` and `stop_backend_on_exit`.
 /// Caller retains ownership of `child` and `job` and must drop them after.
-fn reap_backend(
-    child: &mut Option<Child>,
-    state: &Arc<BackendState>,
-    exit_context: bool,
-) {
+fn reap_backend(child: &mut Option<Child>, state: &Arc<BackendState>, exit_context: bool) {
     if let Some(child) = child.as_mut() {
         let _ = child.kill();
         let deadline = Instant::now() + Duration::from_millis(500);
