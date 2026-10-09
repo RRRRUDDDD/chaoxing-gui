@@ -39,7 +39,9 @@ def str_to_bool(value):
 
 def validate_jobs(value):
     """Validate the same worker limit for CLI and API callers."""
-    if isinstance(value, bool) or not isinstance(value, (int, str)):
+    if isinstance(value, bool):
+        raise InputFormatError("并发章节数不能为布尔值，请输入 1 到 16 的整数")
+    if not isinstance(value, (int, str)):
         raise InputFormatError("并发章节数必须为 1 到 16 的整数")
     try:
         jobs = int(value)

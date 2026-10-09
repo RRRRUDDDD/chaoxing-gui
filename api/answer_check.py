@@ -4,6 +4,13 @@ import unicodedata
 from dataclasses import dataclass, field
 from difflib import SequenceMatcher
 
+_CUT_CHARS = frozenset({
+    "\n", ",", "，", "|", "\r", "\t", "#", "*", "-", "_",
+    "+", "@", "~", "/", "\\", ".", "&", " ", "、",
+})
+
+_CODE_PATTERN = re.compile(r'\b(?:return|def|class|function|printf|import)\b|[{}]|#include')
+
 
 def check_single(answer):
     _t = cut(answer)
@@ -55,32 +62,11 @@ def check_answer(answer, type, tiku):  # 只会写小杯代码，这里用个tik
 
 
 def cut(answer):
-    cut_char = [
-        "\n",
-        ",",
-        "，",
-        "|",
-        "\r",
-        "\t",
-        "#",
-        "*",
-        "-",
-        "_",
-        "+",
-        "@",
-        "~",
-        "/",
-        "\\",
-        ".",
-        "&",
-        " ",
-        "、",
-    ]
     if answer is None:
         return None
 
     answer = str(answer)
-    for char in cut_char:
+    for char in _CUT_CHARS:
         if char not in answer:
             continue
         res = [opt.strip() for opt in answer.split(char) if opt.strip()]
@@ -117,7 +103,7 @@ def split_answers(answer, kind='multiple', expected=None):
     if expected == 1:
         return [text]
     # Code and formula punctuation are data, never generic delimiters.
-    if re.search(r'\b(?:return|def|class|function|printf|import)\b|[{}]|#include', text):
+    if _CODE_PATTERN.search(text):
         return [text]
     pattern = r'###|===|---|#|\r?\n|[;；]'
     if kind == 'multiple':

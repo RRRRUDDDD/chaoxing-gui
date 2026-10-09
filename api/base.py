@@ -250,12 +250,19 @@ class StudyResult(Enum):
     SUCCESS = 0
     FORBIDDEN = 1  # 403
     ERROR = 2
+    # SKIPPED = 4  -- intentionally skipped to preserve compatibility with
+    # existing stored status values (see git history for rationale).
     SKIPPED = 4
 
-    def is_failure(self):
-        return self not in StudyResult._NON_FAILURE
+    @classmethod
+    def _non_failure(cls):
+        # Non-failure results; checked in is_failure().
+        # Defined as a classmethod because Enum's metaclass intercepts
+        # class-body frozenset assignments and would treat them as members.
+        return frozenset({cls.SUCCESS, cls.SKIPPED})
 
-StudyResult._NON_FAILURE = frozenset({StudyResult.SUCCESS, StudyResult.SKIPPED})
+    def is_failure(self):
+        return self not in self._non_failure()
 
 class Chaoxing:
     def __init__(self, account: Account = None, tiku: Tiku = None, **kwargs):

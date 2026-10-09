@@ -845,6 +845,35 @@ fn claim_for_stop(state: &BackendState) -> Option<(Option<Child>, Option<Job>)> 
     Some((child, job))
 }
 
+/// Kill the child process, wait up to 500 ms, then set phase to Stopped.
+/// Shared by `stop_backend` and `stop_backend_on_exit`.
+/// Caller retains ownership of `child` and `job` and must drop them after.
+fn reap_backend(
+    child: &mut Option<Child>,
+    state: &Arc<BackendState>,
+    exit_context: bool,
+) {
+    if let Some(child) = child.as_mut() {
+        let _ = child.kill();
+        let deadline = Instant::now() + Duration::from_millis(500);
+        while matches!(child.try_wait(), Ok(None)) && Instant::now() < deadline {
+            std::thread::sleep(POLL_INTERVAL);
+        }
+    }
+    {
+        let _transition = state
+            .lifecycle_lock
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        *state.phase.lock().unwrap_or_else(|e| e.into_inner()) = BackendPhase::Stopped;
+    }
+    if exit_context {
+        state.host_log("[backend] stopped (exit)");
+    } else {
+        state.host_log("[backend] stopped");
+    }
+}
+
 /// Idempotent stop: stdin EOF → up to 5s grace → TerminateJobObject.
 pub fn stop_backend(state: &Arc<BackendState>) {
     let _guard = state.stop_lock.lock().unwrap_or_else(|e| e.into_inner());
@@ -862,23 +891,9 @@ pub fn stop_backend(state: &Arc<BackendState>) {
     if let Some(job) = job.as_ref() {
         job.terminate();
     }
-    if let Some(child) = child.as_mut() {
-        let _ = child.kill();
-        let deadline = Instant::now() + Duration::from_millis(500);
-        while matches!(child.try_wait(), Ok(None)) && Instant::now() < deadline {
-            std::thread::sleep(POLL_INTERVAL);
-        }
-    }
+    reap_backend(&mut child, state, false);
     drop(child);
     drop(job);
-    {
-        let _transition = state
-            .lifecycle_lock
-            .lock()
-            .unwrap_or_else(|e| e.into_inner());
-        *state.phase.lock().unwrap_or_else(|e| e.into_inner()) = BackendPhase::Stopped;
-    }
-    state.host_log("[backend] stopped");
 }
 
 /// Stop on host exit. The main thread must not block on a stuck backend, so
@@ -899,23 +914,9 @@ pub fn stop_backend_on_exit(state: &Arc<BackendState>) {
     }
     let exit_state = state.clone();
     std::thread::spawn(move || {
-        if let Some(child) = child.as_mut() {
-            let _ = child.kill();
-            let deadline = Instant::now() + Duration::from_millis(500);
-            while matches!(child.try_wait(), Ok(None)) && Instant::now() < deadline {
-                std::thread::sleep(POLL_INTERVAL);
-            }
-        }
+        reap_backend(&mut child, &exit_state, true);
         drop(child);
         drop(job);
-        {
-            let _transition = exit_state
-                .lifecycle_lock
-                .lock()
-                .unwrap_or_else(|e| e.into_inner());
-            *exit_state.phase.lock().unwrap_or_else(|e| e.into_inner()) = BackendPhase::Stopped;
-        }
-        exit_state.host_log("[backend] stopped (exit)");
     });
 }
 

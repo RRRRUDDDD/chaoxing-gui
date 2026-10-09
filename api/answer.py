@@ -369,7 +369,6 @@ class Tiku:
 
         # 先过缓存
         cache_dao = CacheDAO.get_shared()
-        self._cache_dao = cache_dao
         answer = cache_dao.get_cache(cache_key)
         if answer and q_info.get('options') and q_info.get('type') in ('single', 'multiple'):
             if match_answer(answer, q_info).answer is None:
