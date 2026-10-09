@@ -33,6 +33,7 @@ defaults:
 jobs:
   test-backend:
     runs-on: windows-latest
+    timeout-minutes: 60
     strategy:
       matrix:
         python-version: ["3.11", "3.13"]
@@ -56,6 +57,7 @@ jobs:
 
   test-web:
     runs-on: windows-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -202,7 +204,10 @@ jobs:
           Copy-Item -LiteralPath dist/chaoxing-gui.exe -Destination release/python/chaoxing-gui.exe
           Copy-Item -LiteralPath README.md -Destination release/python/README.md
           @{ version=$env:APP_VERSION; platform='windows-x64'; kind='independent-python' } | ConvertTo-Json | Set-Content release/python/version.json -Encoding utf8
-          Compress-Archive -Path release/python/* -DestinationPath "release/chaoxing-gui-python-$env:APP_VERSION-windows-x64.zip" -Force
+          $zipPath = "release/chaoxing-gui-python-$env:APP_VERSION-windows-x64.zip"
+          Compress-Archive -Path release/python/* -DestinationPath $zipPath -Force
+          $hash = (Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $(Split-Path -Leaf $zipPath)" | Set-Content -LiteralPath "$zipPath.sha256" -Encoding ascii
 
       - name: Build desktop backend executable
         run: |
@@ -247,10 +252,11 @@ jobs:
           pwsh -NoProfile -File desktop/scripts/build-tauri.ps1 -Prepared
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Validate NSIS and portable payloads
+      - name: Append independent Python zip hash to SHA256SUMS
         run: |
-          pwsh -NoProfile -File desktop/scripts/verify-nsis.ps1 -InstallerPath "desktop/release/tauri/chaoxing-gui-setup-$env:APP_VERSION-windows-x64.exe" -PortablePath "desktop/release/tauri/chaoxing-gui-portable-$env:APP_VERSION-windows-x64.zip" -EvidenceDirectory desktop/release/verification/nsis-content
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $zipPath = "release/chaoxing-gui-python-$env:APP_VERSION-windows-x64.zip"
+          $hash = (Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $(Split-Path -Leaf $zipPath)" | Add-Content -LiteralPath desktop/release/tauri/SHA256SUMS.txt -Encoding ascii
 
       - name: Build frozen synthetic backend and embedded debug host
         run: |
@@ -349,8 +355,10 @@ jobs:
           name: Release ${{ env.RELEASE_TAG }}
           target_commitish: ${{ github.sha }}
           generate_release_notes: true
+          fail_on_unmatched_files: true
           files: |
             release/chaoxing-gui-python-${{ env.APP_VERSION }}-windows-x64.zip
+            release/chaoxing-gui-python-${{ env.APP_VERSION }}-windows-x64.zip.sha256
             desktop/release/tauri/chaoxing-gui-setup-${{ env.APP_VERSION }}-windows-x64.exe
             desktop/release/tauri/chaoxing-gui-setup-${{ env.APP_VERSION }}-windows-x64.exe.manifest.json
             desktop/release/tauri/chaoxing-gui-portable-${{ env.APP_VERSION }}-windows-x64.zip

@@ -61,5 +61,15 @@ class MatchingBoundaryTests(unittest.TestCase):
         self.assertEqual(match_answer(code, {'type': 'shortanswer'}).answer, code)
         self.assertEqual(split_answers('a-b#c+d', 'completion', 2), ['a-b', 'c+d'])
 
+    def test_judgement_matching_hits_true_false_and_unknown(self):
+        question = {'type': 'judgement'}
+        true_list = ['正确', '✓']
+        false_list = ['错误', '✗']
+        self.assertEqual(match_answer('正确', question, true_list, false_list).answer, 'true')
+        self.assertEqual(match_answer('错误', question, true_list, false_list).answer, 'false')
+        unknown = match_answer('意见反馈', question, true_list, false_list)
+        self.assertIsNone(unknown.answer)
+        self.assertEqual(unknown.reason, 'unknown_judgement')
+
 if __name__ == "__main__":
     unittest.main()
