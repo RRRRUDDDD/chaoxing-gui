@@ -70,8 +70,7 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
     callbacks.current = { onStatus, onMissing };
   });
   const stopPending = stopping || taskStatus?.cancel_requested === true;
-  const isToolTask = ['visits', 'catalog', 'video_time', 'reading_time', 'download'].includes(taskStatus?.task_type);
-  const isReadingTask = taskStatus?.task_type === 'reading_time';
+  const isToolTask = ['visits', 'catalog', 'video_time', 'download'].includes(taskStatus?.task_type);
 
   useEffect(() => {
     actionGeneration.current += 1;
@@ -175,7 +174,7 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
       case 'interrupted':
         return { text: '等待恢复', cls: 'text-warning-ink', icon: Clock };
       case 'completed':
-        return { text: isReadingTask ? '上报完成' : '已完成', cls: 'text-success-ink', icon: CheckCircle2 };
+        return { text: '已完成', cls: 'text-success-ink', icon: CheckCircle2 };
       case 'error':
         return { text: '出现错误', cls: 'text-danger', icon: AlertCircle };
       case 'partial':
@@ -407,7 +406,7 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
               </div>
               <dl className="space-y-4 p-5">
                 {isToolTask && <div>
-                  <dt className="text-xs text-faint">{isReadingTask ? '已滚动时长' : taskStatus.task_type === 'catalog' ? '已读取资源' : '累计执行量'}</dt>
+                  <dt className="text-xs text-faint">{taskStatus.task_type === 'catalog' ? '已读取资源' : '累计执行量'}</dt>
                   <dd className="mt-1 text-sm font-medium">{taskStatus.task_type === 'catalog' ? taskDetails?.tool?.resources?.length || 0 : formatToolAmount(taskDetails?.tool?.completed_units ?? 0, taskDetails?.tool?.unit)}</dd>
                 </div>}
                 <div>
@@ -465,8 +464,8 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
               <div className="flex items-start gap-2.5 rounded-xl border border-success/25 bg-success/5 p-4 animate-fade-in" role="status">
                 <CheckCircle2 className="mt-0.5 h-4.5 w-4.5 shrink-0 text-success-ink" aria-hidden="true" />
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-success-ink">{isReadingTask ? '本次阅读上报已完成' : taskStatus.task_type === 'catalog' ? '资源列表已读取' : '所有任务已完成'}</p>
-                  <p className="mt-0.5 text-[13px] text-body">{isReadingTask ? '请查看平台统计，当天阅读时长可能次日更新' : isToolTask ? taskStatus.task_type === 'catalog' ? '请勾选资源后执行下一步' : '请查看执行结果和日志' : '所选课程已按当前配置处理完成，请核对平台进度'}</p>
+                  <p className="text-sm font-semibold text-success-ink">{taskStatus.task_type === 'catalog' ? '资源列表已读取' : '所有任务已完成'}</p>
+                  <p className="mt-0.5 text-[13px] text-body">{isToolTask ? taskStatus.task_type === 'catalog' ? '请勾选资源后执行下一步' : '请查看执行结果和日志' : '所选课程已按当前配置处理完成，请核对平台进度'}</p>
                 </div>
                 {catalogReadyForSelection && (
                   <Button size="sm" className="shrink-0 self-center" onClick={goToResources}>
@@ -502,7 +501,7 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
                 <StopCircle className="mt-0.5 h-4.5 w-4.5 shrink-0 text-faint" aria-hidden="true" />
                 <div>
                   <p className="text-sm font-semibold text-body">任务已手动停止</p>
-                  <p className="mt-0.5 text-[13px] text-body">{isReadingTask ? '本次阅读已停止，实际记录时长请以平台统计为准' : '已完成的进度已保留，可返回课程选择开始新任务'}</p>
+                  <p className="mt-0.5 text-[13px] text-body">已完成的进度已保留，可返回课程选择开始新任务</p>
                 </div>
               </div>
             )}

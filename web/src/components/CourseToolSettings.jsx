@@ -8,10 +8,10 @@ import { DEFAULT_DOWNLOAD_DIR, loadDownloadDir, saveDownloadDir } from '../lib/d
 
 export const courseToolLabels = {
   study: '自动学习', visits: '学习次数', catalog: '资源读取',
-  video_time: '视频时长', reading_time: '阅读时长', download: '资源下载',
+  video_time: '视频时长', download: '资源下载',
 };
 
-const taskTypeOrder = ['study', 'visits', 'video_time', 'reading_time', 'download'];
+const taskTypeOrder = ['study', 'visits', 'video_time', 'download'];
 
 // 决策顺序第一环：先选本次要做什么，再挑课程和参数。
 const TaskTypePicker = ({ taskType, onTaskTypeChange, disabled = false }) => {
@@ -112,9 +112,6 @@ const CourseToolSettings = ({ taskType, options, onOptionsChange, disabled = fal
 
       {taskType === 'video_time' && (
         <p className="text-[13px] leading-relaxed text-body">先读取所选课程的视频列表，再勾选视频并设置每个视频增加的时长。执行时可随时停止。</p>
-      )}
-      {taskType === 'reading_time' && (
-        <p className="text-[13px] leading-relaxed text-body">先读取课程的阅读任务，再勾选任务并设置新增时长。执行时会打开浏览器窗口滚动阅读页，请不要关闭该窗口，也不会占用鼠标。平台当天统计可能次日更新。</p>
       )}
       {taskType === 'download' && (
         <>

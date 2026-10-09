@@ -3,8 +3,6 @@
 import unittest
 
 from api.course_tools import _trusted_url
-from api.reading_browser import allow_reading_url
-from api.reading_time import READ_BOOK_PATH, _platform_url
 from api.url_policy import UrlMessages, canonical_https_url
 
 BOOK = "https://mooc1.chaoxing.com/mooc-ans/course/1.html"
@@ -30,8 +28,6 @@ CHECKS = {
     "download": lambda value: _trusted_url(value),
     "visit": lambda value: _trusted_url(value, purpose="visit"),
     "video": lambda value: _trusted_url(value, purpose="video"),
-    "reading-request": lambda value: _platform_url(value, path=READ_BOOK_PATH.fullmatch),
-    "reading-browser": allow_reading_url,
 }
 
 
@@ -50,9 +46,6 @@ class UrlPolicyTests(unittest.TestCase):
             ("visit", "https://fystat-ans.chaoxing.com/log/setlog?x=1", "https://fystat-ans.chaoxing.com/log/setlog?x=1"),
             ("video", "https://mooc1.chaoxing.com/mooc-ans/multimedia/log/a/cpi/token",
              "https://mooc1.chaoxing.com/mooc-ans/multimedia/log/a/cpi/token"),
-            ("reading-request", "http://mooc1-1.chaoxing.com/mooc-ans/zt/22.html?a=1&amp;b=2",
-             "https://mooc1-1.chaoxing.com/mooc-ans/zt/22.html?a=1&b=2"),
-            ("reading-browser", BOOK, BOOK),
         ]
         for name, value, expected in cases:
             with self.subTest(check=name, value=value):
@@ -62,31 +55,25 @@ class UrlPolicyTests(unittest.TestCase):
             ("video", "https://mooc1.chaoxing.com/mooc-ans/multimedia/log/a/cpi/token?x=1"),
             ("download", "https://evilchaoxing.com/a"),
             ("download", "https://moo_c1.chaoxing.com/a"),
-            ("reading-request", "https://mooc1.chaoxing.com/mooc-ans/api/work"),
         ]:
             with self.subTest(check=name, value=value):
                 with self.assertRaises(ValueError):
                     CHECKS[name](value)
 
-    def test_browser_urls_are_not_unescaped_or_downgraded(self):
-        with self.assertRaises(ValueError):
-            allow_reading_url("http://mooc1.chaoxing.com/mooc-ans/course/1.html")
-        escaped = BOOK + "?a=1&amp;b=2"
-        self.assertEqual(allow_reading_url(escaped), escaped)
-        self.assertEqual(_platform_url(escaped), BOOK + "?a=1&b=2")
-
     def test_messages_distinguish_invalid_untrusted_and_path(self):
         self.assertEqual(self.message(lambda: _trusted_url("a\nb")), "上游资源地址无效")
         self.assertEqual(self.message(lambda: _trusted_url("ftp://chaoxing.com/a")), "上游资源地址不受支持")
         self.assertEqual(self.message(lambda: _trusted_url("https://evil.example/a")), "拒绝非受信任的超星资源地址")
-        self.assertEqual(self.message(lambda: allow_reading_url("https://evil.example/a")), "拒绝非受信任的专题阅读地址")
-        self.assertEqual(self.message(lambda: allow_reading_url("https://mooc1.chaoxing.com/a")), "专题阅读地址路径不受支持")
 
     def test_relative_links_resolve_against_the_page(self):
-        self.assertEqual(_platform_url("../zt/3.html", base=BOOK, path=READ_BOOK_PATH.fullmatch),
+        self.assertEqual(canonical_https_url("../zt/3.html", base="https://mooc1.chaoxing.com/mooc-ans/course/1.html",
+                                             messages=UrlMessages("bad", "untrusted"),
+                                             allowed=lambda host, parts: host == "mooc1.chaoxing.com"),
                          "https://mooc1.chaoxing.com/mooc-ans/zt/3.html")
         with self.assertRaises(ValueError):
-            _platform_url("//evil.example/a", base=BOOK)
+            canonical_https_url("//evil.example/a", base="https://mooc1.chaoxing.com/mooc-ans/course/1.html",
+                                messages=UrlMessages("bad", "untrusted"),
+                                allowed=lambda host, parts: host == "mooc1.chaoxing.com")
 
     def test_policy_without_a_path_check_accepts_any_trusted_path(self):
         messages = UrlMessages("bad", "untrusted")

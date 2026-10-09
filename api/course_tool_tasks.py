@@ -19,11 +19,11 @@ from api.task_logging import task_log_sink
 from api.task_state import TaskNotFound
 
 
-TOOL_TYPES = frozenset({"visits", "catalog", "video_time", "reading_time", "download"})
-TIMED_TOOLS = frozenset({"video_time", "reading_time"})
-RESOURCE_FLAGS = {"video_time": "watchable", "reading_time": "readable", "download": "downloadable"}
+TOOL_TYPES = frozenset({"visits", "catalog", "video_time", "download"})
+TIMED_TOOLS = frozenset({"video_time"})
+RESOURCE_FLAGS = {"video_time": "watchable", "download": "downloadable"}
 TASK_LABELS = {"visits": "课程学习次数", "catalog": "读取课程资源", "video_time": "视频观看时长",
-               "reading_time": "课程阅读时长", "download": "课程资源下载"}
+               "download": "课程资源下载"}
 MAX_ITEMS = 1000
 MAX_SNAPSHOT_BYTES = 2 * 1024 * 1024
 # Reserve a bounded result row for every selectable resource, including Unicode
@@ -38,8 +38,7 @@ WINDOWS_RESERVED_NAMES = frozenset(
     {"CON", "PRN", "AUX", "NUL", *(f"{prefix}{number}" for prefix in ("COM", "LPT") for number in range(1, 10))})
 PUBLIC_RESOURCE_FIELDS = frozenset({
     "id", "course_id", "course_title", "chapter_id", "chapter_title", "name",
-    "kind", "downloadable", "watchable", "duration", "readable",
-    "required_minutes", "read_minutes", "book_count",
+    "kind", "downloadable", "watchable", "duration",
 })
 
 
@@ -64,6 +63,16 @@ def _number(value, label, low, high, *, integer=False):
     if not math.isfinite(number) or not low <= number <= high or (integer and not number.is_integer()):
         raise ValueError(f"{label}必须在 {low} 到 {high} 之间" + ("，且为整数" if integer else ""))
     return int(number) if integer else number
+
+
+def _minutes_text(value):
+    """Platform counters arrive as floats or missing; show either honestly."""
+    if value is None:
+        return "未知"
+    try:
+        return f"{float(value):g}"
+    except (TypeError, ValueError):
+        return "未知"
 
 
 def _parse_download_dir(value):
@@ -94,7 +103,6 @@ def parse_options(task_type, options):
     allowed = {
         "visits": {"count", "interval"}, "catalog": {"purpose"},
         "video_time": {"source_task_id", "resource_ids", "minutes"},
-        "reading_time": {"source_task_id", "resource_ids", "minutes"},
         "download": {"source_task_id", "resource_ids", "download_dir"},
     }[task_type]
     if set(options) - allowed:
@@ -104,7 +112,7 @@ def parse_options(task_type, options):
                 "interval": _number(options.get("interval", 30), "请求间隔（秒）", 1, 3600)}
     if task_type == "catalog":
         if not isinstance(options.get("purpose"), str) or options["purpose"] not in RESOURCE_FLAGS:
-            raise ValueError("请选择视频时长、阅读时长或资源下载功能")
+            raise ValueError("请选择视频时长或资源下载功能")
         return {"purpose": options["purpose"]}
     source = options.get("source_task_id")
     ids = options.get("resource_ids")
@@ -118,7 +126,7 @@ def parse_options(task_type, options):
     if task_type == "download":
         normalized["download_dir"] = _parse_download_dir(options.get("download_dir"))
     if task_type in TIMED_TOOLS:
-        label = "每个阅读任务的新增分钟数" if task_type == "reading_time" else "每个视频的目标分钟数"
+        label = "每个视频的目标分钟数"
         normalized["minutes"] = _number(options.get("minutes", 30), label, 0.1, 1440)
     return normalized
 
@@ -132,8 +140,7 @@ def initial_status(config, details=None):
     total = len(config["tool_options"].get("resource_ids", config["course_list"]))
     label = TASK_LABELS[kind]
     if kind == "catalog":
-        label = {"video_time": "读取视频列表", "reading_time": "读取阅读任务",
-                 "download": label}[config["tool_options"]["purpose"]]
+        label = {"video_time": "读取视频列表", "download": label}[config["tool_options"]["purpose"]]
     status = {
         "task_type": kind, "task_label": label, "progress": 0, "total": total,
         "current_course": "", "current_chapter": "", "current_task": "",
@@ -157,7 +164,7 @@ def _refresh_counts(status, details):
 
 def initial_details(config, resources):
     kind, options = config["task_type"], config["tool_options"]
-    unit = {"visits": "次", "catalog": "章节", "video_time": "秒", "reading_time": "秒", "download": "字节"}[kind]
+    unit = {"visits": "次", "catalog": "章节", "video_time": "秒", "download": "字节"}[kind]
     total = options["count"] * len(config["course_list"]) if kind == "visits" else (
         round(options["minutes"] * 60) * len(resources) if kind in TIMED_TOOLS else None if kind == "download" else 0
     )
@@ -269,9 +276,6 @@ def open_download_directory(store, account, task_id, data_dir):
 
 
 def create_service(client, cancel_check, purpose=None):
-    if purpose == "reading_time":
-        from api.reading_time import ReadingTools
-        return ReadingTools(client, cancel_check=cancel_check)
     from api.course_tools import CourseTools
     return CourseTools(client, cancel_check=cancel_check)
 
@@ -286,7 +290,7 @@ class _Progress:
         self.store, self.task_id, self.config = store, task_id, config
         self.kind = config["task_type"]
         self.metric = {"visits": "submitted", "catalog": "chapters", "video_time": "seconds",
-                       "reading_time": "seconds", "download": "bytes"}[self.kind]
+                       "download": "bytes"}[self.kind]
         self.completed = 0
         self._last_save = 0
         # 已记录行（含断点恢复行）的累计量：update() 增量累加，
@@ -475,7 +479,7 @@ def _run_courses(task_id, store, config, service, courses, progress, cancelled):
                     if not _catalog_fits(task.details, merged):
                         raise ValueError("课程资源过多，请减少勾选课程后分批读取")
                     task.details["tool"]["resources"] = merged
-                label = "阅读任务" if options["purpose"] == "reading_time" else "资源"
+                label = "资源"
                 result, message = {}, f"读取到 {len(found)} 个{label}"
             progress.record(course, item, "completed", result, message)
             logger.info("{}：{}", course["title"], message)
@@ -533,11 +537,6 @@ def _run_resources(task_id, store, config, service, courses, progress, cancelled
                 if kind == "video_time":
                     result = service.watch_video(course, resource, seconds, on_progress=progress.update)
                     message = f"已提交 {result['seconds']} 秒观看记录，平台统计可能延迟更新"
-                elif kind == "reading_time":
-                    result = service.watch_reading(course, resource, seconds, on_progress=progress.update)
-                    message = f"已滚动阅读页 {result['seconds']} 秒，由页面脚本上报，平台统计可能次日更新"
-                    if result.get("warning"):
-                        message += f"；{result['warning']}"
                 else:
                     result = service.download_resource(course, resource, directory, on_progress=progress.update)
                     # The task directory is displayed once; rows retain its
