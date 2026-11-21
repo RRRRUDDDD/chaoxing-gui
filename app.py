@@ -975,14 +975,13 @@ def wait_for_server_ready(url: str, timeout: int = 60) -> bool:
 
 def create_tray_icon():
     """创建托盘图标（从 fav.jpg 加载）"""
-    # 优先读取 web/public/ 下的图标（与前端登录页图标同源）
-    icon_path = os.path.join(SCRIPT_DIR, "web", "public", "fav.jpg")
     if getattr(sys, 'frozen', False):
         # 打包态：从 _MEIPASS 临时解包目录读取
         icon_path = os.path.join(sys._MEIPASS, "fav.jpg")
+    else:
+        icon_path = os.path.join(SCRIPT_DIR, "fav.jpg")
 
     if not os.path.exists(icon_path):
-        # 兜底：旧位置（脚本根目录）
         icon_path = os.path.join(SCRIPT_DIR, "fav.jpg")
 
     if os.path.exists(icon_path):

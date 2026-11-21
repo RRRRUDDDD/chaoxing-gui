@@ -17,9 +17,11 @@ class PackagingSpecTests(unittest.TestCase):
         hooks.copy_metadata = lambda name: [('metadata', 'ddddocr-1.6.1.dist-info')]
         assets = SimpleNamespace(version=version, locate_file=lambda name: ROOT / 'wheel' / name)
         calls = []
+        exe_calls = []
         analysis = Mock(side_effect=lambda *args, **kwargs: (
             calls.append(kwargs) or SimpleNamespace(pure=[], scripts=[], binaries=[], datas=[])))
-        context = dict(SPECPATH=str(ROOT), Analysis=analysis, PYZ=Mock(), EXE=Mock(), COLLECT=Mock())
+        exe = Mock(side_effect=lambda *args, **kwargs: (exe_calls.append(kwargs) or Mock()))
+        context = dict(SPECPATH=str(ROOT), Analysis=analysis, PYZ=Mock(), EXE=exe, COLLECT=Mock())
         with patch.dict(sys.modules, {'PyInstaller.utils.hooks': hooks}), \
                 patch('importlib.metadata.distribution', return_value=assets), patch.object(sys, 'path', sys.path[:]):
             sys.modules.pop('spec_common', None)
@@ -28,10 +30,10 @@ class PackagingSpecTests(unittest.TestCase):
                     runpy.run_path(str(ROOT / name), init_globals=context)
             finally:
                 sys.modules.pop('spec_common', None)
-        return calls
+        return calls, exe_calls
 
     def test_shared_resources_are_identical_and_tray_settings_do_not_leak(self):
-        gui, backend = self.specs()
+        (gui, backend), (gui_exe, backend_exe) = self.specs()
         self.assertEqual(gui['datas'], backend['datas'])
         self.assertIn('pystray', gui['hiddenimports'])
         self.assertNotIn('pystray', backend['hiddenimports'])
@@ -44,6 +46,9 @@ class PackagingSpecTests(unittest.TestCase):
             self.assertEqual(models, ['common_old.onnx', 'charsets.py'])
             self.assertIn('openai', spec['excludes'])
             self.assertIn('pydantic_core', spec['excludes'])
+        for exe in (gui_exe, backend_exe):
+            self.assertEqual(exe['icon'], 'fav.jpg')
+            self.assertTrue((ROOT / exe['icon']).is_file(), f"Missing EXE icon: {exe['icon']}")
 
     def test_unverified_captcha_version_fails_packaging(self):
         with self.assertRaisesRegex(SystemExit, 'ddddocr==1.6.1'):

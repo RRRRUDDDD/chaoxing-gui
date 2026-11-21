@@ -36,7 +36,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon="web/public/fav.jpg",
+    icon="fav.jpg",
 )
 
 coll = COLLECT(
