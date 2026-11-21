@@ -21,7 +21,7 @@ import re
 import tempfile
 import time
 import unicodedata
-from urllib.parse import quote, urlsplit
+from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
 from bs4 import BeautifulSoup
 from loguru import logger
@@ -43,9 +43,13 @@ VISITS_URL = "https://stat2-ans.chaoxing.com/stat2/study-pv/chart"
 STAT_INDEX_URL = "https://stat2-ans.chaoxing.com/study-data/index"
 STAT_TIME_URL = "https://stat2-ans.chaoxing.com/stat2/task/s/index"
 VIDEO_REFERER = "https://mooc1.chaoxing.com/ananas/modules/video/index.html"
+READ_POINT_URL = "https://data-xxt.aichaoxing.com/analysis/ac_mark"
+READ_POINT_SALT = "NrRzLDpWB2JkeodIVAn4"
+READ_HEARTBEAT_SECONDS = 30
+MAX_CHAPTER_DOCS = 10
 PUBLIC_FIELDS = (
     "id", "course_id", "course_title", "chapter_id", "chapter_title",
-    "name", "kind", "downloadable", "watchable", "duration",
+    "name", "kind", "downloadable", "watchable", "readable", "duration",
 )
 _LOCKED = re.compile(r"章节未开放|章节已锁定|该章节尚未开放|请先完成.{0,80}解锁")
 # An empty knowledge card page only initializes ``mArg = ""``. Without a card
@@ -92,6 +96,10 @@ def _seconds(milliseconds):
 _TRUSTED_MESSAGES = UrlMessages(invalid="上游资源地址无效", untrusted="上游资源地址不受支持")
 _MOOC_HOST = re.compile(r"mooc\d+(?:-\d+|-ans)?\.chaoxing\.com")
 _VIDEO_LOG_PATH = re.compile(r"/(?:mooc-ans/)?multimedia/log/[a-z]/[^?#]+")
+_READ_LOG_PATH = re.compile(r"/(?:mooc-ans/)?multimedia/readlog")
+_STUDENT_STUDY_PATH = re.compile(r"/(?:mooc-ans/)?mycourse/studentstudy")
+_NUMERIC_ID = re.compile(r"\d{1,20}")
+_TOKEN_VALUE = re.compile(r"[a-zA-Z0-9_-]{8,128}")
 
 
 def _trusted_url(value, *, purpose="download", base=None):
@@ -104,6 +112,14 @@ def _trusted_url(value, *, purpose="download", base=None):
         elif purpose == "video":
             trusted = bool(_MOOC_HOST.fullmatch(host) and _VIDEO_LOG_PATH.fullmatch(parts.path)
                            and not parts.query)
+        elif purpose == "read_point":
+            trusted = host == "data-xxt.aichaoxing.com" and parts.path == "/analysis/ac_mark"
+        elif purpose == "read_log":
+            trusted = bool(_MOOC_HOST.fullmatch(host) and _READ_LOG_PATH.fullmatch(parts.path))
+        elif purpose == "studentstudy":
+            trusted = bool(_MOOC_HOST.fullmatch(host) and _STUDENT_STUDY_PATH.fullmatch(parts.path))
+        elif purpose == "read_page":
+            trusted = host == "chaoxing.com" or host.endswith(".chaoxing.com")
         else:
             # Authenticated media metadata also uses the cldisk CDN for documents.
             trusted = host in {"chaoxing.com", "cldisk.com"} or host.endswith((".chaoxing.com", ".cldisk.com"))
@@ -113,6 +129,69 @@ def _trusted_url(value, *, purpose="download", base=None):
 
     # Some status endpoints still label CDN links http; the result is HTTPS.
     return canonical_https_url(value, messages=_TRUSTED_MESSAGES, allowed=allowed, base=base)
+
+
+def parse_studentstudy_url(value):
+    """Validate and parse a Chaoxing studentstudy chapter URL."""
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError("章节链接不能为空")
+    try:
+        canonical = _trusted_url(value.strip(), purpose="studentstudy")
+    except ValueError:
+        raise ValueError("请输入有效的超星学习章节链接（studentstudy）") from None
+    parts = urlsplit(canonical)
+    params = {}
+    for key, item in parse_qsl(parts.query, keep_blank_values=False):
+        lower = key.lower()
+        if lower not in params:
+            params[lower] = item.strip()
+    course_id = params.get("courseid", "")
+    clazz_id = params.get("clazzid", "")
+    chapter_id = params.get("chapterid", "")
+    if not (_NUMERIC_ID.fullmatch(course_id) and _NUMERIC_ID.fullmatch(clazz_id) and _NUMERIC_ID.fullmatch(chapter_id)):
+        raise ValueError("章节链接缺少有效的 courseId、clazzid 或 chapterId 参数")
+    cpi = params.get("cpi", "")
+    if cpi and not _NUMERIC_ID.fullmatch(cpi):
+        raise ValueError("章节链接中的 cpi 参数格式无效")
+    enc = params.get("enc", "")
+    if enc and not _TOKEN_VALUE.fullmatch(enc):
+        raise ValueError("章节链接中的 enc 参数格式无效")
+    safe_query = [("chapterId", chapter_id), ("courseId", course_id), ("clazzid", clazz_id)]
+    if cpi:
+        safe_query.append(("cpi", cpi))
+    sanitized = urlunsplit(("https", parts.netloc, parts.path, urlencode(safe_query), ""))
+    return {
+        "url": canonical,
+        "sanitized_url": sanitized,
+        "host": (parts.hostname or "mooc1.chaoxing.com").lower(),
+        "courseId": course_id,
+        "clazzId": clazz_id,
+        "chapterId": chapter_id,
+        "cpi": cpi,
+        "enc": enc,
+    }
+
+
+def _read_point_timestamp(now=None):
+    current = datetime.now() if now is None else now
+    return current.strftime("%Y%m%d%H%M%S") + f"{current.microsecond // 1000:03d}"
+
+
+def sign_read_point(payload, uid, timestamp, *, function="readPoint", pid=None, session_id=None):
+    """Build and sign the query string for data-xxt.aichaoxing.com/analysis/ac_mark."""
+    d_json = json.dumps(payload, separators=(",", ":"), ensure_ascii=False)
+    # Match JavaScript encodeURIComponent() exactly so the MD5 digest agrees with addPoint.js.
+    params = {"f": str(function), "u": str(uid)}
+    if pid is not None:
+        params["pid"] = str(pid)
+    if session_id is not None:
+        params["s"] = str(session_id)
+    params["d"] = quote(d_json, safe="-_.!~*'()")
+    params["t"] = str(timestamp)
+    raw = "".join(params[key] for key in sorted(params)) + READ_POINT_SALT
+    enc = hashlib.md5(raw.encode("utf-8")).hexdigest()
+    query = "".join(f"&{key}={value}" for key, value in params.items()) + f"&enc={enc}"
+    return query, enc
 
 
 def _check_business(data, label):
@@ -329,7 +408,25 @@ class CourseTools:
         prop = attachment.get("property") or {}
         return _scalar(attachment.get("jobid")) or _scalar(prop.get("_jobid")) or _scalar(prop.get("jobid"))
 
-    def _resource(self, course, chapter, attachment, defaults, page, index):
+    @staticmethod
+    def _course_enc(text):
+        soup = BeautifulSoup(text, "html.parser")
+        for selector in ("input#enc", "input[name='enc']", "input#chapterEnc", "input[name='chapterEnc']"):
+            node = soup.select_one(selector)
+            if node is not None:
+                value = _scalar(node.get("value"))
+                if _TOKEN_VALUE.fullmatch(value):
+                    return value
+        for pattern in (
+            r"""[?&]enc=([a-zA-Z0-9_-]{16,128})\b""",
+            r"""\b(?:chapterEnc|enc)\s*[:=]\s*['"]([a-zA-Z0-9_-]{16,128})['"]""",
+        ):
+            match = re.search(pattern, text)
+            if match:
+                return match[1]
+        return ""
+
+    def _resource(self, course, chapter, attachment, defaults, page, index, *, course_enc=""):
         prop = attachment.get("property", {})
         if not isinstance(prop, dict):
             raise RuntimeError("章节附件属性格式无效")
@@ -338,17 +435,19 @@ class CourseTools:
         if is_live_card(attachment):
             return None
         object_id = self._object_id(attachment)
+        job_id = self._job_id(attachment)
         if kind == "audio" or module == "insertaudio":
             kind = "audio"
         elif kind == "video" or module == "insertvideo":
             kind = "video"
+        elif kind == "read" or module == "insertread" or job_id.startswith("read-"):
+            kind = "read"
         elif kind in {"document", "doc", "pdf"} or module == "insertdoc":
             kind = "document"
         elif object_id or kind in {"file", "attachment", "book"}:
             kind = "file"
         else:
             return None
-        job_id = self._job_id(attachment)
         name = next((
             _scalar(value) for value in (
                 prop.get("name"), prop.get("title"), prop.get("bookname"), attachment.get("name"),
@@ -362,11 +461,14 @@ class CourseTools:
             "chapter_id": chapter["id"], "chapter_title": chapter["title"],
             "name": name, "kind": kind, "downloadable": bool(object_id),
             "watchable": bool(kind == "video" and object_id and job_id),
+            "readable": bool((kind == "read" and job_id) or (kind == "document" and object_id)),
             "_attachment": deepcopy(attachment),
             # 本资源接管该对象：scan_course 传入的是整页共享的一份副本，
             # 之后任何代码都不得原地修改 _defaults。
             "_defaults": defaults,
         }
+        if course_enc:
+            resource["_course_enc"] = course_enc
         try:
             duration = _number(attachment.get("duration", prop.get("duration")))
             if duration > 0:
@@ -375,7 +477,7 @@ class CourseTools:
             pass
         return resource
 
-    def iter_card_pages(self, course, chapter, *, strict=False):
+    def iter_card_pages(self, course, chapter, *, strict=False, host=None):
         """Yield raw card data; strict readers require proof of the page boundary."""
         self._check_cancelled()
         if chapter["locked"]:
@@ -383,12 +485,18 @@ class CourseTools:
                 raise RuntimeError("章节已锁定，无法确认任务状态")
             logger.warning("章节“{}”已锁定，已跳过", chapter["title"])
             return
+        study_url = STUDY_URL if host is None else _trusted_url(
+            f"https://{host}/mooc-ans/mycourse/studentstudyAjax", purpose="read_page",
+        )
+        cards_url = CARDS_URL if host is None else _trusted_url(
+            f"https://{host}/mooc-ans/knowledge/cards", purpose="read_page",
+        )
         params = {
             "courseId": str(course["courseId"]), "clazzid": str(course["clazzId"]),
             "chapterId": chapter["id"], "cpi": str(course["cpi"]),
             "verificationcode": "", "mooc2": 1,
         }
-        text = self._text("get", STUDY_URL, "章节页数", params=params)
+        text = self._text("get", study_url, "章节页数", params=params)
         soup = _check_html(text, "章节页数")
         count_node = soup.select_one("#cardcount")
         if count_node is None and _LOCKED.search(soup.get_text()):
@@ -406,7 +514,7 @@ class CourseTools:
             self._check_cancelled()
             params = {**self._course_params(course), "knowledgeid": chapter["id"],
                       "num": page, "v": "20160407-1", "mooc2": 1}
-            text = self._text("get", CARDS_URL, "章节卡片", params=params)
+            text = self._text("get", cards_url, "章节卡片", params=params)
             soup = _check_html(text, "章节卡片")
             if _LOCKED.search(soup.get_text()):
                 if strict:
@@ -425,7 +533,9 @@ class CourseTools:
 
     def scan_course(self, course, on_chapter=None):
         self._check_cancelled()
-        chapters = self._chapters(self._course_page(course))
+        course_html = self._course_page(course)
+        chapters = self._chapters(course_html)
+        course_enc = self._course_enc(course_html)
         resources = {}
         for completed, chapter in enumerate(chapters, 1):
             for page, data in self.iter_card_pages(course, chapter):
@@ -434,11 +544,13 @@ class CourseTools:
                 for index, attachment in enumerate(data.get("attachments", [])):
                     self._check_cancelled()
                     resource = self._resource(
-                        course, chapter, attachment, defaults, page, index,
+                        course, chapter, attachment, defaults, page, index, course_enc=course_enc,
                     )
                     if resource is not None:
                         previous = resources.get(resource["id"])
-                        if previous is None or (resource["watchable"] and not previous["watchable"]):
+                        if (previous is None
+                                or (resource["watchable"] and not previous["watchable"])
+                                or (resource["readable"] and not previous["readable"])):
                             resources[resource["id"]] = resource
             if callable(on_chapter):
                 on_chapter(chapter["title"], completed, len(chapters))
@@ -576,7 +688,7 @@ class CourseTools:
         self._check_cancelled()
         return {"before": before, "after": after, "submitted": submitted, "warnings": list(dict.fromkeys(warnings))}
 
-    def _resource_parts(self, course, resource):
+    def _resource_parts(self, course, resource, *, require_object_id=True):
         self._course_params(course)
         if str(resource.get("course_id")) != str(course["courseId"]):
             raise ValueError("资源与所选课程不匹配")
@@ -589,7 +701,7 @@ class CourseTools:
             if _scalar(defaults.get(key)) and str(defaults[key]) != str(course[key]):
                 raise ValueError("资源参数与所选课程不匹配")
         object_id = self._object_id(attachment)
-        if not object_id:
+        if require_object_id and not object_id:
             raise ValueError("资源没有可用的文件标识")
         return attachment, defaults, object_id
 
@@ -698,6 +810,399 @@ class CourseTools:
                 position = 0
                 report_progress(0, 3)
         return {"seconds": _seconds(completed)}
+
+    def _text_follow(self, url, label, *, purpose="read_page", params=None, headers=None):
+        """Fetch an HTML page while validating every redirect hop against Chaoxing hosts."""
+        current_params = params
+        for _ in range(6):
+            url = _trusted_url(url, purpose=purpose)
+            response = self._request(
+                "get", url, label, statuses=(200, *_REDIRECTS),
+                params=current_params, headers=headers,
+            )
+            current_params = None
+            try:
+                if response.status_code == 200:
+                    return url, response.text
+                location = response.headers.get("Location")
+                if not location:
+                    raise RuntimeError(f"{label}重定向缺少目标地址")
+                url = _trusted_url(location, purpose=purpose, base=url)
+            finally:
+                response.close()
+        raise RuntimeError(f"{label}重定向次数过多")
+
+    @staticmethod
+    def _check_read_report(text):
+        stripped = text.strip()
+        # Verified live: data-xxt.aichaoxing.com/analysis/ac_mark returns HTTP 200 with "".
+        if not stripped:
+            return
+        try:
+            data = json.loads(stripped)
+        except ValueError:
+            if "<" in stripped:
+                _check_html(stripped, "阅读时长上报")
+            raise RuntimeError("阅读时长上报返回了无效响应，请检查登录状态") from None
+        _check_business(data, "阅读时长上报")
+
+    def _send_read_point(self, payload, uid, *, referer, timestamp=None):
+        base_url = _trusted_url(READ_POINT_URL, purpose="read_point")
+        query, _ = sign_read_point(payload, uid, timestamp or _read_point_timestamp())
+        url = f"{base_url}?{query}"
+        headers = {"Referer": referer, "Connection": "close"}
+        for attempt in range(2):
+            try:
+                text = self._text("get", url, "阅读时长上报", no_retry=True, headers=headers)
+                break
+            except _NetworkRequestError as exc:
+                if attempt:
+                    raise
+                logger.warning("阅读时长上报网络中断，重试一次: {}", exc)
+        self._check_read_report(text)
+
+    def _send_read_log(self, target, scroll_h):
+        try:
+            url = _trusted_url(f"https://{target['mooc_host']}/multimedia/readlog", purpose="read_log")
+            params = {
+                "courseid": target["book_id"],
+                "chapterid": target["node_id"],
+                "height": target["height"],
+                "_from_": target["from_token"],
+                "h": scroll_h,
+            }
+            self._text(
+                "get", url, "阅读滚动日志", no_retry=True, params=params,
+                headers={"Referer": target["referer"], "Connection": "close"},
+            )
+        except ToolCancelled:
+            raise
+        except Exception as exc:
+            logger.debug("阅读滚动日志跳过: {}", exc)
+
+    @staticmethod
+    def _parse_read_tips(soup):
+        text = soup.get_text(" ", strip=True)
+        before_minutes = target_minutes = None
+        match = re.search(r"您的阅读总时长\s*[:：]?\s*([\d,]+(?:\.\d+)?)\s*分钟", text)
+        if match:
+            try:
+                before_minutes = _number(match[1].replace(",", ""))
+            except ValueError:
+                pass
+        match = re.search(r"阅读总时长达到\s*([\d,]+(?:\.\d+)?)\s*分钟", text)
+        if match:
+            try:
+                target_minutes = _number(match[1].replace(",", ""))
+            except ValueError:
+                pass
+        return before_minutes, target_minutes
+
+    @staticmethod
+    def _query_map(url):
+        result = {}
+        for key, value in parse_qsl(urlsplit(url).query, keep_blank_values=False):
+            lower = key.lower()
+            if lower not in result:
+                result[lower] = value.strip()
+        return result
+
+    def _resolve_special_target(self, course, attachment, defaults, chapter_id, uid, *,
+                                mooc_host="mooc1.chaoxing.com", fallback_enc=""):
+        job_id = self._job_id(attachment)
+        if not job_id:
+            raise ValueError("该阅读任务缺少任务标识")
+        work_url = _trusted_url(f"https://{mooc_host}/mooc-ans/api/work", purpose="read_page")
+        work_params = {
+            "api": "1", "workId": "", "jobid": job_id, "needRedirect": "true",
+            "type": "read", "knowledgeid": str(chapter_id), "ut": "s", "isphone": "false",
+            "clazzId": str(course["clazzId"]), "enc": _scalar(attachment.get("enc")),
+            "utenc": _scalar(defaults.get("utenc")), "courseid": str(course["courseId"]),
+        }
+        final_work_url, work_html = self._text_follow(
+            work_url, "阅读任务列表", params=work_params,
+            headers={"Referer": f"https://{mooc_host}/ananas/modules/read/index.html"},
+        )
+        soup = _check_html(work_html, "阅读任务列表")
+        before_minutes, target_minutes = self._parse_read_tips(soup)
+        book_links = []
+        seen_books = set()
+        for anchor in soup.select(".readList a[href], a[href]"):
+            href = html.unescape(_scalar(anchor.get("href")))
+            if not href or not re.search(r"/(?:course|zt)/\d+\.html", href):
+                continue
+            try:
+                book_url = _trusted_url(href, purpose="read_page", base=final_work_url)
+            except ValueError:
+                continue
+            if book_url in seen_books:
+                continue
+            seen_books.add(book_url)
+            title_node = anchor.select_one(".readTitle")
+            book_title = (title_node.get_text(" ", strip=True) if title_node else anchor.get_text(" ", strip=True))
+            book_links.append((book_url, book_title[:120]))
+        if not book_links:
+            raise RuntimeError("阅读任务页面未找到可阅读的拓展书籍链接")
+
+        last_error = None
+        for book_url, book_title in book_links:
+            self._check_cancelled()
+            try:
+                final_book_url, book_html = self._text_follow(
+                    book_url, "阅读书籍目录", headers={"Referer": final_work_url},
+                )
+                book_soup = _check_html(book_html, "阅读书籍目录")
+                book_host = (urlsplit(final_book_url).hostname or mooc_host).lower()
+                book_match = re.search(r"/(?:course|zt)/(\d+)\.html", urlsplit(final_book_url).path)
+                if not book_match:
+                    raise RuntimeError("无法识别拓展书籍编号")
+                book_id = book_match[1]
+                book_query = self._query_map(final_book_url)
+                from_token = book_query.get("_from_") or (
+                    f"{course['courseId']}_{course['clazzId']}_{uid}_{fallback_enc}" if fallback_enc else ""
+                )
+                node_url = None
+                for anchor in book_soup.select("a[href]"):
+                    href = html.unescape(_scalar(anchor.get("href")))
+                    if "visitnodedetail" in href and "knowledgeId=" in href:
+                        node_url = _trusted_url(href, purpose="read_page", base=final_book_url)
+                        break
+                if not node_url:
+                    node_match = re.search(r"[?&]knowledge[Ii]d=(\d{1,20})", book_html)
+                    if node_match:
+                        node_url = _trusted_url(
+                            f"https://{book_host}/mooc-ans/ztnodedetailcontroller/visitnodedetail?"
+                            + urlencode({
+                                "courseId": book_id, "knowledgeId": node_match[1],
+                                "_from_": from_token, "_fromV2_": "", "rtag": "",
+                            }),
+                            purpose="read_page",
+                        )
+                if not node_url:
+                    raise RuntimeError("无法在拓展书籍中找到可读章节")
+                final_node_url, node_html = self._text_follow(
+                    node_url, "阅读章节内容", headers={"Referer": final_book_url},
+                )
+                node_soup = _check_html(node_html, "阅读章节内容")
+                node_query = self._query_map(final_node_url)
+                node_id = node_query.get("knowledgeid", "")
+                if not _NUMERIC_ID.fullmatch(node_id):
+                    raise RuntimeError("阅读章节标识无法解析")
+                from_token = node_query.get("_from_") or from_token
+                rtag = node_query.get("rtag", "")
+                for tag in node_soup(["script", "style"]):
+                    tag.decompose()
+                word_count = max(100, len(node_soup.get_text("", strip=True)))
+                img_count = len(node_soup.find_all("img"))
+                height = max(800, min(6000, word_count // 2 + img_count * 300))
+                return {
+                    "mode": "special",
+                    "book_id": book_id,
+                    "node_id": node_id,
+                    "book_title": book_title,
+                    "from_token": from_token,
+                    "rtag": rtag,
+                    "wc": word_count,
+                    "ic": img_count,
+                    "height": height,
+                    "mooc_host": (urlsplit(final_node_url).hostname or book_host).lower(),
+                    "referer": final_node_url,
+                    "before_minutes": before_minutes,
+                    "target_minutes": target_minutes,
+                }
+            except ToolCancelled:
+                raise
+            except Exception as exc:
+                last_error = exc
+                continue
+        raise RuntimeError(f"无法打开拓展阅读章节：{last_error}")
+
+    def _resolve_doc_target(self, course, attachment, defaults, uid, *, course_enc=""):
+        object_id = self._object_id(attachment)
+        if not object_id:
+            raise ValueError("该文档没有可用的文件标识")
+        prop = attachment.get("property") or {}
+        enc = (course_enc or _scalar(defaults.get("chapterEnc"))
+               or _scalar(defaults.get("enc")) or _scalar(defaults.get("mtEnc")))
+        from_token = f"{course['courseId']}_{course['clazzId']}_{uid}_{enc}" if enc else ""
+        try:
+            page_count = max(1, int(float(_scalar(prop.get("pagenum")) or "1")))
+        except ValueError:
+            page_count = 1
+        return {
+            "mode": "doc",
+            "object_id": object_id,
+            "from_token": from_token,
+            "wc": 22,
+            "ic": page_count,
+            "height": max(600, page_count * 400),
+            "referer": f"https://pan-yz.chaoxing.com/screen/v2/file_{quote(object_id, safe='')}",
+            "before_minutes": None,
+            "target_minutes": None,
+        }
+
+    @staticmethod
+    def _build_read_payload(target, state, scroll_h):
+        if target["mode"] == "special":
+            ext = json.dumps(
+                {"_from_": target["from_token"], "rtag": target.get("rtag", "")},
+                separators=(",", ":"), ensure_ascii=False,
+            )
+            return {
+                "a": None,
+                "r": f"{target['book_id']},{target['node_id']}",
+                "t": "special",
+                "l": 1,
+                "f": 0,
+                "wc": target["wc"],
+                "ic": target["ic"],
+                "v": 2,
+                "s": state,
+                "h": scroll_h,
+                "e": "",
+                "ext": ext,
+            }
+        payload = {
+            "r": target["object_id"],
+            "t": "doc",
+            "l": 1,
+            "f": 4,
+            "p": 1,
+            "tp": 1,
+            "wc": target["wc"],
+            "ic": target["ic"],
+            "v": 2,
+            "s": state,
+            "h": scroll_h,
+        }
+        if target.get("from_token"):
+            payload["ext"] = json.dumps(
+                {"_from_": target["from_token"]}, separators=(",", ":"), ensure_ascii=False,
+            )
+        return payload
+
+    def _run_read_targets(self, targets, uid, seconds, on_progress=None):
+        self._check_cancelled()
+        requested = _number(seconds)
+        if not 0 < requested <= 86400:
+            raise ValueError("阅读时长必须大于零且不超过 24 小时")
+        target_ms = round(requested * 1000)
+        if target_ms < 1:
+            raise ValueError("阅读时长不能小于一毫秒")
+        heartbeat_ms = READ_HEARTBEAT_SECONDS * 1000
+
+        def send_all(state, scroll_step):
+            for entry in targets:
+                self._check_cancelled()
+                max_h = max(400, entry.get("height", 1200))
+                scroll_h = 0 if state == 1 else (scroll_step * 400) % max_h
+                payload = self._build_read_payload(entry, state, scroll_h)
+                self._send_read_point(payload, uid, referer=entry["referer"])
+                if entry["mode"] == "special" and state in (1, 2):
+                    self._send_read_log(entry, scroll_h)
+
+        completed = 0
+        tick = 0
+        send_all(1, 0)
+        if callable(on_progress):
+            on_progress(0, _seconds(target_ms))
+        while completed < target_ms:
+            self._check_cancelled()
+            step = min(heartbeat_ms, target_ms - completed)
+            self._wait(step / 1000)
+            tick += 1
+            send_all(2, tick)
+            completed += step
+            if callable(on_progress):
+                on_progress(_seconds(completed), _seconds(target_ms))
+        self._check_cancelled()
+        send_all(0, tick)
+        result = {"seconds": _seconds(completed)}
+        for entry in targets:
+            if entry.get("before_minutes") is not None:
+                result["before_minutes"] = entry["before_minutes"]
+            if entry.get("target_minutes") is not None:
+                result["target_minutes"] = entry["target_minutes"]
+            if "before_minutes" in result or "target_minutes" in result:
+                break
+        return result
+
+    def read_resource(self, course, resource, seconds, on_progress=None):
+        self._check_cancelled()
+        kind = resource.get("kind")
+        if kind not in {"read", "document"}:
+            raise ValueError("该资源不支持累计阅读时长")
+        attachment, defaults, _ = self._resource_parts(course, resource, require_object_id=kind == "document")
+        user_id = _scalar(self.chaoxing.get_uid())
+        if not user_id or (_scalar(defaults.get("userid")) and str(defaults["userid"]) != user_id):
+            raise ValueError("阅读参数不属于当前登录账号，请重新读取资源")
+        course_enc = _scalar(resource.get("_course_enc"))
+        if kind == "read":
+            target = self._resolve_special_target(
+                course, attachment, defaults, resource.get("chapter_id", ""), user_id,
+                fallback_enc=course_enc,
+            )
+        else:
+            target = self._resolve_doc_target(course, attachment, defaults, user_id, course_enc=course_enc)
+        return self._run_read_targets([target], user_id, seconds, on_progress=on_progress)
+
+    def read_study_url(self, raw_url, seconds, *, enrolled=None, on_progress=None):
+        self._check_cancelled()
+        parsed = parse_studentstudy_url(raw_url)
+        user_id = _scalar(self.chaoxing.get_uid())
+        if not user_id:
+            raise ValueError("当前登录账号缺少用户标识，请重新登录")
+        enrolled_course = enrolled.get(parsed["courseId"]) if isinstance(enrolled, dict) else None
+        cpi = parsed["cpi"] or (_scalar(enrolled_course.get("cpi")) if isinstance(enrolled_course, dict) else "")
+        if not cpi:
+            raise ValueError("该链接缺少 cpi 参数且未在当前账号课程列表中找到，请确认已选修该课程或使用完整链接")
+        course_title = (
+            _scalar(enrolled_course.get("title")) if isinstance(enrolled_course, dict) else ""
+        ) or f"课程 {parsed['courseId']}"
+        course = {
+            "courseId": parsed["courseId"],
+            "clazzId": parsed["clazzId"],
+            "cpi": cpi,
+            "title": course_title,
+        }
+        chapter = {"id": parsed["chapterId"], "title": f"章节 {parsed['chapterId']}", "locked": False}
+        special_targets = []
+        doc_targets = []
+        seen_docs = set()
+        for _, data in self.iter_card_pages(course, chapter, host=parsed["host"]):
+            defaults = data.get("defaults", {})
+            if _scalar(defaults.get("userid")) and str(defaults["userid"]) != user_id:
+                raise ValueError("章节卡片不属于当前登录账号，请重新登录")
+            for attachment in data.get("attachments", []):
+                self._check_cancelled()
+                if is_live_card(attachment):
+                    continue
+                prop = attachment.get("property") or {}
+                if not isinstance(prop, dict):
+                    continue
+                att_kind = _scalar(attachment.get("type")).lower()
+                module = _scalar(prop.get("module")).lower()
+                job_id = self._job_id(attachment)
+                if att_kind == "read" or module == "insertread" or job_id.startswith("read-"):
+                    special_targets.append(self._resolve_special_target(
+                        course, attachment, defaults, parsed["chapterId"], user_id,
+                        mooc_host=parsed["host"], fallback_enc=parsed["enc"],
+                    ))
+                elif (att_kind in {"document", "doc", "pdf"} or module == "insertdoc") and len(doc_targets) < MAX_CHAPTER_DOCS:
+                    object_id = self._object_id(attachment)
+                    if object_id and object_id not in seen_docs:
+                        seen_docs.add(object_id)
+                        doc_targets.append(self._resolve_doc_target(
+                            course, attachment, defaults, user_id, course_enc=parsed["enc"],
+                        ))
+        targets = special_targets or doc_targets
+        if not targets:
+            raise RuntimeError("该章节未找到可累计阅读时长的阅读任务或文档")
+        result = self._run_read_targets(targets, user_id, seconds, on_progress=on_progress)
+        result["targets"] = len(targets)
+        result["mode"] = targets[0]["mode"]
+        result["course_title"] = course_title
+        return result
 
     @staticmethod
     def _download_name(name, filename, url, pdf):

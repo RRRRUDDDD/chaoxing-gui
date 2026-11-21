@@ -4,7 +4,9 @@ import Label from './ui/Label';
 import Select from './ui/Select';
 import NumberInput from './ui/NumberInput';
 import { TikuSettings, AppSettings } from './AdvancedSettings';
-import CourseToolSettings, { TaskTypePicker, courseToolLabels, validateVisits } from './CourseToolSettings';
+import CourseToolSettings, {
+  TaskTypePicker, courseToolLabels, parseReadUrls, validateReadUrlOptions, validateVisits,
+} from './CourseToolSettings';
 import RepositoryLink from './RepositoryLink';
 import {
   BookOpen, SlidersHorizontal, LogOut, Play, Save, Loader2,
@@ -18,20 +20,34 @@ const taskHeadings = {
   study: '选择课程并配置学习参数',
   visits: '选择课程并提交学习次数',
   video_time: '选择课程并读取视频列表',
+  read_time: '选择课程或粘贴章节链接以累计阅读时长',
   download: '选择课程并读取资源列表',
 };
 
-const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOut = false, startError, notice = '', activeTaskId, taskRunning = false, onReturnToTask, preview = false, active = true }) => {
-  const [courses, setCourses] = useState([]);
+const previewCourses = [
+  { courseId: 'preview-001', title: '大学英语（演示课程）' },
+  { courseId: 'preview-002', title: '高等数学（演示课程）' },
+  { courseId: 'preview-003', title: '计算机基础（演示课程）' },
+];
+
+const defaultToolOptions = () => ({
+  count: '10', interval: '30', readMode: 'catalog', readUrls: '', readMinutes: '30',
+});
+
+const CourseSelectionContent = ({ userInfo, onStartStudy, onLogout, onReload, starting, loggingOut = false, startError, notice = '', activeTaskId, taskRunning = false, onReturnToTask, onShutdownChange, shutdownBanner = null, preview = false, active = true }) => {
+  const username = userInfo.username;
+  const password = userInfo.password;
+  const useCookies = userInfo.use_cookies === true;
+  const [courses, setCourses] = useState(() => (preview ? previewCourses : []));
   const [selectedCourses, setSelectedCourses] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!preview);
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null);
-  const [savedSnapshot, setSavedSnapshot] = useState(null);
+  const [savedSnapshot, setSavedSnapshot] = useState(() => (preview ? configSnapshot(defaultSettings(), username, []) : null));
   const [query, setQuery] = useState('');
   const [settings, setSettings] = useState(defaultSettings);
   const [taskType, setTaskType] = useState('study');
-  const [toolOptions, setToolOptions] = useState({ count: '10', interval: '30' });
+  const [toolOptions, setToolOptions] = useState(defaultToolOptions);
   const [loadError, setLoadError] = useState('');
   const [invalidFields, setInvalidFields] = useState({});
   const setFieldValid = useCallback((field, valid) => {
@@ -43,38 +59,12 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
       return next;
     });
   }, []);
-  const [loadedAccount, setLoadedAccount] = useState(null);
-  const [loadVersion, setLoadVersion] = useState(0);
+  const [loadedAccount, setLoadedAccount] = useState(() => (preview ? username : null));
   const saveController = useRef(null);
-  const username = userInfo.username;
-  const password = userInfo.password;
-  const useCookies = userInfo.use_cookies === true;
 
   useEffect(() => {
+    if (preview) return () => { saveController.current?.abort(); };
     const controller = new AbortController();
-    setLoading(true);
-    setCourses([]);
-    setSelectedCourses([]);
-    setSettings(defaultSettings());
-    setTaskType('study');
-    setToolOptions({ count: '10', interval: '30' });
-    setLoadError('');
-    setSaveStatus(null);
-    setSaving(false);
-    setSavedSnapshot(null);
-    saveController.current?.abort();
-    setQuery('');
-    if (preview) {
-      setCourses([
-        { courseId: 'preview-001', title: '大学英语（演示课程）' },
-        { courseId: 'preview-002', title: '高等数学（演示课程）' },
-        { courseId: 'preview-003', title: '计算机基础（演示课程）' },
-      ]);
-      setSavedSnapshot(configSnapshot(defaultSettings(), username, []));
-      setLoadedAccount(username);
-      setLoading(false);
-      return () => { controller.abort(); saveController.current?.abort(); };
-    }
     const load = async () => {
       try {
         const results = await Promise.allSettled([
@@ -103,11 +93,12 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
     };
     load();
     return () => { controller.abort(); saveController.current?.abort(); };
-  }, [username, password, useCookies, preview, loadVersion]);
+  }, [username, password, useCookies, preview]);
 
   const currentSnapshot = useMemo(() => configSnapshot(settings, username, selectedCourses), [settings, username, selectedCourses]);
   const dirty = savedSnapshot !== null && currentSnapshot !== savedSnapshot;
-  useEffect(() => { setSaveStatus(null); }, [currentSnapshot]);
+  const visibleSaveStatus = saveStatus && saveStatus.snapshot === currentSnapshot ? saveStatus : null;
+  useEffect(() => { onShutdownChange?.(settings.shutdown_on_complete === true); }, [settings.shutdown_on_complete, onShutdownChange]);
 
   const toggleCourse = (courseId) => {
     setSelectedCourses((prev) =>
@@ -125,12 +116,26 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
     );
   }, [courses, query]);
 
+  const selectedCourseSet = useMemo(() => new Set(selectedCourses), [selectedCourses]);
   const selectedCount = selectedCourses.length;
+  const readUrlMode = taskType === 'read_time' && toolOptions.readMode === 'url';
+  const parsedReadUrls = useMemo(() => parseReadUrls(toolOptions.readUrls), [toolOptions.readUrls]);
   // 页面被 App 隐藏保留草稿时，不允许任何选择或保存动作继续生效。
   const canSelect = active && !loading && loadedAccount === username && !loadError && !loggingOut;
-  const validOptions = taskType !== 'visits' || Object.values(validateVisits(toolOptions)).every((error) => !error);
-  const canStart = canSelect && courses.length > 0 && selectedCount > 0 && validOptions && Object.keys(invalidFields).length === 0 && !starting && !taskRunning;
-  const startLabel = { study: startStudyLabel, visits: '开始提交次数', video_time: '读取视频列表', download: '读取资源列表' }[taskType];
+  const validOptions = taskType === 'visits'
+    ? Object.values(validateVisits(toolOptions)).every((error) => !error)
+    : readUrlMode
+      ? Object.values(validateReadUrlOptions(toolOptions)).every((error) => !error)
+      : true;
+  const hasTarget = readUrlMode ? parsedReadUrls.length > 0 : courses.length > 0 && selectedCount > 0;
+  const canStart = canSelect && hasTarget && validOptions && Object.keys(invalidFields).length === 0 && !starting && !taskRunning;
+  const startLabel = {
+    study: startStudyLabel,
+    visits: '开始提交次数',
+    video_time: '读取视频列表',
+    read_time: readUrlMode ? '开始累计阅读时长' : '读取阅读列表',
+    download: '读取资源列表',
+  }[taskType];
 
   const selectAllVisible = useCallback(() => {
     if (canSelect) setSelectedCourses((selected) => [...new Set([...selected, ...filteredCourses.map((course) => course.courseId)])]);
@@ -150,12 +155,21 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
 
   const handleStartStudy = () => {
     if (!active || !canStart) return;
+    const shutdownOption = settings.shutdown_on_complete === true ? { shutdown_on_complete: true } : {};
     if (taskType === 'study') {
       onStartStudy({ ...settings, course_list: selectedCourses });
     } else if (taskType === 'visits') {
       onStartStudy({
         task_type: 'visits', course_list: selectedCourses,
         tool_options: { count: Number(toolOptions.count), interval: Number(toolOptions.interval) },
+        ...shutdownOption,
+      });
+    } else if (readUrlMode) {
+      onStartStudy({
+        task_type: 'read_time',
+        course_list: [],
+        tool_options: { urls: parsedReadUrls, minutes: Number(toolOptions.readMinutes) },
+        ...shutdownOption,
       });
     } else {
       onStartStudy({ task_type: 'catalog', course_list: selectedCourses, tool_options: { purpose: taskType } });
@@ -180,13 +194,13 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
       const response = await api.post('/config', payload, { signal: controller.signal });
       if (controller.signal.aborted) return;
       if (!response.data.status) {
-        setSaveStatus({ type: 'error', message: response.data.msg || '保存失败，请重试' });
+        setSaveStatus({ type: 'error', message: response.data.msg || '保存失败，请重试', snapshot });
       } else {
         setSavedSnapshot(snapshot);
         setSaveStatus({ type: 'success', message: configSavedMessage, snapshot });
       }
     } catch {
-      if (!controller.signal.aborted) setSaveStatus({ type: 'error', message: '保存请求失败，请重试' });
+      if (!controller.signal.aborted) setSaveStatus({ type: 'error', message: '保存请求失败，请重试', snapshot });
     } finally {
       if (!controller.signal.aborted) setSaving(false);
       if (saveController.current === controller) saveController.current = null;
@@ -245,6 +259,7 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
           />
         </div>
 
+        {shutdownBanner}
         {activeTaskId && (
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand/20 bg-brand-soft/60 px-5 py-4">
             <p className="text-sm text-body">{taskRunning ? '已有任务运行中，可继续查看进度' : '上次任务已结束，可查看执行结果'}</p>
@@ -254,7 +269,7 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
         {loadError && (
           <div role="alert" className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-danger/5 px-5 py-4 text-sm text-danger">
             <span>{loadError}</span>
-            <Button size="sm" variant="outline" onClick={() => setLoadVersion((value) => value + 1)}>重新加载</Button>
+            <Button size="sm" variant="outline" onClick={onReload}>重新加载</Button>
           </div>
         )}
 
@@ -303,7 +318,7 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
             ) : (
               <ul className="min-h-0 divide-y divide-line overflow-y-auto overscroll-contain px-2 py-1.5">
                 {filteredCourses.map((course) => {
-                  const selected = selectedCourses.includes(course.courseId);
+                  const selected = selectedCourseSet.has(course.courseId);
                   return (
                     <li key={course.courseId}>
                       <button
@@ -359,7 +374,7 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
                 <h2 className="text-[15px] font-semibold">本次任务 · {courseToolLabels[taskType]}</h2>
               </div>
 
-              <div className="min-h-0 overflow-y-auto overscroll-contain" tabIndex={0} aria-label="任务参数">
+              <div className="min-h-0 overflow-y-auto overscroll-contain" role="region" tabIndex={0} aria-label="任务参数">
                 <div className="space-y-5 p-5">
                   <CourseToolSettings
                     taskType={taskType}
@@ -439,7 +454,15 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
                   </>
                 )}
               </Button>
-              <p className="text-center text-xs text-faint">{taskRunning ? '当前任务结束后可开始新任务' : selectedCount ? `将${taskType === 'study' ? '学习' : '处理'}已勾选的 ${selectedCount} 门课程` : '请至少勾选一门课程'}</p>
+              <p className="text-center text-xs text-faint">
+                {taskRunning
+                  ? '当前任务结束后可开始新任务'
+                  : readUrlMode
+                    ? (parsedReadUrls.length ? `将按实际时间处理 ${parsedReadUrls.length} 条章节链接` : '请粘贴有效的章节链接')
+                    : selectedCount
+                      ? `将${taskType === 'study' ? '学习' : '处理'}已勾选的 ${selectedCount} 门课程`
+                      : '请至少勾选一门课程'}
+              </p>
               {taskType === 'study' && <Button variant="outline" className="w-full" size="sm" onClick={handleSaveConfig} disabled={loggingOut || saving || !!loadError}
                 title="保存课程选择与学习参数，下次进入本页时自动恢复为默认">
                 {saving ? (
@@ -473,10 +496,10 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
                 </div>
               )}
               {dirty && <p role="status" className="text-center text-xs text-warning-ink">有未保存的更改</p>}
-              {saveStatus && (saveStatus.type === 'error' || saveStatus.snapshot === currentSnapshot) && (
-                <p className={`text-center text-xs animate-fade-in ${saveStatus.type === 'error' ? 'text-danger' : 'text-success-ink'}`}
-                  role={saveStatus.type === 'error' ? 'alert' : 'status'}>
-                  {saveStatus.message}
+              {visibleSaveStatus && (
+                <p className={`text-center text-xs animate-fade-in ${visibleSaveStatus.type === 'error' ? 'text-danger' : 'text-success-ink'}`}
+                  role={visibleSaveStatus.type === 'error' ? 'alert' : 'status'}>
+                  {visibleSaveStatus.message}
                 </p>
               )}
             </div>
@@ -485,6 +508,14 @@ const CourseSelection = ({ userInfo, onStartStudy, onLogout, starting, loggingOu
       </main>
     </div>
   );
+};
+
+// 账号或凭证变更、点击重新加载时通过 key 重挂载，避免在 effect 中同步重置大量状态。
+const CourseSelection = (props) => {
+  const [loadVersion, setLoadVersion] = useState(0);
+  const reload = useCallback(() => setLoadVersion((value) => value + 1), []);
+  const identity = `${props.userInfo.username}:${props.userInfo.password}:${props.userInfo.use_cookies === true}:${props.preview === true}:${loadVersion}`;
+  return <CourseSelectionContent key={identity} onReload={reload} {...props} />;
 };
 
 export default CourseSelection;

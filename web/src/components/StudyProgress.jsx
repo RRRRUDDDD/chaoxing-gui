@@ -1,17 +1,19 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Button from './ui/Button';
 import CountUp from './CountUp';
 import RepositoryLink from './RepositoryLink';
 import ExecutionLog from './ExecutionLog';
 import CourseToolProgress, { formatToolAmount } from './CourseToolProgress';
 import { courseToolLabels } from './CourseToolSettings';
+import { ScheduledShutdownBanner, ShutdownStatusText } from './ShutdownBanner';
+import { ActiveVideoJobs, CourseDetailsList } from './ProgressSections';
 import {
-  Loader2, ArrowLeft, CheckCircle2, XCircle, AlertCircle,
-  Play, Clock, ChevronDown, ChevronRight, BookOpen, MonitorPlay,
-  FileText, StopCircle,
+  Loader2, ArrowLeft, CheckCircle2, AlertCircle,
+  Play, Clock, ChevronDown, MonitorPlay,
+  StopCircle, Power,
 } from 'lucide-react';
 import api from '../api/axios';
-import { chapterState, isTerminalStatus, resultLabels, startTaskPolling } from '../lib/taskPolling';
+import { isTerminalStatus, startTaskPolling } from '../lib/taskPolling';
 
 const previewDetails = {
   courses: [
@@ -51,10 +53,10 @@ const previewLogs = [
   { seq: 2, timestamp: Date.now() / 1000 - 30, level: 'info', message: '所有课程均已处理完毕' },
 ];
 
-const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMissing, onStop, onStartStudy, starting = false, startError = '', actionsDisabled = false, recovering = false, recoveryError = '', onRetryRecovery, preview = false }) => {
-  const [taskStatus, setTaskStatus] = useState(preview ? previewStatus() : null);
-  const [taskDetails, setTaskDetails] = useState(preview ? previewDetails : null);
-  const [logs, setLogs] = useState(preview ? previewLogs : []);
+const StudyProgressContent = ({ taskId, username, notice = '', onBack, onStatus, onMissing, onStop, onStartStudy, starting = false, startError = '', actionsDisabled = false, recovering = false, recoveryError = '', onRetryRecovery, preview = false }) => {
+  const [taskStatus, setTaskStatus] = useState(() => (preview ? previewStatus() : null));
+  const [taskDetails, setTaskDetails] = useState(() => (preview ? previewDetails : null));
+  const [logs, setLogs] = useState(() => (preview ? previewLogs : []));
   const [logsTruncated, setLogsTruncated] = useState(false);
   const [finalDetailsReady, setFinalDetailsReady] = useState(preview);
   const [pollError, setPollError] = useState('');
@@ -62,39 +64,34 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
   const [stopConfirming, setStopConfirming] = useState(false);
   const [stopping, setStopping] = useState(false);
   const [stopError, setStopError] = useState('');
+  const [cancellingShutdown, setCancellingShutdown] = useState(false);
+  const [cancelShutdownError, setCancelShutdownError] = useState('');
   const stopConfirmTimer = useRef(null);
+  const cancelShutdownController = useRef(null);
   const actionGeneration = useRef(0);
-  const [expandedCourses, setExpandedCourses] = useState(new Set());
+  const [expandedCourses, setExpandedCourses] = useState(() => new Set());
   const callbacks = useRef({ onStatus, onMissing });
   useEffect(() => {
     callbacks.current = { onStatus, onMissing };
   });
   const stopPending = stopping || taskStatus?.cancel_requested === true;
-  const isToolTask = ['visits', 'catalog', 'video_time', 'download'].includes(taskStatus?.task_type);
+  const isToolTask = ['visits', 'catalog', 'video_time', 'read_time', 'download'].includes(taskStatus?.task_type);
 
   useEffect(() => {
-    actionGeneration.current += 1;
-    clearTimeout(stopConfirmTimer.current);
-    stopConfirmTimer.current = null;
-    setStopConfirming(false);
-    setStopping(false);
-    setStopError('');
+    const gen = actionGeneration;
+    const stopTimer = stopConfirmTimer;
+    const cancelCtrl = cancelShutdownController;
     return () => {
-      actionGeneration.current += 1;
-      clearTimeout(stopConfirmTimer.current);
+      gen.current += 1;
+      clearTimeout(stopTimer.current);
+      stopTimer.current = null;
+      cancelCtrl.current?.abort();
+      cancelCtrl.current = null;
     };
-  }, [taskId, username]);
+  }, []);
 
   useEffect(() => {
     if (preview || recovering || recoveryError) return undefined;
-    setTaskStatus(null);
-    setTaskDetails(null);
-    setFinalDetailsReady(false);
-    setLogs([]);
-    setLogsTruncated(false);
-    setPollError('');
-    setMissing(false);
-    setExpandedCourses(new Set());
     let observedStatus;
     return startTaskPolling({
       api, taskId,
@@ -112,7 +109,7 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
       onError: setPollError,
       onMissing: () => { setMissing(true); setPollError(''); callbacks.current.onMissing?.(); },
     });
-  }, [taskId, username, preview, recovering, recoveryError]);
+  }, [taskId, preview, recovering, recoveryError]);
 
   const clearStopConfirm = () => {
     clearTimeout(stopConfirmTimer.current);
@@ -121,8 +118,6 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
   };
 
   // A stop cannot be undone, so the first click only arms the button.
-  useEffect(() => () => clearTimeout(stopConfirmTimer.current), []);
-
   const handleStopClick = async () => {
     if (stopPending || !onStop) return;
     if (!stopConfirming) {
@@ -148,17 +143,14 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
     }
   };
 
-  const toggleCourse = (courseId) => {
+  const toggleCourse = useCallback((courseId) => {
     setExpandedCourses((prev) => {
       const newSet = new Set(prev);
-      if (newSet.has(courseId)) {
-        newSet.delete(courseId);
-      } else {
-        newSet.add(courseId);
-      }
+      if (newSet.has(courseId)) newSet.delete(courseId);
+      else newSet.add(courseId);
       return newSet;
     });
-  };
+  }, []);
 
   const getStatusInfo = () => {
     if (recovering) return { text: '恢复中', cls: 'text-brand', icon: Loader2 };
@@ -186,69 +178,71 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
     }
   };
 
-  const getCourseStatusIcon = (status) => {
-    switch (status) {
-      case 'running':
-        return <Loader2 className="h-4 w-4 text-brand animate-spin" aria-hidden="true" />;
-      case 'completed':
-        return <CheckCircle2 className="h-4 w-4 text-success-ink" aria-hidden="true" />;
-      case 'empty':
-        return <FileText className="h-4 w-4 text-faint" aria-hidden="true" />;
-      case 'partial':
-      case 'skipped':
-        return <AlertCircle className="h-4 w-4 text-warning-ink" aria-hidden="true" />;
-      case 'error':
-        return <XCircle className="h-4 w-4 text-danger" aria-hidden="true" />;
-      default:
-        return <Clock className="h-4 w-4 text-faint" aria-hidden="true" />;
-    }
-  };
-
-  // 平台复核结论必须可读：按状态区分颜色，禁用近似背景色的 text-muted。
-  const getVerificationInfo = (verification) => {
-    switch (verification.status) {
-      case 'confirmed':
-        return { text: '平台已确认完成', cls: 'text-success-ink', icon: CheckCircle2 };
-      case 'pending':
-        return { text: '平台仍有未完成任务', cls: 'text-warning-ink', icon: AlertCircle };
-      case 'cancelled':
-        return { text: '平台复核已停止', cls: 'text-faint', icon: StopCircle };
-      default:
-        return { text: '执行已结束，平台完成状态未确认', cls: 'text-warning-ink', icon: Clock };
-    }
-  };
-
   const statusInfo = getStatusInfo();
-  // 每次轮询都会整体重渲染明细：已完成章节计数只随 taskDetails 变化，预计算一次供各课程行取用。
-  const courseDoneCounts = useMemo(() => {
-    const counts = new Map();
-    for (const course of taskDetails?.courses || []) {
-      counts.set(course.id, course.chapters ? course.chapters.filter((c) => ['completed', 'empty'].includes(chapterState(c))).length : 0);
-    }
-    return counts;
-  }, [taskDetails]);
   const knownTotal = Number.isFinite(taskStatus?.total) && taskStatus.total > 0;
   const progress = knownTotal ? Math.max(0, Math.min(100, ((taskStatus.progress || 0) / taskStatus.total) * 100)) : 0;
   const terminal = isTerminalStatus(taskStatus?.status) || missing;
+  const rawActiveJobs = taskDetails?.active_jobs;
   // Object.entries keeps the backend's stable courseId:jobid keys so a reordered
   // poll cannot make the progress bar animation morph into the wrong row.
-  const activeJobs = !terminal && taskDetails?.active_jobs ? Object.entries(taskDetails.active_jobs) : [];
+  const activeJobs = useMemo(
+    () => (!terminal && rawActiveJobs ? Object.entries(rawActiveJobs) : []),
+    [terminal, rawActiveJobs],
+  );
   // Offer the stop only where it can act: a live task, not a preview, and not
   // while recovery still owns the task.
   const canStop = !!onStop && !preview && !terminal && !recovering && !recoveryError
     && ['running', 'interrupted'].includes(taskStatus?.status);
 
-  const formatTime = (seconds) => {
-    const m = Math.floor(seconds / 60);
-    const s = Math.floor(seconds % 60);
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  };
-
   const finished = taskStatus?.status === 'completed';
   const errored = taskStatus?.status === 'error';
   const partial = taskStatus?.status === 'partial';
   const cancelled = taskStatus?.status === 'cancelled';
-  const resultColor = (state) => state === 'error' ? 'text-danger' : ['skipped', 'partial'].includes(state) ? 'text-warning-ink' : state === 'completed' ? 'text-success-ink' : 'text-faint';
+  const shutdownInfo = taskStatus?.shutdown;
+  const shutdownScheduled = !missing && shutdownInfo?.state === 'scheduled';
+  const shutdownCancelled = !missing && shutdownInfo?.state === 'cancelled';
+  const shutdownFailed = !missing && shutdownInfo?.state === 'failed';
+  const shutdownArmed = !missing && !terminal && taskStatus?.shutdown_on_complete === true && !shutdownCancelled;
+
+  const handleCancelShutdown = useCallback(async () => {
+    if (preview || actionsDisabled || cancellingShutdown || !username || !taskId) return;
+    cancelShutdownController.current?.abort();
+    const controller = new AbortController();
+    cancelShutdownController.current = controller;
+    const generation = actionGeneration.current;
+    setCancellingShutdown(true);
+    setCancelShutdownError('');
+    try {
+      const response = await api.post(
+        `/task/${encodeURIComponent(taskId)}/cancel-shutdown`,
+        { username },
+        { signal: controller.signal },
+      );
+      if (generation !== actionGeneration.current || controller.signal.aborted) return;
+      if (!response.data.status) throw new Error(response.data.msg || '取消关机失败，请重试');
+      const nextShutdown = { state: response.data.data?.state || 'cancelled' };
+      setTaskStatus((prev) => {
+        if (!prev) return prev;
+        const next = { ...prev, shutdown_on_complete: false, shutdown: nextShutdown };
+        callbacks.current.onStatus?.(next);
+        return next;
+      });
+    } catch (error) {
+      if (generation !== actionGeneration.current || controller.signal.aborted) return;
+      if (error?.response?.status === 404) {
+        setMissing(true);
+        callbacks.current.onMissing?.();
+        return;
+      }
+      setCancelShutdownError(error?.response?.data?.msg || error?.message || '取消关机失败，可在命令提示符运行 shutdown /a 手动取消');
+    } finally {
+      if (generation === actionGeneration.current && cancelShutdownController.current === controller) {
+        cancelShutdownController.current = null;
+        setCancellingShutdown(false);
+      }
+    }
+  }, [preview, actionsDisabled, cancellingShutdown, username, taskId]);
+
   // 读取列表只是中间步骤：资源可选时把视觉重心留给“继续处理”，返回入口降为次级。
   const catalogReadyForSelection = taskStatus?.task_type === 'catalog' && finalDetailsReady && ['completed', 'partial'].includes(taskStatus.status);
   const unverifiedCourses = !!taskDetails?.courses?.some((course) => course.verification && course.verification.status !== 'confirmed');
@@ -264,17 +258,17 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
     <div className="min-h-screen bg-canvas">
       {/* 顶栏 */}
       <header className="sticky top-0 z-20 border-b border-line bg-white/85 backdrop-blur">
-        <div className="page-shell flex h-16 items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand">
+        <div className="page-shell flex h-16 items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand">
               <MonitorPlay className="h-5 w-5 text-white" aria-hidden="true" />
             </div>
-            <div>
-              <p className="text-[15px] font-semibold leading-tight">{isToolTask ? `${taskStatus.task_label || courseToolLabels[taskStatus.task_type]}进度` : '学习进度监控'}</p>
-              <p className="text-xs leading-tight text-faint">实时跟踪任务执行详情</p>
+            <div className="min-w-0">
+              <h1 className="truncate text-[15px] font-semibold leading-tight">{isToolTask ? `${taskStatus.task_label || courseToolLabels[taskStatus.task_type]}进度` : '学习进度监控'}</h1>
+              <p className="truncate text-xs leading-tight text-faint">实时跟踪任务执行详情</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-3">
             <RepositoryLink />
             {canStop && (
               <Button
@@ -326,6 +320,41 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
         {stopPending && taskStatus?.status === 'running' && (
           <p role="status" className="mb-5 rounded-xl bg-brand-soft px-5 py-4 text-sm text-body">已请求停止，正在结束进行中的任务点…</p>
         )}
+        {shutdownScheduled && (
+          <ScheduledShutdownBanner
+            shutdownInfo={shutdownInfo}
+            cancelling={cancellingShutdown}
+            cancelError={cancelShutdownError}
+            disabled={actionsDisabled}
+            onCancel={handleCancelShutdown}
+          />
+        )}
+        {shutdownArmed && (
+          <div role="status" className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-warning/25 bg-warning/5 px-5 py-3.5 animate-fade-in">
+            <div className="flex min-w-0 items-start gap-2.5">
+              <Power className="mt-0.5 h-4 w-4 shrink-0 text-warning-ink" aria-hidden="true" />
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-body">已开启完成后自动关机，刷取任务结束后将倒计时 60 秒自动关机。</p>
+                {cancelShutdownError && <p className="mt-1 text-xs text-danger">{cancelShutdownError}</p>}
+              </div>
+            </div>
+            <Button variant="outline" size="sm" onClick={handleCancelShutdown} disabled={actionsDisabled || cancellingShutdown}>
+              {cancellingShutdown && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />}
+              {cancellingShutdown ? '正在取消' : '取消关机'}
+            </Button>
+          </div>
+        )}
+        {shutdownCancelled && (
+          <p role="status" className="mb-5 rounded-xl border border-line bg-soft px-5 py-3.5 text-sm text-body animate-fade-in">
+            已取消自动关机，系统不会自动关闭。
+          </p>
+        )}
+        {shutdownFailed && (
+          <div role="alert" className="mb-5 flex items-start gap-2.5 rounded-xl bg-danger/5 px-5 py-4 text-sm text-danger animate-fade-in">
+            <Power className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+            <span>自动关机启动失败：{shutdownInfo.error || '系统拒绝了关机请求'}</span>
+          </div>
+        )}
         {(missing || pollError) && (
           <div role="alert" className="mb-5 rounded-xl bg-warning/10 px-5 py-4 text-sm text-body">
             {missing ? '任务不存在或已过期，请返回课程选择。' : `${pollError}，正在重试获取最新数据。`}
@@ -336,7 +365,7 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
               lg 起固定在视口内跟随滚动，内容超出视口时在栏内滚动 */}
           <aside className="order-first space-y-6 animate-stagger-up lg:order-2 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto lg:overscroll-contain" style={{ animationDelay: '200ms' }}>
             {/* 当前进度 */}
-            <section className="rounded-xl border border-line bg-white p-5 shadow-card" style={{ animationDelay: '120ms' }}>
+            <section className="rounded-xl border border-line bg-white p-5 shadow-card">
               <div className="mb-4 flex flex-wrap items-baseline justify-between gap-3">
                 <h2 className="text-[15px] font-semibold">当前进度</h2>
                 <span className={`text-sm font-semibold ${statusInfo.cls}`}>{statusInfo.text}</span>
@@ -423,6 +452,19 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
                       : '-'}
                   </dd>
                 </div>
+                {(shutdownArmed || shutdownScheduled || shutdownCancelled || shutdownFailed) && (
+                  <div>
+                    <dt className="text-xs text-faint">完成后关机</dt>
+                    <dd className={`mt-1 text-sm font-medium tnum ${shutdownFailed ? 'text-danger' : shutdownCancelled ? 'text-faint' : 'text-warning-ink'}`}>
+                      <ShutdownStatusText
+                        shutdownScheduled={shutdownScheduled}
+                        shutdownArmed={shutdownArmed}
+                        shutdownCancelled={shutdownCancelled}
+                        shutdownInfo={shutdownInfo}
+                      />
+                    </dd>
+                  </div>
+                )}
               </dl>
             </section>
 
@@ -515,130 +557,26 @@ const StudyProgress = ({ taskId, username, notice = '', onBack, onStatus, onMiss
               />
             )}
 
-            {/* 视频播放进度 */}
-            {activeJobs.length > 0 && (
-              <section className="rounded-xl border border-line bg-white p-5 shadow-card animate-stagger-up" style={{ animationDelay: '180ms' }}>
-                <h2 className="mb-4 flex items-center gap-2 text-[15px] font-semibold">
-                  <MonitorPlay className="h-4 w-4 text-brand" aria-hidden="true" />
-                  正在播放视频
-                  <span className="rounded-full bg-brand-soft px-2 py-0.5 text-xs font-medium text-brand tnum">
-                    {activeJobs.length}
-                  </span>
-                </h2>
-                <div className="space-y-3">
-                  {activeJobs.map(([jobKey, job]) => (
-                    <div
-                      key={jobKey}
-                      className="rounded-lg border border-line p-4 transition-shadow duration-200 hover:shadow-card"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <h3 className="truncate text-sm font-medium" title={job.job_name}>
-                            {job.job_name || '未知任务'}
-                          </h3>
-                          <p className="mt-0.5 truncate text-xs text-faint" title={job.course_name}>
-                            {job.course_name}
-                          </p>
-                        </div>
-                        <span className="shrink-0 text-[15px] font-semibold text-brand tnum">
-                          {Math.round(job.progress)}%
-                        </span>
-                      </div>
-                      <div className="mt-2.5">
-                        <div className="mb-1 flex items-center justify-between font-mono text-[11px] text-faint tnum">
-                          <span>{formatTime(job.current_time)}</span>
-                          <span>{formatTime(job.duration)}</span>
-                        </div>
-                        <div className="h-1.5 overflow-hidden rounded-full bg-soft">
-                          <div
-                            className="h-full rounded-full bg-brand transition-[width] duration-700 ease-out"
-                            style={{ width: `${Math.min(job.progress, 100)}%` }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
+            <ActiveVideoJobs activeJobs={activeJobs} />
 
-            {/* 课程明细 */}
-            {taskDetails?.courses?.length > 0 && (
-              <section className="rounded-xl border border-line bg-white shadow-card animate-stagger-up" style={{ animationDelay: '240ms' }}>
-                <div className="flex items-center gap-2 border-b border-line px-5 py-3.5">
-                  <BookOpen className="h-4 w-4 text-brand" aria-hidden="true" />
-                  <h2 className="text-[15px] font-semibold">课程明细</h2>
-                </div>
-                <div className="divide-y divide-line px-2.5 py-2">
-                  {taskDetails.courses.map((course) => {
-                    const open = expandedCourses.has(course.id);
-                    const done = courseDoneCounts.get(course.id) ?? 0;
-                    const total = course.chapters?.length || 0;
-                    return (
-                      <div key={course.id}>
-                        <button
-                          type="button"
-                          onClick={() => toggleCourse(course.id)}
-                          aria-expanded={open}
-                          className="group flex w-full items-center gap-3 rounded-lg px-2.5 py-3 text-left transition-colors duration-150 hover:bg-soft focus-visible:bg-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand"
-                        >
-                          {getCourseStatusIcon(course.status)}
-                          <span title={course.title} className="min-w-0 flex-1 break-words text-sm font-medium">{course.title}</span>
-                          <span className={`shrink-0 text-xs ${resultColor(course.status)}`}>{resultLabels[course.status] || '等待中'}</span>
-                          {total > 0 && (
-                            <span className="shrink-0 rounded-full bg-soft px-2 py-0.5 text-xs text-faint tnum">
-                              {done} / {total} 章节
-                            </span>
-                          )}
-                          {open ? (
-                            <ChevronDown className="h-4 w-4 shrink-0 text-faint" aria-hidden="true" />
-                          ) : (
-                            <ChevronRight className="h-4 w-4 shrink-0 text-faint transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true" />
-                          )}
-                        </button>
-                        {course.verification && (() => {
-                          const info = getVerificationInfo(course.verification);
-                          return (
-                            <p className={`flex items-start gap-1.5 px-2.5 pb-2 text-xs ${info.cls}`} role="status">
-                              <info.icon className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                              <span className="min-w-0 break-words">
-                                {info.text}{course.verification.reason && `：${course.verification.reason}`}
-                              </span>
-                            </p>
-                          );
-                        })()}
-                        {open && total > 0 && (
-                          <ol className="mb-2 space-y-0.5 rounded-lg bg-soft/50 px-2.5 py-2">
-                            {course.chapters.map((chapter, idx) => {
-                              const state = chapterState(chapter);
-                              return (
-                                <li key={chapter.id} className="flex items-center gap-3 rounded px-2 py-1.5 text-[13px] hover:bg-white">
-                                  <span className="w-5 shrink-0 font-mono text-[11px] text-faint tnum">{idx + 1}.</span>
-                                  <span className="flex-1 min-w-0 break-words text-body">{chapter.title}</span>
-                                  <span className={`flex shrink-0 items-center gap-1 text-xs ${resultColor(state)}`}>
-                                    {getCourseStatusIcon(state)}
-                                    {resultLabels[state] || '等待中'}
-                                  </span>
-                                </li>
-                              );
-                            })}
-                          </ol>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-            )}
+            <CourseDetailsList
+              courses={taskDetails?.courses}
+              expandedCourses={expandedCourses}
+              onToggleCourse={toggleCourse}
+            />
 
             <ExecutionLog key={`logs:${username || ''}:${taskId}`} logs={logs} truncated={logsTruncated} />
           </div>
-
-
         </div>
       </main>
     </div>
   );
+};
+
+// 任务、账号或恢复阶段切换时通过 key 重挂载，彻底取消旧轮询与旧操作并避免 effect 内同步重置状态。
+const StudyProgress = (props) => {
+  const identity = `${props.username || ''}:${props.taskId || ''}:${props.preview === true}:${props.recovering === true}:${Boolean(props.recoveryError)}`;
+  return <StudyProgressContent key={identity} {...props} />;
 };
 
 export default StudyProgress;

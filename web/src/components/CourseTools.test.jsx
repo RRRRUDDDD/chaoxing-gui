@@ -13,10 +13,11 @@ vi.mock('../api/axios', () => ({ default: { get: vi.fn(), post: vi.fn() } }));
 const account = { username: 'alice', password: '', use_cookies: true };
 const courses = [{ courseId: 'one', title: '模拟课程一' }, { courseId: 'two', title: '模拟课程二' }];
 const resources = [
-  { id: 'video-one', course_id: 'one', course_title: '模拟课程一', chapter_id: 'chapter-one', chapter_title: '第一章', name: '课程视频', kind: 'video', watchable: true, downloadable: true, duration: 20 },
-  { id: 'document-one', course_id: 'one', course_title: '模拟课程一', chapter_id: 'chapter-one', chapter_title: '第一章', name: '课程讲义', kind: 'document', watchable: false, downloadable: true },
-  { id: 'video-two', course_id: 'two', course_title: '模拟课程二', chapter_id: 'chapter-two', chapter_title: '第二章', name: '补充视频', kind: 'video', watchable: true, downloadable: true, duration: 60 },
-  { id: 'locked', course_id: 'two', course_title: '模拟课程二', chapter_id: 'chapter-two', chapter_title: '第二章', name: '不可用视频', kind: 'video', watchable: false, downloadable: false },
+  { id: 'video-one', course_id: 'one', course_title: '模拟课程一', chapter_id: 'chapter-one', chapter_title: '第一章', name: '课程视频', kind: 'video', watchable: true, downloadable: true, readable: false, duration: 20 },
+  { id: 'document-one', course_id: 'one', course_title: '模拟课程一', chapter_id: 'chapter-one', chapter_title: '第一章', name: '课程讲义', kind: 'document', watchable: false, downloadable: true, readable: true },
+  { id: 'read-one', course_id: 'one', course_title: '模拟课程一', chapter_id: 'chapter-one', chapter_title: '第一章', name: '课程阅读', kind: 'read', watchable: false, downloadable: false, readable: true },
+  { id: 'video-two', course_id: 'two', course_title: '模拟课程二', chapter_id: 'chapter-two', chapter_title: '第二章', name: '补充视频', kind: 'video', watchable: true, downloadable: true, readable: false, duration: 60 },
+  { id: 'locked', course_id: 'two', course_title: '模拟课程二', chapter_id: 'chapter-two', chapter_title: '第二章', name: '不可用视频', kind: 'video', watchable: false, downloadable: false, readable: false },
 ];
 const ok = (data) => ({ data: { status: true, data } });
 const logPage = () => ({ data: { status: true, data: [], next_cursor: 0, truncated: false } });
@@ -115,7 +116,11 @@ describe('course tool configuration', () => {
     expect(start.mock.lastCall[0].tool_options).toEqual({ count: 1000, interval: 3600 });
   });
 
-  it.each([['video_time', '视频时长', '读取视频列表'], ['download', '资源下载', '读取资源列表']])('starts a %s catalog for the selected courses', async (purpose, choice, label) => {
+  it.each([
+    ['video_time', '视频时长', '读取视频列表'],
+    ['read_time', '阅读时长', '读取阅读列表'],
+    ['download', '资源下载', '读取资源列表'],
+  ])('starts a %s catalog for the selected courses', async (purpose, choice, label) => {
     selectionServices();
     const start = vi.fn();
     render(<CourseSelection userInfo={account} onStartStudy={start} />);
@@ -124,6 +129,32 @@ describe('course tool configuration', () => {
     fireEvent.click(screen.getByRole('button', { name: /模拟课程二/ }));
     fireEvent.click(screen.getByRole('button', { name: label }));
     expect(start).toHaveBeenCalledExactlyOnceWith({ task_type: 'catalog', course_list: ['two'], tool_options: { purpose } });
+  });
+
+  it('starts read_time directly from studentstudy URLs without requiring a selected course', async () => {
+    selectionServices();
+    const start = vi.fn();
+    render(<CourseSelection userInfo={account} onStartStudy={start} />);
+    fireEvent.click(await screen.findByRole('radio', { name: '阅读时长' }));
+    fireEvent.click(screen.getByRole('radio', { name: '按章节链接' }));
+    const button = screen.getByRole('button', { name: '开始累计阅读时长' });
+    expect(button.disabled).toBe(true);
+
+    const url1 = 'https://mooc1-2.chaoxing.com/mooc-ans/mycourse/studentstudy?chapterId=1028809632&courseId=254871694&clazzid=150302330&enc=294d6c3da667ef7473a6a70d342d997c&mooc2=1';
+    const url2 = 'https://mooc1.chaoxing.com/mycourse/studentstudy?chapterId=1218107929&courseId=266019740&clazzid=151748129&cpi=481751950&enc=1cce499397ac4d363336a4e2b931693b&mooc2=1';
+
+    fireEvent.change(screen.getByLabelText('章节链接（每行一条）'), { target: { value: 'https://evil.example/mycourse/studentstudy?chapterId=1&courseId=2&clazzid=3' } });
+    expect(button.disabled).toBe(true);
+
+    fireEvent.change(screen.getByLabelText('章节链接（每行一条）'), { target: { value: `${url1}\n${url2}\n${url1}` } });
+    fireEvent.change(screen.getByLabelText('每个链接增加阅读时长（分钟）'), { target: { value: '15' } });
+    expect(button.disabled).toBe(false);
+    fireEvent.click(button);
+    expect(start).toHaveBeenCalledExactlyOnceWith({
+      task_type: 'read_time',
+      course_list: [],
+      tool_options: { urls: [url1, url2], minutes: 15 },
+    });
   });
 
   it('configures the download directory on the course page before reading resources', async () => {
@@ -139,6 +170,10 @@ describe('course tool configuration', () => {
     expect(localStorage.getItem('chaoxing_download_dir')).toBeNull();
     fireEvent.blur(screen.getByLabelText('下载目录'));
     expect(localStorage.getItem('chaoxing_download_dir')).toBe('E:\\CourseFiles');
+    // 清空并失焦后回填默认目录，保持所见即所得。
+    fireEvent.change(screen.getByLabelText('下载目录'), { target: { value: '   ' } });
+    fireEvent.blur(screen.getByLabelText('下载目录'));
+    expect(screen.getByLabelText('下载目录').value).toBe('D:\\Download');
   });
 
   it('resets tool configuration and courses when the account changes', async () => {
@@ -207,6 +242,22 @@ describe('resource selection and task results', () => {
     fireEvent.change(screen.getByLabelText('每个视频增加时长（分钟）'), { target: { value: '0.1' } });
     fireEvent.click(screen.getByRole('button', { name: '开始累计时长' }));
     await waitFor(() => expect(start).toHaveBeenCalledExactlyOnceWith({ task_type: 'video_time', course_list: ['one'], tool_options: { source_task_id: 'videos', resource_ids: ['video-one'], minutes: 0.1 } }));
+  });
+
+  it('filters read_time catalog to read and document resources and starts read_time', async () => {
+    progressServices(catalogState(), catalogTool('read_time'));
+    const start = vi.fn();
+    render(<StudyProgress taskId="reads" username="alice" onStartStudy={start} />);
+    fireEvent.click(await screen.findByRole('checkbox', { name: '选择资源 课程阅读' }));
+    expect(screen.queryByText('课程视频')).toBeNull();
+    fireEvent.click(screen.getByRole('checkbox', { name: '选择资源 课程讲义' }));
+    fireEvent.change(screen.getByLabelText('每项增加阅读时长（分钟）'), { target: { value: '5' } });
+    fireEvent.click(screen.getByRole('button', { name: '开始累计阅读时长' }));
+    await waitFor(() => expect(start).toHaveBeenCalledExactlyOnceWith({
+      task_type: 'read_time',
+      course_list: ['one'],
+      tool_options: { source_task_id: 'reads', resource_ids: ['document-one', 'read-one'], minutes: 5 },
+    }));
   });
 
   it('waits for final details after a catalog becomes terminal and retains the stop lifecycle', async () => {

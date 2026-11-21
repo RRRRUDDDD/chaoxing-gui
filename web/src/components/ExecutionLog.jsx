@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { ScrollText } from 'lucide-react';
 import Button from './ui/Button';
 import { LOG_LIMIT } from '../lib/taskPolling';
@@ -8,7 +8,7 @@ import { filterLogs, formatLogsForCopy, logLevel, logTime } from '../lib/logPres
 const levelColors = { error: 'text-red-300', warning: 'text-amber-300', success: 'text-green-300' };
 const copyNotice = '已遮盖常见敏感字段，分享前仍需检查';
 
-const ExecutionLog = ({ logs, truncated }) => {
+const ExecutionLog = memo(function ExecutionLog({ logs, truncated }) {
   const [level, setLevel] = useState('all');
   const [query, setQuery] = useState('');
   const [following, setFollowing] = useState(true);
@@ -19,6 +19,16 @@ const ExecutionLog = ({ logs, truncated }) => {
   const manuallyPaused = useRef(false);
   const mounted = useRef(true);
   const filtered = useMemo(() => filterLogs(logs, level, query), [logs, level, query]);
+  const displayLogs = useMemo(() => filtered.map((log) => {
+    const normalizedLevel = logLevel(log.level);
+    return {
+      seq: log.seq,
+      time: logTime(log.timestamp),
+      level: normalizedLevel,
+      color: levelColors[normalizedLevel] || 'text-gray-300',
+      message: log.message,
+    };
+  }), [filtered]);
 
   useEffect(() => {
     mounted.current = true;
@@ -95,11 +105,11 @@ const ExecutionLog = ({ logs, truncated }) => {
             if (!manuallyPaused.current) setFollowing(container.scrollHeight - container.scrollTop - container.clientHeight <= 24);
           }}
           className="min-h-[8rem] max-h-[clamp(16rem,48vh,42rem)] overflow-y-auto overscroll-contain rounded-lg bg-gray-900 p-4 font-mono text-xs leading-relaxed [overflow-wrap:anywhere] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand/30">
-          {!filtered.length ? <p className="text-gray-300">{logs.length ? '没有匹配的日志，请调整级别或关键词。' : '等待日志输出...'}</p> : filtered.map((log) => (
+          {!displayLogs.length ? <p className="text-gray-300">{logs.length ? '没有匹配的日志，请调整级别或关键词。' : '等待日志输出...'}</p> : displayLogs.map((log) => (
             <div key={log.seq} className="mb-0.5 whitespace-pre-wrap">
-              <span className="mr-2 text-gray-400 tnum">[{logTime(log.timestamp)}]</span>
-              <span className="mr-2 text-gray-400">[{logLevel(log.level)}]</span>
-              <span className={levelColors[logLevel(log.level)] || 'text-gray-300'}>{log.message}</span>
+              <span className="mr-2 text-gray-400 tnum">[{log.time}]</span>
+              <span className="mr-2 text-gray-400">[{log.level}]</span>
+              <span className={log.color}>{log.message}</span>
             </div>
           ))}
         </div>
@@ -115,6 +125,5 @@ const ExecutionLog = ({ logs, truncated }) => {
       </div>
     </section>
   );
-
-};
+});
 export default ExecutionLog;

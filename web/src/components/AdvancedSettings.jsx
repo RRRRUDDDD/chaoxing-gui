@@ -6,7 +6,7 @@ import NumberInput from './ui/NumberInput';
 import SettingsDisclosure from './SettingsDisclosure';
 import ExternalLink from './ExternalLink';
 import { updateTikuSettings } from '../lib/courseSelection';
-import { Database, Bell, AppWindow, Settings2 } from 'lucide-react';
+import { Database, Bell, AppWindow, Settings2, Power } from 'lucide-react';
 import { desktopBridge, isTauriDesktop } from '../lib/desktopBridge';
 
 const SectionHeader = ({ icon: Icon, title, description }) => (
@@ -159,8 +159,9 @@ export const TikuSettings = ({ settings, onChange, onFieldValidity }) => {
   );
 };
 
-// 应用设置：通知与窗口关闭行为，与本次执行的功能无关，任何任务类型下都可配置。
+// 应用设置：通知、完成后关机与窗口关闭行为，与本次执行的功能无关，任何任务类型下都可配置。
 export const AppSettings = ({ settings, onChange }) => {
+  const shutdownEnabled = settings.shutdown_on_complete === true;
   const handleNotificationChange = (field, value) => {
     onChange({
       ...settings,
@@ -170,9 +171,19 @@ export const AppSettings = ({ settings, onChange }) => {
       },
     });
   };
+  const handleShutdownChange = (checked) => {
+    onChange({
+      ...settings,
+      shutdown_on_complete: checked,
+    });
+  };
 
   return (
-    <SettingsDisclosure title="应用设置" icon={Settings2}>
+    <SettingsDisclosure
+      title="应用设置"
+      icon={Settings2}
+      summary={shutdownEnabled ? { text: '完成后关机', cls: 'bg-warning/10 text-warning-ink' } : undefined}
+    >
       <div className="space-y-5">
         <div>
           <SectionHeader icon={Bell} title="任务通知" description="任务完成或失败时的提醒方式" />
@@ -229,6 +240,27 @@ export const AppSettings = ({ settings, onChange }) => {
               )}
           </div>
         </div>
+
+        <section className="rounded-xl border border-line p-4">
+          <SectionHeader icon={Power} title="完成后关机" description="刷取任务结束后自动关闭计算机" />
+          <div className="space-y-1.5">
+            <label htmlFor="shutdown-on-complete" className="flex cursor-pointer items-center gap-2 text-[13px] font-medium text-body">
+              <input
+                id="shutdown-on-complete"
+                type="checkbox"
+                className="h-4 w-4 accent-brand"
+                checked={shutdownEnabled}
+                onChange={(e) => handleShutdownChange(e.target.checked)}
+              />
+              刷取任务完成后自动关机
+            </label>
+            <p className="text-xs leading-relaxed text-faint">
+              {shutdownEnabled
+                ? '刷取任务完成或部分完成后将倒计时 60 秒自动关机，期间可在进度页取消；手动停止、任务出错或读取资源列表不会关机。'
+                : '适用于自动学习、学习次数、视频时长、阅读时长与资源下载任务；手动停止不会触发关机。'}
+            </p>
+          </div>
+        </section>
 
         {isTauriDesktop() && <CloseActionSetting />}
       </div>

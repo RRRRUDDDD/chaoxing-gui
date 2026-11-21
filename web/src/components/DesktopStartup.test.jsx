@@ -5,7 +5,7 @@ import DesktopStartup from './DesktopStartup';
 import { desktopBridge, isTauriDesktop } from '../lib/desktopBridge';
 import { recheckLabel, updateLabels } from '../lib/uiText';
 
-vi.mock('../lib/desktopBridge', () => ({ isTauriDesktop: vi.fn(), desktopBridge: { backendStatus: vi.fn(), checkUpdate: vi.fn() } }));
+vi.mock('../lib/desktopBridge', () => ({ isTauriDesktop: vi.fn(), desktopBridge: { backendStatus: vi.fn(), checkUpdate: vi.fn(), installUpdate: vi.fn() } }));
 const deferred = () => {
   let resolve;
   let reject;
@@ -18,7 +18,7 @@ const show = (strict = false, extra = {}) => {
   return render(strict ? <React.StrictMode>{content}</React.StrictMode> : content);
 };
 
-beforeEach(() => { vi.useFakeTimers(); isTauriDesktop.mockReset().mockReturnValue(true); desktopBridge.backendStatus.mockReset(); desktopBridge.checkUpdate.mockReset().mockResolvedValue(null); });
+beforeEach(() => { vi.useFakeTimers(); isTauriDesktop.mockReset().mockReturnValue(true); desktopBridge.backendStatus.mockReset(); desktopBridge.checkUpdate.mockReset().mockResolvedValue(null); desktopBridge.installUpdate.mockReset().mockResolvedValue(undefined); });
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); });
 
 describe('desktop startup', () => {
@@ -214,5 +214,26 @@ describe('desktop startup', () => {
     await act(async () => pending.resolve(null));
     await tick(10);
     expect(screen.queryByText(updateLabels.checking)).toBeNull();
+  });
+
+  it('shows installing feedback and allows retry when installUpdate fails', async () => {
+    desktopBridge.backendStatus.mockResolvedValue({ phase: 'ready' });
+    desktopBridge.checkUpdate.mockResolvedValue({
+      version: '1.4.0',
+      downloadUrl: 'https://example.com/setup.exe',
+    });
+    const pending = deferred();
+    desktopBridge.installUpdate.mockReturnValueOnce(pending.promise);
+    show();
+    await tick();
+    await tick(10);
+
+    fireEvent.click(screen.getByRole('button', { name: updateLabels.action }));
+    expect(screen.getByText(/正在下载并安装 1\.4\.0/)).toBeTruthy();
+
+    await act(async () => pending.reject(new Error('校验失败')));
+    await tick(10);
+    expect(screen.getByRole('alert').textContent).toContain('校验失败');
+    expect(screen.getByRole('button', { name: '重试更新' })).toBeTruthy();
   });
 });

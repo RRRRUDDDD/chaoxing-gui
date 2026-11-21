@@ -4,7 +4,7 @@ import { desktopBridge } from '../lib/desktopBridge';
 const MAX_LOG_CURSOR = 0xffffffff;
 const TASK_ID = '[a-zA-Z0-9_-]{1,128}';
 const ROUTES = { 'post /login': 'login', 'post /courses': 'courses', 'get /config': 'configRead', 'post /config': 'configWrite', 'post /start': 'start' };
-const TASK_ACTION_RE = new RegExp(`^/task/(${TASK_ID})/(resume|stop|open-downloads)$`);
+const TASK_ACTION_RE = new RegExp(`^/task/(${TASK_ID})/(resume|stop|open-downloads|cancel-shutdown)$`);
 const TASK_GET_RE = new RegExp(`^/task/(${TASK_ID})(/details)?$`);
 const TASK_LOGS_RE = new RegExp(`^/logs/(${TASK_ID})$`);
 let lastRequestId;
@@ -36,7 +36,12 @@ function requestOperation(config) {
   if (!operation && method === 'post') {
     const task = path.match(TASK_ACTION_RE);
     if (task) {
-      operation = { resume: 'taskResume', stop: 'taskStop', 'open-downloads': 'taskOpenDownloads' }[task[2]];
+      operation = {
+        resume: 'taskResume',
+        stop: 'taskStop',
+        'open-downloads': 'taskOpenDownloads',
+        'cancel-shutdown': 'taskCancelShutdown',
+      }[task[2]];
       taskId = task[1];
     }
   }

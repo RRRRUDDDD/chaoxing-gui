@@ -15,8 +15,9 @@ from requests.structures import CaseInsensitiveDict
 from urllib3.util.retry import Retry
 
 from api.course_tools import (
-    CARDS_URL, STAT_INDEX_URL, STAT_TIME_URL, STUDY_URL,
+    CARDS_URL, READ_POINT_URL, STAT_INDEX_URL, STAT_TIME_URL, STUDY_URL,
     VIDEO_REFERER, VISITS_URL, CourseTools, ToolCancelled,
+    parse_studentstudy_url, sign_read_point,
 )
 from api.session import HTTP_TIMEOUT, SessionManager
 
@@ -358,11 +359,18 @@ class ScanTests(OfflineToolsCase):
 
     def test_already_cancelled_operations_issue_no_requests(self):
         tools = CourseTools(self.client, cancel_check=lambda: True)
+        read_item = {
+            **resource(kind="document", name="文档"),
+            "readable": True,
+        }
+        study_url = "https://mooc1.chaoxing.com/mycourse/studentstudy?chapterId=123&courseId=456&clazzid=789"
         operations = [
             lambda: tools.scan_course(COURSE),
             lambda: tools.get_statistics(COURSE),
             lambda: tools.add_visits(COURSE, 1, 1),
             lambda: tools.watch_video(COURSE, resource(), 6),
+            lambda: tools.read_resource(COURSE, read_item, 6),
+            lambda: tools.read_study_url(study_url, 6),
             lambda: tools.download_resource(COURSE, resource(), "unused"),
         ]
         for operation in operations:
@@ -1023,6 +1031,209 @@ class DownloadTests(OfflineToolsCase):
             self.tools.download_resource(COURSE, resource(), link)
         self.assertEqual(list(outside.iterdir()), [])
         self.assert_closed(status)
+
+
+class ReadingTimeTests(OfflineToolsCase):
+    URL1 = (
+        "https://mooc1-2.chaoxing.com/mooc-ans/mycourse/studentstudy?"
+        "chapterId=1028809632&courseId=254871694&clazzid=150302330"
+        "&enc=294d6c3da667ef7473a6a70d342d997c&mooc2=1"
+    )
+    URL2 = (
+        "https://mooc1.chaoxing.com/mycourse/studentstudy?"
+        "chapterId=1218107929&courseId=266019740&clazzid=151748129&cpi=481751950"
+        "&enc=1cce499397ac4d363336a4e2b931693b&mooc2=1&hidetype=0&fanyaVersion=0"
+        "&openc=bf9829a4439722e477de7b53b7744397"
+    )
+
+    def test_sign_read_point_matches_live_captured_vectors(self):
+        ext_special = json.dumps(
+            {"_from_": "254871694_150302330_401839244_294d6c3da667ef7473a6a70d342d997c", "rtag": ""},
+            separators=(",", ":"), ensure_ascii=False,
+        )
+        special_s1 = {
+            "a": None, "r": "242311696,847466164", "t": "special", "l": 1, "f": 0,
+            "wc": 3636, "ic": 1, "v": 2, "s": 1, "h": 0, "e": "", "ext": ext_special,
+        }
+        special_s2 = {**special_s1, "s": 2}
+        ext_doc = json.dumps(
+            {"_from_": "266019740_151748129_401839244_1cce499397ac4d363336a4e2b931693b"},
+            separators=(",", ":"), ensure_ascii=False,
+        )
+        doc_s1 = {
+            "r": "e92f3b4af805d4a7a50c9ea5c2341748", "t": "doc", "l": 1, "f": 4,
+            "p": 1, "tp": 1, "wc": 22, "ic": 7, "v": 2, "s": 1, "h": 0, "ext": ext_doc,
+        }
+        _, enc1 = sign_read_point(special_s1, "401839244", "20261121231740624")
+        _, enc2 = sign_read_point(special_s2, "401839244", "20261121231810627")
+        _, enc3 = sign_read_point(doc_s1, "401839244", "20261121232251868")
+        self.assertEqual(enc1, "8f495c076feb98ff08be5009d73bf214")
+        self.assertEqual(enc2, "3748f4edb921e02ca1e8237b265088d0")
+        self.assertEqual(enc3, "ed7865a185fbcc42506b9d15b56eca86")
+
+    def test_parse_studentstudy_url_supports_variants_and_rejects_untrusted(self):
+        p1 = parse_studentstudy_url(self.URL1)
+        self.assertEqual((p1["host"], p1["courseId"], p1["clazzId"], p1["chapterId"], p1["cpi"], p1["enc"]), (
+            "mooc1-2.chaoxing.com", "254871694", "150302330", "1028809632", "", "294d6c3da667ef7473a6a70d342d997c",
+        ))
+        self.assertNotIn("enc=", p1["sanitized_url"])
+
+        p2 = parse_studentstudy_url(self.URL2)
+        self.assertEqual((p2["host"], p2["courseId"], p2["clazzId"], p2["chapterId"], p2["cpi"], p2["enc"]), (
+            "mooc1.chaoxing.com", "266019740", "151748129", "1218107929", "481751950", "1cce499397ac4d363336a4e2b931693b",
+        ))
+        self.assertNotIn("enc=", p2["sanitized_url"])
+        self.assertNotIn("openc=", p2["sanitized_url"])
+
+        for bad in (
+            "", "https://evil.example.com/mycourse/studentstudy?chapterId=1&courseId=2&clazzid=3",
+            "https://mooc1.chaoxing.com/other/path?chapterId=1&courseId=2&clazzid=3",
+            "https://mooc1.chaoxing.com/mycourse/studentstudy?courseId=2&clazzid=3",
+            "https://mooc1.chaoxing.com/mycourse/studentstudy?chapterId=abc&courseId=2&clazzid=3",
+            "https://mooc1.chaoxing.com/mycourse/studentstudy?chapterId=1&courseId=2&clazzid=3#frag",
+        ):
+            with self.subTest(bad=bad), self.assertRaises(ValueError):
+                parse_studentstudy_url(bad)
+
+    def test_scan_course_detects_read_and_document_cards_as_readable(self):
+        read_card = {
+            "type": "read", "jobid": "read-200001712", "enc": "work-enc-1",
+            "property": {"courseid": 200001712, "title": "课程阅读", "read": True},
+        }
+        doc_card = {
+            "type": "document", "property": {"objectid": "doc-obj-1", "name": "必读文献.docx", "pagenum": "7"},
+        }
+        page_html = course_page() + '<script>var enc = "294d6c3da667ef7473a6a70d342d997c";</script>'
+        self.session.get.side_effect = [
+            Response(page_html),
+            Response('<input id="cardcount" value="1">'),
+            Response(card_page([VIDEO, read_card, doc_card])),
+        ]
+        found = self.tools.scan_course(COURSE)
+        by_kind = {item["kind"]: item for item in found}
+        self.assertEqual(set(by_kind), {"video", "read", "document"})
+        self.assertFalse(by_kind["video"]["readable"])
+        self.assertTrue(by_kind["read"]["readable"])
+        self.assertFalse(by_kind["read"]["downloadable"])
+        self.assertFalse(by_kind["read"]["watchable"])
+        self.assertTrue(by_kind["document"]["readable"])
+        self.assertTrue(by_kind["document"]["downloadable"])
+        self.assertEqual(by_kind["document"]["_course_enc"], "294d6c3da667ef7473a6a70d342d997c")
+        public = self.tools.public_resource(by_kind["read"])
+        self.assertTrue(public["readable"])
+        self.assertNotIn("_course_enc", public)
+
+    def test_read_resource_special_resolves_book_and_sends_heartbeats(self):
+        clock = self.fake_clock()
+        read_item = {
+            "id": "read-1", "course_id": COURSE["courseId"], "course_title": COURSE["title"],
+            "chapter_id": "101", "chapter_title": "第一章", "name": "课程阅读",
+            "kind": "read", "downloadable": False, "watchable": False, "readable": True,
+            "_attachment": {"type": "read", "jobid": "read-200001712", "enc": "work-enc"},
+            "_defaults": {**DEFAULTS, "utenc": "utenc-1"},
+        }
+        work_html = (
+            '<div class="readTips"><p>您的阅读总时长:<span>5.4</span>分钟</p>'
+            '<p>阅读总时长达到<span>60</span>分钟</p></div>'
+            '<div class="readList"><a href="/mooc-ans/course/242311696.html?_from_=course-1_class-1_uid-1_enc1">'
+            '<p class="readTitle">京剧常识</p></a></div>'
+        )
+        book_redirect = Response(
+            status=302,
+            headers={"Location": "/mooc-ans/zt/242311696.html?_from_=course-1_class-1_uid-1_enc1"},
+        )
+        toc_html = (
+            '<a class="wh" href="/mooc-ans/ztnodedetailcontroller/visitnodedetail'
+            '?courseId=242311696&knowledgeId=847466164&_from_=course-1_class-1_uid-1_enc1&rtag=">1.2 序二</a>'
+        )
+        node_html = '<div><p>' + ('京剧文本' * 50) + '</p><img src="a.jpg"></div>'
+        # work -> book 302 -> book toc -> node -> (s=1 ac_mark + readlog) -> 30s (s=2 + readlog) -> 60s (s=2 + readlog) -> 65s (s=2 + readlog) -> s=0 ac_mark
+        responses = [
+            Response(work_html), book_redirect, Response(toc_html), Response(node_html),
+            Response(""), Response("{}"),
+            Response(""), Response("{}"),
+            Response(""), Response("{}"),
+            Response(""), Response("{}"),
+            Response(""),
+        ]
+        self.session.get.side_effect = responses
+        progress = Mock()
+
+        result = self.tools.read_resource(COURSE, read_item, 65, on_progress=progress)
+
+        self.assertEqual(result["seconds"], 65)
+        self.assertEqual(result["before_minutes"], 5.4)
+        self.assertEqual(result["target_minutes"], 60.0)
+        self.assertEqual(clock.now, 65.0)
+        self.assertEqual([call.args for call in progress.call_args_list], [(0, 65), (30, 65), (60, 65), (65, 65)])
+        ac_calls = [call.args[0] for call in self.session.get.call_args_list if call.args[0].startswith(READ_POINT_URL)]
+        self.assertEqual(len(ac_calls), 5)
+        self.assertIn("%22s%22%3A1", ac_calls[0])
+        self.assertIn("%22s%22%3A2", ac_calls[1])
+        self.assertIn("%22s%22%3A0", ac_calls[-1])
+        self.assertIn("%22t%22%3A%22special%22", ac_calls[0])
+        self.assertIn("%22r%22%3A%22242311696%2C847466164%22", ac_calls[0])
+        self.assert_closed(*responses)
+
+    def test_read_resource_doc_retries_once_on_transport_error(self):
+        clock = self.fake_clock()
+        doc_item = {
+            "id": "doc-1", "course_id": COURSE["courseId"], "course_title": COURSE["title"],
+            "chapter_id": "101", "chapter_title": "第一章", "name": "阅读文献.docx",
+            "kind": "document", "downloadable": True, "watchable": False, "readable": True,
+            "_attachment": {"type": "document", "property": {"objectid": "obj-doc-1", "pagenum": "7"}},
+            "_defaults": deepcopy(DEFAULTS),
+            "_course_enc": "1cce499397ac4d363336a4e2b931693b",
+        }
+        r1, r2, r3 = Response(""), Response(""), Response("")
+        self.session.get.side_effect = [requests.ConnectionError("reset"), r1, r2, r3]
+
+        result = self.tools.read_resource(COURSE, doc_item, 15)
+
+        self.assertEqual(result["seconds"], 15)
+        self.assertEqual(clock.now, 15.0)
+        ac_calls = [call.args[0] for call in self.session.get.call_args_list]
+        self.assertEqual(len(ac_calls), 4)
+        self.assertIn("%22t%22%3A%22doc%22", ac_calls[1])
+        self.assertIn("%22ic%22%3A7", ac_calls[1])
+        self.assertIn("1cce499397ac4d363336a4e2b931693b", ac_calls[1])
+        self.assert_closed(r1, r2, r3)
+
+    def test_read_study_url_handles_doc_chapter_and_enrolled_cpi_fallback(self):
+        clock = self.fake_clock()
+        doc1 = {"type": "document", "property": {"objectid": "doc-a", "name": "文献一", "pagenum": "7"}}
+        doc2 = {"type": "document", "property": {"objectid": "doc-b", "name": "文献二", "pagenum": "17"}}
+        card_defaults = {"courseId": "266019740", "clazzId": "151748129", "userid": "uid-1"}
+        responses = [
+            Response('<input id="cardcount" value="1">'),
+            Response(card_page([doc1, doc2], card_defaults)),
+            # 2 docs * (s=1, s=2, s=0) = 6 ac_mark requests
+            Response(""), Response(""),
+            Response(""), Response(""),
+            Response(""), Response(""),
+        ]
+        self.session.get.side_effect = responses
+
+        result = self.tools.read_study_url(
+            self.URL2, 20, enrolled={"266019740": {"courseId": "266019740", "cpi": "481751950", "title": "文献课"}},
+        )
+
+        self.assertEqual(result["seconds"], 20)
+        self.assertEqual(result["targets"], 2)
+        self.assertEqual(result["mode"], "doc")
+        self.assertEqual(result["course_title"], "文献课")
+        self.assertEqual(clock.now, 20.0)
+        self.assert_closed(*responses)
+
+    def test_read_study_url_raises_when_chapter_has_no_readable_cards(self):
+        self.session.get.side_effect = [
+            Response('<input id="cardcount" value="1">'),
+            Response(card_page([VIDEO], {"courseId": "254871694", "clazzId": "150302330", "userid": "uid-1"})),
+        ]
+        with self.assertRaisesRegex(RuntimeError, "未找到可累计阅读时长"):
+            self.tools.read_study_url(
+                self.URL1, 10, enrolled={"254871694": {"courseId": "254871694", "cpi": "481751950", "title": "京剧"}},
+            )
 
 
 if __name__ == "__main__":

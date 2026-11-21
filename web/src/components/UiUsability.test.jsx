@@ -180,3 +180,23 @@ it('cancels an in-flight configuration save when unmounted', async () => {
   await act(async () => pending.resolve(ok({})));
   expect(screen.queryByText(configSavedMessage)).toBeNull();
 });
+
+it('renders safe fallback values when active video job metrics are missing or NaN', async () => {
+  api.get.mockImplementation(async (url) => {
+    if (url.endsWith('/details')) {
+      return ok({
+        courses: [],
+        active_jobs: {
+          'c1:j1': { job_name: '视频一', course_name: '课程一', progress: undefined, current_time: null, duration: Number.NaN },
+        },
+      });
+    }
+    if (url.startsWith('/logs/')) return { data: { status: true, data: [], next_cursor: 0 } };
+    return ok({ status: 'running', progress: 0, total: 1 });
+  });
+  render(<StudyProgress taskId="nan-safe" />);
+  expect(await screen.findByText('视频一')).toBeTruthy();
+  expect(screen.getByText('0%')).toBeTruthy();
+  expect(screen.getAllByText('--:--')).toHaveLength(2);
+  expect(screen.queryByText(/NaN/)).toBeNull();
+});

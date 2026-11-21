@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BookOpen, Download, FileText, FolderOpen, Loader2, MonitorPlay, Search } from 'lucide-react';
 import api from '../api/axios';
+import { cn } from '../lib/utils';
 import { validTaskId } from '../lib/sessionStore';
 import { isTerminalStatus, resultLabels } from '../lib/taskPolling';
 import { loadDownloadDir } from '../lib/downloadDir';
@@ -10,8 +11,10 @@ import Label from './ui/Label';
 import Select from './ui/Select';
 import { courseToolLabels, validateMinutes } from './CourseToolSettings';
 
-const kinds = { video: '视频', audio: '音频', document: '文档', file: '文件' };
+const kinds = { video: '视频', audio: '音频', document: '文档', read: '阅读', file: '文件' };
 const sectionCls = 'rounded-xl border border-line bg-white p-5 shadow-card';
+const numberInputCls = '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
+const invalidInputCls = 'border-danger focus:border-danger focus:ring-danger/15';
 
 export function formatToolAmount(value, unit = '') {
   if (value === null || value === undefined || !Number.isFinite(Number(value))) return '未知';
@@ -59,24 +62,43 @@ function CourseToolContent({ taskId, username, taskStatus, tool, catalogReady = 
 
   const taskType = taskStatus.task_type;
   const purpose = tool?.purpose;
-  const durationTask = purpose === 'video_time';
-  const durationId = 'video-minutes';
-  const StartIcon = purpose === 'video_time' ? MonitorPlay : Download;
-  const toolResources = Array.isArray(tool?.resources) ? tool.resources : [];
-  const resources = purpose === 'video_time' ? toolResources.filter((item) => item.kind === 'video') : toolResources;
-  const results = Array.isArray(tool?.results) ? tool.results : [];
-  const courseIds = new Set((Array.isArray(tool?.course_ids) ? tool.course_ids : []).map(String));
-  const available = (resource) => typeof resource.id === 'string' && !!resource.id
+  const durationTask = purpose === 'video_time' || purpose === 'read_time';
+  const durationId = purpose === 'read_time' ? 'read-minutes' : 'video-minutes';
+  const StartIcon = purpose === 'video_time' ? MonitorPlay : purpose === 'read_time' ? BookOpen : Download;
+  const rawResources = tool?.resources;
+  const rawResults = tool?.results;
+  const rawCourseIds = tool?.course_ids;
+  const resources = useMemo(() => {
+    const raw = Array.isArray(rawResources) ? rawResources : [];
+    if (purpose === 'video_time') return raw.filter((item) => item.kind === 'video');
+    if (purpose === 'read_time') return raw.filter((item) => item.kind === 'read' || item.kind === 'document');
+    return raw;
+  }, [rawResources, purpose]);
+  const results = useMemo(() => (Array.isArray(rawResults) ? rawResults : []), [rawResults]);
+  const courseIds = useMemo(
+    () => new Set((Array.isArray(rawCourseIds) ? rawCourseIds : []).map(String)),
+    [rawCourseIds],
+  );
+  const available = useCallback((resource) => typeof resource.id === 'string' && !!resource.id
     && courseIds.has(String(resource.course_id))
-    && (purpose === 'video_time' ? resource.watchable === true : purpose === 'download' && resource.downloadable === true);
+    && (purpose === 'video_time'
+      ? resource.watchable === true
+      : purpose === 'read_time'
+        ? resource.readable === true
+        : purpose === 'download' && resource.downloadable === true), [courseIds, purpose]);
   const selectedIdSet = useMemo(() => new Set(selectedIds), [selectedIds]);
-  const selected = resources.filter((resource) => selectedIdSet.has(resource.id) && available(resource));
+  const selected = useMemo(
+    () => resources.filter((resource) => selectedIdSet.has(resource.id) && available(resource)),
+    [resources, selectedIdSet, available],
+  );
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
     return resources.filter((resource) => {
       const matchesKind = kind === 'all' || resource.kind === kind;
+      if (!matchesKind) return false;
+      if (!needle) return true;
       const searchText = [resource.name, resource.course_title, resource.chapter_title].filter(Boolean).join(' ').toLowerCase();
-      return matchesKind && searchText.includes(needle);
+      return searchText.includes(needle);
     });
   }, [resources, kind, query]);
   const minutesError = durationTask ? validateMinutes(minutes) : '';
@@ -167,7 +189,7 @@ function CourseToolContent({ taskId, username, taskStatus, tool, catalogReady = 
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <h2 className="flex items-center gap-2 text-[15px] font-semibold">
               <FileText className="h-4 w-4 text-brand" aria-hidden="true" />
-              {purpose === 'video_time' ? '视频列表' : '资源列表'}
+              {purpose === 'video_time' ? '视频列表' : purpose === 'read_time' ? '阅读列表' : '资源列表'}
             </h2>
             <span className="text-xs text-faint tnum">已选 {selected.length} / 共 {resources.length}</span>
           </div>
@@ -177,6 +199,7 @@ function CourseToolContent({ taskId, username, taskStatus, tool, catalogReady = 
                 : isTerminalStatus(taskStatus.status) ? '本次读取未完成，请返回课程选择重新读取。' : '正在读取资源，请等待任务结束后选择。'}
           </p>
               {purpose === 'video_time' && <p className="mb-4 text-xs leading-relaxed text-faint">先勾选视频并设置每个视频增加的时长，开始后按实际时间累计，超出视频长度后从头继续。</p>}
+              {purpose === 'read_time' && <p className="mb-4 text-xs leading-relaxed text-faint">先勾选阅读任务或文档并设置每项增加的阅读时长，开始后按实际时间每 30 秒上报心跳，平台统计可能次日更新。</p>}
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <div className="relative min-w-40 flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-faint" aria-hidden="true" />
@@ -212,7 +235,7 @@ function CourseToolContent({ taskId, username, taskStatus, tool, catalogReady = 
                       <span className="mt-1 block text-xs text-faint">
                         {kinds[resource.kind] || '资源'}
                         {resource.duration != null && ` · ${formatToolAmount(resource.duration, '秒')}`}
-                        {!usable && (purpose === 'video_time' ? ' · 不可累计时长' : ' · 不可下载')}
+                        {!usable && (durationTask ? ' · 不可累计时长' : ' · 不可下载')}
                       </span>
                     </span>
                   </label>
@@ -224,17 +247,32 @@ function CourseToolContent({ taskId, username, taskStatus, tool, catalogReady = 
 
           {durationTask && (
             <div className="mt-5 space-y-1.5">
-              <Label htmlFor={durationId}>每个视频增加时长（分钟）</Label>
-              <Input id={durationId} type="number" min="0.1" max="1440" step="any" value={minutes} disabled={!canSelect} onChange={(event) => setMinutes(event.target.value)} aria-invalid={!!minutesError} aria-describedby={`${durationId}-hint`} />
+              <Label htmlFor={durationId}>{purpose === 'read_time' ? '每项增加阅读时长（分钟）' : '每个视频增加时长（分钟）'}</Label>
+              <Input
+                id={durationId}
+                type="number"
+                inputMode="decimal"
+                min="0.1"
+                max="1440"
+                step="any"
+                value={minutes}
+                disabled={!canSelect}
+                onChange={(event) => setMinutes(event.target.value)}
+                aria-invalid={!!minutesError}
+                aria-describedby={`${durationId}-hint`}
+                className={cn(numberInputCls, minutesError && invalidInputCls)}
+              />
               <p id={`${durationId}-hint`} role={minutesError ? 'alert' : undefined} className={`text-xs ${minutesError ? 'text-danger' : 'text-faint'}`}>
-                {minutesError || '范围 0.1–1440 分钟。按实际时间运行，超出视频长度后从头继续。'}
+                {minutesError || (purpose === 'read_time'
+                  ? '范围 0.1–1440 分钟。按实际时间每 30 秒上报一次心跳，平台统计可能次日更新。'
+                  : '范围 0.1–1440 分钟。按实际时间运行，超出视频长度后从头继续。')}
               </p>
             </div>
           )}
           <div className="mt-5 flex flex-wrap items-center gap-3">
             <Button onClick={handleStart} disabled={!canStart}>
               {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <StartIcon className="h-4 w-4" aria-hidden="true" />}
-              {busy ? '任务启动中' : purpose === 'video_time' ? '开始累计时长' : '下载所选资源'}
+              {busy ? '任务启动中' : purpose === 'video_time' ? '开始累计时长' : purpose === 'read_time' ? '开始累计阅读时长' : '下载所选资源'}
             </Button>
             {!selected.length && <p className="text-xs text-faint">请至少勾选一项可用资源</p>}
           </div>
@@ -276,6 +314,8 @@ function CourseToolContent({ taskId, username, taskStatus, tool, catalogReady = 
 }
 
 // Account/task changes must discard selections and cancel in-flight folder actions.
-export default function CourseToolProgress(props) {
+const CourseToolProgress = memo(function CourseToolProgress(props) {
   return <CourseToolContent key={`${props.username || ''}:${props.taskId}`} {...props} />;
-}
+});
+
+export default CourseToolProgress;

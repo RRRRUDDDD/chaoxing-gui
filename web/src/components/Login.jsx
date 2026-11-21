@@ -83,7 +83,7 @@ const Login = ({ onLoginSuccess }) => {
   const errId = 'login-error';
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-canvas px-[clamp(1rem,4vw,4rem)] py-[clamp(2.5rem,7vh,5rem)]">
+    <main className="flex min-h-screen items-center justify-center bg-canvas px-[clamp(1rem,4vw,4rem)] py-[clamp(2.5rem,7vh,5rem)]">
       <div className="w-full max-w-[clamp(400px,32vw,520px)] animate-pop-in">
         {/* 品牌区 */}
         <div className="mb-8 flex flex-col items-center text-center">
@@ -182,7 +182,7 @@ const Login = ({ onLoginSuccess }) => {
           使用本程序产生的一切后果由使用者自行承担，本程序不提供任何明示或暗示的适配性、安全性或合法性担保。
         </p>
       </div>
-    </div>
+    </main>
   );
 };
 

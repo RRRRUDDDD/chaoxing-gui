@@ -15,6 +15,7 @@ export function CloseChoiceDialog() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const dialogRef = useRef(null);
+  const previousFocusRef = useRef(null);
   const titleId = useId();
 
   useEffect(() => {
@@ -24,6 +25,7 @@ export function CloseChoiceDialog() {
       try {
         // The host exits by itself unless the prompt is acknowledged in time.
         if (!disposed && await desktopBridge.closePromptShown(id) && !disposed) {
+          previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
           setRemember(false);
           setError('');
           setPromptId(id);
@@ -37,7 +39,12 @@ export function CloseChoiceDialog() {
   }, []);
 
   useEffect(() => {
-    if (promptId === null) return;
+    if (promptId === null) {
+      const target = previousFocusRef.current;
+      previousFocusRef.current = null;
+      if (target && target.isConnected) target.focus();
+      return;
+    }
     dialogRef.current?.querySelector('button')?.focus();
   }, [promptId]);
 
@@ -63,11 +70,16 @@ export function CloseChoiceDialog() {
       return;
     }
     if (event.key !== 'Tab') return;
-    const focusable = [...dialogRef.current.querySelectorAll('button, input')].filter((node) => !node.disabled);
+    const focusable = [
+      ...dialogRef.current.querySelectorAll('button, input, a[href], select, textarea, [tabindex]:not([tabindex="-1"])'),
+    ].filter((node) => !node.disabled);
     if (!focusable.length) return;
     const first = focusable[0];
     const last = focusable[focusable.length - 1];
-    if (event.shiftKey && document.activeElement === first) {
+    if (!dialogRef.current.contains(document.activeElement)) {
+      event.preventDefault();
+      first.focus();
+    } else if (event.shiftKey && document.activeElement === first) {
       event.preventDefault();
       last.focus();
     } else if (!event.shiftKey && document.activeElement === last) {

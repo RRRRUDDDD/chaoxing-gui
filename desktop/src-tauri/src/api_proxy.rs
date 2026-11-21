@@ -15,6 +15,7 @@ pub enum ApiOperation {
     TaskResume,
     TaskStop,
     TaskOpenDownloads,
+    TaskCancelShutdown,
     TaskDetails,
     TaskLogs,
 }
@@ -131,6 +132,7 @@ impl ApiOperation {
             ApiOperation::TaskResume => ("POST", "/api/task/{id}/resume"),
             ApiOperation::TaskStop => ("POST", "/api/task/{id}/stop"),
             ApiOperation::TaskOpenDownloads => ("POST", "/api/task/{id}/open-downloads"),
+            ApiOperation::TaskCancelShutdown => ("POST", "/api/task/{id}/cancel-shutdown"),
             ApiOperation::TaskDetails => ("GET", "/api/task/{id}/details"),
             ApiOperation::TaskLogs => ("GET", "/api/logs/{id}"),
         }
@@ -143,6 +145,7 @@ impl ApiOperation {
                 | ApiOperation::TaskResume
                 | ApiOperation::TaskStop
                 | ApiOperation::TaskOpenDownloads
+                | ApiOperation::TaskCancelShutdown
                 | ApiOperation::TaskDetails
                 | ApiOperation::TaskLogs
         )
@@ -384,6 +387,40 @@ mod tests {
     }
 
     #[test]
+    fn task_cancel_shutdown_keeps_post_payload_and_task_path_boundaries() {
+        let raw = serde_json::json!({
+            "operation": "taskCancelShutdown", "requestId": 1,
+            "payload": {"username": "fixture"}, "taskId": "t-1_2"
+        });
+        let request: ApiRequest = serde_json::from_value(raw.clone()).unwrap();
+        request.validate().unwrap();
+        assert_eq!(
+            request.operation.route(),
+            ("POST", "/api/task/{id}/cancel-shutdown")
+        );
+        assert_eq!(
+            build_path(request.operation, request.task_id.as_deref(), None).unwrap(),
+            "/api/task/t-1_2/cancel-shutdown"
+        );
+        for (field, value) in [
+            ("payload", serde_json::Value::Null),
+            ("payload", serde_json::json!([])),
+            ("taskId", serde_json::json!("../bad")),
+            ("taskId", serde_json::json!("a%2fb")),
+            ("after", serde_json::json!(0)),
+        ] {
+            let mut invalid = raw.clone();
+            invalid[field] = value;
+            let request: ApiRequest = serde_json::from_value(invalid).unwrap();
+            assert!(request.validate().is_err(), "accepted invalid {field}");
+        }
+        let mut missing_id = raw;
+        missing_id.as_object_mut().unwrap().remove("taskId");
+        let request: ApiRequest = serde_json::from_value(missing_id).unwrap();
+        assert!(request.validate().is_err());
+    }
+
+    #[test]
     fn start_keeps_course_tool_payloads() {
         for (task_type, tool_options) in [
             ("visits", serde_json::json!({"count": 10, "interval": 30})),
@@ -424,6 +461,7 @@ mod tests {
             "taskResume",
             "taskStop",
             "taskOpenDownloads",
+            "taskCancelShutdown",
             "taskDetails",
             "taskLogs",
         ] {
@@ -437,6 +475,7 @@ mod tests {
                     | "taskResume"
                     | "taskStop"
                     | "taskOpenDownloads"
+                    | "taskCancelShutdown"
             ) {
                 raw["payload"] = serde_json::json!({"username":"fixture"});
             }
@@ -446,6 +485,7 @@ mod tests {
                     | "taskResume"
                     | "taskStop"
                     | "taskOpenDownloads"
+                    | "taskCancelShutdown"
                     | "taskDetails"
                     | "taskLogs"
             ) {

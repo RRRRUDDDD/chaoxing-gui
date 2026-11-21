@@ -8,8 +8,11 @@ const credentials = { username: 'alice', password: '', use_cookies: true };
 const recipes = [
   { name: 'visits', task_type: 'visits', tool_options: { count: 10, interval: 30 } },
   { name: 'video catalog', task_type: 'catalog', tool_options: { purpose: 'video_time' } },
+  { name: 'read catalog', task_type: 'catalog', tool_options: { purpose: 'read_time' } },
   { name: 'download catalog', task_type: 'catalog', tool_options: { purpose: 'download' } },
   { name: 'video time', task_type: 'video_time', tool_options: { source_task_id: 'catalog-1', resource_ids: ['video-1'], minutes: 0.5 } },
+  { name: 'read time catalog', task_type: 'read_time', tool_options: { source_task_id: 'catalog-3', resource_ids: ['read-1'], minutes: 5 } },
+  { name: 'read time url', task_type: 'read_time', tool_options: { urls: ['https://mooc1.chaoxing.com/mycourse/studentstudy?chapterId=1218107929&courseId=266019740&clazzid=151748129'], minutes: 10 } },
   { name: 'download', task_type: 'download', tool_options: { source_task_id: 'catalog-2', resource_ids: ['file-1', 'video-1'] } },
 ];
 let server;

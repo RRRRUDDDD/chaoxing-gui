@@ -10,11 +10,13 @@ const parse = (raw) => (raw.trim() === '' ? NaN : Number(raw));
  */
 const NumberInput = ({ id, value, onValueChange, onValidityChange, min, max, step, integer = false, hint = '', ...props }) => {
   const [text, setText] = useState(String(value));
+  const [prevValue, setPrevValue] = useState(value);
 
   // Keep the draft while it still represents the committed value (e.g. "0.50").
-  useEffect(() => {
-    setText((current) => (parse(current) === value ? current : String(value)));
-  }, [value]);
+  if (prevValue !== value) {
+    setPrevValue(value);
+    if (parse(text) !== value) setText(String(value));
+  }
 
   const inRange = (n) => Number.isFinite(n) && (!integer || Number.isInteger(n))
     && (min === undefined || n >= min) && (max === undefined || n <= max);

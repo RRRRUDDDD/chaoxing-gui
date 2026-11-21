@@ -94,3 +94,21 @@ it('stops listening when unmounted', async () => {
   view.unmount();
   expect(bridge.unlisten).toHaveBeenCalledTimes(1);
 });
+
+it('restores focus to the previously focused element after cancelling', async () => {
+  render(
+    <CloseChoiceDialog>
+      <button type="button">原聚焦按钮</button>
+    </CloseChoiceDialog>,
+  );
+  const trigger = screen.getByRole('button', { name: '原聚焦按钮' });
+  trigger.focus();
+  expect(document.activeElement).toBe(trigger);
+
+  await prompt(9);
+  expect(document.activeElement).toBe(screen.getByRole('button', { name: '最小化' }));
+
+  fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  expect(document.activeElement).toBe(trigger);
+});

@@ -70,3 +70,23 @@ it('reads, saves and restores the close action on failure', async () => {
   expect((await screen.findByRole('alert')).textContent).toContain('无法保存');
   expect(select.value).toBe('tray');
 });
+
+it('toggles shutdown-on-complete inside app settings and displays summary badge when enabled', () => {
+  const changed = vi.fn();
+  render(<Harness initial={{ shutdown_on_complete: false }} onSettings={changed} />);
+  const toggleButton = screen.getByRole('button', { name: '展开应用设置' });
+  expect(toggleButton.textContent).not.toContain('完成后关机');
+  fireEvent.click(toggleButton);
+
+  const checkbox = screen.getByLabelText('刷取任务完成后自动关机');
+  expect(checkbox.checked).toBe(false);
+
+  fireEvent.click(checkbox);
+  expect(checkbox.checked).toBe(true);
+  expect(changed).toHaveBeenLastCalledWith({ shutdown_on_complete: true });
+  expect(screen.getByRole('button', { name: /收起应用设置/ }).textContent).toContain('完成后关机');
+
+  fireEvent.click(checkbox);
+  expect(checkbox.checked).toBe(false);
+  expect(changed).toHaveBeenLastCalledWith({ shutdown_on_complete: false });
+});

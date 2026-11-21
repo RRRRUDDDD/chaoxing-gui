@@ -2,6 +2,7 @@ export function defaultSettings() {
   return {
     speed: 1.0, jobs: 1, notopen_action: 'retry', tiku_config: {},
     notification_config: { provider: 'Windows' }, ocr_config: {},
+    shutdown_on_complete: false,
   };
 }
 
@@ -11,6 +12,7 @@ export function restoreSettings(saved) {
     settings.notification_config = { ...settings.notification_config, provider: 'Windows' };
   }
   if (!['retry', 'continue'].includes(settings.notopen_action)) settings.notopen_action = 'retry';
+  settings.shutdown_on_complete = settings.shutdown_on_complete === true;
   return settings;
 }
 

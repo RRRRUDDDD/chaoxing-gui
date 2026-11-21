@@ -11,20 +11,23 @@ import subprocess
 import sys
 import time
 
+from api.course_tools import parse_studentstudy_url
 from api.exceptions import LoginError
 from api.fs_policy import reject_links
 from api.logger import logger
 from api.privacy import sanitize_errors
+from api.shutdown import shutdown_manager
 from api.task_logging import task_log_sink
 from api.task_state import TaskNotFound
 
 
-TOOL_TYPES = frozenset({"visits", "catalog", "video_time", "download"})
-TIMED_TOOLS = frozenset({"video_time"})
-RESOURCE_FLAGS = {"video_time": "watchable", "download": "downloadable"}
+TOOL_TYPES = frozenset({"visits", "catalog", "video_time", "read_time", "download"})
+TIMED_TOOLS = frozenset({"video_time", "read_time"})
+RESOURCE_FLAGS = {"video_time": "watchable", "read_time": "readable", "download": "downloadable"}
 TASK_LABELS = {"visits": "课程学习次数", "catalog": "读取课程资源", "video_time": "视频观看时长",
-               "download": "课程资源下载"}
+               "read_time": "阅读时长", "download": "课程资源下载"}
 MAX_ITEMS = 1000
+MAX_READ_URLS = 50
 MAX_SNAPSHOT_BYTES = 2 * 1024 * 1024
 # Reserve a bounded result row for every selectable resource, including Unicode
 # JSON escaping. The native proxy caps the complete response at 2 MiB.
@@ -38,7 +41,7 @@ WINDOWS_RESERVED_NAMES = frozenset(
     {"CON", "PRN", "AUX", "NUL", *(f"{prefix}{number}" for prefix in ("COM", "LPT") for number in range(1, 10))})
 PUBLIC_RESOURCE_FIELDS = frozenset({
     "id", "course_id", "course_title", "chapter_id", "chapter_title", "name",
-    "kind", "downloadable", "watchable", "duration",
+    "kind", "downloadable", "watchable", "readable", "duration",
 })
 
 
@@ -103,6 +106,7 @@ def parse_options(task_type, options):
     allowed = {
         "visits": {"count", "interval"}, "catalog": {"purpose"},
         "video_time": {"source_task_id", "resource_ids", "minutes"},
+        "read_time": {"source_task_id", "resource_ids", "urls", "minutes"},
         "download": {"source_task_id", "resource_ids", "download_dir"},
     }[task_type]
     if set(options) - allowed:
@@ -112,8 +116,19 @@ def parse_options(task_type, options):
                 "interval": _number(options.get("interval", 30), "请求间隔（秒）", 1, 3600)}
     if task_type == "catalog":
         if not isinstance(options.get("purpose"), str) or options["purpose"] not in RESOURCE_FLAGS:
-            raise ValueError("请选择视频时长或资源下载功能")
+            raise ValueError("请选择视频时长、阅读时长或资源下载功能")
         return {"purpose": options["purpose"]}
+    if task_type == "read_time" and "urls" in options:
+        if "source_task_id" in options or "resource_ids" in options:
+            raise ValueError("按链接阅读时不能同时传入资源列表参数")
+        raw_urls = options.get("urls")
+        if not isinstance(raw_urls, list) or not 1 <= len(raw_urls) <= MAX_READ_URLS:
+            raise ValueError(f"请输入 1 到 {MAX_READ_URLS} 条章节链接")
+        urls = list(dict.fromkeys(parse_studentstudy_url(item)["url"] for item in raw_urls))
+        return {
+            "urls": urls,
+            "minutes": _number(options.get("minutes", 30), "每个链接的目标阅读分钟数", 0.1, 1440),
+        }
     source = options.get("source_task_id")
     ids = options.get("resource_ids")
     if not isinstance(source, str) or not SAFE_ID.fullmatch(source):
@@ -126,24 +141,35 @@ def parse_options(task_type, options):
     if task_type == "download":
         normalized["download_dir"] = _parse_download_dir(options.get("download_dir"))
     if task_type in TIMED_TOOLS:
-        label = "每个视频的目标分钟数"
+        label = "每项的目标阅读分钟数" if task_type == "read_time" else "每个视频的目标分钟数"
         normalized["minutes"] = _number(options.get("minutes", 30), label, 0.1, 1440)
     return normalized
 
 
 def resume_config(config):
-    return deepcopy({key: config[key] for key in ("task_type", "course_list", "tool_options")})
+    saved = deepcopy({key: config[key] for key in ("task_type", "course_list", "tool_options")})
+    if saved["task_type"] == "read_time" and "urls" in saved["tool_options"]:
+        # Strip signed tokens (enc/openc) from disk persistence; timed tasks never auto-replay.
+        saved["tool_options"]["urls"] = [
+            parse_studentstudy_url(item)["sanitized_url"] for item in saved["tool_options"]["urls"]
+        ]
+    return saved
 
 
 def initial_status(config, details=None):
     kind = config["task_type"]
-    total = len(config["tool_options"].get("resource_ids", config["course_list"]))
+    options = config["tool_options"]
+    if kind == "read_time" and "urls" in options:
+        total = len(options["urls"])
+    else:
+        total = len(options.get("resource_ids", config["course_list"]))
     label = TASK_LABELS[kind]
     if kind == "catalog":
-        label = {"video_time": "读取视频列表", "download": label}[config["tool_options"]["purpose"]]
+        label = {"video_time": "读取视频列表", "read_time": "读取阅读列表", "download": label}[options["purpose"]]
     status = {
         "task_type": kind, "task_label": label, "progress": 0, "total": total,
         "current_course": "", "current_chapter": "", "current_task": "",
+        "shutdown_on_complete": bool(config.get("shutdown_on_complete")) and kind != "catalog",
         "stats": {"total_courses": len(config["course_list"]), "completed_courses": 0,
                   "failed_courses": 0, "skipped_courses": 0, "partial_courses": 0,
                   "total_chapters": 0, "completed_chapters": 0, "empty_chapters": 0,
@@ -164,10 +190,17 @@ def _refresh_counts(status, details):
 
 def initial_details(config, resources):
     kind, options = config["task_type"], config["tool_options"]
-    unit = {"visits": "次", "catalog": "章节", "video_time": "秒", "download": "字节"}[kind]
-    total = options["count"] * len(config["course_list"]) if kind == "visits" else (
-        round(options["minutes"] * 60) * len(resources) if kind in TIMED_TOOLS else None if kind == "download" else 0
-    )
+    unit = {"visits": "次", "catalog": "章节", "video_time": "秒", "read_time": "秒", "download": "字节"}[kind]
+    if kind == "visits":
+        total = options["count"] * len(config["course_list"])
+    elif kind == "read_time" and "urls" in options:
+        total = round(options["minutes"] * 60) * len(options["urls"])
+    elif kind in TIMED_TOOLS:
+        total = round(options["minutes"] * 60) * len(resources)
+    elif kind == "download":
+        total = None
+    else:
+        total = 0
     return {"courses": [], "active_jobs": {}, "tool": {
         "purpose": options.get("purpose", kind), "course_ids": list(config["course_list"]),
         "resources": deepcopy(resources), "results": [],
@@ -290,7 +323,7 @@ class _Progress:
         self.store, self.task_id, self.config = store, task_id, config
         self.kind = config["task_type"]
         self.metric = {"visits": "submitted", "catalog": "chapters", "video_time": "seconds",
-                       "download": "bytes"}[self.kind]
+                       "read_time": "seconds", "download": "bytes"}[self.kind]
         self.completed = 0
         self._last_save = 0
         # 已记录行（含断点恢复行）的累计量：update() 增量累加，
@@ -421,17 +454,31 @@ def run_tool_task(task_id, store, config, data_dir, client_factory):
                     if cancelled():
                         return
                     enrolled = {str(course["courseId"]): course for course in client.get_course_list()}
-                    if any(course_id not in enrolled for course_id in config["course_list"]):
-                        raise ValueError("部分课程已不属于当前账号，请重新获取课程列表")
-                    courses = [{**enrolled[course_id], "title": str(enrolled[course_id].get("title", ""))[:120]}
-                               for course_id in config["course_list"]]
                     service = create_service(client, cancelled, config["tool_options"].get("purpose", config["task_type"]))
-                    with store.edit(task_id) as task:
-                        task.details["courses"] = [{"id": course["courseId"], "title": course["title"], "chapters": []} for course in courses]
-                    if config["task_type"] in {"catalog", "visits"}:
-                        _run_courses(task_id, store, config, service, courses, progress, cancelled)
+                    if config["task_type"] == "read_time" and "urls" in config["tool_options"]:
+                        url_courses = []
+                        seen_courses = set()
+                        for raw_url in config["tool_options"]["urls"]:
+                            course_id = parse_studentstudy_url(raw_url)["courseId"]
+                            if course_id in seen_courses:
+                                continue
+                            seen_courses.add(course_id)
+                            title = str(enrolled.get(course_id, {}).get("title") or f"课程 {course_id}")[:120]
+                            url_courses.append({"id": course_id, "title": title, "chapters": []})
+                        with store.edit(task_id) as task:
+                            task.details["courses"] = url_courses
+                        _run_read_urls(task_id, store, config, service, enrolled, progress, cancelled)
                     else:
-                        _run_resources(task_id, store, config, service, courses, progress, cancelled, data_dir)
+                        if any(course_id not in enrolled for course_id in config["course_list"]):
+                            raise ValueError("部分课程已不属于当前账号，请重新获取课程列表")
+                        courses = [{**enrolled[course_id], "title": str(enrolled[course_id].get("title", ""))[:120]}
+                                   for course_id in config["course_list"]]
+                        with store.edit(task_id) as task:
+                            task.details["courses"] = [{"id": course["courseId"], "title": course["title"], "chapters": []} for course in courses]
+                        if config["task_type"] in {"catalog", "visits"}:
+                            _run_courses(task_id, store, config, service, courses, progress, cancelled)
+                        else:
+                            _run_resources(task_id, store, config, service, courses, progress, cancelled, data_dir)
                     outcome = _outcome(store, task_id)
                     if outcome != "completed":
                         error = "部分操作未完成，请查看执行结果后重试"
@@ -457,7 +504,10 @@ def run_tool_task(task_id, store, config, data_dir, client_factory):
                     tool["current"] = None
         except TaskNotFound:
             pass
-        store.finish(task_id, outcome, error=error)
+        if config.get("task_type") != "catalog":
+            shutdown_manager.finish_task(store, task_id, outcome, error=error)
+        else:
+            store.finish(task_id, outcome, error=error)
 
 
 def _run_courses(task_id, store, config, service, courses, progress, cancelled):
@@ -490,6 +540,43 @@ def _run_courses(task_id, store, config, service, courses, progress, cancelled):
             progress.record(course, item, state, message="已停止" if cancelled() else str(exc))
             if not cancelled():
                 logger.error("{}处理失败：{}", course["title"], exc)
+            else:
+                break
+
+
+def _read_message(result):
+    message = f"已提交 {result['seconds']} 秒阅读记录，平台统计可能延迟更新（次日更新）"
+    before, target = result.get("before_minutes"), result.get("target_minutes")
+    if before is not None or target is not None:
+        message += f"；开始前平台显示 {_minutes_text(before)} / {_minutes_text(target)} 分钟"
+    return message
+
+
+def _run_read_urls(task_id, store, config, service, enrolled, progress, cancelled):
+    options = config["tool_options"]
+    seconds = round(options["minutes"] * 60)
+    for index, raw_url in enumerate(options["urls"], 1):
+        if cancelled():
+            break
+        parsed = parse_studentstudy_url(raw_url)
+        course_id = parsed["courseId"]
+        chapter_id = parsed["chapterId"]
+        course_title = str(enrolled.get(course_id, {}).get("title") or f"课程 {course_id}")[:120]
+        course = {"courseId": course_id, "title": course_title}
+        item = {"id": f"url-{index}", "name": f"章节 {chapter_id}", "chapter_title": f"章节 {chapter_id}"}
+        progress.begin(course, item, seconds)
+        try:
+            result = service.read_study_url(raw_url, seconds, enrolled=enrolled, on_progress=progress.update)
+            message = _read_message(result)
+            progress.record(course, item, "completed", result, message)
+            logger.info("{}（{}）：{}", course_title, item["name"], message)
+        except CheckpointError:
+            raise
+        except Exception as exc:
+            state = "skipped" if cancelled() else "error"
+            progress.record(course, item, state, message="已停止" if cancelled() else str(exc))
+            if not cancelled():
+                logger.error("{}（{}）处理失败：{}", course_title, item["name"], exc)
             else:
                 break
 
@@ -537,6 +624,9 @@ def _run_resources(task_id, store, config, service, courses, progress, cancelled
                 if kind == "video_time":
                     result = service.watch_video(course, resource, seconds, on_progress=progress.update)
                     message = f"已提交 {result['seconds']} 秒观看记录，平台统计可能延迟更新"
+                elif kind == "read_time":
+                    result = service.read_resource(course, resource, seconds, on_progress=progress.update)
+                    message = _read_message(result)
                 else:
                     result = service.download_resource(course, resource, directory, on_progress=progress.update)
                     # The task directory is displayed once; rows retain its

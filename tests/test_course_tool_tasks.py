@@ -138,6 +138,33 @@ class CourseToolTaskTests(unittest.TestCase):
         self.assertIn("_attachment", args[1])
         self.assertEqual(args[2], 6)
 
+    def test_read_time_runs_both_catalog_resource_and_studentstudy_url_modes(self):
+        read_resource = {
+            "id": "read1", "course_id": "c1", "course_title": "课程一",
+            "chapter_id": "ch1", "chapter_title": "第一章", "name": "拓展阅读",
+            "kind": "read", "watchable": False, "downloadable": False, "readable": True,
+        }
+        self.service.scan_course.return_value = [dict(read_resource, _attachment={"type": "read", "jobid": "read-1"})]
+        self.service.read_resource.return_value = {"seconds": 6, "before_minutes": 5.4, "target_minutes": 60}
+        task_id = self.run_task(
+            "read_time", {"source_task_id": "source", "resource_ids": ["read1"], "minutes": 0.1}, [read_resource],
+        )
+        self.assertEqual(self.store.get_status(task_id)["status"], "completed")
+        row = self.store.get_details(task_id)["tool"]["results"][0]
+        self.assertEqual(row["seconds"], 6)
+        self.assertIn("5.4 / 60 分钟", row["message"])
+
+        url = (
+            "https://mooc1-2.chaoxing.com/mooc-ans/mycourse/studentstudy?"
+            "chapterId=1028809632&courseId=254871694&clazzid=150302330"
+            "&enc=294d6c3da667ef7473a6a70d342d997c&mooc2=1"
+        )
+        self.service.read_study_url.return_value = {"seconds": 30, "targets": 2}
+        url_task_id = self.run_task("read_time", {"urls": [url], "minutes": 0.5})
+        self.assertEqual(self.store.get_status(url_task_id)["status"], "completed")
+        self.assertEqual(self.store.get_details(url_task_id)["tool"]["completed_units"], 30)
+        self.service.read_study_url.assert_called_once()
+
     def test_missing_selected_resource_is_reported(self):
         self.service.scan_course.return_value = []
         task_id = self.run_task("download", {"source_task_id": "source", "resource_ids": ["resource1"]}, [RESOURCE])
@@ -560,6 +587,37 @@ class ToolOptionTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 tasks.download_directory(data, "task-1", create=True)
             self.assertEqual(list(outside.iterdir()), [])
+
+    def test_read_time_catalog_and_url_modes_parse_sanitize_and_execute(self):
+        url1 = (
+            "https://mooc1-2.chaoxing.com/mooc-ans/mycourse/studentstudy?"
+            "chapterId=1028809632&courseId=254871694&clazzid=150302330"
+            "&enc=294d6c3da667ef7473a6a70d342d997c&mooc2=1"
+        )
+        url2 = (
+            "https://mooc1.chaoxing.com/mycourse/studentstudy?"
+            "chapterId=1218107929&courseId=266019740&clazzid=151748129&cpi=481751950"
+            "&enc=1cce499397ac4d363336a4e2b931693b&mooc2=1&openc=bf9829a4439722e477de7b53b7744397"
+        )
+        self.assertEqual(tasks.parse_options("catalog", {"purpose": "read_time"}), {"purpose": "read_time"})
+        parsed = tasks.parse_options("read_time", {"urls": [url1, url1, url2], "minutes": 0.5})
+        self.assertEqual(len(parsed["urls"]), 2)
+        self.assertEqual(parsed["minutes"], 0.5)
+
+        saved = tasks.resume_config({"task_type": "read_time", "course_list": ["254871694"], "tool_options": parsed})
+        self.assertNotIn("294d6c3da667ef7473a6a70d342d997c", json.dumps(saved))
+        self.assertNotIn("bf9829a4439722e477de7b53b7744397", json.dumps(saved))
+        # Sanitized resume_config still passes parse_options on restart.
+        self.assertEqual(len(tasks.parse_options("read_time", saved["tool_options"])["urls"]), 2)
+
+        for bad in (
+            {"urls": [], "minutes": 10},
+            {"urls": ["https://evil.example/mycourse/studentstudy?chapterId=1&courseId=2&clazzid=3"], "minutes": 10},
+            {"urls": [url1], "source_task_id": "src", "resource_ids": ["r1"], "minutes": 10},
+            {"urls": [url1], "minutes": 0},
+        ):
+            with self.subTest(bad=bad), self.assertRaises(ValueError):
+                tasks.parse_options("read_time", bad)
 
 
 if __name__ == "__main__":

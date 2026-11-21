@@ -38,6 +38,7 @@ from api.paths import data_dir
 from api.privacy import redact, sanitize_errors
 from api.task_logging import task_log_sink
 from api.notification import Notification
+from api.shutdown import shutdown_manager
 from api.task_state import TaskAlreadyRunning, TaskNotFound, TaskStore
 from api import course_tool_tasks
 import main as main_module
@@ -249,10 +250,11 @@ def web_config():
     return jsonify({"status": True, "msg": "保存成功"})
 
 
-def _initial_status():
+def _initial_status(shutdown_on_complete=False):
     return {
         "progress": 0, "total": 0,
         "current_course": "", "current_chapter": "", "current_task": "",
+        "shutdown_on_complete": bool(shutdown_on_complete),
         "stats": {
             "total_courses": 0, "completed_courses": 0, "failed_courses": 0,
             "skipped_courses": 0, "partial_courses": 0,
@@ -599,7 +601,7 @@ def _run_study_task(task_id, store, common_config, tiku_config, notification_con
         # finish is idempotent, so the outer fallback stays safe. The send's
         # logs can no longer enter task logs (append_log rejects post-finish
         # messages); failures surface through the notification_error status.
-        store.finish(task_id, outcome, error=error)
+        shutdown_manager.finish_task(store, task_id, outcome, error=error)
         if notification is not None:
             _send_task_notification(store, task_id, notification, outcome, error)
 
@@ -651,10 +653,14 @@ def _study_config(data):
     # Older front ends and recovery records still send it; tasks never use it.
     if not isinstance(data.get("ocr_config", {}), (dict, type(None))):
         raise ValueError("ocr_config 必须为对象")
+    shutdown_on_complete = data.get("shutdown_on_complete", False)
+    if not isinstance(shutdown_on_complete, bool):
+        raise ValueError("shutdown_on_complete 必须为布尔值")
     common_config = {
         "username": username, "password": password, "use_cookies": use_cookies,
         "course_list": course_list, "jobs": jobs, "speed": min(2.0, max(1.0, speed)),
         "retry_interval": retry_interval, "notopen_action": notopen_action, "interactive": False,
+        "shutdown_on_complete": shutdown_on_complete,
     }
     return common_config, configs
 
@@ -664,15 +670,28 @@ def _tool_config(data):
     kind = data.get("task_type")
     if not isinstance(kind, str) or kind not in course_tool_tasks.TOOL_TYPES:
         raise ValueError("不支持的执行功能")
-    course_list = _course_ids(data.get("course_list"))
+    tool_options = course_tool_tasks.parse_options(kind, data.get("tool_options", {}))
+    url_mode = kind == "read_time" and "urls" in tool_options
+    raw_courses = data.get("course_list")
+    if url_mode and raw_courses is None:
+        raw_courses = []
+    course_list = _course_ids(raw_courses, allow_empty=url_mode)
+    if url_mode and not course_list:
+        course_list = list(dict.fromkeys(
+            course_tool_tasks.parse_studentstudy_url(item)["courseId"] for item in tool_options["urls"]
+        ))
     if len(course_list) > 100:
         raise ValueError("请分批选择课程，每次最多 100 门")
     if any(len(course_id) > 128 for course_id in course_list):
         raise ValueError("课程 ID 格式错误")
+    shutdown_on_complete = data.get("shutdown_on_complete", False)
+    if not isinstance(shutdown_on_complete, bool):
+        raise ValueError("shutdown_on_complete 必须为布尔值")
     return {
         "username": username, "password": password, "use_cookies": use_cookies,
         "task_type": kind, "course_list": course_list,
-        "tool_options": course_tool_tasks.parse_options(kind, data.get("tool_options", {})),
+        "tool_options": tool_options,
+        "shutdown_on_complete": shutdown_on_complete if kind != "catalog" else False,
     }
 
 
@@ -691,9 +710,13 @@ def _start_course_tool(data):
     config = _tool_config(data)
     store = task_store
     try:
+        needs_catalog = (
+            config["task_type"] in course_tool_tasks.RESOURCE_FLAGS
+            and "source_task_id" in config["tool_options"]
+        )
         resources = course_tool_tasks.selected_resources(
             store, config["username"], config["course_list"], config["task_type"], config["tool_options"],
-        ) if config["task_type"] in course_tool_tasks.RESOURCE_FLAGS else []
+        ) if needs_catalog else []
         task_id = store.create(
             config["username"], course_tool_tasks.initial_status(config),
             course_tool_tasks.initial_details(config, resources),
@@ -735,7 +758,9 @@ def start_study():
         }
         resume_config.update(zip(("tiku_config", "notification_config"), configs))
         task_id = store.create(
-            common_config["username"], _initial_status(), {"courses": [], "active_jobs": {}},
+            common_config["username"],
+            _initial_status(shutdown_on_complete=common_config["shutdown_on_complete"]),
+            {"courses": [], "active_jobs": {}},
             resume_config=resume_config,
         )
     except TaskAlreadyRunning as exc:
@@ -845,6 +870,25 @@ def open_task_downloads(task_id):
     except Exception as exc:
         logger.error(f"打开下载目录失败: {exc}")
         return jsonify({"status": False, "msg": f"无法打开下载目录：{exc}"}), 500
+
+
+@app.route('/api/task/<task_id>/cancel-shutdown', methods=['POST'])
+def cancel_task_shutdown(task_id):
+    """Cancel a scheduled shutdown or disarm auto-shutdown on a running task."""
+    try:
+        data = _json_body()
+        username = data.get("username")
+        if set(data) != {"username"} or not isinstance(username, str) or not username.strip():
+            raise ValueError("取消关机需要当前账号")
+        result = shutdown_manager.cancel_for_task(task_store, task_id, username.strip())
+        return jsonify({"status": True, "data": {"task_id": task_id, **result}})
+    except TaskNotFound:
+        return jsonify({"status": False, "msg": "任务不存在或已过期"}), 404
+    except ValueError as exc:
+        return jsonify({"status": False, "msg": redact(exc)}), 400
+    except Exception as exc:
+        logger.error(f"取消关机失败: {exc}")
+        return jsonify({"status": False, "msg": f"取消关机失败：{redact(exc)}"}), 500
 
 
 @app.route('/api/task/<task_id>', methods=['GET'])

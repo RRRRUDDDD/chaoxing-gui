@@ -27,7 +27,7 @@
 
   html {
     min-width: 320px;
-    font-size: clamp(15px, calc(14.25px + 0.1vw), 17px);
+    font-size: clamp(93.75%, calc(89.0625% + 0.1vw), 106.25%);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
     scroll-behavior: smooth;
@@ -90,8 +90,32 @@
 /* Hidden panels retain React drafts but never participate in focus or layout. */
 [hidden] { display: none !important; }
 
+.desktop-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+.desktop-content {
+  flex: 1;
+  min-height: 0;
+}
+
 @media (min-width: 768px) {
   .course-page { display: flex; flex-direction: column; height: 100dvh; }
+  .desktop-shell:has(div:not([hidden]) > .course-page) { height: 100dvh; }
+  .desktop-shell:has(div:not([hidden]) > .course-page) > .desktop-content,
+  .desktop-shell:has(div:not([hidden]) > .course-page) .App,
+  .desktop-shell:has(div:not([hidden]) > .course-page) .App > div:not([hidden]) {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+  .desktop-shell:has(div:not([hidden]) > .course-page) .course-page {
+    flex: 1;
+    height: auto;
+    min-height: 0;
+  }
   .course-page > header { flex-shrink: 0; }
   .course-main { display: flex; flex-direction: column; flex: 1; min-height: 0; }
   .course-body { flex: 1; min-height: 22rem; }

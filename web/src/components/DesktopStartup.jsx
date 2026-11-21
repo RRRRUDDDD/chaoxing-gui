@@ -26,8 +26,15 @@ export default function DesktopStartup({ children, intervalMs = 1000, readyInter
   const requestRef = useRef(null);
 
   const [updateInfo, setUpdateInfo] = useState(null);
-  const [updateState, setUpdateState] = useState('idle'); // idle | checking | available | error | installing
+  const [updateState, setUpdateState] = useState('idle'); // idle | checking | available | up-to-date | error | installing
+  const [installError, setInstallError] = useState('');
   const updateChecked = useRef(false);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
 
   useEffect(() => {
     if (runtime === 'web' || (runtime === 'unavailable' && checkVersion === 0)) return undefined;
@@ -76,10 +83,16 @@ export default function DesktopStartup({ children, intervalMs = 1000, readyInter
   useEffect(() => {
     if (phase !== 'ready' || runtime !== 'desktop' || updateChecked.current || updateState !== 'idle') return;
     updateChecked.current = true;
-    setUpdateState('checking');
+    // Defer state transition out of the synchronous effect body.
+    let cancelled = false;
+    Promise.resolve().then(() => {
+      if (cancelled || !mountedRef.current) return;
+      setUpdateState('checking');
+    });
     desktopBridge
       .checkUpdate()
       .then((info) => {
+        if (!mountedRef.current) return;
         if (info) {
           setUpdateInfo(info);
           setUpdateState('available');
@@ -87,31 +100,60 @@ export default function DesktopStartup({ children, intervalMs = 1000, readyInter
           setUpdateState('up-to-date');
         }
       })
-      .catch(() => setUpdateState('error'));
+      .catch(() => {
+        if (mountedRef.current) setUpdateState('error');
+      });
+    return () => { cancelled = true; };
   }, [phase, runtime, updateState]);
 
-  if (phase === 'ready') return <>
-    {notice && <div role="status" className="border-b border-warning/30 bg-warning/5 px-6 py-3 text-sm text-body">{notice}</div>}
-    {updateState === 'checking' && (
-      <div role="status" className="border-b border-brand/20 bg-brand/5 px-6 py-2.5 text-sm text-body">
-        <span className="inline-flex items-center gap-1.5"><Loader2 className="h-3.5 w-3.5 animate-spin" />{updateLabels.checking}</span>
-      </div>
-    )}
-    {updateState === 'available' && updateInfo && (
-      <div role="status" className="border-b border-brand/30 bg-brand/5 px-6 py-3 text-sm">
-        <div className="mb-2 font-medium text-brand">{updateLabels.title} {updateInfo.version}</div>
-        <p className="mb-3 text-xs text-body">点击下载并安装新版本，安装完成后自动重启。</p>
-        <Button size="sm" onClick={() => {
-          setUpdateState('installing');
-          desktopBridge.installUpdate(updateInfo.downloadUrl, updateInfo.version).catch(() => {});
-        }}>
-          <Download className="h-3.5 w-3.5" aria-hidden="true" />
-          {updateLabels.action}
-        </Button>
-      </div>
-    )}
-    {children}
-  </>;
+  const handleInstallUpdate = () => {
+    if (!updateInfo || updateState === 'installing') return;
+    setInstallError('');
+    setUpdateState('installing');
+    Promise.resolve()
+      .then(() => desktopBridge.installUpdate(updateInfo.downloadUrl, updateInfo.version))
+      .catch((error) => {
+        if (!mountedRef.current) return;
+        const message = typeof error === 'string' ? error : error?.message || '下载或安装更新失败，请稍后重试';
+        setInstallError(message);
+        setUpdateState('available');
+      });
+  };
+
+  if (phase === 'ready') return (
+    <div className="desktop-shell">
+      {notice && <div role="status" className="shrink-0 border-b border-warning/30 bg-warning/5 px-6 py-3 text-sm text-body">{notice}</div>}
+      {updateState === 'checking' && (
+        <div role="status" className="shrink-0 border-b border-brand/20 bg-brand/5 px-6 py-2.5 text-sm text-body">
+          <span className="inline-flex items-center gap-1.5"><Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />{updateLabels.checking}</span>
+        </div>
+      )}
+      {updateState === 'installing' && updateInfo && (
+        <div role="status" className="shrink-0 border-b border-brand/30 bg-brand/5 px-6 py-3 text-sm text-body">
+          <span className="inline-flex items-center gap-2 font-medium text-brand">
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+            正在下载并安装 {updateInfo.version}，完成后将自动重启…
+          </span>
+        </div>
+      )}
+      {updateState === 'available' && updateInfo && (
+        <div role="status" className="shrink-0 border-b border-brand/30 bg-brand/5 px-6 py-3 text-sm">
+          <div className="mb-2 font-medium text-brand">{updateLabels.title} {updateInfo.version}</div>
+          <p className="mb-3 text-xs text-body">点击下载并安装新版本，安装完成后自动重启。</p>
+          {installError && (
+            <p role="alert" className="mb-3 rounded-lg bg-danger/5 px-3 py-2 text-xs text-danger">
+              更新失败：{installError}
+            </p>
+          )}
+          <Button size="sm" onClick={handleInstallUpdate}>
+            <Download className="h-3.5 w-3.5" aria-hidden="true" />
+            {installError ? '重试更新' : updateLabels.action}
+          </Button>
+        </div>
+      )}
+      <div className="desktop-content">{children}</div>
+    </div>
+  );
   const failed = ['failed', 'stopped', 'unavailable'].includes(phase);
   const [title, description] = messages[phase];
   const recheck = () => { setPhase('checking'); setCheckVersion((version) => version + 1); };

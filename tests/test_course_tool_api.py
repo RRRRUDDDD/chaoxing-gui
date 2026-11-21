@@ -235,6 +235,47 @@ class CourseToolApiTests(unittest.TestCase):
             self.assertEqual(response.status_code, 200, response.get_json())
             opening.assert_called_once_with(str(directory))
 
+    def test_read_time_url_mode_allows_empty_course_list_redacts_tokens_and_does_not_replay(self):
+        study_url = (
+            "https://mooc1-2.chaoxing.com/mooc-ans/mycourse/studentstudy?"
+            "chapterId=1028809632&courseId=254871694&clazzid=150302330"
+            "&enc=294d6c3da667ef7473a6a70d342d997c&mooc2=1"
+        )
+        response = self.client.post("/api/start", json={
+            "task_type": "read_time", "username": "alice", "password": "secret",
+            "course_list": [], "tool_options": {"urls": [study_url], "minutes": 15},
+        })
+        self.assertEqual(response.status_code, 200, response.get_json())
+        task_id = response.get_json()["data"]["task_id"]
+        self.assertEqual(self.store.get_status(task_id)["task_type"], "read_time")
+        self.assertEqual(self.launch.call_args.args[2]["course_list"], ["254871694"])
+        self.assertNotIn("294d6c3da667ef7473a6a70d342d997c", saved_tasks_text(self.state_file))
+        self.restart()
+        resumed = self.resume(task_id)
+        self.assertEqual(resumed.status_code, 200, resumed.get_json())
+        self.assertEqual(resumed.get_json()["data"]["status"], "partial")
+        self.launch.assert_not_called()
+
+    def test_read_time_catalog_mode_resolves_readable_resources(self):
+        read_item = {
+            "id": "read1", "name": "课程阅读", "course_id": "course1", "course_title": "课程一",
+            "chapter_id": "chapter1", "chapter_title": "第一章", "kind": "read",
+            "downloadable": False, "watchable": False, "readable": True,
+        }
+        response = self.start("catalog", {"purpose": "read_time"})
+        self.assertEqual(response.status_code, 200, response.get_json())
+        source = response.get_json()["data"]["task_id"]
+        with self.store.edit(source) as task:
+            task.details["tool"]["resources"] = [RESOURCE, read_item]
+        self.store.finish(source, "completed")
+        self.launch.reset_mock()
+        # Non-readable video resource is rejected for read_time.
+        bad = self.start("read_time", {"source_task_id": source, "resource_ids": ["video1"], "minutes": 5})
+        self.assertEqual(bad.status_code, 400, bad.get_json())
+        good = self.start("read_time", {"source_task_id": source, "resource_ids": ["read1"], "minutes": 5})
+        self.assertEqual(good.status_code, 200, good.get_json())
+        self.launch.assert_called_once()
+
 
 if __name__ == "__main__":
     unittest.main()
