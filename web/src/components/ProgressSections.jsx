@@ -35,6 +35,8 @@ const getCourseStatusIcon = (status) => {
       return <AlertCircle className="h-4 w-4 text-warning-ink" aria-hidden="true" />;
     case 'error':
       return <XCircle className="h-4 w-4 text-danger" aria-hidden="true" />;
+    case 'cancelled':
+      return <StopCircle className="h-4 w-4 text-faint" aria-hidden="true" />;
     default:
       return <Clock className="h-4 w-4 text-faint" aria-hidden="true" />;
   }
@@ -132,26 +134,32 @@ export const CourseDetailsList = memo(function CourseDetailsList({ courses, expa
           const total = course.chapters?.length || 0;
           return (
             <div key={course.id}>
-              <button
-                type="button"
-                onClick={() => onToggleCourse(course.id)}
-                aria-expanded={open}
-                className="group flex w-full items-center gap-3 rounded-lg px-2.5 py-3 text-left transition-colors duration-150 hover:bg-soft focus-visible:bg-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand"
-              >
-                {getCourseStatusIcon(course.status)}
-                <span title={course.title} className="min-w-0 flex-1 break-words text-sm font-medium">{course.title}</span>
-                <span className={`shrink-0 text-xs ${resultColor(course.status)}`}>{resultLabels[course.status] || '等待中'}</span>
-                {total > 0 && (
+              {total > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => onToggleCourse(course.id)}
+                  aria-expanded={open}
+                  className="group flex w-full items-center gap-3 rounded-lg px-2.5 py-3 text-left transition-colors duration-150 hover:bg-soft focus-visible:bg-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand"
+                >
+                  {getCourseStatusIcon(course.status)}
+                  <span title={course.title} className="min-w-0 flex-1 break-words text-sm font-medium">{course.title}</span>
+                  <span className={`shrink-0 text-xs ${resultColor(course.status)}`}>{resultLabels[course.status] || '等待中'}</span>
                   <span className="shrink-0 rounded-full bg-soft px-2 py-0.5 text-xs text-faint tnum">
                     {done} / {total} 章节
                   </span>
-                )}
-                {open ? (
-                  <ChevronDown className="h-4 w-4 shrink-0 text-faint" aria-hidden="true" />
-                ) : (
-                  <ChevronRight className="h-4 w-4 shrink-0 text-faint transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true" />
-                )}
-              </button>
+                  {open ? (
+                    <ChevronDown className="h-4 w-4 shrink-0 text-faint" aria-hidden="true" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 shrink-0 text-faint transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true" />
+                  )}
+                </button>
+              ) : (
+                <div className="flex w-full items-center gap-3 rounded-lg px-2.5 py-3 text-left">
+                  {getCourseStatusIcon(course.status)}
+                  <span title={course.title} className="min-w-0 flex-1 break-words text-sm font-medium">{course.title}</span>
+                  <span className={`shrink-0 text-xs ${resultColor(course.status)}`}>{resultLabels[course.status] || '等待中'}</span>
+                </div>
+              )}
               {course.verification && (() => {
                 const info = getVerificationInfo(course.verification);
                 return (

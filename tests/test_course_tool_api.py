@@ -163,7 +163,7 @@ class CourseToolApiTests(unittest.TestCase):
     def test_oversized_catalogue_stays_readable_through_the_real_details_endpoint(self):
         service = MagicMock()
         service.scan_course.return_value = [dict(RESOURCE, id=f"r{i}", name="中" * 110,
-            course_title="课" * 110, chapter_title="章" * 110) for i in range(1000)]
+            course_title="课" * 110, chapter_title="章" * 110) for i in range(2500)]
         service.public_resource.side_effect = lambda resource: resource
         self.login.get_course_list.return_value = [{"courseId": "course1", "clazzId": "class1", "cpi": "cpi", "title": "课程一"}]
         self.launch.side_effect = lambda task_id, store, config: tasks.run_tool_task(
@@ -172,11 +172,26 @@ class CourseToolApiTests(unittest.TestCase):
             response = self.start("catalog", {"purpose": "download"})
         self.assertEqual(response.status_code, 200, response.get_json())
         task_id = response.get_json()["data"]["task_id"]
-        self.assertEqual(self.store.get_status(task_id)["status"], "error")
+        self.assertEqual(self.store.get_status(task_id)["status"], "partial")
         details = self.client.get(f"/api/task/{task_id}/details")
         self.assertEqual(details.status_code, 200)
-        self.assertLess(len(details.data), 2 * 1024 * 1024)
-        self.assertIn("分批", details.get_json()["data"]["tool"]["results"][0]["message"])
+        self.assertLess(len(details.data), tasks.MAX_SNAPSHOT_BYTES)
+        body = details.get_json()["data"]
+        self.assertGreater(len(body["tool"]["resources"]), 1000)
+        self.assertIn("已保留前", body["tool"]["results"][0]["message"])
+        # Selecting 1000 oversized resources in one follow-up download exceeds the
+        # per-result reserve budget and asks the user to split without losing the catalog.
+        self.launch.side_effect = None
+        self.launch.reset_mock()
+        selected_ids = [item["id"] for item in body["tool"]["resources"][:1000]]
+        too_many = self.start("download", {"source_task_id": task_id, "resource_ids": selected_ids})
+        self.assertEqual(too_many.status_code, 400, too_many.get_json())
+        self.assertIn("分批", too_many.get_json()["msg"])
+        self.launch.assert_not_called()
+        # A smaller batch from the same catalog succeeds cleanly.
+        batch = self.start("download", {"source_task_id": task_id, "resource_ids": selected_ids[:20]})
+        self.assertEqual(batch.status_code, 200, batch.get_json())
+        self.launch.assert_called_once()
 
     def test_non_idempotent_restart_keeps_acknowledged_progress_without_replaying(self):
         response = self.start()

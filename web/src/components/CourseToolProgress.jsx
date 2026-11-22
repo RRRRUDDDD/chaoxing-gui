@@ -194,7 +194,12 @@ function CourseToolContent({ taskId, username, taskStatus, tool, catalogReady = 
             <span className="text-xs text-faint tnum">已选 {selected.length} / 共 {resources.length}</span>
           </div>
           <p className="mb-4 text-xs leading-relaxed text-faint">
-            {ready ? taskStatus.status === 'partial' ? '部分资源读取失败，可选择已读取的资源继续；详情见执行结果和日志。' : '请勾选需要处理的资源。'
+            {ready
+              ? taskStatus.status === 'partial'
+                ? resources.length
+                  ? '部分资源读取失败或超出单次载入上限，可选择已读取的资源继续；详情见执行结果和日志。'
+                  : '部分课程读取失败且未找到可用资源；详情见执行结果和日志。'
+                : '请勾选需要处理的资源。'
               : ['completed', 'partial'].includes(taskStatus.status) ? '正在获取最终资源列表…'
                 : isTerminalStatus(taskStatus.status) ? '本次读取未完成，请返回课程选择重新读取。' : '正在读取资源，请等待任务结束后选择。'}
           </p>
@@ -242,7 +247,17 @@ function CourseToolContent({ taskId, username, taskStatus, tool, catalogReady = 
                 </li>
               );
             })}
-            {!filtered.length && <li className="p-8 text-center text-sm text-faint">{resources.length ? '没有匹配的资源' : ready ? '未找到可用资源，请查看执行结果或选择其他课程。' : '暂无资源'}</li>}
+            {!filtered.length && (
+              <li className="p-8 text-center text-sm text-faint">
+                {resources.length
+                  ? '没有匹配的资源'
+                  : ready
+                    ? purpose === 'read_time'
+                      ? '未找到可用阅读资源，可查看执行结果、选择其他课程，或返回使用“按章节链接”方式。'
+                      : '未找到可用资源，请查看执行结果或选择其他课程。'
+                    : '暂无资源'}
+              </li>
+            )}
           </ul>
 
           {durationTask && (

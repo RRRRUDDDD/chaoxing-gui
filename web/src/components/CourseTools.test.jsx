@@ -309,6 +309,20 @@ describe('resource selection and task results', () => {
     expect(screen.getByText('章节读取失败，请重新读取')).toBeTruthy();
   });
 
+  it('shows accurate empty-partial hint and non-expandable course status rows when chapters are empty', async () => {
+    const tool = { ...catalogTool('read_time'), resources: [], results: [{ id: 'one', name: '模拟课程一', course_title: '模拟课程一', status: 'error', message: '课程读取失败' }] };
+    api.get.mockImplementation(async (url) => {
+      if (url.endsWith('/details')) return ok({ courses: [{ id: 'one', title: '模拟课程一', status: 'error', chapters: [] }], active_jobs: {}, tool });
+      if (url.startsWith('/logs/')) return logPage();
+      return ok(catalogState('partial'));
+    });
+    render(<StudyProgress taskId="empty-partial" username="alice" onStartStudy={vi.fn()} />);
+    await screen.findByText('部分课程读取失败且未找到可用资源；详情见执行结果和日志。');
+    expect(screen.getByText('未找到可用阅读资源，可查看执行结果、选择其他课程，或返回使用“按章节链接”方式。')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /模拟课程一/ })).toBeNull();
+    expect(screen.getAllByText('失败').length).toBeGreaterThanOrEqual(2);
+  });
+
   it('reports submitted visits separately from platform statistics and displays interrupted results', async () => {
     const status = { status: 'partial', task_type: 'visits', task_label: '学习次数', progress: 1, total: 2, error: '任务中断，请核对已完成次数后重新开始' };
     const tool = { completed_units: 3, total_units: 10, unit: '次', current: null, results: [{ id: 'one', name: '模拟课程一', course_title: '模拟课程一', status: 'completed', submitted: 3, before: 7, after: 8 }, { id: 'two', name: '模拟课程二', status: 'skipped', submitted: 0, before: null, after: null }] };

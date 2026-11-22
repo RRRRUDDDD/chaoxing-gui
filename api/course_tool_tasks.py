@@ -27,10 +27,13 @@ RESOURCE_FLAGS = {"video_time": "watchable", "read_time": "readable", "download"
 TASK_LABELS = {"visits": "课程学习次数", "catalog": "读取课程资源", "video_time": "视频观看时长",
                "read_time": "阅读时长", "download": "课程资源下载"}
 MAX_ITEMS = 1000
+MAX_CATALOG_ITEMS = 5000
 MAX_READ_URLS = 50
-MAX_SNAPSHOT_BYTES = 2 * 1024 * 1024
-# Reserve a bounded result row for every selectable resource, including Unicode
-# JSON escaping. The native proxy caps the complete response at 2 MiB.
+# Keep every complete task snapshot within the native proxy's MAX_RESPONSE_BODY
+# (4 MiB in desktop/src-tauri/src/api_proxy.rs).
+MAX_SNAPSHOT_BYTES = 4 * 1024 * 1024
+# Reserve a bounded result row for every selected resource in a follow-up task
+# (download / video_time / read_time), including Unicode JSON escaping.
 RESULT_RESERVE_BYTES = 4096
 SNAPSHOT_OVERHEAD_BYTES = 65536
 SAFE_ID = re.compile(r"[a-zA-Z0-9_-]{1,128}\Z")
@@ -229,6 +232,12 @@ def selected_resources(store, account, course_ids, task_type, options):
             if resource.get(RESOURCE_FLAGS[task_type]) is not True:
                 raise ValueError("所选资源不支持当前操作")
             selected.append(deepcopy(resource))
+        probe = initial_details(
+            {"task_type": task_type, "course_list": list(course_ids), "tool_options": options},
+            [],
+        )
+        if not _selection_fits(probe, selected):
+            raise ValueError("单次勾选的资源过多，请减少勾选数量后分批执行")
         return selected
 
 
@@ -335,6 +344,7 @@ class _Progress:
         self.completed = 0
         with self.store.edit(self.task_id) as task:
             task.status.update(current_course=course["title"], current_chapter=item.get("chapter_title", ""), current_task=item["name"])
+            _set_course_status(task.details, course["courseId"], "running")
             tool = task.details["tool"]
             tool["current"] = {"name": item["name"], "completed": 0, "total": total, "unit": unit or tool["unit"]}
 
@@ -375,8 +385,51 @@ class _Progress:
             self._recorded += row[self.metric]
             tool["completed_units"] = self._recorded
             tool["current"] = None
+            if self.kind in {"catalog", "visits"}:
+                _set_course_status(task.details, course["courseId"], state)
             _refresh_counts(task.status, task.details)
         _checkpoint(self.store, self.task_id)
+
+
+def _set_course_status(details, course_id, state):
+    target = str(course_id)
+    for course in details.get("courses", []):
+        if str(course.get("id")) == target:
+            course["status"] = state
+            return
+
+
+def _course_status_from_results(details, course_id, *, partial_run=False):
+    target = str(course_id)
+    rows = [row for row in details.get("tool", {}).get("results", []) if str(row.get("course_id")) == target]
+    if not rows:
+        return "skipped" if partial_run else "completed"
+    statuses = {row.get("status") for row in rows}
+    if partial_run:
+        return "partial" if statuses & {"completed", "partial"} else "skipped"
+    if statuses == {"completed"}:
+        return "completed"
+    if statuses == {"error"}:
+        return "error"
+    if statuses == {"skipped"}:
+        return "skipped"
+    return "partial"
+
+
+def _finalize_course_statuses(details, *, cancelled=False):
+    results = details.get("tool", {}).get("results", [])
+    for course in details.get("courses", []):
+        current = course.get("status")
+        if current in {"completed", "partial", "error", "skipped", "cancelled"}:
+            continue
+        target = str(course.get("id"))
+        rows = [row for row in results if str(row.get("course_id")) == target]
+        if any(row.get("status") in {"completed", "partial"} for row in rows):
+            course["status"] = "partial"
+        elif cancelled:
+            course["status"] = "cancelled" if current == "running" else "skipped"
+        else:
+            course["status"] = "error" if current == "running" else "skipped"
 
 
 def _public_resources(service, resources):
@@ -389,6 +442,15 @@ def _public_resources(service, resources):
             item[key] = str(item.get(key, ""))[:120]
         public.append(item)
     return public
+
+
+def _filter_catalog_resources(resources, purpose):
+    flag = RESOURCE_FLAGS[purpose]
+    if purpose == "video_time":
+        return [item for item in resources if item.get(flag) is True or item.get("kind") == "video"]
+    if purpose == "read_time":
+        return [item for item in resources if item.get(flag) is True or item.get("kind") in {"read", "document"}]
+    return [item for item in resources if item.get(flag) is True]
 
 
 def _json_size(value):
@@ -418,6 +480,18 @@ def _bound_result_row(row):
 
 
 def _catalog_fits(details, resources):
+    if len(resources) > MAX_CATALOG_ITEMS:
+        return False
+    candidate = deepcopy(details)
+    candidate["tool"]["resources"] = resources
+    course_count = len(candidate["tool"].get("course_ids", []))
+    remaining_results = max(0, course_count - len(candidate["tool"].get("results", [])))
+    return (_wire_size(candidate)
+            + remaining_results * RESULT_RESERVE_BYTES
+            + SNAPSHOT_OVERHEAD_BYTES <= MAX_SNAPSHOT_BYTES)
+
+
+def _selection_fits(details, resources):
     candidate = deepcopy(details)
     candidate["tool"]["resources"] = resources
     return (len(resources) <= MAX_ITEMS
@@ -425,15 +499,34 @@ def _catalog_fits(details, resources):
             + SNAPSHOT_OVERHEAD_BYTES <= MAX_SNAPSHOT_BYTES)
 
 
+def _fit_catalog_prefix(details, existing, incoming):
+    """Return the largest prefix of incoming that keeps the catalog within budget."""
+    if _catalog_fits(details, [*existing, *incoming]):
+        return incoming
+    low, high = 0, len(incoming)
+    while low < high:
+        mid = (low + high + 1) // 2
+        if _catalog_fits(details, [*existing, *incoming[:mid]]):
+            low = mid
+        else:
+            high = mid - 1
+    return incoming[:low]
+
+
 def _outcome(store, task_id, *, fatal=False):
+    status = store.get_status(task_id)
     tool = store.get_details(task_id)["tool"]
     results = tool["results"]
     failed = fatal or any(result["status"] == "error" for result in results)
+    partial = any(result["status"] == "partial" for result in results)
     skipped = any(result["status"] == "skipped" for result in results)
-    useful = any(result["status"] == "completed" for result in results) or tool["completed_units"] > 0
+    if status.get("task_type") == "catalog":
+        useful = any(result["status"] in {"completed", "partial"} for result in results) or bool(tool.get("resources"))
+    else:
+        useful = any(result["status"] in {"completed", "partial"} for result in results) or tool["completed_units"] > 0
     if failed and not useful:
         return "error"
-    return "partial" if failed or skipped else "completed"
+    return "partial" if failed or partial or skipped else "completed"
 
 
 def run_tool_task(task_id, store, config, data_dir, client_factory):
@@ -464,7 +557,7 @@ def run_tool_task(task_id, store, config, data_dir, client_factory):
                                 continue
                             seen_courses.add(course_id)
                             title = str(enrolled.get(course_id, {}).get("title") or f"课程 {course_id}")[:120]
-                            url_courses.append({"id": course_id, "title": title, "chapters": []})
+                            url_courses.append({"id": course_id, "title": title, "status": "pending", "chapters": []})
                         with store.edit(task_id) as task:
                             task.details["courses"] = url_courses
                         _run_read_urls(task_id, store, config, service, enrolled, progress, cancelled)
@@ -474,13 +567,22 @@ def run_tool_task(task_id, store, config, data_dir, client_factory):
                         courses = [{**enrolled[course_id], "title": str(enrolled[course_id].get("title", ""))[:120]}
                                    for course_id in config["course_list"]]
                         with store.edit(task_id) as task:
-                            task.details["courses"] = [{"id": course["courseId"], "title": course["title"], "chapters": []} for course in courses]
+                            task.details["courses"] = [
+                                {"id": str(course["courseId"]), "title": course["title"], "status": "pending", "chapters": []}
+                                for course in courses
+                            ]
                         if config["task_type"] in {"catalog", "visits"}:
                             _run_courses(task_id, store, config, service, courses, progress, cancelled)
                         else:
                             _run_resources(task_id, store, config, service, courses, progress, cancelled, data_dir)
                     outcome = _outcome(store, task_id)
-                    if outcome != "completed":
+                    if outcome == "error":
+                        results = store.get_details(task_id)["tool"]["results"]
+                        if len(results) == 1 and results[0].get("message"):
+                            error = results[0]["message"]
+                        else:
+                            error = "操作未完成，请查看执行结果后重试"
+                    elif outcome != "completed":
                         error = "部分操作未完成，请查看执行结果后重试"
                     if config["task_type"] == "download" and outcome == "completed":
                         with store.edit(task_id) as task:
@@ -496,12 +598,13 @@ def run_tool_task(task_id, store, config, data_dir, client_factory):
                     outcome, error = "cancelled", None
                     logger.info("课程工具已停止，已完成的记录和下载文件已保留")
     finally:
-        # 已无 worker 会再回到 record()；终态不得残留"正在处理"的卡片。
+        # 已无 worker 会再回到 record()；终态不得残留"正在处理"的卡片或"等待中"的课程。
         try:
             with store.edit(task_id) as task:
                 tool = task.details.get("tool")
                 if tool is not None:
                     tool["current"] = None
+                _finalize_course_statuses(task.details, cancelled=outcome == "cancelled")
         except TaskNotFound:
             pass
         if config.get("task_type") != "catalog":
@@ -518,20 +621,46 @@ def _run_courses(task_id, store, config, service, courses, progress, cancelled):
         item = {"id": str(course["courseId"]), "name": course["title"]}
         progress.begin(course, item, options.get("count"))
         try:
+            state = "completed"
             if config["task_type"] == "visits":
                 result = service.add_visits(course, options["count"], options["interval"], on_progress=progress.update)
                 message = f"已成功提交 {result['submitted']} 次访问；平台统计以返回值为准"
             else:
-                found = _public_resources(service, service.scan_course(course, on_chapter=progress.chapters))
+                purpose = options["purpose"]
+                scanned = _public_resources(service, service.scan_course(course, on_chapter=progress.chapters))
+                found = _filter_catalog_resources(scanned, purpose)
                 with store.edit(task_id) as task:
                     resources = task.details["tool"]["resources"]
-                    merged = list({item["id"]: item for item in [*resources, *found]}.values())
-                    if not _catalog_fits(task.details, merged):
+                    existing_ids = {entry["id"] for entry in resources}
+                    incoming = list({entry["id"]: entry for entry in found if entry["id"] not in existing_ids}.values())
+                    merged = [*resources, *incoming]
+                    if _catalog_fits(task.details, merged):
+                        task.details["tool"]["resources"] = merged
+                        if not found and scanned:
+                            message = f"读取到 0 个符合当前功能的资源（课程共 {len(scanned)} 个其他类型资源）"
+                        else:
+                            message = f"读取到 {len(found)} 个资源"
+                    elif len(courses) > 1 and resources:
                         raise ValueError("课程资源过多，请减少勾选课程后分批读取")
-                    task.details["tool"]["resources"] = merged
-                label = "资源"
-                result, message = {}, f"读取到 {len(found)} 个{label}"
-            progress.record(course, item, "completed", result, message)
+                    else:
+                        flag = RESOURCE_FLAGS[purpose]
+                        prioritized = [entry for entry in incoming if entry.get(flag) is True] + [
+                            entry for entry in incoming if entry.get(flag) is not True
+                        ]
+                        kept = _fit_catalog_prefix(task.details, resources, prioritized)
+                        if not kept:
+                            raise ValueError(
+                                "单门课程资源过多，无法在单次请求中完整返回"
+                                if len(courses) == 1 else "课程资源过多，请减少勾选课程后分批读取"
+                            )
+                        task.details["tool"]["resources"] = [*resources, *kept]
+                        state = "partial"
+                        if purpose == "read_time":
+                            message = f"课程资源过多，已保留前 {len(kept)} / {len(incoming)} 个资源；其余章节可使用“按章节链接”阅读"
+                        else:
+                            message = f"课程资源过多，已保留前 {len(kept)} / {len(incoming)} 个资源；其余资源超出单次响应上限未载入"
+                result = {}
+            progress.record(course, item, state, result, message)
             logger.info("{}：{}", course["title"], message)
         except CheckpointError:
             raise
@@ -579,6 +708,10 @@ def _run_read_urls(task_id, store, config, service, enrolled, progress, cancelle
                 logger.error("{}（{}）处理失败：{}", course_title, item["name"], exc)
             else:
                 break
+    if not cancelled():
+        with store.edit(task_id) as task:
+            for course in task.details.get("courses", []):
+                course["status"] = _course_status_from_results(task.details, course["id"])
 
 
 def _run_resources(task_id, store, config, service, courses, progress, cancelled, data_dir):
@@ -599,6 +732,8 @@ def _run_resources(task_id, store, config, service, courses, progress, cancelled
             break
         items = [item for item in selected if item["course_id"] == str(course["courseId"]) and item["id"] not in completed]
         if not items:
+            with store.edit(task_id) as task:
+                _set_course_status(task.details, course["courseId"], _course_status_from_results(task.details, course["courseId"]))
             continue
         progress.begin(course, {"name": "刷新课程资源"}, None, "章节")
         try:
@@ -609,6 +744,8 @@ def _run_resources(task_id, store, config, service, courses, progress, cancelled
             for item in items:
                 progress.completed = 0
                 progress.record(course, item, "skipped" if cancelled() else "error", message="已停止" if cancelled() else str(exc))
+            with store.edit(task_id) as task:
+                _set_course_status(task.details, course["courseId"], _course_status_from_results(task.details, course["courseId"], partial_run=cancelled()))
             if not cancelled():
                 logger.error("刷新课程资源失败：{}", exc)
             continue
@@ -651,3 +788,5 @@ def _run_resources(task_id, store, config, service, courses, progress, cancelled
                     logger.error("{}处理失败：{}", item["name"], exc)
                 else:
                     break
+        with store.edit(task_id) as task:
+            _set_course_status(task.details, course["courseId"], _course_status_from_results(task.details, course["courseId"], partial_run=cancelled()))

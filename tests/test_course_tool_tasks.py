@@ -361,14 +361,14 @@ class CourseToolTaskTests(unittest.TestCase):
         self.assertEqual(self.store.get_status(task_id)["status"], "error")
         self.assertIsNone(self.store.get_details(task_id)["tool"]["current"])
 
-    def test_catalog_budget_reserves_complete_ascii_encoded_download_results(self):
-        _, config = self.create("catalog", {"purpose": "download"})
+    def test_selection_budget_reserves_complete_ascii_encoded_download_results(self):
+        _, config = self.create("download", {"source_task_id": "source", "resource_ids": ["r0"]})
         details = tasks.initial_details(config, [])
         oversized = [dict(RESOURCE, id=f"r{i}", name="中" * 110, course_title="课" * 110, chapter_title="章" * 110) for i in range(1000)]
-        self.assertFalse(tasks._catalog_fits(details, oversized))
+        self.assertFalse(tasks._selection_fits(details, oversized))
         resources = []
         for item in oversized:
-            if not tasks._catalog_fits(details, resources + [item]):
+            if not tasks._selection_fits(details, resources + [item]):
                 break
             resources.append(item)
         self.assertGreater(len(resources), 0)
@@ -377,25 +377,25 @@ class CourseToolTaskTests(unittest.TestCase):
             "course_title": "课" * 120, "course_id": "c1", "status": "error",
             "message": "错" * 240, "path": "文" * 53 + ".pdf", "bytes": 99999999999}
             for item in resources]
-        self.assertLess(tasks._wire_size(details), 2 * 1024 * 1024)
+        self.assertLess(tasks._wire_size(details), tasks.MAX_SNAPSHOT_BYTES)
 
-    def test_non_bmp_results_fit_catalog_reserve_and_complete_flask_response(self):
-        _, catalog_config = self.create("catalog", {"purpose": "download"})
-        catalog = tasks.initial_details(catalog_config, [])
+    def test_non_bmp_results_fit_selection_reserve_and_complete_flask_response(self):
+        _, download_config = self.create("download", {"source_task_id": "source", "resource_ids": ["r0"]})
+        probe = tasks.initial_details(download_config, [])
         title, message = "\U0001f4d6" * 120, "\U0001f4d6" * 240
         resources = []
         for index in range(tasks.MAX_ITEMS):
             item = dict(RESOURCE, id=f"r{index}", name=title, course_title=title)
-            if not tasks._catalog_fits(catalog, resources + [item]):
+            if not tasks._selection_fits(probe, resources + [item]):
                 break
             resources.append(item)
         self.assertGreater(len(resources), 0)
-        self.assertFalse(tasks._catalog_fits(catalog, resources + [item]))
+        self.assertFalse(tasks._selection_fits(probe, resources + [item]))
         config = {"task_type": "download", "course_list": ["c1"], "tool_options": {
             "source_task_id": "source", "resource_ids": [item["id"] for item in resources],
         }}
         details = tasks.initial_details(config, resources)
-        details["courses"] = [{"id": "c1", "title": title, "chapters": []}]
+        details["courses"] = [{"id": "c1", "title": title, "status": "completed", "chapters": []}]
         store = TaskStore()
         self.addCleanup(store.close)
         task_id = store.create("alice", tasks.initial_status(config), details)
@@ -405,7 +405,7 @@ class CourseToolTaskTests(unittest.TestCase):
         store.finish(task_id, "error")
         with Flask(__name__).app_context():
             response = jsonify(status=True, data=store.get_details(task_id))
-        self.assertLess(len(response.data), 2 * 1024 * 1024)
+        self.assertLess(len(response.data), tasks.MAX_SNAPSHOT_BYTES)
         self.assertEqual(len(response.data), tasks._wire_size(store.get_details(task_id)))
         rows = response.get_json()["data"]["tool"]["results"]
         self.assertEqual(len(rows), len(resources))
@@ -418,6 +418,82 @@ class CourseToolTaskTests(unittest.TestCase):
             self.assertTrue(message.startswith(row["message"]))
             self.assertLess(len(row["message"]), len(message))
             row["message"].encode("utf-8")
+
+    def test_catalog_filters_irrelevant_resources_by_purpose(self):
+        videos = [
+            dict(RESOURCE, id=f"v{i}", name=f"视频 {i}", kind="video", watchable=True, downloadable=True, readable=False)
+            for i in range(600)
+        ]
+        docs = [
+            dict(RESOURCE, id=f"d{i}", name=f"阅读文档 {i}", kind="document", watchable=False, downloadable=True, readable=True)
+            for i in range(25)
+        ]
+        self.service.scan_course.return_value = [*videos, *docs]
+        task_id = self.run_task("catalog", {"purpose": "read_time"})
+        self.assertEqual(self.store.get_status(task_id)["status"], "completed")
+        details = self.store.get_details(task_id)
+        self.assertEqual(len(details["tool"]["resources"]), 25)
+        self.assertTrue(all(item["kind"] == "document" for item in details["tool"]["resources"]))
+        self.assertEqual(details["courses"][0]["status"], "completed")
+
+    def test_catalog_failure_after_scanning_chapters_reports_error_not_partial(self):
+        def failing_scan(course, on_chapter=None):
+            for chapter in range(1, 237):
+                on_chapter(f"第 {chapter} 节", chapter, 236)
+            raise RuntimeError("章节卡片解析失败")
+
+        self.service.scan_course.side_effect = failing_scan
+        task_id = self.run_task("catalog", {"purpose": "read_time"})
+        status = self.store.get_status(task_id)
+        details = self.store.get_details(task_id)
+        self.assertEqual(status["status"], "error")
+        self.assertEqual(status["error"], "章节卡片解析失败")
+        self.assertEqual(details["tool"]["resources"], [])
+        self.assertEqual(details["courses"][0]["status"], "error")
+
+    def test_single_oversized_course_catalog_truncates_gracefully_within_budget(self):
+        # 2500 max-length Chinese resources exceed 4 MiB; a single course should
+        # keep the fitting prefix as partial instead of failing with 0 items.
+        oversized = [
+            dict(RESOURCE, id=f"d{i}", name="中" * 110, course_title="课" * 110,
+                 chapter_title="章" * 110, kind="document", watchable=False, readable=True, downloadable=True)
+            for i in range(2500)
+        ]
+        self.service.scan_course.return_value = oversized
+        task_id = self.run_task("catalog", {"purpose": "read_time"})
+        status = self.store.get_status(task_id)
+        details = self.store.get_details(task_id)
+        self.assertEqual(status["status"], "partial")
+        self.assertGreater(len(details["tool"]["resources"]), 1000)
+        self.assertLess(len(details["tool"]["resources"]), 2500)
+        self.assertLess(tasks._wire_size(details), tasks.MAX_SNAPSHOT_BYTES)
+        self.assertEqual(details["tool"]["results"][0]["status"], "partial")
+        self.assertIn("已保留前", details["tool"]["results"][0]["message"])
+        self.assertEqual(details["courses"][0]["status"], "partial")
+
+    def test_multi_course_catalog_overflow_preserves_earlier_courses_and_advises_splitting(self):
+        course2 = {**COURSE, "courseId": "c2", "title": "课程二"}
+        self.client.get_course_list.return_value = [COURSE, course2]
+
+        def scan(course, on_chapter=None):
+            prefix = course["courseId"]
+            return [
+                dict(RESOURCE, id=f"{prefix}-{i}", course_id=prefix, course_title=course["title"],
+                     name="中" * 110, chapter_title="章" * 110, kind="document", downloadable=True)
+                for i in range(1500)
+            ]
+
+        self.service.scan_course.side_effect = scan
+        task_id, config = self.create("catalog", {"purpose": "download"})
+        config["course_list"].append("c2")
+        tasks.run_tool_task(task_id, self.store, config, self.data_dir, self.factory)
+        status = self.store.get_status(task_id)
+        details = self.store.get_details(task_id)
+        self.assertEqual(status["status"], "partial")
+        self.assertEqual(len(details["tool"]["resources"]), 1500)
+        self.assertLess(tasks._wire_size(details), tasks.MAX_SNAPSHOT_BYTES)
+        self.assertEqual([c["status"] for c in details["courses"]], ["completed", "error"])
+        self.assertIn("分批", details["tool"]["results"][1]["message"])
 
     def test_result_budget_preserves_short_display_text_and_fact_fields(self):
         task_id, config = self.create("download", {"source_task_id": "source", "resource_ids": ["resource1"]}, [RESOURCE])
