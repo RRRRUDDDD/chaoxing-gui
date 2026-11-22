@@ -143,10 +143,10 @@ describe('course tool configuration', () => {
     const url1 = 'https://mooc1-2.chaoxing.com/mooc-ans/mycourse/studentstudy?chapterId=1028809632&courseId=254871694&clazzid=150302330&enc=294d6c3da667ef7473a6a70d342d997c&mooc2=1';
     const url2 = 'https://mooc1.chaoxing.com/mycourse/studentstudy?chapterId=1218107929&courseId=266019740&clazzid=151748129&cpi=481751950&enc=1cce499397ac4d363336a4e2b931693b&mooc2=1';
 
-    fireEvent.change(screen.getByLabelText('章节链接（每行一条）'), { target: { value: 'https://evil.example/mycourse/studentstudy?chapterId=1&courseId=2&clazzid=3' } });
+    fireEvent.change(screen.getByLabelText('章节链接（有多条时每行一条）'), { target: { value: 'https://evil.example/mycourse/studentstudy?chapterId=1&courseId=2&clazzid=3' } });
     expect(button.disabled).toBe(true);
 
-    fireEvent.change(screen.getByLabelText('章节链接（每行一条）'), { target: { value: `${url1}\n${url2}\n${url1}` } });
+    fireEvent.change(screen.getByLabelText('章节链接（有多条时每行一条）'), { target: { value: `${url1}\n${url2}\n${url1}` } });
     fireEvent.change(screen.getByLabelText('每个链接增加阅读时长（分钟）'), { target: { value: '15' } });
     expect(button.disabled).toBe(false);
     fireEvent.click(button);

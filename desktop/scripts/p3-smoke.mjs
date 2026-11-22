@@ -11,7 +11,7 @@ import path from 'node:path';
 import { createInterface } from 'node:readline';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { promisify } from 'node:util';
-import { configSavedMessage, expiredTaskMessage, logRole, loginLabels, recheckLabel, saveDefaultLabel, startStudyLabel, updateLabels } from '../../web/src/lib/uiText.js';
+import { configSavedMessage, expiredTaskMessage, logRole, loginLabels, recheckLabel, startStudyLabel, updateLabels } from '../../web/src/lib/uiText.js';
 
 const exec = promisify(execFile);
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
@@ -649,7 +649,7 @@ async function syntheticBusiness(app, record) {
   await course.waitFor();
   assert.equal(await course.getAttribute('aria-pressed'), 'true');
   assert.equal(await page.getByRole('button', { name: /P2 测试课程二/ }).getAttribute('aria-pressed'), 'false');
-  await activate(page.getByRole('button', { name: saveDefaultLabel }));
+  await page.getByLabel('未开放章节处理').selectOption('continue');
   await page.getByText(configSavedMessage, { exact: true }).waitFor();
   await activate(page.getByRole('button', { name: startStudyLabel, exact: true }));
   await page.getByText('p2-existing-task', { exact: true }).waitFor();

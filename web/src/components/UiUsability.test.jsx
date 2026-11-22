@@ -1,9 +1,9 @@
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import CourseSelection from './CourseSelection';
+import CourseSelection, { AUTO_SAVE_DELAY_MS } from './CourseSelection';
 import StudyProgress from './StudyProgress';
 import api from '../api/axios';
-import { configSavedMessage, logRole, saveDefaultLabel } from '../lib/uiText';
+import { configSavedMessage, logRole } from '../lib/uiText';
 
 vi.mock('../api/axios', () => ({ default: { get: vi.fn(), post: vi.fn() } }));
 const account = { username: 'alice', password: '', use_cookies: true };
@@ -18,6 +18,9 @@ const mountCourses = async (props = {}) => {
   await screen.findByRole('button', { name: /First course/ });
   return view;
 };
+const flushAutoSave = async () => {
+  await act(async () => { await vi.advanceTimersByTimeAsync(AUTO_SAVE_DELAY_MS); });
+};
 beforeEach(() => {
   window.matchMedia = vi.fn(() => ({ matches: true }));
   api.get.mockReset().mockResolvedValue(ok({}));
@@ -25,63 +28,100 @@ beforeEach(() => {
     { courseId: '1', title: 'First course' }, { courseId: '2', title: 'Second course' },
   ] : {}));
 });
-afterEach(() => { cleanup(); vi.restoreAllMocks(); });
+afterEach(() => { cleanup(); vi.useRealTimers(); vi.restoreAllMocks(); });
 
-it('tracks real modifications and clears stale success, ignoring click order', async () => {
+it('auto-saves real modifications after input debounce and skips saving when reverted', async () => {
   api.get.mockResolvedValue(ok({ selectedCoursesByAccount: { alice: ['1', '2'] } }));
   await mountCourses();
-  expect(screen.queryByText('有未保存的更改')).toBeNull();
+  vi.useFakeTimers();
+  expect(screen.queryByRole('button', { name: '保存为默认配置' })).toBeNull();
   const first = screen.getByRole('button', { name: /First course/ });
   fireEvent.click(first);
-  expect(screen.getByText('有未保存的更改')).toBeTruthy();
   fireEvent.click(first);
-  expect(screen.queryByText('有未保存的更改')).toBeNull();
-  fireEvent.click(screen.getByRole('button', { name: saveDefaultLabel }));
-  await screen.findByText(configSavedMessage);
+  await flushAutoSave();
+  expect(api.post.mock.calls.filter(([url]) => url === '/config')).toHaveLength(0);
+
   fireEvent.change(screen.getByLabelText('播放倍速'), { target: { value: '1.5' } });
+  expect(api.post.mock.calls.filter(([url]) => url === '/config')).toHaveLength(0);
+  await flushAutoSave();
+  expect(api.post.mock.calls.filter(([url]) => url === '/config')).toHaveLength(1);
+  expect(screen.getByText(configSavedMessage)).toBeTruthy();
+
+  fireEvent.change(screen.getByLabelText('播放倍速'), { target: { value: '1.8' } });
   expect(screen.queryByText(configSavedMessage)).toBeNull();
-  expect(screen.getByText('有未保存的更改')).toBeTruthy();
-  fireEvent.change(screen.getByLabelText('播放倍速'), { target: { value: '1' } });
-  expect(screen.queryByText('有未保存的更改')).toBeNull();
+  fireEvent.change(screen.getByLabelText('播放倍速'), { target: { value: '1.5' } });
+  await flushAutoSave();
+  expect(api.post.mock.calls.filter(([url]) => url === '/config')).toHaveLength(1);
 });
-it.each(['business', 'network'])('renders a %s save failure as an alert, retaining modifications', async (kind) => {
+
+it.each(['business', 'network'])('renders a %s auto-save failure as an alert with retry without looping', async (kind) => {
   await mountCourses();
+  vi.useFakeTimers();
   fireEvent.click(screen.getByRole('button', { name: /First course/ }));
   if (kind === 'business') api.post.mockResolvedValueOnce({ data: { status: false, msg: '无法保存配置' } });
   else api.post.mockRejectedValueOnce(new Error('offline'));
-  fireEvent.click(screen.getByRole('button', { name: saveDefaultLabel }));
-  const alert = await screen.findByRole('alert');
+  await flushAutoSave();
+  const alert = screen.getByRole('alert');
   expect(alert.className).toContain('text-danger');
-  expect(screen.getByText('有未保存的更改')).toBeTruthy();
+  const configCalls = () => api.post.mock.calls.filter(([url]) => url === '/config').length;
+  expect(configCalls()).toBe(1);
+  await flushAutoSave();
+  expect(configCalls()).toBe(1);
+  fireEvent.click(within(alert).getByRole('button', { name: '重试' }));
+  await act(async () => {});
+  expect(configCalls()).toBe(2);
+  expect(screen.getByText(configSavedMessage)).toBeTruthy();
 });
-it('acknowledges only the request snapshot when editing continues during save', async () => {
+
+it('auto-saves subsequent edits after an in-flight save finishes', async () => {
   await mountCourses();
+  vi.useFakeTimers();
   const pending = deferred();
   api.post.mockReturnValueOnce(pending.promise);
   fireEvent.click(screen.getByRole('button', { name: /First course/ }));
-  fireEvent.click(screen.getByRole('button', { name: saveDefaultLabel }));
-  expect(screen.getByRole('button', { name: '保存中' }).disabled).toBe(true);
+  await flushAutoSave();
+  expect(screen.getByText('正在自动保存…')).toBeTruthy();
   fireEvent.change(screen.getByLabelText('播放倍速'), { target: { value: '1.5' } });
   await act(async () => pending.resolve(ok({})));
   expect(screen.queryByText(configSavedMessage)).toBeNull();
-  expect(screen.getByText('有未保存的更改')).toBeTruthy();
-  fireEvent.change(screen.getByLabelText('播放倍速'), { target: { value: '1' } });
-  expect(screen.queryByText('有未保存的更改')).toBeNull();
+  await flushAutoSave();
+  const configCalls = api.post.mock.calls.filter(([url]) => url === '/config');
+  expect(configCalls).toHaveLength(2);
+  expect(configCalls[1][1].settings.speed).toBe(1.5);
+  expect(screen.getByText(configSavedMessage)).toBeTruthy();
 });
-it.each(['success', 'failure'])('ignores a late save %s after changing accounts', async (outcome) => {
+
+it.each(['success', 'failure'])('ignores a late auto-save %s after changing accounts', async (outcome) => {
   const view = await mountCourses();
+  vi.useFakeTimers();
   const pending = deferred();
   api.post.mockReturnValueOnce(pending.promise);
   fireEvent.click(screen.getByRole('button', { name: /First course/ }));
-  fireEvent.click(screen.getByRole('button', { name: saveDefaultLabel }));
+  await flushAutoSave();
   const signal = api.post.mock.calls.find(([url]) => url === '/config')[2].signal;
+  vi.useRealTimers();
   view.rerender(<CourseSelection userInfo={{ ...account, username: 'bob' }} onStartStudy={vi.fn()} />);
   await screen.findByRole('button', { name: /First course/ });
   expect(signal.aborted).toBe(true);
   await act(async () => outcome === 'success' ? pending.resolve(ok({})) : pending.reject(new Error('old failure')));
   expect(screen.queryByText(configSavedMessage)).toBeNull();
   expect(screen.queryByRole('alert')).toBeNull();
-  expect(screen.queryByText('有未保存的更改')).toBeNull();
+});
+
+it('places AI workspace button inside app settings and renders top-bar quick tutor as icon-only', async () => {
+  const openAI = vi.fn();
+  const openTutor = vi.fn();
+  await mountCourses({ onOpenAI: openAI, onOpenTutor: openTutor });
+  const header = screen.getByRole('banner');
+  expect(within(header).queryByRole('button', { name: /AI 题库/ })).toBeNull();
+  const tutorButton = within(header).getByRole('button', { name: '快捷 AI 助教' });
+  expect(tutorButton.textContent.trim()).toBe('');
+  fireEvent.click(tutorButton);
+  expect(openTutor).toHaveBeenCalledOnce();
+
+  fireEvent.click(screen.getByRole('button', { name: '展开应用设置' }));
+  fireEvent.click(screen.getByRole('button', { name: 'AI 题库与工作台' }));
+  expect(openAI).toHaveBeenCalledExactlyOnceWith('dashboard');
 });
 it('keeps bank text and numeric drafts across disclosure changes without saving', async () => {
   await mountCourses();
@@ -121,12 +161,10 @@ it('puts the task-type choice above the workspace, retitles the page and summari
   fireEvent.click(screen.getByRole('button', { name: '收起答题设置' }));
   expect(screen.getByText('自动提交')).toBeTruthy();
 });
-it('preview save updates only local state and demo totals match course details', async () => {
+it('preview auto-save updates only local state and demo totals match course details', async () => {
   const view = render(<CourseSelection userInfo={account} preview />);
   fireEvent.click(await screen.findByRole('button', { name: /大学英语/ }));
-  fireEvent.click(screen.getByRole('button', { name: saveDefaultLabel }));
-  expect(screen.getByText('演示配置已保存')).toBeTruthy();
-  expect(screen.queryByText('有未保存的更改')).toBeNull();
+  await screen.findByText('演示配置已保存');
   view.unmount();
   render(<StudyProgress taskId="preview" preview />);
   expect(screen.getByText('2 / 2 课程 · 100%')).toBeTruthy();
@@ -169,16 +207,31 @@ it('keeps long course and chapter names available without hiding their status', 
   expect(screen.getByText(chapterTitle).className).toContain('break-words');
   expect(screen.getByText('失败').className).toContain('shrink-0');
 });
-it('cancels an in-flight configuration save when unmounted', async () => {
+it('cancels an in-flight configuration auto-save when unmounted', async () => {
   const view = await mountCourses();
+  vi.useFakeTimers();
   const pending = deferred();
   api.post.mockReturnValueOnce(pending.promise);
-  fireEvent.click(screen.getByRole('button', { name: saveDefaultLabel }));
+  fireEvent.click(screen.getByRole('button', { name: /First course/ }));
+  await flushAutoSave();
   const signal = api.post.mock.calls.find(([url]) => url === '/config')[2].signal;
   view.unmount();
   expect(signal.aborted).toBe(true);
   await act(async () => pending.resolve(ok({})));
   expect(screen.queryByText(configSavedMessage)).toBeNull();
+});
+
+it('renders top-bar quick tutor as icon-only on study progress page', async () => {
+  const openTutor = vi.fn();
+  api.get.mockImplementation(async (url) => url.endsWith('/details') ? ok({ courses: [] }) : url.startsWith('/logs/') ?
+    { data: { status: true, data: [], next_cursor: 0 } } : ok({ status: 'running', progress: 0, total: 1 }));
+  render(<StudyProgress taskId="tutor-icon" onOpenTutor={openTutor} />);
+  await screen.findByText('学习中');
+  const header = screen.getByRole('banner');
+  const tutorButton = within(header).getByRole('button', { name: '快捷 AI 助教' });
+  expect(tutorButton.textContent.trim()).toBe('');
+  fireEvent.click(tutorButton);
+  expect(openTutor).toHaveBeenCalledOnce();
 });
 
 it('renders safe fallback values when active video job metrics are missing or NaN', async () => {

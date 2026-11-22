@@ -209,7 +209,7 @@ const CourseToolSettings = ({ taskType, options, onOptionsChange, disabled = fal
           ) : (
             <>
               <div className="space-y-1.5">
-                <Label htmlFor="read-urls">章节链接（每行一条）</Label>
+                <Label htmlFor="read-urls">章节链接（有多条时每行一条）</Label>
                 <textarea
                   id="read-urls"
                   rows={4}

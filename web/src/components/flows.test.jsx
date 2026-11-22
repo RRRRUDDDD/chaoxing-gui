@@ -7,7 +7,7 @@ import StudyProgress from './StudyProgress';
 import Login from './Login';
 import api from '../api/axios';
 import { SAVED_LOGIN_KEY, SESSION_KEY, sessionStore } from '../lib/sessionStore';
-import { configSavedMessage, loginLabels, logRole, saveDefaultLabel, startStudyLabel } from '../lib/uiText';
+import { configSavedMessage, loginLabels, logRole, startStudyLabel } from '../lib/uiText';
 
 vi.mock('../api/axios', () => ({ default: { get: vi.fn(), post: vi.fn() } }));
 
@@ -86,7 +86,7 @@ describe('course selection', () => {
     expect(screen.getByRole('button', { name: /Course one/ }).getAttribute('aria-pressed')).toBe('false');
   });
 
-  it('keeps a stale saved selection empty and saves only this account after explicit selection', async () => {
+  it('keeps a stale saved selection empty and auto-saves only this account after explicit selection', async () => {
     services({ config: { selectedCourses: ['1'], selectedCoursesByAccount: { alice: ['gone'], bob: ['2'] } } });
     const start = vi.fn();
     render(<CourseSelection userInfo={account} onStartStudy={start} />);
@@ -96,7 +96,6 @@ describe('course selection', () => {
     fireEvent.click(first);
     fireEvent.click(screen.getByRole('button', { name: startStudyLabel }));
     expect(start.mock.calls[0][0].course_list).toEqual(['1']);
-    fireEvent.click(screen.getByRole('button', { name: saveDefaultLabel }));
     await screen.findByText(configSavedMessage);
     const payload = api.post.mock.calls.find(([url]) => url === '/config')[1];
     expect(payload.selectedCoursesByAccount).toEqual({ alice: ['1'] });
@@ -129,7 +128,7 @@ describe('course selection', () => {
     expect(screen.getByRole('button', { name: startStudyLabel }).disabled).toBe(true);
   });
 
-  it('keeps course-selection drafts across a progress round trip without saving them', async () => {
+  it('keeps and auto-saves course-selection changes across a progress round trip', async () => {
     services();
     await sessionStore.rememberLogin('alice');
     render(<App />);
@@ -137,8 +136,8 @@ describe('course selection', () => {
     // 恢复的选择是 ['1', '2']：点掉 Course one，只留 Course two，再调一个参数。
     fireEvent.click(screen.getByRole('button', { name: /Course one/ }));
     fireEvent.change(screen.getByLabelText('播放倍速'), { target: { value: '1.6' } });
-    const configCalls = () => api.post.mock.calls.filter(([url]) => url === '/config').length;
-    expect(configCalls()).toBe(0);
+    const configCalls = () => api.post.mock.calls.filter(([url]) => url === '/config');
+    expect(configCalls()).toHaveLength(0);
     fireEvent.click(screen.getByRole('button', { name: startStudyLabel }));
     await screen.findByText('task-one');
     fireEvent.click(screen.getByRole('button', { name: '返回课程选择' }));
@@ -147,8 +146,9 @@ describe('course selection', () => {
     expect(screen.getByLabelText('播放倍速').value).toBe('1.6');
     expect(screen.getByRole('button', { name: /Course one/ }).getAttribute('aria-pressed')).toBe('false');
     expect(screen.getByRole('button', { name: /Course two/ }).getAttribute('aria-pressed')).toBe('true');
-    expect(configCalls()).toBe(0);
-    expect(screen.getByText('有未保存的更改')).toBeTruthy();
+    expect(configCalls()).toHaveLength(1);
+    expect(configCalls()[0][1].settings.speed).toBe(1.6);
+    expect(screen.getByText(configSavedMessage)).toBeTruthy();
   });
 });
 
@@ -503,7 +503,8 @@ it.each(['courses', 'progress'])('keeps the %s preview usable without backend re
   await screen.findByText('preview-task');
   fireEvent.click(screen.getByRole('button', { name: '返回课程选择' }));
   await screen.findByRole('button', { name: startStudyLabel });
-  fireEvent.click(screen.getByRole('button', { name: saveDefaultLabel }));
+  fireEvent.change(screen.getByLabelText('播放倍速'), { target: { value: '1.5' } });
+  await screen.findByText('演示配置已保存');
   expect(api.get).not.toHaveBeenCalled();
   expect(api.post).not.toHaveBeenCalled();
   expect(localStorage.getItem(SESSION_KEY)).toBeNull();

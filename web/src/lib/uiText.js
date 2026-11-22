@@ -9,7 +9,6 @@ export const loginLabels = {
 
 export const recheckLabel = '重新检查';
 export const startStudyLabel = '开始学习';
-export const saveDefaultLabel = '保存为默认配置';
 export const configSavedMessage = '配置已保存';
 export const expiredTaskMessage = '上次任务已过期或没有可恢复的记录，请重新选择课程。';
 export const logRole = 'log';

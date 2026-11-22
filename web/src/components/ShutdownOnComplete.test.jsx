@@ -37,6 +37,7 @@ describe('shutdown on complete', () => {
     });
     api.post.mockImplementation(async (url) => {
       if (url === '/courses') return ok(courses);
+      if (url === '/config') return ok({});
       throw new Error(`Unexpected POST ${url}`);
     });
 
@@ -101,6 +102,7 @@ describe('shutdown on complete', () => {
     api.post.mockImplementation(async (url, body) => {
       if (url === '/login') return ok({ username: body.username });
       if (url === '/courses') return ok(courses);
+      if (url === '/config') return ok({});
       if (url === '/start') {
         startPayloads.push(body);
         return ok({ task_id: body.task_type === 'catalog' ? 'catalog-1' : 'video-1' });

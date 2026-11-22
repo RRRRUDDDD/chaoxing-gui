@@ -7,7 +7,7 @@ import DesktopStartup from '../components/DesktopStartup';
 import api from './axios';
 import { createTauriAdapter } from './tauriAdapter';
 import { sessionStore } from '../lib/sessionStore';
-import { configSavedMessage, logRole, saveDefaultLabel, startStudyLabel } from '../lib/uiText';
+import { configSavedMessage, logRole, startStudyLabel } from '../lib/uiText';
 
 const core = vi.hoisted(() => ({ isTauri: vi.fn().mockReturnValue(false), invoke: vi.fn() }));
 vi.mock('@tauri-apps/api/core', () => core);
@@ -149,7 +149,7 @@ describe('shared task flow over real Axios transports', () => {
     let view = mount();
     const start = await screen.findByRole('button', { name: startStudyLabel });
     expect(start.disabled).toBe(false);
-    fireEvent.click(screen.getByRole('button', { name: saveDefaultLabel }));
+    fireEvent.change(screen.getByLabelText('播放倍速'), { target: { value: '1.5' } });
     await screen.findByText(configSavedMessage);
     expect(fixture.calls.find((call) => call.method === 'POST' && call.path === '/api/config').payload.selectedCoursesByAccount).toEqual({ alice: ['one'] });
     fireEvent.click(start);

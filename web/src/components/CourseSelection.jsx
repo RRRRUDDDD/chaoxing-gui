@@ -9,12 +9,14 @@ import CourseToolSettings, {
 } from './CourseToolSettings';
 import RepositoryLink from './RepositoryLink';
 import {
-  BookOpen, SlidersHorizontal, LogOut, Play, Save, Loader2,
-  Check, Search, GraduationCap, AlertCircle, BookX,
+  BookOpen, SlidersHorizontal, LogOut, Play, Loader2,
+  Check, Search, GraduationCap, AlertCircle, BookX, Bot,
 } from 'lucide-react';
 import api from '../api/axios';
 import { configSnapshot, defaultSettings, normalizeCourses, restoreCourseSelection, restoreSettings } from '../lib/courseSelection';
-import { configSavedMessage, saveDefaultLabel, startStudyLabel } from '../lib/uiText';
+import { configSavedMessage, startStudyLabel } from '../lib/uiText';
+
+export const AUTO_SAVE_DELAY_MS = 500;
 
 const taskHeadings = {
   study: '选择课程并配置学习参数',
@@ -34,7 +36,7 @@ const defaultToolOptions = () => ({
   count: '10', interval: '30', readMode: 'catalog', readUrls: '', readMinutes: '30',
 });
 
-const CourseSelectionContent = ({ userInfo, onStartStudy, onLogout, onReload, starting, loggingOut = false, startError, notice = '', activeTaskId, taskRunning = false, onReturnToTask, onShutdownChange, shutdownBanner = null, preview = false, active = true }) => {
+const CourseSelectionContent = ({ userInfo, onStartStudy, onLogout, onReload, onOpenAI, onOpenTutor, starting, loggingOut = false, startError, notice = '', activeTaskId, taskRunning = false, onReturnToTask, onShutdownChange, shutdownBanner = null, preview = false, active = true }) => {
   const username = userInfo.username;
   const password = userInfo.password;
   const useCookies = userInfo.use_cookies === true;
@@ -127,8 +129,9 @@ const CourseSelectionContent = ({ userInfo, onStartStudy, onLogout, onReload, st
     : readUrlMode
       ? Object.values(validateReadUrlOptions(toolOptions)).every((error) => !error)
       : true;
+  const hasInvalidFields = Object.keys(invalidFields).length > 0;
   const hasTarget = readUrlMode ? parsedReadUrls.length > 0 : courses.length > 0 && selectedCount > 0;
-  const canStart = canSelect && hasTarget && validOptions && Object.keys(invalidFields).length === 0 && !starting && !taskRunning;
+  const canStart = canSelect && hasTarget && validOptions && !hasInvalidFields && !starting && !taskRunning;
   const startLabel = {
     study: startStudyLabel,
     visits: '开始提交次数',
@@ -153,8 +156,52 @@ const CourseSelectionContent = ({ userInfo, onStartStudy, onLogout, onReload, st
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [active, canSelect, filteredCourses.length, selectAllVisible]);
 
+  const persistConfig = useCallback(async (snapshot, nextSettings, nextSelectedCourses) => {
+    if (loggingOut || loading || loadError || loadedAccount !== username) return;
+    if (preview) {
+      setSavedSnapshot(snapshot);
+      setSaveStatus({ type: 'success', message: '演示配置已保存', snapshot });
+      return;
+    }
+    if (saveController.current && !saveController.current.signal.aborted) return;
+    const controller = new AbortController();
+    saveController.current = controller;
+    try {
+      setSaving(true);
+      setSaveStatus(null);
+      const payload = { settings: nextSettings, selectedCoursesByAccount: { [username]: nextSelectedCourses } };
+      const response = await api.post('/config', payload, { signal: controller.signal });
+      if (controller.signal.aborted) return;
+      if (!response.data.status) {
+        setSaveStatus({ type: 'error', message: response.data.msg || '保存失败，请重试', snapshot });
+      } else {
+        setSavedSnapshot(snapshot);
+        setSaveStatus({ type: 'success', message: configSavedMessage, snapshot });
+      }
+    } catch {
+      if (!controller.signal.aborted) setSaveStatus({ type: 'error', message: '保存请求失败，请重试', snapshot });
+    } finally {
+      if (!controller.signal.aborted) setSaving(false);
+      if (saveController.current === controller) saveController.current = null;
+    }
+  }, [loggingOut, loading, loadError, loadedAccount, username, preview]);
+
+  const saveFailedForCurrent = saveStatus?.type === 'error' && saveStatus.snapshot === currentSnapshot;
+  const canAutoSave = active && !loggingOut && !loading && !loadError && loadedAccount === username && !hasInvalidFields;
+
+  useEffect(() => {
+    if (!canAutoSave || !dirty || saving || saveFailedForCurrent) return undefined;
+    const timer = window.setTimeout(() => {
+      void persistConfig(currentSnapshot, settings, selectedCourses);
+    }, AUTO_SAVE_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [canAutoSave, dirty, saving, saveFailedForCurrent, currentSnapshot, settings, selectedCourses, persistConfig]);
+
   const handleStartStudy = () => {
     if (!active || !canStart) return;
+    if (dirty && !saving && !hasInvalidFields) {
+      void persistConfig(currentSnapshot, settings, selectedCourses);
+    }
     const shutdownOption = settings.shutdown_on_complete === true ? { shutdown_on_complete: true } : {};
     if (taskType === 'study') {
       onStartStudy({ ...settings, course_list: selectedCourses });
@@ -173,37 +220,6 @@ const CourseSelectionContent = ({ userInfo, onStartStudy, onLogout, onReload, st
       });
     } else {
       onStartStudy({ task_type: 'catalog', course_list: selectedCourses, tool_options: { purpose: taskType } });
-    }
-  };
-
-  const handleSaveConfig = async () => {
-    if (!active || loggingOut || loading || saving || loadError || loadedAccount !== username) return;
-    const snapshot = currentSnapshot;
-    if (preview) {
-      setSavedSnapshot(snapshot);
-      setSaveStatus({ type: 'success', message: '演示配置已保存', snapshot });
-      return;
-    }
-    if (saveController.current && !saveController.current.signal.aborted) return;
-    const controller = new AbortController();
-    saveController.current = controller;
-    try {
-      setSaving(true);
-      setSaveStatus(null);
-      const payload = { settings, selectedCoursesByAccount: { [username]: selectedCourses } };
-      const response = await api.post('/config', payload, { signal: controller.signal });
-      if (controller.signal.aborted) return;
-      if (!response.data.status) {
-        setSaveStatus({ type: 'error', message: response.data.msg || '保存失败，请重试', snapshot });
-      } else {
-        setSavedSnapshot(snapshot);
-        setSaveStatus({ type: 'success', message: configSavedMessage, snapshot });
-      }
-    } catch {
-      if (!controller.signal.aborted) setSaveStatus({ type: 'error', message: '保存请求失败，请重试', snapshot });
-    } finally {
-      if (!controller.signal.aborted) setSaving(false);
-      if (saveController.current === controller) saveController.current = null;
     }
   };
 
@@ -234,6 +250,19 @@ const CourseSelectionContent = ({ userInfo, onStartStudy, onLogout, onReload, st
             </div>
           </div>
           <div className="flex items-center gap-3">
+            {onOpenTutor && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-brand hover:bg-soft hover:text-brand"
+                onClick={() => onOpenTutor()}
+                disabled={loggingOut}
+                aria-label="快捷 AI 助教"
+                title="打开快捷 AI 助教与学习通 Agent"
+              >
+                <Bot className="h-4 w-4" aria-hidden="true" />
+              </Button>
+            )}
             <RepositoryLink />
             {userInfo?.username && (
               <span className="hidden font-mono text-xs text-faint sm:inline tnum">
@@ -430,11 +459,11 @@ const CourseSelectionContent = ({ userInfo, onStartStudy, onLogout, onReload, st
                     </Select>
                   </div>
 
-                  <TikuSettings settings={settings} onChange={setSettings} onFieldValidity={setFieldValid} />
+                  <TikuSettings settings={settings} onChange={setSettings} onFieldValidity={setFieldValid} onOpenAI={onOpenAI} />
                   </>}
 
                   <div className="border-t border-line pt-5">
-                    <AppSettings settings={settings} onChange={setSettings} />
+                    <AppSettings settings={settings} onChange={setSettings} onOpenAI={onOpenAI} aiDisabled={loggingOut} />
                   </div>
                 </div>
               </div>
@@ -463,20 +492,6 @@ const CourseSelectionContent = ({ userInfo, onStartStudy, onLogout, onReload, st
                       ? `将${taskType === 'study' ? '学习' : '处理'}已勾选的 ${selectedCount} 门课程`
                       : '请至少勾选一门课程'}
               </p>
-              {taskType === 'study' && <Button variant="outline" className="w-full" size="sm" onClick={handleSaveConfig} disabled={loggingOut || saving || !!loadError}
-                title="保存课程选择与学习参数，下次进入本页时自动恢复为默认">
-                {saving ? (
-                  <>
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-                    保存中
-                  </>
-                ) : (
-                  <>
-                    <Save className="h-3.5 w-3.5" aria-hidden="true" />
-                    {saveDefaultLabel}
-                  </>
-                )}
-              </Button>}
               {startError && (
                 <div
                   role="alert"
@@ -495,12 +510,25 @@ const CourseSelectionContent = ({ userInfo, onStartStudy, onLogout, onReload, st
                   <span>{notice}</span>
                 </div>
               )}
-              {dirty && <p role="status" className="text-center text-xs text-warning-ink">有未保存的更改</p>}
-              {visibleSaveStatus && (
-                <p className={`text-center text-xs animate-fade-in ${visibleSaveStatus.type === 'error' ? 'text-danger' : 'text-success-ink'}`}
-                  role={visibleSaveStatus.type === 'error' ? 'alert' : 'status'}>
+              {saving && (
+                <p role="status" className="text-center text-xs text-faint">正在自动保存…</p>
+              )}
+              {!saving && visibleSaveStatus?.type === 'success' && (
+                <p className="text-center text-xs text-success-ink animate-fade-in" role="status">
                   {visibleSaveStatus.message}
                 </p>
+              )}
+              {!saving && visibleSaveStatus?.type === 'error' && (
+                <div role="alert" className="flex items-center justify-center gap-2 text-xs text-danger animate-fade-in">
+                  <span>{visibleSaveStatus.message}</span>
+                  <button
+                    type="button"
+                    onClick={() => void persistConfig(currentSnapshot, settings, selectedCourses)}
+                    className="font-medium underline underline-offset-2 hover:text-ink"
+                  >
+                    重试
+                  </button>
+                </div>
               )}
             </div>
           </aside>
