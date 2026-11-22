@@ -3,7 +3,7 @@ import { desktopBridge } from '../lib/desktopBridge';
 
 const MAX_LOG_CURSOR = 0xffffffff;
 const TASK_ID = '[a-zA-Z0-9_-]{1,128}';
-const ROUTES = { 'post /login': 'login', 'post /courses': 'courses', 'get /config': 'configRead', 'post /config': 'configWrite', 'post /start': 'start' };
+const ROUTES = { 'post /login': 'login', 'post /courses': 'courses', 'get /config': 'configRead', 'post /config': 'configWrite', 'post /start': 'start', 'post /ai/rpc': 'aiRpc' };
 const TASK_ACTION_RE = new RegExp(`^/task/(${TASK_ID})/(resume|stop|open-downloads|cancel-shutdown)$`);
 const TASK_GET_RE = new RegExp(`^/task/(${TASK_ID})(/details)?$`);
 const TASK_LOGS_RE = new RegExp(`^/logs/(${TASK_ID})$`);

@@ -18,6 +18,7 @@ pub enum ApiOperation {
     TaskCancelShutdown,
     TaskDetails,
     TaskLogs,
+    AiRpc,
 }
 
 /// The renderer can request only these operations and their explicit options.
@@ -110,9 +111,14 @@ impl ApiRequest {
             serde_json::to_vec(&self.payload).map_err(|error| ProxyError::InvalidRequest {
                 reason: format!("payload serialization failed: {error}"),
             })?;
-        if body.len() > MAX_REQUEST_BODY {
+        let max_body = if matches!(self.operation, ApiOperation::AiRpc) {
+            MAX_AI_REQUEST_BODY
+        } else {
+            MAX_REQUEST_BODY
+        };
+        if body.len() > max_body {
             return Err(ProxyError::InvalidRequest {
-                reason: "请求体超过 1MB 上限".into(),
+                reason: "请求体超过上限".into(),
             });
         }
         Ok(Some(body))
@@ -135,6 +141,7 @@ impl ApiOperation {
             ApiOperation::TaskCancelShutdown => ("POST", "/api/task/{id}/cancel-shutdown"),
             ApiOperation::TaskDetails => ("GET", "/api/task/{id}/details"),
             ApiOperation::TaskLogs => ("GET", "/api/logs/{id}"),
+            ApiOperation::AiRpc => ("POST", "/api/ai/rpc"),
         }
     }
 
@@ -157,7 +164,8 @@ impl ApiOperation {
 }
 
 pub const MAX_REQUEST_BODY: usize = 1024 * 1024;
-pub const MAX_RESPONSE_BODY: usize = 2 * (1024 * 1024);
+pub const MAX_AI_REQUEST_BODY: usize = 4 * 1024 * 1024;
+pub const MAX_RESPONSE_BODY: usize = 4 * (1024 * 1024);
 pub const MAX_REQUEST_ID: u64 = (1u64 << 53) - 1;
 /// Cursor bound for TaskLogs `after` (matches backend int ids; u32 is generous).
 pub const MAX_LOG_CURSOR: u64 = u32::MAX as u64;
@@ -464,6 +472,7 @@ mod tests {
             "taskCancelShutdown",
             "taskDetails",
             "taskLogs",
+            "aiRpc",
         ] {
             let mut raw = serde_json::json!({"operation":operation, "requestId":MAX_REQUEST_ID, "payload":null});
             if matches!(
@@ -476,6 +485,7 @@ mod tests {
                     | "taskStop"
                     | "taskOpenDownloads"
                     | "taskCancelShutdown"
+                    | "aiRpc"
             ) {
                 raw["payload"] = serde_json::json!({"username":"fixture"});
             }

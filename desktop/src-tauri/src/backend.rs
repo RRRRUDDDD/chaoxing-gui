@@ -983,6 +983,9 @@ pub fn api_request(
         let method = op.route().0;
         let url = format!("http://127.0.0.1:{port}{path}");
         let mut req = state.api_agent.request(method, &url);
+        if matches!(op, ApiOperation::AiRpc) {
+            req = req.timeout(Duration::from_secs(150));
+        }
         let token = state
             .token
             .lock()
