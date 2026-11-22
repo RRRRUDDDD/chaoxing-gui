@@ -90,3 +90,11 @@ it('toggles shutdown-on-complete inside app settings and displays summary badge 
   expect(checkbox.checked).toBe(false);
   expect(changed).toHaveBeenLastCalledWith({ shutdown_on_complete: false });
 });
+
+it('renders the AI question bank entry inside app settings when handler is provided', () => {
+  const openAI = vi.fn();
+  render(<AppSettings settings={{}} onChange={vi.fn()} onOpenAI={openAI} />);
+  fireEvent.click(screen.getByRole('button', { name: '展开应用设置' }));
+  fireEvent.click(screen.getByRole('button', { name: 'AI 题库与工作台' }));
+  expect(openAI).toHaveBeenCalledExactlyOnceWith('dashboard');
+});

@@ -2,6 +2,8 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import Login from './components/Login';
 import CourseSelection from './components/CourseSelection';
 import StudyProgress from './components/StudyProgress';
+import AIWorkspace from './components/ai/AIWorkspace';
+import QuickTutorDrawer from './components/ai/QuickTutorDrawer';
 import { ScheduledShutdownBanner } from './components/ShutdownBanner';
 import api from './api/axios';
 import { sessionStore, validTaskId } from './lib/sessionStore';
@@ -28,6 +30,21 @@ function App() {
   const [recovery, setRecovery] = useState(null);
   // 选课页的草稿只保留在当前会话：去过一次后保持挂载，往返进度页不丢失、也不写盘。
   const [coursesVisited, setCoursesVisited] = useState(initialStep === 'courses');
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiTab, setAiTab] = useState('dashboard');
+  const [quickTutorOpen, setQuickTutorOpen] = useState(false);
+  const openAI = useCallback((tab = 'dashboard') => {
+    setQuickTutorOpen(false);
+    setAiTab(tab);
+    setAiOpen(true);
+  }, []);
+  const closeAI = useCallback(() => setAiOpen(false), []);
+  const openQuickTutor = useCallback(() => setQuickTutorOpen(true), []);
+  const closeQuickTutor = useCallback(() => setQuickTutorOpen(false), []);
+  const chaoxingContext = useMemo(
+    () => ({ userInfo, activeTaskId: taskId, taskStatus }),
+    [userInfo, taskId, taskStatus],
+  );
   const startingRef = useRef(false);
   const loggingOutRef = useRef(false);
   const startController = useRef(null);
@@ -281,6 +298,38 @@ function App() {
     }
   };
 
+  const handleAgentEffects = useCallback((effects) => {
+    if (!Array.isArray(effects) || !effects.length || loggingOutRef.current) return;
+    for (const eff of effects) {
+      if (eff?.type === 'task_started' && validTaskId(eff.taskId) && userInfo?.username) {
+        stopController.current?.abort();
+        stopController.current = null;
+        cancelShutdownController.current?.abort();
+        cancelShutdownController.current = null;
+        setTaskId(eff.taskId);
+        setTaskStatus('running');
+        setShutdownInfo(null);
+        setCancellingShutdown(false);
+        setCancelShutdownError('');
+        setMonitorError('');
+        setTaskNotice(null);
+        setRecovery(null);
+        sessionStore.rememberTask({ username: userInfo.username, taskId: eff.taskId }).catch(() => {});
+      } else if (eff?.type === 'task_stopped') {
+        if (eff.state === 'cancelled') {
+          setTaskStatus('cancelled');
+        }
+      }
+    }
+  }, [userInfo]);
+
+  const handleViewProgress = useCallback(() => {
+    if (loggingOutRef.current) return;
+    setQuickTutorOpen(false);
+    setAiOpen(false);
+    goToStep('progress');
+  }, [goToStep]);
+
   const handleLogout = async () => {
     if (loggingOutRef.current) return;
     // Block starts and login handoffs before asynchronous desktop storage clears.
@@ -303,6 +352,7 @@ function App() {
       await sessionStore.clear();
       if (generation !== sessionGeneration.current) return;
       shutdownOnCompleteRef.current = false;
+      setQuickTutorOpen(false);
       setUserInfo(null);
       setTaskId(null);
       setTaskStatus(null);
@@ -327,15 +377,27 @@ function App() {
 
   return (
     <div className="App">
-      {step === 'login' && <Login onLoginSuccess={handleLoginSuccess} />}
+      {aiOpen && (
+        <AIWorkspace
+          initialTab={aiTab}
+          backLabel={userInfo ? '返回课程管理' : '返回登录页'}
+          onBack={closeAI}
+          chaoxingContext={chaoxingContext}
+          onAgentEffects={handleAgentEffects}
+          onViewProgress={userInfo ? handleViewProgress : undefined}
+        />
+      )}
+      {!aiOpen && step === 'login' && <Login onLoginSuccess={handleLoginSuccess} onOpenAI={openAI} />}
       {(step === 'courses' || (coursesVisited && userInfo)) && (
-        <div hidden={step !== 'courses'}>
+        <div hidden={aiOpen || step !== 'courses'}>
           <CourseSelection
             key={userInfo?.username}
-            active={step === 'courses'}
+            active={!aiOpen && step === 'courses'}
             userInfo={userInfo}
             onStartStudy={handleStartStudy}
             onLogout={handleLogout}
+            onOpenAI={openAI}
+            onOpenTutor={openQuickTutor}
             starting={starting}
             loggingOut={loggingOut}
             startError={startError || currentRecovery?.error || monitorError}
@@ -358,13 +420,14 @@ function App() {
           />
         </div>
       )}
-      {step === 'progress' && taskId && (
+      {!aiOpen && step === 'progress' && taskId && (
         <StudyProgress
           key={`${userInfo.username}:${taskId}`}
           taskId={taskId}
           username={userInfo.username}
           notice={currentTaskNotice}
           onStartStudy={handleStartStudy}
+          onOpenTutor={openQuickTutor}
           starting={starting}
           startError={startError}
           actionsDisabled={loggingOut}
@@ -376,6 +439,16 @@ function App() {
           recoveryError={currentRecovery?.error || ''}
           onRetryRecovery={() => { if (userInfo && taskId) void recoverTask(taskId, userInfo); }}
           preview={isPreview}
+        />
+      )}
+      {!aiOpen && userInfo && (
+        <QuickTutorDrawer
+          open={quickTutorOpen}
+          chaoxingContext={chaoxingContext}
+          onAgentEffects={handleAgentEffects}
+          onViewProgress={handleViewProgress}
+          onClose={closeQuickTutor}
+          onOpenFullAgent={() => openAI('agent')}
         />
       )}
     </div>

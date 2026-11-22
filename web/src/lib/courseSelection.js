@@ -50,7 +50,7 @@ export function configSnapshot(settings, username, selectedCourses) {
 export function updateTikuSettings(settings, field, value) {
   const previous = settings.tiku_config || {};
   const next = {};
-  for (const key of ['config', 'submit', 'cover_rate', 'delay', 'true_list', 'false_list', 'verify_ssl', 'wrappers', 'subscription']) {
+  for (const key of ['config', 'submit', 'cover_rate', 'delay', 'true_list', 'false_list', 'verify_ssl', 'wrappers', 'subscription', 'ai_enabled', 'ai_priority']) {
     if (previous[key] !== undefined) next[key] = previous[key];
   }
   return { ...settings, tiku_config: { ...next, [field]: value } };

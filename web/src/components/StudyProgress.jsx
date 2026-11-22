@@ -10,7 +10,7 @@ import { ActiveVideoJobs, CourseDetailsList } from './ProgressSections';
 import {
   Loader2, ArrowLeft, CheckCircle2, AlertCircle,
   Play, Clock, ChevronDown, MonitorPlay,
-  StopCircle, Power,
+  StopCircle, Power, Bot,
 } from 'lucide-react';
 import api from '../api/axios';
 import { isTerminalStatus, startTaskPolling } from '../lib/taskPolling';
@@ -53,7 +53,7 @@ const previewLogs = [
   { seq: 2, timestamp: Date.now() / 1000 - 30, level: 'info', message: '所有课程均已处理完毕' },
 ];
 
-const StudyProgressContent = ({ taskId, username, notice = '', onBack, onStatus, onMissing, onStop, onStartStudy, starting = false, startError = '', actionsDisabled = false, recovering = false, recoveryError = '', onRetryRecovery, preview = false }) => {
+const StudyProgressContent = ({ taskId, username, notice = '', onBack, onStatus, onMissing, onStop, onStartStudy, onOpenTutor, starting = false, startError = '', actionsDisabled = false, recovering = false, recoveryError = '', onRetryRecovery, preview = false }) => {
   const [taskStatus, setTaskStatus] = useState(() => (preview ? previewStatus() : null));
   const [taskDetails, setTaskDetails] = useState(() => (preview ? previewDetails : null));
   const [logs, setLogs] = useState(() => (preview ? previewLogs : []));
@@ -269,6 +269,19 @@ const StudyProgressContent = ({ taskId, username, notice = '', onBack, onStatus,
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-3">
+            {onOpenTutor && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-brand hover:bg-soft hover:text-brand"
+                onClick={() => onOpenTutor()}
+                disabled={actionsDisabled}
+                aria-label="快捷 AI 助教"
+                title="打开快捷 AI 助教与学习通 Agent"
+              >
+                <Bot className="h-4 w-4" aria-hidden="true" />
+              </Button>
+            )}
             <RepositoryLink />
             {canStop && (
               <Button

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import Button from './ui/Button';
 import Input from './ui/Input';
 import Label from './ui/Label';
 import Select from './ui/Select';
@@ -6,7 +7,7 @@ import NumberInput from './ui/NumberInput';
 import SettingsDisclosure from './SettingsDisclosure';
 import ExternalLink from './ExternalLink';
 import { updateTikuSettings } from '../lib/courseSelection';
-import { Database, Bell, AppWindow, Settings2, Power } from 'lucide-react';
+import { Database, Bell, AppWindow, Settings2, Power, Sparkles } from 'lucide-react';
 import { desktopBridge, isTauriDesktop } from '../lib/desktopBridge';
 
 const SectionHeader = ({ icon: Icon, title, description }) => (
@@ -21,11 +22,13 @@ const SectionHeader = ({ icon: Icon, title, description }) => (
 
 // 折叠标题上的题库状态摘要：让用户不必展开也能知道当前配置形态。
 export function tikuStatusSummary(tiku = {}) {
-  const configured = typeof tiku.config === 'string' && tiku.config.trim() !== '';
-  if (!configured) return { text: '未配置', cls: 'bg-warning/10 text-warning-ink' };
+  const hasOcs = typeof tiku.config === 'string' && tiku.config.trim() !== '';
+  const hasAI = tiku.ai_enabled === true || String(tiku.ai_enabled) === 'true';
+  if (!hasOcs && !hasAI) return { text: '未配置', cls: 'bg-warning/10 text-warning-ink' };
+  const suffix = hasAI ? (hasOcs ? 'AI+OCS' : 'AI 题库') : '';
   return String(tiku.submit) === 'true'
-    ? { text: '自动提交', cls: 'bg-brand-soft text-brand' }
-    : { text: '仅保存答案', cls: 'bg-soft text-body' };
+    ? { text: suffix ? `${suffix} · 自动提交` : '自动提交', cls: 'bg-brand-soft text-brand' }
+    : { text: suffix ? `${suffix} · 仅保存` : '仅保存答案', cls: 'bg-soft text-body' };
 }
 
 // Desktop-only: what the window close button does, stored by the host.
@@ -72,13 +75,56 @@ export const CloseActionSetting = () => {
 };
 
 // 答题设置：仅自动学习使用，标题携带“未配置 / 仅保存答案 / 自动提交”状态。
-export const TikuSettings = ({ settings, onChange, onFieldValidity }) => {
+export const TikuSettings = ({ settings, onChange, onFieldValidity, onOpenAI }) => {
   const handleTikuChange = (field, value) => onChange(updateTikuSettings(settings, field, value));
   const summary = tikuStatusSummary(settings.tiku_config);
+  const aiEnabled = settings.tiku_config?.ai_enabled === true || String(settings.tiku_config?.ai_enabled) === 'true';
 
   return (
     <SettingsDisclosure title="答题设置" icon={Database} summary={summary}>
       <div className="space-y-4">
+        <div className="rounded-xl border border-brand/20 bg-brand-soft/40 p-3.5 space-y-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <label htmlFor="tiku-ai-enabled" className="flex cursor-pointer items-center gap-2 text-[13px] font-medium text-ink">
+              <input
+                id="tiku-ai-enabled"
+                type="checkbox"
+                className="h-4 w-4 accent-brand"
+                checked={aiEnabled}
+                onChange={(e) => handleTikuChange('ai_enabled', e.target.checked)}
+              />
+              <Sparkles className="h-3.5 w-3.5 text-brand" aria-hidden="true" />
+              启用内置 AI 题库协同
+            </label>
+            {onOpenAI && (
+              <button
+                type="button"
+                onClick={() => onOpenAI('settings')}
+                className="text-xs font-medium text-brand hover:underline"
+              >
+                配置模型与题库 →
+              </button>
+            )}
+          </div>
+          {aiEnabled && (
+            <div className="space-y-1.5">
+              <Label htmlFor="tiku-ai-priority">双题库查题顺序</Label>
+              <Select
+                id="tiku-ai-priority"
+                value={settings.tiku_config?.ai_priority || 'local_ocs_ai'}
+                onChange={(e) => handleTikuChange('ai_priority', e.target.value)}
+              >
+                <option value="local_ocs_ai">本地 SQLite → 外部 OCS → 内置 AI（推荐）</option>
+                <option value="local_ai_ocs">本地 SQLite → 内置 AI → 外部 OCS</option>
+                <option value="local_ai_only">仅本地 SQLite + 内置 AI</option>
+                <option value="ocs_only">仅外部 OCS（新答案自动入本地库）</option>
+              </Select>
+              <p className="text-[11px] leading-snug text-faint">
+                查到的新答案会自动沉淀到 AI 本地 SQLite 题库，支持视觉直答图片题、联网搜题与多模型复核。
+              </p>
+            </div>
+          )}
+        </div>
         <div className="space-y-1.5">
           <Label htmlFor="tiku-config">题库配置</Label>
           <textarea
@@ -91,7 +137,7 @@ export const TikuSettings = ({ settings, onChange, onFieldValidity }) => {
             className="flex w-full rounded-lg border border-line bg-white px-3 py-2 font-mono text-xs text-ink placeholder:text-faint hover:border-faint/50 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand/15"
           />
           <p className="text-xs leading-relaxed text-faint">
-            留空则不自动答题；编辑时不会请求订阅链接，点击“保存为默认配置”后才会保存。格式与{' '}
+            留空则不自动答题；编辑时不会请求订阅链接，修改后会自动保存。格式与{' '}
             <ExternalLink
               href="https://docs.ocsjs.com/docs/work"
               openDesktop={desktopBridge.openOcsDocs}
@@ -159,8 +205,8 @@ export const TikuSettings = ({ settings, onChange, onFieldValidity }) => {
   );
 };
 
-// 应用设置：通知、完成后关机与窗口关闭行为，与本次执行的功能无关，任何任务类型下都可配置。
-export const AppSettings = ({ settings, onChange }) => {
+// 应用设置：AI 题库工作台入口、通知、完成后关机与窗口关闭行为，与本次执行的功能无关，任何任务类型下都可配置。
+export const AppSettings = ({ settings, onChange, onOpenAI, aiDisabled = false }) => {
   const shutdownEnabled = settings.shutdown_on_complete === true;
   const handleNotificationChange = (field, value) => {
     onChange({
@@ -185,6 +231,23 @@ export const AppSettings = ({ settings, onChange }) => {
       summary={shutdownEnabled ? { text: '完成后关机', cls: 'bg-warning/10 text-warning-ink' } : undefined}
     >
       <div className="space-y-5">
+        {onOpenAI && (
+          <section className="rounded-xl border border-line p-4">
+            <SectionHeader icon={Sparkles} title="AI 题库与工作台" description="管理 AI 模型、本地题库、错题复习与学习工作台" />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={() => onOpenAI('dashboard')}
+              disabled={aiDisabled}
+            >
+              <Sparkles className="h-3.5 w-3.5 text-brand" aria-hidden="true" />
+              AI 题库与工作台
+            </Button>
+          </section>
+        )}
+
         <div>
           <SectionHeader icon={Bell} title="任务通知" description="任务完成或失败时的提醒方式" />
           <div className="space-y-4">

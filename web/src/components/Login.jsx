@@ -2,12 +2,12 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import Button from './ui/Button';
 import Input from './ui/Input';
 import Label from './ui/Label';
-import { LogIn, Loader2, KeyRound, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { LogIn, Loader2, KeyRound, AlertCircle, Eye, EyeOff, Sparkles } from 'lucide-react';
 import api from '../api/axios';
 import { sessionStore } from '../lib/sessionStore';
 import { loginLabels } from '../lib/uiText';
 
-const Login = ({ onLoginSuccess }) => {
+const Login = ({ onLoginSuccess, onOpenAI }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(true);
@@ -170,6 +170,14 @@ const Login = ({ onLoginSuccess }) => {
               )}
             </Button>
           </form>
+          {onOpenAI && (
+            <div className="mt-4 border-t border-line pt-4">
+              <Button type="button" variant="outline" size="sm" className="w-full" onClick={() => onOpenAI('dashboard')}>
+                <Sparkles className="h-3.5 w-3.5 text-brand" aria-hidden="true" />
+                进入 AI 题库与学习工作台
+              </Button>
+            </div>
+          )}
         </div>
 
         <p className="mt-6 text-center text-xs leading-relaxed text-faint">
