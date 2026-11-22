@@ -41,6 +41,7 @@ from api.notification import Notification
 from api.shutdown import shutdown_manager
 from api.task_state import TaskAlreadyRunning, TaskNotFound, TaskStore
 from api import course_tool_tasks
+from api.ai import init_ai_runtime, shutdown_ai_runtime, ai_blueprint
 import main as main_module
 
 # === 托盘图标相关导入 ===
@@ -82,6 +83,8 @@ CONFIG_FILE = os.path.join(DATA_DIR, "web_config.json")
 config_lock = threading.RLock()
 task_store = TaskStore(cleanup_interval=60, state_file=os.path.join(DATA_DIR, "study_tasks.json"))
 atexit.register(task_store.close)
+atexit.register(shutdown_ai_runtime)
+app.register_blueprint(ai_blueprint(get_chaoxing_bridge=lambda: chaoxing_agent_bridge))
 
 
 def load_web_config() -> Dict:
@@ -927,6 +930,259 @@ def health():
     return jsonify({'status': True, 'msg': 'OK'})
 
 
+class _ChaoxingAgentBridge:
+    """In-process bridge letting AI Agent inspect and control Chaoxing courses & tasks."""
+
+    def _logged_in_client(self, creds):
+        username, password, use_cookies = _credentials(creds)
+        return username, password, use_cookies
+
+    def list_courses(self, creds):
+        username, password, use_cookies = self._logged_in_client(creds)
+        with _login_client(username, password) as chaoxing:
+            result = chaoxing.login(login_with_cookies=use_cookies)
+            if not result.get("status"):
+                raise LoginError(result.get("msg", "学习通登录失败，请重新登录"))
+            return chaoxing.get_course_list()
+
+    def get_course_chapters(self, creds, course_id, course_obj=None):
+        username, password, use_cookies = self._logged_in_client(creds)
+        with _login_client(username, password) as chaoxing:
+            result = chaoxing.login(login_with_cookies=use_cookies)
+            if not result.get("status"):
+                raise LoginError(result.get("msg", "学习通登录失败，请重新登录"))
+            course = course_obj
+            if not isinstance(course, dict) or not course.get("clazzId"):
+                courses = chaoxing.get_course_list()
+                course = next((c for c in courses if str(c.get("courseId")) == str(course_id)), None)
+            if not course:
+                raise ValueError(f"未找到课程 ID: {course_id}")
+            point_list = chaoxing.get_course_point(course["courseId"], course["clazzId"], course["cpi"])
+            points = point_list.get("points") if isinstance(point_list, dict) else []
+            total = len(points)
+            completed = sum(1 for p in points if p.get("has_finished"))
+            total_jobs = sum(_job_count(p) for p in points)
+            pending_list = [
+                {
+                    "id": str(p.get("id", "")),
+                    "title": str(p.get("title") or ""),
+                    "jobCount": _job_count(p),
+                }
+                for p in points
+                if not p.get("has_finished")
+            ]
+            pending_jobs = sum(item["jobCount"] for item in pending_list)
+            return {
+                "totalChapters": total,
+                "completedChapters": completed,
+                "pendingChapters": len(pending_list),
+                "completionRate": round((completed / total) * 100, 1) if total > 0 else 100.0,
+                "totalJobs": total_jobs,
+                "pendingJobs": pending_jobs,
+                "pendingSample": pending_list[:25],
+            }
+
+    def start_study(self, creds, *, course_ids, speed=None, jobs=None, notopen_action=None, shutdown_on_complete=False):
+        saved = load_web_config().get("settings")
+        defaults = saved if isinstance(saved, dict) else {}
+        payload = {
+            "username": creds["username"],
+            "password": creds.get("password", ""),
+            "use_cookies": bool(creds.get("use_cookies", True)),
+            "course_list": list(course_ids),
+            "speed": defaults.get("speed", 1.0) if speed is None else speed,
+            "jobs": defaults.get("jobs", 1) if jobs is None else jobs,
+            "notopen_action": defaults.get("notopen_action", "retry") if notopen_action is None else notopen_action,
+            "tiku_config": defaults.get("tiku_config") if isinstance(defaults.get("tiku_config"), dict) else {},
+            "notification_config": defaults.get("notification_config") if isinstance(defaults.get("notification_config"), dict) else {},
+            "shutdown_on_complete": bool(shutdown_on_complete),
+        }
+        common_config, configs = _study_config(payload)
+        resume_config = {
+            key: common_config[key]
+            for key in ("course_list", "jobs", "speed", "retry_interval", "notopen_action")
+        }
+        resume_config.update(zip(("tiku_config", "notification_config"), configs))
+        task_id = task_store.create(
+            common_config["username"],
+            _initial_status(shutdown_on_complete=common_config["shutdown_on_complete"]),
+            {"courses": [], "active_jobs": {}},
+            resume_config=resume_config,
+        )
+        try:
+            _launch_study_task(task_id, task_store, common_config, *configs)
+        except Exception as exc:
+            task_store.finish(task_id, "error", error=redact(exc))
+            raise
+        return {
+            "task_id": task_id,
+            "speed": common_config["speed"],
+            "jobs": common_config["jobs"],
+            "notopen_action": common_config["notopen_action"],
+        }
+
+    def start_course_tool(self, creds, *, task_type, course_ids, tool_options, shutdown_on_complete=False):
+        payload = {
+            "username": creds["username"],
+            "password": creds.get("password", ""),
+            "use_cookies": bool(creds.get("use_cookies", True)),
+            "task_type": task_type,
+            "course_list": list(course_ids or []),
+            "tool_options": dict(tool_options or {}),
+            "shutdown_on_complete": bool(shutdown_on_complete),
+        }
+        config = _tool_config(payload)
+        task_id = task_store.create(
+            config["username"],
+            course_tool_tasks.initial_status(config),
+            course_tool_tasks.initial_details(config, []),
+            resume_config=course_tool_tasks.resume_config(config),
+        )
+        try:
+            _launch_tool_task(task_id, task_store, config)
+        except Exception as exc:
+            task_store.finish(task_id, "error", error=redact(exc))
+            raise
+        return {"task_id": task_id, "task_type": config["task_type"]}
+
+    def _resolve_task_id(self, username, task_id=None):
+        if task_id and task_store.belongs_to(task_id, username):
+            return task_id
+        active = task_store.get_active_task_id(username)
+        if active:
+            return active
+        recent = task_store.list_account_tasks(username, limit=1)
+        if recent:
+            return recent[0]["task_id"]
+        return None
+
+    def get_task_status(self, username, task_id=None, log_limit=15):
+        recent_raw = task_store.list_account_tasks(username, limit=5) or []
+        recent_tasks = [
+            {
+                "taskId": item.get("task_id"),
+                "status": item.get("status"),
+                "taskType": item.get("task_type") or "study",
+            }
+            for item in recent_raw
+        ]
+        resolved = self._resolve_task_id(username, task_id)
+        if not resolved:
+            return {"hasTask": False, "recentTasks": recent_tasks}
+        status = task_store.get_status(resolved)
+        details = task_store.get_details(resolved)
+        logs_res = task_store.read_logs(resolved, 0)
+        recent_logs = [
+            {"level": entry.get("level"), "message": entry.get("message")}
+            for entry in (logs_res.get("data") or [])[-log_limit:]
+        ]
+        courses_summary = [
+            {
+                "id": c.get("id"),
+                "title": c.get("title"),
+                "status": c.get("status"),
+                "chaptersTotal": len(c.get("chapters") or []),
+                "chaptersFinished": sum(1 for ch in (c.get("chapters") or []) if ch.get("has_finished")),
+                "error": c.get("error"),
+            }
+            for c in (details.get("courses") or [])[:20]
+        ]
+        active_jobs = list((details.get("active_jobs") or {}).values())[:8]
+        return {
+            "hasTask": True,
+            "taskId": resolved,
+            "status": status,
+            "courses": courses_summary,
+            "activeJobs": active_jobs,
+            "recentLogs": recent_logs,
+            "recentTasks": recent_tasks,
+        }
+
+    def resume_task(self, creds, task_id=None):
+        username, password, use_cookies = self._logged_in_client(creds)
+        resolved = self._resolve_task_id(username, task_id)
+        if not resolved:
+            raise ValueError("当前没有可恢复的任务记录")
+        with _login_client(username, password) as chaoxing:
+            result = chaoxing.login(login_with_cookies=use_cookies)
+            if not result.get("status"):
+                raise LoginError(result.get("msg", "登录会话已失效，请重新登录"))
+        saved = task_store.get_resume_config(resolved, username)
+        if saved is None:
+            raise ValueError("该任务没有可恢复的断点记录（或任务未处于中断状态）")
+        if "task_type" in saved:
+            config = _tool_config({**saved, "username": username, "password": "", "use_cookies": True})
+            if config["task_type"] in {"visits", *course_tool_tasks.TIMED_TOOLS}:
+                task_store.finish(
+                    resolved,
+                    "partial",
+                    error="上次执行被程序退出中断，已保留执行记录。为避免重复累计，请核对平台统计后重新开始。",
+                )
+            else:
+                details = course_tool_tasks.restored_details(config, task_store.get_details(resolved), DATA_DIR, resolved)
+                claimed = task_store.resume(resolved, username, course_tool_tasks.initial_status(config, details), details)
+                if claimed is not None:
+                    try:
+                        _launch_tool_task(resolved, task_store, config)
+                    except Exception as exc:
+                        task_store.interrupt(resolved, redact(exc))
+                        raise
+            return {"task_id": resolved, "status": task_store.get_status(resolved)["status"]}
+        common_config, configs = _study_config({**saved, "username": username, "password": "", "use_cookies": True})
+        claimed = task_store.resume(resolved, username, _initial_status(), {"courses": [], "active_jobs": {}})
+        if claimed is not None:
+            try:
+                _launch_study_task(resolved, task_store, common_config, *configs)
+            except Exception as exc:
+                task_store.interrupt(resolved, redact(exc))
+                raise
+        return {"task_id": resolved, "status": task_store.get_status(resolved)["status"]}
+
+    def stop_task(self, username, task_id=None):
+        resolved = task_id if (task_id and task_store.belongs_to(task_id, username)) else task_store.get_active_task_id(username)
+        if not resolved:
+            raise ValueError("当前没有正在运行的学习通任务")
+        state = task_store.request_cancel(resolved, username)
+        return {"task_id": resolved, "state": state}
+
+    def cancel_shutdown(self, username, task_id=None):
+        resolved = self._resolve_task_id(username, task_id)
+        if not resolved:
+            raise ValueError("当前没有可取消关机的任务")
+        result = shutdown_manager.cancel_for_task(task_store, resolved, username)
+        return {"task_id": resolved, **result}
+
+    def get_web_settings(self, username=None):
+        data = load_web_config()
+        settings = data.get("settings") if isinstance(data.get("settings"), dict) else {}
+        selected = []
+        if username:
+            by_acc = data.get("selectedCoursesByAccount")
+            if isinstance(by_acc, dict) and isinstance(by_acc.get(username), list):
+                selected = list(by_acc[username])
+        return {
+            "speed": settings.get("speed", 1.0),
+            "jobs": settings.get("jobs", 1),
+            "notopen_action": settings.get("notopen_action", "retry"),
+            "shutdown_on_complete": bool(settings.get("shutdown_on_complete", False)),
+            "selectedCourseIds": selected,
+        }
+
+    def update_web_settings(self, patch):
+        with config_lock:
+            stored = load_web_config()
+            settings = dict(stored.get("settings") or {})
+            for key in ("speed", "jobs", "notopen_action"):
+                if key in patch:
+                    settings[key] = patch[key]
+            stored["settings"] = settings
+            save_web_config(stored)
+        return self.get_web_settings()
+
+
+chaoxing_agent_bridge = _ChaoxingAgentBridge()
+
+
 # ==================== 静态文件服务（便携版支持） ====================
 
 @app.route('/')
@@ -1083,6 +1339,10 @@ if __name__ == "__main__":
         # Tauri 的原生代理无需 CORS；导入期已跳过注册。
         threading.Thread(target=watch_parent_stdin, daemon=True).start()
         try:
+            init_ai_runtime()
+        except Exception as e:
+            logger.warning(f"AI 运行时初始化失败: {e}")
+        try:
             run_tauri_server(app, token, instance_id)
         except Exception as e:
             logger.error(f"Tauri 服务器启动失败: {e}")
@@ -1133,6 +1393,11 @@ if __name__ == "__main__":
         tray_icon = setup_tray_icon()
         threading.Thread(target=tray_icon.run, daemon=True).start()
         logger.info("托盘图标已启动，右键可退出")
+
+    try:
+        init_ai_runtime()
+    except Exception as e:
+        logger.warning(f"AI 运行时初始化失败: {e}")
 
     # 后台启动 Flask
     flask_thread = threading.Thread(

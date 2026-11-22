@@ -417,13 +417,31 @@ class Tiku:
             self.config_set(self._get_conf())
         if self.DISABLE:
             return self
-        if not _has_ocs_tiku_config(self._conf):
+        conf = self._conf or {}
+        has_ocs = _has_ocs_tiku_config(conf)
+        ai_override = conf.get("ai_enabled")
+        if ai_override is not None:
+            ai_enabled = str(ai_override).strip().lower() in ("true", "1", "yes")
+        else:
+            try:
+                from api.ai import get_ai_config
+                ai_enabled = bool(get_ai_config().load().get("engine", {}).get("enabled", False))
+            except Exception:
+                ai_enabled = False
+
+        if ai_enabled:
+            from api.ai.tiku_adapter import TikuHybrid
+            new_cls = TikuHybrid()
+            new_cls.config_set(conf)
+            return new_cls
+
+        if not has_ocs:
             self.DISABLE = True
             logger.error("未找到题库配置, 已忽略题库功能")
             return self
         from api.ocs_tiku import TikuOcs
         new_cls = TikuOcs()
-        new_cls.config_set(self._conf)
+        new_cls.config_set(conf)
         return new_cls
 
     def judgement_select(self, answer: str) -> bool:

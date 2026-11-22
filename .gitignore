@@ -153,6 +153,11 @@ config*.ini
 .vscode/
 cache.json
 web_config.json
+ai.db
+ai.db-wal
+ai.db-shm
+ai_config.json
+ai_config.json.tmp
 study_tasks.json
 study_tasks.json.migrated
 study_tasks/

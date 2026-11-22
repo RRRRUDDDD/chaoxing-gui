@@ -223,6 +223,43 @@ class TaskStore:
             self._cleanup_locked()
             return sum(task.status.get("status") == "running" for task in self._tasks.values())
 
+    def get_active_task_id(self, account: str) -> str | None:
+        """Return the active (non-terminal) task_id for an account, if any."""
+        with self._lock:
+            self._cleanup_locked()
+            return self._active_accounts.get(account)
+
+    def list_account_tasks(self, account: str, limit: int = 5) -> list[dict]:
+        """Return recent tasks owned by an account, newest first."""
+        with self._lock:
+            self._cleanup_locked()
+            items = []
+            for task_id, task in self._tasks.items():
+                if task.account != account:
+                    continue
+                status = task.status
+                items.append({
+                    "task_id": task_id,
+                    "status": status.get("status"),
+                    "task_type": status.get("task_type", "study"),
+                    "task_label": status.get("task_label"),
+                    "progress": status.get("progress", 0),
+                    "total": status.get("total", 0),
+                    "current_course": status.get("current_course", ""),
+                    "current_chapter": status.get("current_chapter", ""),
+                    "start_time": status.get("start_time", 0) or 0,
+                    "end_time": status.get("end_time"),
+                })
+            items.sort(key=lambda item: item["start_time"], reverse=True)
+            return items[:max(1, int(limit))]
+
+    def belongs_to(self, task_id: str, account: str) -> bool:
+        """Check whether a non-expired task exists and is owned by account."""
+        with self._lock:
+            self._cleanup_locked()
+            task = self._tasks.get(task_id)
+            return task is not None and task.account == account
+
     def is_cancelled(self, task_id: str) -> bool:
         """Report the stop signal for workers; a vanished task must also stop."""
         with self._lock:
