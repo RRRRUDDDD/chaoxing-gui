@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import CourseSelection, { AUTO_SAVE_DELAY_MS } from './CourseSelection';
 import StudyProgress from './StudyProgress';
@@ -252,4 +252,44 @@ it('renders safe fallback values when active video job metrics are missing or Na
   expect(screen.getByText('0%')).toBeTruthy();
   expect(screen.getAllByText('--:--')).toHaveLength(2);
   expect(screen.queryByText(/NaN/)).toBeNull();
+});
+
+it('keeps outer AI tiku cooperation toggle synced before opening AI workspace and after returning', async () => {
+  const openAI = vi.fn();
+  api.get.mockResolvedValue(ok({
+    selectedCoursesByAccount: { alice: ['1'] },
+    settings: { speed: 1, jobs: 1, notopen_action: 'retry', tiku_config: {} },
+    aiEngine: { enabled: true, priority: 'local_ai_ocs' },
+  }));
+
+  const view = await mountCourses({ onOpenAI: openAI });
+
+  // Initial load reflects backend aiEngine state
+  fireEvent.click(screen.getByRole('button', { name: '展开答题设置' }));
+  const checkbox = screen.getByLabelText('启用内置 AI 题库协同');
+  expect(checkbox.checked).toBe(true);
+  expect(screen.getByLabelText('双题库查题顺序').value).toBe('local_ai_ocs');
+
+  // Toggling outside and immediately clicking "配置模型与题库 →" flushes /config before opening AI workspace
+  fireEvent.click(checkbox);
+  expect(checkbox.checked).toBe(false);
+  fireEvent.click(screen.getByRole('button', { name: /配置模型与题库/ }));
+
+  await waitFor(() => expect(openAI).toHaveBeenCalledWith('settings'));
+  const configCalls = api.post.mock.calls.filter(([url]) => url === '/config');
+  expect(configCalls).toHaveLength(1);
+  expect(configCalls[0][1].settings.tiku_config.ai_enabled).toBe(false);
+
+  // Syncing from AI workspace updates outer checkbox and priority without firing a redundant /config POST
+  view.rerender(
+    <CourseSelection
+      userInfo={account}
+      onStartStudy={vi.fn()}
+      onOpenAI={openAI}
+      syncedAiEngine={{ enabled: true, priority: 'local_ai_only', _ts: 12345 }}
+    />
+  );
+  expect(screen.getByLabelText('启用内置 AI 题库协同').checked).toBe(true);
+  expect(screen.getByLabelText('双题库查题顺序').value).toBe('local_ai_only');
+  expect(api.post.mock.calls.filter(([url]) => url === '/config')).toHaveLength(1);
 });

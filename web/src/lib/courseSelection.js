@@ -6,8 +6,14 @@ export function defaultSettings() {
   };
 }
 
-export function restoreSettings(saved) {
+export function restoreSettings(saved, aiEngine) {
   const settings = { ...defaultSettings(), ...saved };
+  if (aiEngine && typeof aiEngine === 'object') {
+    const tiku = { ...(settings.tiku_config || {}) };
+    if (typeof aiEngine.enabled === 'boolean') tiku.ai_enabled = aiEngine.enabled;
+    if (typeof aiEngine.priority === 'string' && aiEngine.priority) tiku.ai_priority = aiEngine.priority;
+    settings.tiku_config = tiku;
+  }
   if (typeof settings.notification_config?.provider !== 'string') {
     settings.notification_config = { ...settings.notification_config, provider: 'Windows' };
   }

@@ -33,6 +33,8 @@ function App() {
   const [aiOpen, setAiOpen] = useState(false);
   const [aiTab, setAiTab] = useState('dashboard');
   const [quickTutorOpen, setQuickTutorOpen] = useState(false);
+  const [syncedAiEngine, setSyncedAiEngine] = useState(null);
+  const [configSyncVersion, setConfigSyncVersion] = useState(0);
   const openAI = useCallback((tab = 'dashboard') => {
     setQuickTutorOpen(false);
     setAiTab(tab);
@@ -319,6 +321,8 @@ function App() {
         if (eff.state === 'cancelled') {
           setTaskStatus('cancelled');
         }
+      } else if (eff?.type === 'config_changed') {
+        setConfigSyncVersion((v) => v + 1);
       }
     }
   }, [userInfo]);
@@ -352,7 +356,10 @@ function App() {
       await sessionStore.clear();
       if (generation !== sessionGeneration.current) return;
       shutdownOnCompleteRef.current = false;
+      setAiOpen(false);
       setQuickTutorOpen(false);
+      setSyncedAiEngine(null);
+      setConfigSyncVersion(0);
       setUserInfo(null);
       setTaskId(null);
       setTaskStatus(null);
@@ -377,17 +384,18 @@ function App() {
 
   return (
     <div className="App">
-      {aiOpen && (
+      {aiOpen && userInfo && (
         <AIWorkspace
           initialTab={aiTab}
-          backLabel={userInfo ? '返回课程管理' : '返回登录页'}
+          backLabel="返回课程管理"
           onBack={closeAI}
           chaoxingContext={chaoxingContext}
           onAgentEffects={handleAgentEffects}
-          onViewProgress={userInfo ? handleViewProgress : undefined}
+          onAiEngineChange={setSyncedAiEngine}
+          onViewProgress={handleViewProgress}
         />
       )}
-      {!aiOpen && step === 'login' && <Login onLoginSuccess={handleLoginSuccess} onOpenAI={openAI} />}
+      {step === 'login' && <Login onLoginSuccess={handleLoginSuccess} />}
       {(step === 'courses' || (coursesVisited && userInfo)) && (
         <div hidden={aiOpen || step !== 'courses'}>
           <CourseSelection
@@ -398,6 +406,8 @@ function App() {
             onLogout={handleLogout}
             onOpenAI={openAI}
             onOpenTutor={openQuickTutor}
+            syncedAiEngine={syncedAiEngine}
+            configSyncVersion={configSyncVersion}
             starting={starting}
             loggingOut={loggingOut}
             startError={startError || currentRecovery?.error || monitorError}

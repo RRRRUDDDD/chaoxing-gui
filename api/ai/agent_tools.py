@@ -716,6 +716,15 @@ def execute_agent_tool(
 
                 updated_web = chaoxing_bridge.update_web_settings(web_patch) if web_patch else None
                 updated_ai = config_store.update(ai_patch) if ai_patch else None
+                if (
+                    updated_ai
+                    and hasattr(chaoxing_bridge, "sync_tiku_ai_settings")
+                    and ("enabled" in engine_patch or "priority" in engine_patch)
+                ):
+                    chaoxing_bridge.sync_tiku_ai_settings(
+                        ai_enabled=updated_ai["engine"]["enabled"] if "enabled" in engine_patch else None,
+                        ai_priority=updated_ai["engine"]["priority"] if "priority" in engine_patch else None,
+                    )
                 effects.append({"type": "config_changed"})
                 return {
                     "ok": True,

@@ -41,7 +41,8 @@ from api.notification import Notification
 from api.shutdown import shutdown_manager
 from api.task_state import TaskAlreadyRunning, TaskNotFound, TaskStore
 from api import course_tool_tasks
-from api.ai import init_ai_runtime, shutdown_ai_runtime, ai_blueprint
+from api.ai import init_ai_runtime, shutdown_ai_runtime, ai_blueprint, get_ai_config
+from api.ai.config import VALID_PRIORITIES
 import main as main_module
 
 # === 托盘图标相关导入 ===
@@ -218,11 +219,60 @@ def get_courses():
         return jsonify({"status": False, "msg": redact(exc)}), 500
 
 
+def _parse_bool_flag(value):
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    if isinstance(value, str):
+        low = value.strip().lower()
+        if low in ("true", "1", "yes"):
+            return True
+        if low in ("false", "0", "no"):
+            return False
+    return None
+
+
+def _sync_ai_engine_from_tiku(tiku_cfg) -> None:
+    """Keep ai_config.json engine cooperation fields aligned with web tiku_config."""
+    if not isinstance(tiku_cfg, dict):
+        return
+    engine_patch = {}
+    if "ai_enabled" in tiku_cfg:
+        parsed = _parse_bool_flag(tiku_cfg.get("ai_enabled"))
+        if parsed is not None:
+            engine_patch["enabled"] = parsed
+    if "ai_priority" in tiku_cfg:
+        raw_priority = str(tiku_cfg.get("ai_priority") or "").strip()
+        if raw_priority in VALID_PRIORITIES:
+            engine_patch["priority"] = raw_priority
+    if engine_patch:
+        try:
+            get_ai_config().update({"engine": engine_patch})
+        except Exception as exc:
+            logger.warning(f"同步 AI 题库协同配置失败: {exc}")
+
+
 @app.route('/api/config', methods=['GET', 'POST'])
 def web_config():
     if request.method == 'GET':
         data = load_web_config()
         data.pop("selectedCourses", None)
+        try:
+            ai_engine = get_ai_config().load().get("engine", {})
+            ai_enabled = bool(ai_engine.get("enabled", False))
+            ai_priority = ai_engine.get("priority", "local_ocs_ai")
+            if ai_priority not in VALID_PRIORITIES:
+                ai_priority = "local_ocs_ai"
+            data["aiEngine"] = {"enabled": ai_enabled, "priority": ai_priority}
+            settings = data.get("settings")
+            if isinstance(settings, dict) and isinstance(settings.get("tiku_config"), dict):
+                tiku = dict(settings["tiku_config"])
+                tiku["ai_enabled"] = ai_enabled
+                tiku["ai_priority"] = ai_priority
+                data["settings"] = {**settings, "tiku_config": tiku}
+        except Exception as exc:
+            logger.warning(f"读取 AI 题库协同配置失败: {exc}")
         return jsonify({"status": True, "data": data})
     try:
         data = _json_body()
@@ -250,6 +300,8 @@ def web_config():
         stored["selectedCoursesByAccount"] = accounts
         if not save_web_config(stored):
             return jsonify({"status": False, "msg": "保存失败"}), 500
+        if "settings" in data:
+            _sync_ai_engine_from_tiku(data["settings"].get("tiku_config"))
     return jsonify({"status": True, "msg": "保存成功"})
 
 
@@ -1178,6 +1230,21 @@ class _ChaoxingAgentBridge:
             stored["settings"] = settings
             save_web_config(stored)
         return self.get_web_settings()
+
+    def sync_tiku_ai_settings(self, *, ai_enabled=None, ai_priority=None):
+        if ai_enabled is None and ai_priority is None:
+            return
+        with config_lock:
+            stored = load_web_config()
+            settings = dict(stored.get("settings") or {})
+            tiku = dict(settings.get("tiku_config") or {})
+            if ai_enabled is not None:
+                tiku["ai_enabled"] = bool(ai_enabled)
+            if isinstance(ai_priority, str) and ai_priority in VALID_PRIORITIES:
+                tiku["ai_priority"] = ai_priority
+            settings["tiku_config"] = tiku
+            stored["settings"] = settings
+            save_web_config(stored)
 
 
 chaoxing_agent_bridge = _ChaoxingAgentBridge()

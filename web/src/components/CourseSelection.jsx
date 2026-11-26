@@ -36,7 +36,7 @@ const defaultToolOptions = () => ({
   count: '10', interval: '30', readMode: 'catalog', readUrls: '', readMinutes: '30',
 });
 
-const CourseSelectionContent = ({ userInfo, onStartStudy, onLogout, onReload, onOpenAI, onOpenTutor, starting, loggingOut = false, startError, notice = '', activeTaskId, taskRunning = false, onReturnToTask, onShutdownChange, shutdownBanner = null, preview = false, active = true }) => {
+const CourseSelectionContent = ({ userInfo, onStartStudy, onLogout, onReload, onOpenAI, onOpenTutor, syncedAiEngine = null, configSyncVersion = 0, starting, loggingOut = false, startError, notice = '', activeTaskId, taskRunning = false, onReturnToTask, onShutdownChange, shutdownBanner = null, preview = false, active = true }) => {
   const username = userInfo.username;
   const password = userInfo.password;
   const useCookies = userInfo.use_cookies === true;
@@ -63,6 +63,15 @@ const CourseSelectionContent = ({ userInfo, onStartStudy, onLogout, onReload, on
   }, []);
   const [loadedAccount, setLoadedAccount] = useState(() => (preview ? username : null));
   const saveController = useRef(null);
+  const savePromiseRef = useRef(null);
+  const settingsRef = useRef(settings);
+  const selectedCoursesRef = useRef(selectedCourses);
+  const savedSnapshotRef = useRef(savedSnapshot);
+  const lastSyncedAiTsRef = useRef(0);
+  const lastConfigSyncVersionRef = useRef(configSyncVersion);
+  settingsRef.current = settings;
+  selectedCoursesRef.current = selectedCourses;
+  savedSnapshotRef.current = savedSnapshot;
 
   useEffect(() => {
     if (preview) return () => { saveController.current?.abort(); };
@@ -83,7 +92,7 @@ const CourseSelectionContent = ({ userInfo, onStartStudy, onLogout, onReload, on
         if (!configResult.value.data.status) throw new Error(configResult.value.data.msg || '加载已保存配置失败');
         const config = configResult.value.data.data || {};
         const selection = restoreCourseSelection(config, username, nextCourses);
-        const restoredSettings = restoreSettings(config.settings);
+        const restoredSettings = restoreSettings(config.settings, config.aiEngine);
         setSettings(restoredSettings);
         setSavedSnapshot(configSnapshot(restoredSettings, username, selection.ids));
         setSelectedCourses(selection.ids);
@@ -96,6 +105,62 @@ const CourseSelectionContent = ({ userInfo, onStartStudy, onLogout, onReload, on
     load();
     return () => { controller.abort(); saveController.current?.abort(); };
   }, [username, password, useCookies, preview]);
+
+  // Keep outer tiku_config ai_enabled/ai_priority aligned when AIWorkspace saves engine settings.
+  useEffect(() => {
+    if (!syncedAiEngine?._ts || syncedAiEngine._ts === lastSyncedAiTsRef.current || loadedAccount !== username) return;
+    lastSyncedAiTsRef.current = syncedAiEngine._ts;
+    const prev = settingsRef.current;
+    const prevTiku = prev.tiku_config || {};
+    const nextEnabled = typeof syncedAiEngine.enabled === 'boolean' ? syncedAiEngine.enabled : prevTiku.ai_enabled;
+    const nextPriority = typeof syncedAiEngine.priority === 'string' && syncedAiEngine.priority ? syncedAiEngine.priority : prevTiku.ai_priority;
+    if (prevTiku.ai_enabled === nextEnabled && prevTiku.ai_priority === nextPriority) return;
+    const nextSettings = {
+      ...prev,
+      tiku_config: {
+        ...prevTiku,
+        ai_enabled: nextEnabled,
+        ai_priority: nextPriority,
+      },
+    };
+    const wasClean = savedSnapshotRef.current === configSnapshot(prev, username, selectedCoursesRef.current);
+    setSettings(nextSettings);
+    if (wasClean) {
+      setSavedSnapshot(configSnapshot(nextSettings, username, selectedCoursesRef.current));
+    }
+  }, [syncedAiEngine, loadedAccount, username]);
+
+  // Re-sync settings when an AI Agent tool updates Chaoxing/AI settings directly on the backend.
+  useEffect(() => {
+    if (preview || configSyncVersion <= lastConfigSyncVersionRef.current || loadedAccount !== username) return undefined;
+    lastConfigSyncVersionRef.current = configSyncVersion;
+    const controller = new AbortController();
+    api.get('/config', { signal: controller.signal })
+      .then((res) => {
+        if (controller.signal.aborted || !res.data?.status) return;
+        const cfg = res.data.data || {};
+        const restored = restoreSettings(cfg.settings, cfg.aiEngine);
+        const prev = settingsRef.current;
+        const nextSettings = {
+          ...prev,
+          speed: restored.speed,
+          jobs: restored.jobs,
+          notopen_action: restored.notopen_action,
+          tiku_config: {
+            ...(prev.tiku_config || {}),
+            ...(restored.tiku_config?.ai_enabled !== undefined ? { ai_enabled: restored.tiku_config.ai_enabled } : {}),
+            ...(restored.tiku_config?.ai_priority !== undefined ? { ai_priority: restored.tiku_config.ai_priority } : {}),
+          },
+        };
+        const wasClean = savedSnapshotRef.current === configSnapshot(prev, username, selectedCoursesRef.current);
+        setSettings(nextSettings);
+        if (wasClean) {
+          setSavedSnapshot(configSnapshot(nextSettings, username, selectedCoursesRef.current));
+        }
+      })
+      .catch(() => {});
+    return () => controller.abort();
+  }, [configSyncVersion, loadedAccount, username, preview]);
 
   const currentSnapshot = useMemo(() => configSnapshot(settings, username, selectedCourses), [settings, username, selectedCourses]);
   const dirty = savedSnapshot !== null && currentSnapshot !== savedSnapshot;
@@ -163,28 +228,47 @@ const CourseSelectionContent = ({ userInfo, onStartStudy, onLogout, onReload, on
       setSaveStatus({ type: 'success', message: '演示配置已保存', snapshot });
       return;
     }
-    if (saveController.current && !saveController.current.signal.aborted) return;
+    if (saveController.current && !saveController.current.signal.aborted) return savePromiseRef.current;
     const controller = new AbortController();
     saveController.current = controller;
-    try {
-      setSaving(true);
-      setSaveStatus(null);
-      const payload = { settings: nextSettings, selectedCoursesByAccount: { [username]: nextSelectedCourses } };
-      const response = await api.post('/config', payload, { signal: controller.signal });
-      if (controller.signal.aborted) return;
-      if (!response.data.status) {
-        setSaveStatus({ type: 'error', message: response.data.msg || '保存失败，请重试', snapshot });
-      } else {
-        setSavedSnapshot(snapshot);
-        setSaveStatus({ type: 'success', message: configSavedMessage, snapshot });
+    const run = (async () => {
+      try {
+        setSaving(true);
+        setSaveStatus(null);
+        const payload = { settings: nextSettings, selectedCoursesByAccount: { [username]: nextSelectedCourses } };
+        const response = await api.post('/config', payload, { signal: controller.signal });
+        if (controller.signal.aborted) return;
+        if (!response.data.status) {
+          setSaveStatus({ type: 'error', message: response.data.msg || '保存失败，请重试', snapshot });
+        } else {
+          setSavedSnapshot(snapshot);
+          setSaveStatus({ type: 'success', message: configSavedMessage, snapshot });
+        }
+      } catch {
+        if (!controller.signal.aborted) setSaveStatus({ type: 'error', message: '保存请求失败，请重试', snapshot });
+      } finally {
+        if (!controller.signal.aborted) setSaving(false);
+        if (saveController.current === controller) saveController.current = null;
+        if (savePromiseRef.current === run) savePromiseRef.current = null;
       }
-    } catch {
-      if (!controller.signal.aborted) setSaveStatus({ type: 'error', message: '保存请求失败，请重试', snapshot });
-    } finally {
-      if (!controller.signal.aborted) setSaving(false);
-      if (saveController.current === controller) saveController.current = null;
-    }
+    })();
+    savePromiseRef.current = run;
+    return run;
   }, [loggingOut, loading, loadError, loadedAccount, username, preview]);
+
+  const handleOpenAI = useCallback((tab = 'dashboard') => {
+    if (!onOpenAI) return;
+    const inflight = savePromiseRef.current;
+    if (inflight) {
+      void inflight.finally(() => onOpenAI(tab));
+      return;
+    }
+    if (dirty && !hasInvalidFields && !loggingOut && !loading && !loadError && loadedAccount === username) {
+      void persistConfig(currentSnapshot, settings, selectedCourses).finally(() => onOpenAI(tab));
+      return;
+    }
+    onOpenAI(tab);
+  }, [onOpenAI, dirty, hasInvalidFields, loggingOut, loading, loadError, loadedAccount, username, persistConfig, currentSnapshot, settings, selectedCourses]);
 
   const saveFailedForCurrent = saveStatus?.type === 'error' && saveStatus.snapshot === currentSnapshot;
   const canAutoSave = active && !loggingOut && !loading && !loadError && loadedAccount === username && !hasInvalidFields;
@@ -459,11 +543,11 @@ const CourseSelectionContent = ({ userInfo, onStartStudy, onLogout, onReload, on
                     </Select>
                   </div>
 
-                  <TikuSettings settings={settings} onChange={setSettings} onFieldValidity={setFieldValid} onOpenAI={onOpenAI} />
+                  <TikuSettings settings={settings} onChange={setSettings} onFieldValidity={setFieldValid} onOpenAI={onOpenAI ? handleOpenAI : undefined} />
                   </>}
 
                   <div className="border-t border-line pt-5">
-                    <AppSettings settings={settings} onChange={setSettings} onOpenAI={onOpenAI} aiDisabled={loggingOut} />
+                    <AppSettings settings={settings} onChange={setSettings} onOpenAI={onOpenAI ? handleOpenAI : undefined} aiDisabled={loggingOut} />
                   </div>
                 </div>
               </div>

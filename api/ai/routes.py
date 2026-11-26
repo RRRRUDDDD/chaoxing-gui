@@ -37,7 +37,7 @@ def create_ai_blueprint(get_db, get_config, get_engine, get_server, get_chaoxing
                 "searchProviders": SEARCH_PROVIDERS_META,
                 "server": server.status(),
             },
-            "config.save": lambda p: _save_config(cfg_store, server, p),
+            "config.save": lambda p: _save_config(cfg_store, server, p, chaoxing_bridge=chaoxing_bridge),
             "config.summary": lambda p: {
                 "summary": cfg_store.summary_stats(),
                 "stats": db.get_stats(),
@@ -225,11 +225,20 @@ def create_ai_blueprint(get_db, get_config, get_engine, get_server, get_chaoxing
     return bp
 
 
-def _save_config(cfg_store, server, params: Dict[str, Any]) -> Dict[str, Any]:
+def _save_config(cfg_store, server, params: Dict[str, Any], chaoxing_bridge=None) -> Dict[str, Any]:
     if "config" in params and isinstance(params["config"], dict):
         saved = cfg_store.save(params["config"])
     else:
         saved = cfg_store.update(params)
+    # Keep web_config.json tiku_config ai_enabled/ai_priority synchronized with ai_config.json
+    if chaoxing_bridge is not None and hasattr(chaoxing_bridge, "sync_tiku_ai_settings"):
+        try:
+            chaoxing_bridge.sync_tiku_ai_settings(
+                ai_enabled=bool(saved["engine"].get("enabled", False)),
+                ai_priority=saved["engine"].get("priority"),
+            )
+        except Exception as exc:
+            logger.warning("同步题库协同配置到 Web 配置失败: {}", exc)
     # Sync local server state if enabled flag/port changed
     desired_running = bool(saved["engine"].get("localServerEnabled", False))
     desired_port = int(saved["engine"].get("localServerPort", 3005))

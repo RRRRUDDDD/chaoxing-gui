@@ -44,6 +44,7 @@ export default function AIWorkspace({
   initialTab = 'dashboard',
   chaoxingContext = null,
   onAgentEffects,
+  onAiEngineChange,
   onViewProgress,
 }) {
   const [activeTab, setActiveTab] = useState(initialTab);
@@ -96,12 +97,22 @@ export default function AIWorkspace({
     };
   }, []);
 
+  const notifyAiEngine = useCallback((cfg) => {
+    if (!cfg?.engine || !onAiEngineChange) return;
+    onAiEngineChange({
+      enabled: Boolean(cfg.engine.enabled),
+      priority: cfg.engine.priority || 'local_ocs_ai',
+      _ts: Date.now(),
+    });
+  }, [onAiEngineChange]);
+
   const loadAll = useCallback(async (silent = false) => {
     if (!silent) setErrorMsg('');
     else setRefreshing(true);
     try {
       const [cfgRes, statsRes] = await Promise.all([aiApi.getConfig(), aiApi.getStats()]);
       setConfig(cfgRes.config);
+      notifyAiEngine(cfgRes.config);
       setSearchProviders(cfgRes.searchProviders || []);
       setStats(statsRes);
       setDataVersion((v) => v + 1);
@@ -111,7 +122,7 @@ export default function AIWorkspace({
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [notifyAiEngine]);
 
   useEffect(() => {
     let cancelled = false;
@@ -132,8 +143,11 @@ export default function AIWorkspace({
   }, []);
 
   const handleConfigSaved = useCallback((res) => {
-    if (res?.config) setConfig(res.config);
-  }, []);
+    if (res?.config) {
+      setConfig(res.config);
+      notifyAiEngine(res.config);
+    }
+  }, [notifyAiEngine]);
 
   const refreshStats = useCallback(async () => {
     setDataVersion((v) => v + 1);
@@ -266,9 +280,6 @@ export default function AIWorkspace({
               </div>
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold leading-tight text-ink">AI 题库与学习工作台</p>
-                <p className="hidden truncate text-[11px] leading-tight text-faint md:block">
-                  多模型并发答题 · 本地 SQLite 题库 · 艾宾浩斯知识图谱 · 侧滑 AI 助教
-                </p>
               </div>
             </div>
           </div>
@@ -294,17 +305,6 @@ export default function AIWorkspace({
               >
                 刷课协同已启用
               </button>
-            )}
-            {activeTab !== 'agent' && (
-              <Button
-                variant={tutorOpen ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setTutorOpen((v) => !v)}
-                title="打开侧滑 AI 助教，不离开当前页面随时提问"
-              >
-                <MessageSquare className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">快捷助教</span>
-              </Button>
             )}
             <Button
               variant="outline"

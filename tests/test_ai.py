@@ -658,6 +658,63 @@ class TestAISubsystem(unittest.TestCase):
         self.assertEqual(r_clr.status_code, 200)
         self.assertEqual(r_clr.get_json()["data"]["messages"], [])
 
+    def test_web_config_and_ai_engine_cooperation_two_way_sync(self):
+        import app as web_app
+
+        web_cfg_path = os.path.join(self.tmpdir.name, "web_config.json")
+        with (
+            patch.object(web_app, "CONFIG_FILE", web_cfg_path),
+            patch.object(web_app, "get_ai_config", return_value=self.cfg),
+            patch("api.ai.get_ai_config", return_value=self.cfg),
+        ):
+            client = web_app.app.test_client()
+
+            # 1) Outer POST /api/config syncs ai_enabled & ai_priority into ai_config.json
+            resp = client.post(
+                "/api/config",
+                json={
+                    "settings": {
+                        "speed": 1.5,
+                        "tiku_config": {"ai_enabled": True, "ai_priority": "local_ai_only"},
+                    }
+                },
+            )
+            self.assertEqual(resp.status_code, 200)
+            ai_cfg = self.cfg.load()
+            self.assertTrue(ai_cfg["engine"]["enabled"])
+            self.assertEqual(ai_cfg["engine"]["priority"], "local_ai_only")
+
+            # 2) Inner AI RPC config.save syncs engine.enabled & priority back into web_config.json
+            test_ai_app = Flask(__name__)
+            test_ai_app.register_blueprint(
+                create_ai_blueprint(
+                    lambda: self.db,
+                    lambda: self.cfg,
+                    lambda: self.engine,
+                    lambda: self.server,
+                    get_chaoxing_bridge=lambda: web_app.chaoxing_agent_bridge,
+                )
+            )
+            ai_client = test_ai_app.test_client()
+            ai_cfg["engine"]["enabled"] = False
+            ai_cfg["engine"]["priority"] = "local_ai_ocs"
+            resp_save = ai_client.post(
+                "/api/ai/rpc",
+                json={"action": "config.save", "params": {"config": ai_cfg}},
+            )
+            self.assertEqual(resp_save.status_code, 200)
+
+            saved_web = web_app.load_web_config()
+            self.assertFalse(saved_web["settings"]["tiku_config"]["ai_enabled"])
+            self.assertEqual(saved_web["settings"]["tiku_config"]["ai_priority"], "local_ai_ocs")
+
+            # 3) Outer GET /api/config reflects ai_config.json even if web_config.json had stale/empty tiku_config
+            self.cfg.update({"engine": {"enabled": True, "priority": "ocs_only"}})
+            get_res = client.get("/api/config").get_json()["data"]
+            self.assertEqual(get_res["aiEngine"], {"enabled": True, "priority": "ocs_only"})
+            self.assertTrue(get_res["settings"]["tiku_config"]["ai_enabled"])
+            self.assertEqual(get_res["settings"]["tiku_config"]["ai_priority"], "ocs_only")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import AIWorkspace from './AIWorkspace';
+import QuickTutorDrawer from './QuickTutorDrawer';
 import { aiApi } from '../../api/aiApi';
 
 afterEach(() => {
@@ -405,10 +406,11 @@ describe('AIWorkspace', () => {
     });
   });
 
-  it('omits local OCS server card and supports Chaoxing Agent tool calls in QuickTutorDrawer', async () => {
+  it('omits header quick tutor button, subtitle, and local OCS server card, and supports Chaoxing Agent tool calls in QuickTutorDrawer', async () => {
     setupDefaultMocks();
     const onAgentEffects = vi.fn();
     const onViewProgress = vi.fn();
+    const onAiEngineChange = vi.fn();
     const chatSpy = vi.spyOn(aiApi, 'chatWithAgent').mockResolvedValue({
       session: {
         id: 'sess-agent',
@@ -428,12 +430,26 @@ describe('AIWorkspace', () => {
       },
       uiEffects: [{ type: 'task_started', taskId: 'task-999', taskType: 'study' }],
     });
+    const saveSpy = vi.spyOn(aiApi, 'saveConfig').mockResolvedValue({
+      config: {
+        ...mockConfig,
+        engine: { ...mockConfig.engine, enabled: false, priority: 'local_ai_only' },
+      },
+      server: { running: false, port: 3005, url: 'http://127.0.0.1:3005/query', ocsConfigJson: '[]' },
+    });
+
+    const chaoxingContext = {
+      userInfo: { username: '13800138000', password: '', use_cookies: true },
+      activeTaskId: null,
+      taskStatus: null,
+    };
 
     render(
       <AIWorkspace
         onBack={vi.fn()}
-        chaoxingContext={{ userInfo: { username: '13800138000', password: '', use_cookies: true }, activeTaskId: null, taskStatus: null }}
+        chaoxingContext={chaoxingContext}
         onAgentEffects={onAgentEffects}
+        onAiEngineChange={onAiEngineChange}
         onViewProgress={onViewProgress}
       />
     );
@@ -441,9 +457,33 @@ describe('AIWorkspace', () => {
     expect(await screen.findByText('分层答题模型调度')).toBeTruthy();
     expect(screen.queryByText('本地 OCS 题库服务')).toBeNull();
     expect(screen.queryByText('复制 OCS 配置')).toBeNull();
+    expect(screen.queryByRole('button', { name: /快捷助教/ })).toBeNull();
+    expect(screen.queryByText(/多模型并发答题 · 本地 SQLite 题库/)).toBeNull();
 
-    // Open QuickTutorDrawer and trigger quick Agent action
-    fireEvent.click(screen.getByRole('button', { name: /快捷助教/ }));
+    // Saving engine settings inside AIWorkspace notifies parent so outer toggle stays in sync
+    fireEvent.click(screen.getByRole('button', { name: '模型与搜题设置' }));
+    fireEvent.click(await screen.findByRole('button', { name: '双题库与协同引擎' }));
+    fireEvent.click(screen.getByRole('button', { name: /仅本地 SQLite \+ 内置 AI/ }));
+    fireEvent.click(screen.getByRole('button', { name: /保存全部设置/ }));
+    await waitFor(() => {
+      expect(saveSpy).toHaveBeenCalled();
+      expect(onAiEngineChange).toHaveBeenCalledWith(
+        expect.objectContaining({ enabled: false, priority: 'local_ai_only' })
+      );
+    });
+
+    // QuickTutorDrawer still supports Chaoxing Agent tool calls
+    cleanup();
+    render(
+      <QuickTutorDrawer
+        open
+        config={mockConfig}
+        chaoxingContext={chaoxingContext}
+        onAgentEffects={onAgentEffects}
+        onViewProgress={onViewProgress}
+        onClose={vi.fn()}
+      />
+    );
     expect(await screen.findByRole('dialog', { name: '快捷 AI 助教' })).toBeTruthy();
     expect(screen.getByText('Agent 已连学习通')).toBeTruthy();
 
